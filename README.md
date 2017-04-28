@@ -1,13 +1,6 @@
 
-# Table of Contents
 
-1.  [smp<sub>graphs</sub>](#orgf6134b8)
-    1.  [Predecessors](#orge8c4dca)
-
-
-<a id="orgf6134b8"></a>
-
-# smp<sub>graphs</sub>
+# smp\_graphs
 
 Specifiy experiments as a graph of nodes and a set of signals,
 corresponding nicely with tapping approach.
@@ -38,14 +31,12 @@ corresponding nicely with tapping approach.
 -   networkx?
 
 
-<a id="orge8c4dca"></a>
-
 ## Predecessors
 
 My foruth attempt at a framework for computational sensorimotor
 learning experiments. Earlier attempts are:
 
--   smp<sub>experiments</sub>: config as name value pairs and some python code
+-   smp\_experiments: config as name value pairs and some python code
     wrapping to reuse singular experiments in an outer loop
 -   smpblocks: first attempt at python config files containing a
     dictionary specifying generic computation blocks and their

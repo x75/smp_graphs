@@ -1,4 +1,6 @@
 
+#+OPTIONS: ^:nil toc:nil
+
 * smp_graphs
 
 Specifiy experiments as a graph of nodes and a set of signals,
@@ -31,7 +33,7 @@ corresponding nicely with tapping approach.
 
 ** Predecessors
 
-My foruth attempt at a framework for computational sensorimotor
+My fourth attempt at a framework for computational sensorimotor
 learning experiments. Earlier attempts are:
  - smp_experiments: config as name value pairs and some python code
    wrapping to reuse singular experiments in an outer loop
