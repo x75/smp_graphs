@@ -205,20 +205,3 @@ class UniformRandomBlock(Block):
         self.bus[self.id] = self.x
         return self.x
 
-################################################################################
-# Plotting blocks
-
-import matplotlib.pyplot as plt
-    
-class TimeseriesPlotBlock(Block):
-    def __init__(self, block = None, conf = None, bus = None):
-        Block.__init__(self, block = block, conf = conf, bus = bus)
-
-    @decStep()
-    def step(self, x = None):
-        if self.cnt == (self.blocksize - 1):
-            self.debug_print("%s.step ibuf = %s" % (self.__class__.__name__, self.bufs['ibuf']))
-            plt.plot(self.bufs['ibuf'].T)
-            plt.show()
-        else:
-            self.debug_print("%s.step" % (self.__class__.__name__))

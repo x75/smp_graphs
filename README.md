@@ -33,7 +33,7 @@ corresponding nicely with tapping approach.
 
 ## Predecessors
 
-My foruth attempt at a framework for computational sensorimotor
+My fourth attempt at a framework for computational sensorimotor
 learning experiments. Earlier attempts are:
 
 -   smp\_experiments: config as name value pairs and some python code

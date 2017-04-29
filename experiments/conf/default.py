@@ -4,7 +4,10 @@ from smp_graphs.experiment import make_expr_id
 from collections import OrderedDict
 
 from smp_graphs.block import Block, ConstBlock, UniformRandomBlock
-from smp_graphs.block import TimeseriesPlotBlock
+from smp_graphs.block_plot import TimeseriesPlotBlock
+
+# how can we avoid this?
+from plot import timeseries, histogram
 
 numsteps = 100
 
@@ -37,7 +40,18 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'idim': 6,
             'odim': 3,
-            'inputs': ['b1', 'b2']
+            'inputs': ['b1', 'b2'],
+            'subplots': [
+                [
+                    {'inputs': (0, 3), 'plot': timeseries},
+                    {'inputs': (0, 3), 'plot': histogram},
+                ],
+                [
+                    {'inputs': (3, 6), 'plot': timeseries},
+                    {'inputs': (3, 6), 'plot': histogram},
+                ],
+#                [(3, 6)]]
+            ]
         }
     })
 ])
