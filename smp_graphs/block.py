@@ -8,6 +8,7 @@ block: basic block of computation
 
 import uuid, sys
 from collections import OrderedDict
+import pickle
 
 import numpy as np
 
@@ -205,3 +206,32 @@ class UniformRandomBlock(Block):
         self.bus[self.id] = self.x
         return self.x
 
+# File reading
+class FileBlock(Block):
+    def __init__(self, block = None, conf = None, bus = None):
+        Block.__init__(self, block = block, conf = conf, bus = bus)
+        # multiple files: concat? block manipulation blocks?
+        self.file = []
+        # auto odim
+        # if self.odim == 'auto':
+        lfile = conf['file'][0]
+        if lfile.endswith('.pickle'):
+            d = pickle.load(open(lfile, 'rb'))
+            wavdata_raw = d["y"][:,0,0] # , d["y"]
+            wavrate = 20
+            offset = 0
+            self.data = wavdata_raw
+            self.odim = 1
+            print "wavdata", self.data.shape
+            # self.odim = self.data.shape[1]
+            # FIXME call data type load func
+            # self.files.append()
+        self.x = np.zeros((self.odim, 1))
+
+    @decStep()
+    def step(self, x = None):
+        self.debug_print("%s.step: x = %s, bus = %s" % (self.__class__.__name__, x, self.bus))
+        self.x = np.atleast_2d(self.data[[self.cnt]]).T #?
+        print "self.x", self.x
+        self.bus[self.id] = self.x
+        return self.x

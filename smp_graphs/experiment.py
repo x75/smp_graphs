@@ -2,6 +2,8 @@
 import argparse
 import time
 
+import matplotlib.pyplot as plt
+
 from smp_graphs.block import Block
 
 def get_args():
@@ -78,3 +80,5 @@ Load a config from the file in args.conf
             topblock_x = self.topblock.step(x = None)
 
         print "final return value topblock.x = %s" % (topblock_x)
+
+        plt.show()

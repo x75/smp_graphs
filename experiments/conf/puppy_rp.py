@@ -1,11 +1,5 @@
-"""smp_graphs default conf
-
-the config is python, so we
- - import stuff we need in the config
- - put the graph config into a dict
+"""smp_graphs puppy recurrence plot conf
 """
-
-# would like to get rid of this, common for all conf
 
 # imports
 from smp_graphs.experiment import make_expr_id
@@ -13,6 +7,8 @@ from smp_graphs.experiment import make_expr_id
 from collections import OrderedDict
 
 from smp_graphs.block import Block, ConstBlock, UniformRandomBlock
+from smp_graphs.block import FileBlock
+
 from smp_graphs.block_plot import TimeseriesPlotBlock
 
 from smp_base.plot import timeseries, histogram
@@ -22,8 +18,23 @@ import numpy as np
 # reuse
 numsteps = 100
 
+# files array or enclosing loop block?
+
 # graph
 graph = OrderedDict([
+    # puppy data
+    ('puppydata', {
+        'block': FileBlock,
+        'params': {
+            'id': 'puppydata',
+            'idim': None,
+            'odim': 1, # 'auto',
+            'debug': True,
+            'file': [
+                'data/pickles_puppy_03_22_14U/recording_eC0.41_eA0.03_c0.50_n1000_id0.pickle',
+            ]
+        },
+    }),
     # a constant
     ("b1", {
         'block': ConstBlock,
@@ -53,18 +64,18 @@ graph = OrderedDict([
         'params': {
             'id': 'bplot',
             'blocksize': numsteps,
-            'idim': 6,
+            'idim': 4,
             'odim': 3,
-            'debug': False,
-            'inputs': ['b1', 'b2'],
+            'debug': True,
+            'inputs': ['puppydata', 'b2'],
             'subplots': [
                 [
-                    {'inputs': (0, 3), 'plot': timeseries},
-                    {'inputs': (0, 3), 'plot': histogram},
+                    {'inputs': (0, 1), 'plot': timeseries},
+                    {'inputs': (0, 1), 'plot': histogram},
                 ],
                 [
-                    {'inputs': (3, 6), 'plot': timeseries},
-                    {'inputs': (3, 6), 'plot': histogram},
+                    {'inputs': (1, 4), 'plot': timeseries},
+                    {'inputs': (1, 4), 'plot': histogram},
                 ],
             ]
         }
