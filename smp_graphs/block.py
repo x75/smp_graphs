@@ -14,6 +14,8 @@ import numpy as np
 
 import smp_graphs.logging as log
 
+BLOCKSIZE_MAX = 10000
+
 # some decorators
 class decInit():
     def __call__(self, f):
@@ -108,6 +110,9 @@ handles both primitive and composite blocks
         # count steps
         self.cnt = 0
 
+        # minimum blocksize downstairs
+        self.blocksize_min = BLOCKSIZE_MAX
+
         # initialize local buffers
         self.init_bufs()
 
@@ -136,15 +141,25 @@ handles both primitive and composite blocks
                 self.debug_print("nodekey = %s", (nodekey))
                 # self.nodes[nodekey] = Block(block = nv['block'], conf = nv['params'])
                 self.nodes[nodekey] = nv['block'](block = nv['block'], conf = nv['params'], bus = self.bus)
-                # FIXME: make the one min_blocksize over graph
-                self.bus[nodekey] = np.zeros((self.nodes[nodekey].odim, 1))
-                
+
+                # blocksize check
+                if self.nodes[nodekey].blocksize < self.blocksize_min:
+                    self.blocksize_min = self.nodes[nodekey].blocksize
+                    
                 # initialize block logging
                 log.log_pd_init_block(tbl_name = self.nodes[nodekey].id,
                                         tbl_dim = self.nodes[nodekey].odim,
                                         tbl_columns = ["out_%d" % col for col in range(self.nodes[nodekey].odim)],
                                         numsteps = self.numsteps)
             print "%s.init: conf = %s"  %(self.__class__.__name__, conf)
+
+            # done, all block added to top block, now reiterate
+            for i, node in enumerate(self.nodes.items()):
+                print "node", node
+                nk, nv = node
+                # FIXME: make one min_blocksize over graph
+                self.bus[nk] = np.zeros((self.nodes[nk].odim, 1))
+            
         # atomic block
         elif type(conf) is dict and block is not None:
             self.debug_print("block is %s, nothing to do", (block))
@@ -176,11 +191,11 @@ handles both primitive and composite blocks
             # do logging
             for k, v in self.bus.items():
                 self.debug_print("%s.step: bus k = %s, v = %s", (self.__class__.__name__, k, v.shape))
-                # log.log_pd(nodeid = k, data = v)
+                log.log_pd(nodeid = k, data = v)
 
         # store log
-        # if (self.cnt+1) % 100 == 0:
-        #     log.log_pd_store()
+        if (self.cnt+1) % 100 == 0:
+            log.log_pd_store()
 
         return(x_)
 
@@ -237,7 +252,6 @@ def read_puppy_hk_pickles(lfile):
     data = np.atleast_2d(data).T
     # print "wavdata", data.shape
     return (data, rate, offset)
-    
     
 class FileBlock(Block):
     @decInit()

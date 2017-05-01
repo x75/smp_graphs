@@ -19,13 +19,16 @@ corresponding nicely with tapping approach.
    does that internally
 
  - global config: e.g. fileblock setting its odim, use global config
-   inside blocks, dynamic graph structure, change notification, 
+   inside blocks, dynamic graph structure, change notification. make
+   dynamic foo and write back the results into config
+   - loop block / dynamic blocks that can change the graph
 
  - file sources: load data in config or in block?
 
  - blocksize vs. numsteps
-
- - loop block / dynamic blocks that can change the graph
+ 
+ - bus: make bus a structured dict, allowing blocks to have several
+   outputs, this make odim obsolete
 
  - read/write: ros
 
