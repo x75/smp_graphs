@@ -18,7 +18,8 @@ corresponding nicely with tapping approach.
  - x input buffering: ring buffer decorator: use np.roll hoping it
    does that internally
 
- - global config: e.g. fileblock setting its odim
+ - global config: e.g. fileblock setting its odim, use global config
+   inside blocks, dynamic graph structure, change notification, 
 
  - file sources: load data in config or in block?
 
