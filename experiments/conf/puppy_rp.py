@@ -30,10 +30,12 @@ graph = OrderedDict([
             'id': 'puppydata',
             'idim': None,
             'odim': 'auto',
-            'debug': False,
+            'debug': True,
+            'blocksize': numsteps,
             'file': [
                 'data/pickles_puppy_03_22_14U/recording_eC0.41_eA0.03_c0.50_n1000_id0.pickle',
-            ]
+            ],
+            'outputs': {'x': [0], 'y': [0]},
         },
     }),
     # a constant
@@ -44,6 +46,8 @@ graph = OrderedDict([
             'idim': None,
             'odim': 3,
             'const': np.random.uniform(-1, 1, (3, 1)),
+            'outputs': {'x': [3]},
+            'debug': True,
         },
     }),
     # a random number generator, mapping const input to hi
@@ -55,7 +59,9 @@ graph = OrderedDict([
             'odim': 3,
             'lo': 0,
             'hi': 1,
-            'inputs': ['b1']
+            'inputs': ['b1/x'],
+            'outputs': {'x': [3]},
+            'debug': True,
         },
     }),
     # plot module with blocksize = episode, fetching input from busses
@@ -66,9 +72,9 @@ graph = OrderedDict([
             'id': 'bplot',
             'blocksize': numsteps,
             'idim': 4,
-            'odim': 3,
-            'debug': False,
-            'inputs': ['puppydata', 'b2'],
+            'odim': 1,
+            'debug': True,
+            'inputs': ['puppydata/x', 'b2/x'],
             'subplots': [
                 [
                     {'inputs': (0, 1), 'plot': timeseries},

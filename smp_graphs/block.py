@@ -46,7 +46,9 @@ class decStep():
             # input argument above might be obsolete due to busses
             # get the input from the bus
             if exec_self.idim is not None:
-                x = np.vstack([exec_self.bus[k] for k in exec_self.inputs])
+                stack = [exec_self.bus[k] for k in exec_self.inputs]
+                # print "stack", stack
+                x = np.vstack(stack)
 
             # print "decStep: x.shape = %s" % (x.shape,)
             
@@ -87,7 +89,8 @@ handles both primitive and composite blocks
         'topblock': False,
         'ros': False,
         'debug': False,
-        'inputs': []
+        'inputs': [],
+        'outputs': {'x': [1]} # name, dim
     }
 
     # @decInit()
@@ -140,25 +143,34 @@ handles both primitive and composite blocks
                 nodekey = nv['params']['id'] # self.id # 'n%04d' % i
                 self.debug_print("nodekey = %s", (nodekey))
                 # self.nodes[nodekey] = Block(block = nv['block'], conf = nv['params'])
-                self.nodes[nodekey] = nv['block'](block = nv['block'], conf = nv['params'], bus = self.bus)
+                # create node
+                self.nodes[nodekey] = nv['block'](
+                    block = nv['block'],
+                    conf = nv['params'],
+                    bus = self.bus)
 
                 # blocksize check
                 if self.nodes[nodekey].blocksize < self.blocksize_min:
                     self.blocksize_min = self.nodes[nodekey].blocksize
                     
                 # initialize block logging
-                log.log_pd_init_block(tbl_name = self.nodes[nodekey].id,
-                                        tbl_dim = self.nodes[nodekey].odim,
-                                        tbl_columns = ["out_%d" % col for col in range(self.nodes[nodekey].odim)],
+                for k, v in self.nodes[nodekey].outputs.items():
+                    log.log_pd_init_block(
+                        tbl_name = "%s/%s" % (self.nodes[nodekey].id, k),
+                        tbl_dim = v[0], # odim
+                        tbl_columns = ["out_%d" % col for col in range(v[0])],
                                         numsteps = self.numsteps)
-            print "%s.init: conf = %s"  %(self.__class__.__name__, conf)
+            # print "%s.init: conf = %s"  %(self.__class__.__name__, conf)
 
             # done, all block added to top block, now reiterate
             for i, node in enumerate(self.nodes.items()):
-                print "node", node
+                print "%s.init nodes.item = %s" % (self.__class__.__name__, node)
                 nk, nv = node
-                # FIXME: make one min_blocksize over graph
-                self.bus[nk] = np.zeros((self.nodes[nk].odim, 1))
+                # FIXME: make one min_blocksize bus group for each node output
+                for outkey, outparams in self.nodes[nk].outputs.items():
+                    nodeoutkey = "%s/%s" % (nk, outkey)
+                    print "bus %s, outkey %s, odim = %d" % (nk, nodeoutkey, outparams[0])
+                    self.bus[nodeoutkey] = np.zeros((self.nodes[nk].odim, 1))
             
         # atomic block
         elif type(conf) is dict and block is not None:
@@ -190,7 +202,8 @@ handles both primitive and composite blocks
         if self.topblock:
             # do logging
             for k, v in self.bus.items():
-                self.debug_print("%s.step: bus k = %s, v = %s", (self.__class__.__name__, k, v.shape))
+                self.debug_print("%s.step: bus k = %s, v = %s, %s", (self.__class__.__name__, k, v.shape))
+                # print "%s id" % (self.__class__.__name__), self.id, "k", k, v.shape, v
                 log.log_pd(nodeid = k, data = v)
 
         # store log
@@ -208,8 +221,9 @@ handles both primitive and composite blocks
         pass
 
     def debug_print(self, fmtstring, data):
+        """only print if debug is enabled for this block"""
         if self.debug:
-            print fmtstring, data
+            print fmtstring % data
 
 ################################################################################
 # Simple blocks for testing
@@ -223,7 +237,10 @@ class ConstBlock(Block):
     @decStep()
     def step(self, x = None):
         self.debug_print("%s.step: x = %s, bus = %s", (self.__class__.__name__, x, self.bus))
-        self.bus[self.id] = self.x
+        # loop over outputs dict and copy them to a slot in the bus
+        for k, v in self.outputs.items():
+            buskey = "%s/%s" % (self.id, k)
+            self.bus[buskey] = getattr(self, k)
         return self.x
 
 class UniformRandomBlock(Block):
@@ -237,20 +254,25 @@ class UniformRandomBlock(Block):
         self.debug_print("%s.step: x = %s, bus = %s, inputs = %s", (self.__class__.__name__, x, self.bus, self.inputs))
         self.hi = x
         self.x = np.random.uniform(self.lo, self.hi, (self.odim, 1))
-        self.bus[self.id] = self.x
+        # loop over outputs dict and copy them to a slot in the bus
+        for k, v in self.outputs.items():
+            buskey = "%s/%s" % (self.id, k)
+            self.bus[buskey] = getattr(self, k)
+        # self.bus[self.id] = self.x
         return self.x
 
 # File reading
 
-def read_puppy_hk_pickles(lfile):
+def read_puppy_hk_pickles(lfile, key = None):
     """read pickled log dicts from andi's puppy experiments"""
     d = pickle.load(open(lfile, 'rb'))
     # print "d.keys", d.keys()
-    data = d["y"][:,0,0] # , d["y"]
+    # data = d["y"][:,0,0] # , d["y"]
     rate = 20
     offset = 0
-    data = np.atleast_2d(data).T
+    # data = np.atleast_2d(data).T
     # print "wavdata", data.shape
+    data = d
     return (data, rate, offset)
     
 class FileBlock(Block):
@@ -265,16 +287,30 @@ class FileBlock(Block):
         # puppy homeokinesis (andi)
         if lfile.startswith('data/pickles_puppy') and lfile.endswith('.pickle'):
             (self.data, self.rate, self.offset) = read_puppy_hk_pickles(lfile)
+            # setattr(self, 'x', self.data['x'])
+            # setattr(self, 'x', self.data['x'])
 
+        # init states
+        for key, v in self.outputs.items(): # ['x', 'y']:
+            # print "key", self.data[key]
+            setattr(self, key, np.zeros((self.data[key].shape[1], 1)))
+            # self.x = np.zeros((self.odim, 1))
+        
         # set odim from file
-        self.odim = self.data.shape[1]
-        # init x
-        self.x = np.zeros((self.odim, 1))
+        self.odim = self.x.shape[1] # None # self.data.shape[1]
 
     @decStep()
     def step(self, x = None):
         self.debug_print("%s.step: x = %s, bus = %s", (self.__class__.__name__, x, self.bus))
-        self.x = np.atleast_2d(self.data[[self.cnt]]).T #?
+        # self.x = np.atleast_2d(self.data[[self.cnt]]).T #?
         self.debug_print("self.x = %s", (self.x))
-        self.bus[self.id] = self.x
+        for k, v in self.outputs.items():
+            buskey = "%s/%s" % (self.id, k)
+            # self.bus[buskey] = getattr(self, k)
+            if k.endswith('x'):
+                print "endswith"
+                self.bus[buskey] = self.data[k][[self.cnt],:,0].T
+            else:
+                self.bus[buskey] = self.data[k][[self.cnt]].T
+        # self.bus[buskey] = self.x
         return self.x

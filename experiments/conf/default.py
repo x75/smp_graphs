@@ -32,6 +32,8 @@ graph = OrderedDict([
             'idim': None,
             'odim': 3,
             'const': np.random.uniform(-1, 1, (3, 1)),
+            'outputs': {'x': [3]},
+            'debug': False,
         },
     }),
     # a random number generator, mapping const input to hi
@@ -43,7 +45,9 @@ graph = OrderedDict([
             'odim': 3,
             'lo': 0,
             'hi': 1,
-            'inputs': ['b1']
+            'inputs': ['b1/x'],
+            'outputs': {'x': [3]},
+            'debug': True,
         },
     }),
     # plot module with blocksize = episode, fetching input from busses
@@ -56,7 +60,8 @@ graph = OrderedDict([
             'idim': 6,
             'odim': 3,
             'debug': False,
-            'inputs': ['b1', 'b2'],
+            'inputs': ['b1/x', 'b2/x'],
+            'outputs': {'x': [3]},
             'subplots': [
                 [
                     {'inputs': (0, 3), 'plot': timeseries},
@@ -78,6 +83,6 @@ conf = {
         'id': make_expr_id(),
         'topblock': True,
         "numsteps": numsteps,
-        "graph": graph
+        "graph": graph,
     }
 }

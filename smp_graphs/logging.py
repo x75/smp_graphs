@@ -132,6 +132,8 @@ Arguments:
     global log_lognodes, log_lognodes_idx
     # print "data.shape", data.flatten().shape, log_lognodes_idx[nodeid]
     cloc = log_lognodes_idx[nodeid]
+    # print "log_lognodes[nodeid].loc[cloc].shape = %s, data.shape = %s" % (log_lognodes[nodeid].loc[cloc].shape, data.shape)
+    # using flatten to remove last axis, FIXME for block based logging
     log_lognodes[nodeid].loc[cloc] = data.flatten()
     # log_lognodes[nodeid].loc[0] = 1
     # print "log_lognodes[nodeid]", log_lognodes[nodeid], log_lognodes[nodeid].loc[cloc]
