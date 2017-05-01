@@ -12,11 +12,12 @@ from smp_graphs.block import FileBlock
 from smp_graphs.block_plot import TimeseriesPlotBlock
 
 from smp_base.plot import timeseries, histogram
+from smp_base.plot import rp_timeseries_embedding
 
 import numpy as np
 
 # reuse
-numsteps = 100
+numsteps = 1000
 
 # files array or enclosing loop block?
 
@@ -28,8 +29,8 @@ graph = OrderedDict([
         'params': {
             'id': 'puppydata',
             'idim': None,
-            'odim': 1, # 'auto',
-            'debug': True,
+            'odim': 'auto',
+            'debug': False,
             'file': [
                 'data/pickles_puppy_03_22_14U/recording_eC0.41_eA0.03_c0.50_n1000_id0.pickle',
             ]
@@ -66,16 +67,18 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'idim': 4,
             'odim': 3,
-            'debug': True,
+            'debug': False,
             'inputs': ['puppydata', 'b2'],
             'subplots': [
                 [
                     {'inputs': (0, 1), 'plot': timeseries},
                     {'inputs': (0, 1), 'plot': histogram},
+                    {'inputs': (0, 1), 'plot': rp_timeseries_embedding},
                 ],
                 [
                     {'inputs': (1, 4), 'plot': timeseries},
                     {'inputs': (1, 4), 'plot': histogram},
+                    {'inputs': (1, 4), 'plot': rp_timeseries_embedding},
                 ],
             ]
         }

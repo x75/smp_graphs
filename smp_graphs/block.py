@@ -15,6 +15,20 @@ import numpy as np
 import smp_graphs.logging as log
 
 # some decorators
+class decInit():
+    def __call__(self, f):
+        def wrap(exec_self, *args, **kwargs):
+            f(exec_self, *args, **kwargs)
+            # write dynamic changes back to config
+            if type(kwargs['conf']) == dict: # and kwargs['conf'].has_key('graph'):
+                for k,v in kwargs['conf'].items():
+                    # print "%s k = %s, v = %s" % (exec_self.__class__.__name__, k, v)
+                    kwargs['conf'][k] = exec_self.__dict__[k]
+                    # print "xxx", k, v
+                # print "%s, conf = %s" % (exec_self.__class__.__name__, kwargs['conf'])
+        return wrap
+            
+
 class decStep():
     """step decorator"""
     def __call__(self, f):
@@ -74,12 +88,13 @@ handles both primitive and composite blocks
         'inputs': []
     }
 
+    # @decInit()
     def __init__(self, block = None, conf = None, bus = None):
         # fetch default block config
         for k,v in self.defaults.items():
             self.__dict__[k] = v
             
-        self.debug_print("%s.__init__: conf = %s" % (self.__class__.__name__, conf))
+        self.debug_print("%s.__init__: conf = %s", (self.__class__.__name__, conf))
         # fetch configuration arguments if block is primitive and conf is a dict 
         if type(conf) == dict:
             for k,v in conf.items():
@@ -88,7 +103,7 @@ handles both primitive and composite blocks
         # auto-generate id if None supplied
         if self.id is None:
             # self.id = self.__class__.__name__ + "_%s" % uuid.uuid4()
-            self.id = self.__class__.__name__ + "_%s" % (uuid.uuid1().int>>64)
+            self.id = self.__class__.__name__ + "_%s", (uuid.uuid1().int>>64)
 
         # count steps
         self.cnt = 0
@@ -113,14 +128,15 @@ handles both primitive and composite blocks
             # for node_key, node_val in conf.items():
             for i, node in enumerate(conf['graph'].items()):
                 nk, nv = node
-                # print "key: %s, val = %s" % (node_key, node_val)
-                self.debug_print("node[%d] = %s(%s)" % (i, nv['block'], nv['params']))
-                # s = "%s(%s)" % (node_val["block"], node_val["params"])
+                # print "key: %s, val = %s", (node_key, node_val)
+                self.debug_print("node[%d] = %s(%s)", (i, nv['block'], nv['params']))
+                # s = "%s(%s)", (node_val["block"], node_val["params"])
                 # self.nodes[node_key] = node_val['block'](node_val['params'])
                 nodekey = nv['params']['id'] # self.id # 'n%04d' % i
-                self.debug_print("nodekey = %s" % (nodekey))
+                self.debug_print("nodekey = %s", (nodekey))
                 # self.nodes[nodekey] = Block(block = nv['block'], conf = nv['params'])
                 self.nodes[nodekey] = nv['block'](block = nv['block'], conf = nv['params'], bus = self.bus)
+                # FIXME: make the one min_blocksize over graph
                 self.bus[nodekey] = np.zeros((self.nodes[nodekey].odim, 1))
                 
                 # initialize block logging
@@ -128,9 +144,10 @@ handles both primitive and composite blocks
                                         tbl_dim = self.nodes[nodekey].odim,
                                         tbl_columns = ["out_%d" % col for col in range(self.nodes[nodekey].odim)],
                                         numsteps = self.numsteps)
+            print "%s.init: conf = %s"  %(self.__class__.__name__, conf)
         # atomic block
         elif type(conf) is dict and block is not None:
-            self.debug_print("block is %s, nothing to do" % (block))
+            self.debug_print("block is %s, nothing to do", (block))
             # self.nodes['n0000'] = self
             # self.step = step_funcs[block]
 
@@ -146,7 +163,7 @@ handles both primitive and composite blocks
             
     @decStep()
     def step(self, x = None):
-        self.debug_print("%s-%s.step: x = %s" % (self.__class__.__name__, self.id, x))
+        self.debug_print("%s-%s.step: x = %s", (self.__class__.__name__, self.id, x))
         # iterate all nodes and step them
         if self.nodes is not None:
             for k,v in self.nodes.items():
@@ -158,12 +175,12 @@ handles both primitive and composite blocks
         if self.topblock:
             # do logging
             for k, v in self.bus.items():
-                self.debug_print("%s.step: bus k = %s, v = %s" % (self.__class__.__name__, k, v.shape))
-                log.log_pd(nodeid = k, data = v)
+                self.debug_print("%s.step: bus k = %s, v = %s", (self.__class__.__name__, k, v.shape))
+                # log.log_pd(nodeid = k, data = v)
 
         # store log
-        if (self.cnt+1) % 100 == 0:
-            log.log_pd_store()
+        # if (self.cnt+1) % 100 == 0:
+        #     log.log_pd_store()
 
         return(x_)
 
@@ -175,39 +192,55 @@ handles both primitive and composite blocks
         """load block from a pickle"""
         pass
 
-    def debug_print(self, data):
+    def debug_print(self, fmtstring, data):
         if self.debug:
-            print data
+            print fmtstring, data
 
 ################################################################################
 # Simple blocks for testing
 
 class ConstBlock(Block):
+    @decInit()
     def __init__(self, block = None, conf = None, bus = None):
         Block.__init__(self, block = block, conf = conf, bus = bus)
         self.x = np.ones((self.odim, 1)) * self.const
 
     @decStep()
     def step(self, x = None):
-        self.debug_print("%s.step: x = %s, bus = %s" % (self.__class__.__name__, x, self.bus))
+        self.debug_print("%s.step: x = %s, bus = %s", (self.__class__.__name__, x, self.bus))
         self.bus[self.id] = self.x
         return self.x
 
 class UniformRandomBlock(Block):
+    @decInit()
     def __init__(self, block = None, conf = None, bus = None):
         Block.__init__(self, block = block, conf = conf, bus = bus)
         self.x = np.random.uniform(self.lo, self.hi, (self.odim, 1))
 
     @decStep()
     def step(self, x = None):
-        self.debug_print("%s.step: x = %s, bus = %s, inputs = %s" % (self.__class__.__name__, x, self.bus, self.inputs))
+        self.debug_print("%s.step: x = %s, bus = %s, inputs = %s", (self.__class__.__name__, x, self.bus, self.inputs))
         self.hi = x
         self.x = np.random.uniform(self.lo, self.hi, (self.odim, 1))
         self.bus[self.id] = self.x
         return self.x
 
 # File reading
+
+def read_puppy_hk_pickles(lfile):
+    """read pickled log dicts from andi's puppy experiments"""
+    d = pickle.load(open(lfile, 'rb'))
+    # print "d.keys", d.keys()
+    data = d["y"][:,0,0] # , d["y"]
+    rate = 20
+    offset = 0
+    data = np.atleast_2d(data).T
+    # print "wavdata", data.shape
+    return (data, rate, offset)
+    
+    
 class FileBlock(Block):
+    @decInit()
     def __init__(self, block = None, conf = None, bus = None):
         Block.__init__(self, block = block, conf = conf, bus = bus)
         # multiple files: concat? block manipulation blocks?
@@ -215,23 +248,19 @@ class FileBlock(Block):
         # auto odim
         # if self.odim == 'auto':
         lfile = conf['file'][0]
-        if lfile.endswith('.pickle'):
-            d = pickle.load(open(lfile, 'rb'))
-            wavdata_raw = d["y"][:,0,0] # , d["y"]
-            wavrate = 20
-            offset = 0
-            self.data = wavdata_raw
-            self.odim = 1
-            print "wavdata", self.data.shape
-            # self.odim = self.data.shape[1]
-            # FIXME call data type load func
-            # self.files.append()
+        # puppy homeokinesis (andi)
+        if lfile.startswith('data/pickles_puppy') and lfile.endswith('.pickle'):
+            (self.data, self.rate, self.offset) = read_puppy_hk_pickles(lfile)
+
+        # set odim from file
+        self.odim = self.data.shape[1]
+        # init x
         self.x = np.zeros((self.odim, 1))
 
     @decStep()
     def step(self, x = None):
-        self.debug_print("%s.step: x = %s, bus = %s" % (self.__class__.__name__, x, self.bus))
+        self.debug_print("%s.step: x = %s, bus = %s", (self.__class__.__name__, x, self.bus))
         self.x = np.atleast_2d(self.data[[self.cnt]]).T #?
-        print "self.x", self.x
+        self.debug_print("self.x = %s", (self.x))
         self.bus[self.id] = self.x
         return self.x

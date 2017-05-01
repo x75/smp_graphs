@@ -66,12 +66,16 @@ Load a config from the file in args.conf
         self.conf = get_config_raw(args.conf)
         self.conf = set_config_defaults(self.conf)
 
-        print "%s.init: conf = %s" % (self.__class__.__name__, self.conf)
+        # print "%s.init: conf = %s" % (self.__class__.__name__, self.conf)
 
         self.numsteps = self.conf['params']['numsteps']
 
-        self.topblock = Block(block = self.conf['block'],
-                                  conf = self.conf['params'])
+        self.topblock = Block(
+            block = self.conf['block'],
+            conf = self.conf['params'],
+        )
+
+        print self.conf['params']
 
     def run(self):
         print "%s.run: conf['numsteps'] = %d" % (self.__class__.__name__, self.numsteps)

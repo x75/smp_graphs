@@ -12,12 +12,19 @@ corresponding nicely with tapping approach.
 
  - x logging
 
- - input mapping: what are inputs / params, how to select from busses
+ - x input mapping: what are inputs / params, how to select from busses
    and map to local variable
 
- - input buffering: ring buffer decorator
+ - x input buffering: ring buffer decorator: use np.roll hoping it
+   does that internally
+
+ - global config: e.g. fileblock setting its odim
+
+ - file sources: load data in config or in block?
 
  - blocksize vs. numsteps
+
+ - loop block / dynamic blocks that can change the graph
 
  - read/write: ros
 
