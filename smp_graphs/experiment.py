@@ -2,9 +2,14 @@
 import argparse
 import time
 
+from collections import OrderedDict
+
 import matplotlib.pyplot as plt
 
-from smp_graphs.block import Block
+import numpy as np
+
+from smp_graphs.block import Block, Block2
+from smp_graphs.utils import print_dict
 
 def get_args():
     # define defaults
@@ -65,23 +70,33 @@ Load a config from the file in args.conf
     def __init__(self, args):
         self.conf = get_config_raw(args.conf)
         self.conf = set_config_defaults(self.conf)
-
-        # print "%s.init: conf = %s" % (self.__class__.__name__, self.conf)
-
-        self.numsteps = self.conf['params']['numsteps']
-
-        self.topblock = Block(
-            block = self.conf['block'],
-            conf = self.conf['params'],
-        )
-
-        print self.conf['params']
-
-    def run(self):
-        print "%s.run: conf['numsteps'] = %d" % (self.__class__.__name__, self.numsteps)
         
-        for i in xrange(self.numsteps):
+        print "%s.init: conf keys = %s\n" % (self.__class__.__name__, self.conf.keys())
+        
+        for k in self.conf.keys():
+            setattr(self, k, self.conf[k])
+            print "%s.init: self.%s = %s\n" % (self.__class__.__name__, k, getattr(self, k))
+        # self.numsteps = self.conf['params']['numsteps']
+
+        print "print_dict\n", print_dict(self.conf)
+
+        # self.topblock = Block(
+        #     block = self.conf['block'],
+        #     conf = self.conf['params'],
+        # )
+        
+        self.topblock = Block2(conf = self.conf)
+
+        # print self.conf['params']
+        
+        print "print_dict\n", print_dict(self.conf)
+    
+    def run(self):
+        print "%s.run: conf['numsteps'] = %d" % (self.__class__.__name__, self.params['numsteps'])
+        
+        for i in xrange(self.params['numsteps']):
             topblock_x = self.topblock.step(x = None)
+            # FIXME: progress bar / display
 
         print "final return value topblock.x = %s" % (topblock_x)
 

@@ -12,8 +12,10 @@ from smp_graphs.experiment import make_expr_id
 
 from collections import OrderedDict
 
-from smp_graphs.block import Block, ConstBlock, UniformRandomBlock
-from smp_graphs.block_plot import TimeseriesPlotBlock
+# from smp_graphs.block import Block, ConstBlock, UniformRandomBlock
+from smp_graphs.block import Block2, ConstBlock2, UniformRandomBlock2
+from smp_graphs.block_plot import TimeseriesPlotBlock2
+# from smp_graphs.block_plot import TimeseriesPlotBlock
 
 from smp_base.plot import timeseries, histogram
 
@@ -26,19 +28,17 @@ numsteps = 100
 graph = OrderedDict([
     # a constant
     ("b1", {
-        'block': ConstBlock,
+        'block': ConstBlock2,
         'params': {
             'id': 'b1',
-            'idim': None,
-            'odim': 3,
-            'const': np.random.uniform(-1, 1, (3, 1)),
+            'inputs': {'c': [np.random.uniform(-1, 1, (3, 1))]},
             'outputs': {'x': [(3,1)]},
             'debug': False,
         },
     }),
     # a random number generator, mapping const input to hi
     ("b2", {
-        'block': UniformRandomBlock,
+        'block': UniformRandomBlock2,
         'params': {
             'id': 'b2',
             'idim': 6,
@@ -47,29 +47,29 @@ graph = OrderedDict([
             # 'hi': 1,
             'outputs': {'x': [(3, 1)]},
             'debug': True,
-            'inputs': {'lo': 0, 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+            'inputs': {'lo': [0, (3, 1)], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
         },
     }),
     # plot module with blocksize = episode, fetching input from busses
     # and mapping that onto plots
     ("bplot", {
-        'block': TimeseriesPlotBlock,
+        'block': TimeseriesPlotBlock2,
         'params': {
             'id': 'bplot',
             'blocksize': numsteps,
             'idim': 6,
             'odim': 3,
             'debug': True,
-            'inputs': {'data': ['b1/x', 'b2/x']},
-            'outputs': {'x': [3]},
+            'inputs': {'d1': ['b1/x'], 'd2': ['b2/x']},
+            'outputs': {'x': [(3, 1)]},
             'subplots': [
                 [
-                    {'input': 'data', 'slice': (0, 3), 'plot': timeseries},
-                    {'input': 'data', 'slice': (0, 3), 'plot': histogram},
+                    {'input': 'd1', 'slice': (0, 3), 'plot': timeseries},
+                    {'input': 'd1', 'slice': (0, 3), 'plot': histogram},
                 ],
                 [
-                    {'input': 'data', 'slice': (3, 6), 'plot': timeseries},
-                    {'input': 'data', 'slice': (3, 6), 'plot': histogram},
+                    {'input': 'd2', 'slice': (3, 6), 'plot': timeseries},
+                    {'input': 'd2', 'slice': (3, 6), 'plot': histogram},
                 ],
             ]
         }
@@ -78,7 +78,7 @@ graph = OrderedDict([
 
 # top block
 conf = {
-    'block': Block,
+    'block': Block2,
     'params': {
         'id': make_expr_id(),
         'debug': True,

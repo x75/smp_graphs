@@ -3,7 +3,6 @@
 block: basic block of computation
 
 2017 Oswald Berthold
-
 """
 
 import uuid, sys
@@ -13,21 +12,18 @@ import pickle
 import numpy as np
 
 import smp_graphs.logging as log
+from smp_graphs.utils import print_dict
 
 BLOCKSIZE_MAX = 10000
+
+################################################################################
+# v2 blocks
 
 # some decorators
 class decInit():
     def __call__(self, f):
         def wrap(exec_self, *args, **kwargs):
             f(exec_self, *args, **kwargs)
-            # write dynamic changes back to config
-            if type(kwargs['conf']) == dict: # and kwargs['conf'].has_key('graph'):
-                for k,v in kwargs['conf'].items():
-                    # print "%s k = %s, v = %s" % (exec_self.__class__.__name__, k, v)
-                    kwargs['conf'][k] = exec_self.__dict__[k]
-                    # print "xxx", k, v
-                # print "%s, conf = %s" % (exec_self.__class__.__name__, kwargs['conf'])
         return wrap
             
 
@@ -35,66 +31,303 @@ class decStep():
     """step decorator"""
     def __call__(self, f):
         def wrap(exec_self, *args, **kwargs):
-            # get any input or set to default
-            if len(args) > 0:
-                x = np.atleast_2d(args[0])
-            elif kwargs.has_key('x'):
-                x = np.atleast_2d(kwargs['x'])
-            else:
-                x = None
+            # # get any input or set to default
+            # if len(args) > 0:
+            #     x = np.atleast_2d(args[0])
+            # elif kwargs.has_key('x'):
+            #     x = np.atleast_2d(kwargs['x'])
+            # else:
+            #     x = None
 
             # input argument above might be obsolete due to busses
             # get the input from the bus
-            if exec_self.idim is not None:
+            if True:
                 # stack = [exec_self.bus[k] for k in exec_self.inputs]
                 # print "stack", stack
                 # x = np.vstack(stack)
                 # print "x", x
                 x = {}
                 for k, v in exec_self.inputs.items():
-                    # print type(v)
-                    if np.isscalar(v):
-                        print "%s.decstep scalar" % (exec_self.__class__.__name__), k, v, getattr(exec_self, k)
-                        x[k] = getattr(exec_self, k) # v
-                    elif type(v) is list:
-                        print "%s.decstep list" % (exec_self.__class__.__name__), k, v
-                        stack = [exec_self.bus[bk] for bk in v]
-                        # x[k] = stack
-                        x[k] = np.vstack(stack)
-                    elif type(v) is dict:
-                        print "%s.decstep dict" % (exec_self.__class__.__name__), k, v
-                        stack = [exec_self.bus[bk][bv[0]:bv[1]]
-                                     for bk,bv in v.items()]
-                        # x[k] = stack
-                        x[k] = np.vstack(stack)
-                    elif type(v) is np.ndarray:
-                        print "%s.decstep array" % (exec_self.__class__.__name__), k, v
-                        x[k] = v
+                        
+                    # # print type(v)
+                    # if np.isscalar(v):
+                    #     print "%s.decstep scalar" % (exec_self.__class__.__name__), k, v, getattr(exec_self, k)
+                    #     x[k] = getattr(exec_self, k) # v
+                    # elif type(v) is list:
+                    #     print "%s.decstep list" % (exec_self.__class__.__name__), k, v
+                    #     stack = [exec_self.bus[bk] for bk in v]
+                    #     # x[k] = stack
+                    #     x[k] = np.vstack(stack)
+                    # elif type(v) is dict:
+                    #     print "%s.decstep dict" % (exec_self.__class__.__name__), k, v
+                    #     stack = [exec_self.bus[bk][bv[0]:bv[1]]
+                    #                  for bk,bv in v.items()]
+                    #     # x[k] = stack
+                    #     x[k] = np.vstack(stack)
+                    # elif type(v) is np.ndarray:
+                    #     print "%s.decstep array" % (exec_self.__class__.__name__), k, v
+                    #     x[k] = v
 
-                    print "%s.decstep x[%s] = %s" % (exec_self.__class__.__name__, k, x[k])
+                    # print "%s.decstep x[%s] = %s" % (exec_self.__class__.__name__, k, x[k])
 
                     # print "decStep: x.shape = %s" % (x.shape,)
             
                     # write to input buffer
                     # if x.shape == (exec_self.idim, 1):
                     # for k, v 
-                    if exec_self.ibufsize > 1:
-                        exec_self.bufs['ibuf'][k] = np.roll(exec_self.bufs['ibuf'][k], shift = -1, axis = 1)
-                    print "shapes", "ibuf", \
-                      exec_self.bufs['ibuf'][k][:,-1,np.newaxis].shape,\
-                      'x[k]', x[k].shape
-                    exec_self.bufs['ibuf'][k][:,-1,np.newaxis] = x[k]
+                    if v[2] is not None:
+                        if exec_self.ibuf > 1:
+                            exec_self.inputs[k][0] = np.roll(exec_self.inputs[k][0], shift = -1, axis = 1)
+                        # print "shapes", "ibuf", \
+                        #   exec_self.bufs['ibuf'][k][:,-1,np.newaxis].shape,\
+                        #   'x[k]', x[k].shape
+                        exec_self.inputs[k][0][:,-1,np.newaxis] = exec_self.bus[v[2]]
 
             # call the function
             f_out = f(exec_self, x)
+
+            # copy output to bus
+            for k, v in exec_self.outputs.items():
+                buskey = "%s/%s" % (exec_self.id, k)
+                exec_self.bus[buskey] = getattr(exec_self, k)
             
             # count calls
             exec_self.cnt += 1
-            exec_self.ibufidx = exec_self.cnt % exec_self.ibufsize
+            # exec_self.ibufidx = exec_self.cnt % exec_self.ibufsize
             
             return f_out
         # return the new func
         return wrap
+
+################################################################################
+# base blocks
+class Block2(object):
+    defaults = {
+        'id': None,
+        'debug': False,
+        'topblock': False,
+        'ibuf': 1,
+        'cnt': 0,
+        'blocksize': 1,
+        # 'idim': None,
+        # 'odim': None,
+        # # 'obufsize': 1,
+        # 'logging': True, # normal logging
+        # # 'savedata': True,
+        # 'ros': False,
+        # 'inputs': {}, # internal port, scalar / vector/ bus key, [slice]
+        # 'outputs': {'x': [1]} # name, dim
+    }
+        
+    def __init__(self, conf = {}, paren = None, top = None):
+        self.conf = conf
+        self.paren = paren
+        self.top = top
+        self.cname = self.__class__.__name__
+        
+        # load defaults
+        for k,v in self.defaults.items():
+            self.__dict__[k] = v
+                    
+        # fetch existing configuration arguments
+        if type(self.conf) == dict:
+            for k,v in self.conf['params'].items():
+                # self.__dict__[k] = v
+                setattr(self, k, v)
+
+        # input buffer vs. blocksize: input buffer is sliding, blocksize is jumping
+        if self.blocksize > self.ibuf:
+            self.ibuf = self.blocksize
+
+        if self.topblock:
+            # pass 1: complete config with runtime info
+            # create global messaging bus
+            self.bus = {}
+            # tune graph
+            self.graph = self.conf['params']['graph']
+            for k, v in self.graph.items():
+                self.debug_print("__init__:\nk = %s,\nv = %s", (k, print_dict(v)))
+                self.graph[k]['block'] = self.graph[k]['block'](conf = v, paren = self, top = self)
+                # print "self.graph[k]['block']", self.graph[k]['block']
+
+        else:
+            # pass 1: complete config with runtime info
+            # get bus
+            self.bus = self.top.bus
+            
+            # check inputs
+            # format: variable: [buffered const/array, shape, bus, localbuf]
+            for k, v in self.inputs.items():
+                self.debug_print("__init__:\nk = %s,\nv = %s", (k, print_dict(v)))
+                assert len(v) > 0
+                # set input from bus
+                if type(v[0]) is str:
+                    tmp = [None for i in range(3)]
+                    tmp[0] = self.bus[v[0]]
+                    tmp[1] = tmp[0].shape
+                    tmp[2] = v[0]
+                    self.inputs[k] = tmp
+                else:
+                    # expand scalar to vector
+                    if np.isscalar(self.inputs[k][0]):
+                        # check for shape info
+                        if len(self.inputs[k]) == 1:
+                            self.inputs[k].append((1,1))
+                        # create ones multiplied by constant
+                        self.inputs[k][0] = np.ones(self.inputs[k][1]) * self.inputs[k][0]
+                    else:
+                        # write array shape back into config
+                        self.inputs[k] += [self.inputs[k][0].shape]
+                    self.inputs[k].append(None)
+                # add input buffer
+                self.inputs[k][0] = np.hstack((np.zeros((self.inputs[k][1][0], self.ibuf-1)), self.inputs[k][0]))
+
+            # create outputs
+            # format: variable: [shape]
+            for k, v in self.outputs.items():
+                # create self attribute for output item
+                setattr(self, k, np.zeros(v[0]))
+                buskey = "%s/%s" % (self.id, k)
+                self.bus[buskey] = getattr(self, k)
+
+
+            # TODO: init logging
+
+    def debug_print(self, fmtstring, data):
+        """only print if debug is enabled for this block"""
+        fmtstring = "\n%s." + fmtstring
+        data = (self.cname,) + data
+        if self.debug:
+            print fmtstring % data
+            
+    def step(self, x = None):
+        # return False
+        for k, v in self.graph.items():
+            v['block'].step()
+
+class PrimBlock2(Block2):
+    def __init__(self, conf = {}, paren = None, top = None):
+        Block2.__init__(self, conf = conf, paren = paren, top = top)
+
+class ConstBlock2(PrimBlock2):
+    @decInit()
+    def __init__(self, conf = {}, paren = None, top = None):
+        PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
+        self.x = self.inputs['c'][0]
+
+    @decStep()
+    def step(self, x = None):
+        self.debug_print("%s.step: x = %s, bus = %s", (self.__class__.__name__, self.x, self.bus))
+
+        # self.x = self.in        
+        # # loop over outputs dict and copy them to a slot in the bus
+        # for k, v in self.outputs.items():
+        #     buskey = "%s/%s" % (self.id, k)
+        #     self.bus[buskey] = getattr(self, k)
+            
+        return self.x
+    
+class UniformRandomBlock2(PrimBlock2):
+    @decInit()
+    def __init__(self, conf = {}, paren = None, top = None):
+        PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
+        
+        # self.lo = 0
+        # self.hi = 1
+        # self.x = np.random.uniform(self.lo, self.hi, (self.odim, 1))
+
+    @decStep()
+    def step(self, x = None):
+        self.debug_print("%s.step:\n\tx = %s,\n\tbus = %s,\n\tinputs = %s,\n\toutputs = %s", (self.__class__.__name__, self.x, self.bus, self.inputs,
+                                                                    self.outputs))
+        # self.hi = x['hi']
+        self.x = np.random.uniform(self.inputs['lo'][0][:,[-1]], self.inputs['hi'][0][:,[-1]], (self.outputs['x'][0]))
+        # loop over outputs dict and copy them to a slot in the bus
+        for k, v in self.outputs.items():
+            buskey = "%s/%s" % (self.id, k)
+            self.bus[buskey] = getattr(self, k)
+        # self.bus[self.id] = self.x
+        return self.x
+        
+# # some decorators
+# class decInit():
+#     def __call__(self, f):
+#         def wrap(exec_self, *args, **kwargs):
+#             f(exec_self, *args, **kwargs)
+#             # write dynamic changes back to config
+#             if type(kwargs['conf']) == dict: # and kwargs['conf'].has_key('graph'):
+#                 for k,v in kwargs['conf'].items():
+#                     # print "%s k = %s, v = %s" % (exec_self.__class__.__name__, k, v)
+#                     kwargs['conf'][k] = exec_self.__dict__[k]
+#                     # print "xxx", k, v
+#                 # print "%s, conf = %s" % (exec_self.__class__.__name__, kwargs['conf'])
+#         return wrap
+            
+
+# class decStep():
+#     """step decorator"""
+#     def __call__(self, f):
+#         def wrap(exec_self, *args, **kwargs):
+#             # get any input or set to default
+#             if len(args) > 0:
+#                 x = np.atleast_2d(args[0])
+#             elif kwargs.has_key('x'):
+#                 x = np.atleast_2d(kwargs['x'])
+#             else:
+#                 x = None
+
+#             # input argument above might be obsolete due to busses
+#             # get the input from the bus
+#             if exec_self.idim is not None:
+#                 # stack = [exec_self.bus[k] for k in exec_self.inputs]
+#                 # print "stack", stack
+#                 # x = np.vstack(stack)
+#                 # print "x", x
+#                 x = {}
+#                 for k, v in exec_self.inputs.items():
+#                     # print type(v)
+#                     if np.isscalar(v):
+#                         print "%s.decstep scalar" % (exec_self.__class__.__name__), k, v, getattr(exec_self, k)
+#                         x[k] = getattr(exec_self, k) # v
+#                     elif type(v) is list:
+#                         print "%s.decstep list" % (exec_self.__class__.__name__), k, v
+#                         stack = [exec_self.bus[bk] for bk in v]
+#                         # x[k] = stack
+#                         x[k] = np.vstack(stack)
+#                     elif type(v) is dict:
+#                         print "%s.decstep dict" % (exec_self.__class__.__name__), k, v
+#                         stack = [exec_self.bus[bk][bv[0]:bv[1]]
+#                                      for bk,bv in v.items()]
+#                         # x[k] = stack
+#                         x[k] = np.vstack(stack)
+#                     elif type(v) is np.ndarray:
+#                         print "%s.decstep array" % (exec_self.__class__.__name__), k, v
+#                         x[k] = v
+
+#                     print "%s.decstep x[%s] = %s" % (exec_self.__class__.__name__, k, x[k])
+
+#                     # print "decStep: x.shape = %s" % (x.shape,)
+            
+#                     # write to input buffer
+#                     # if x.shape == (exec_self.idim, 1):
+#                     # for k, v 
+#                     if exec_self.ibufsize > 1:
+#                         exec_self.bufs['ibuf'][k] = np.roll(exec_self.bufs['ibuf'][k], shift = -1, axis = 1)
+#                     print "shapes", "ibuf", \
+#                       exec_self.bufs['ibuf'][k][:,-1,np.newaxis].shape,\
+#                       'x[k]', x[k].shape
+#                     exec_self.bufs['ibuf'][k][:,-1,np.newaxis] = x[k]
+
+#             # call the function
+#             f_out = f(exec_self, x)
+            
+#             # count calls
+#             exec_self.cnt += 1
+#             exec_self.ibufidx = exec_self.cnt % exec_self.ibufsize
+            
+#             return f_out
+#         # return the new func
+#         return wrap
     
 class Block(object):
     """smp_graphs block base class
