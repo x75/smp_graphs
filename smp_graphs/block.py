@@ -46,17 +46,44 @@ class decStep():
             # input argument above might be obsolete due to busses
             # get the input from the bus
             if exec_self.idim is not None:
-                stack = [exec_self.bus[k] for k in exec_self.inputs]
+                # stack = [exec_self.bus[k] for k in exec_self.inputs]
                 # print "stack", stack
-                x = np.vstack(stack)
+                # x = np.vstack(stack)
+                # print "x", x
+                x = {}
+                for k, v in exec_self.inputs.items():
+                    # print type(v)
+                    if np.isscalar(v):
+                        print "%s.decstep scalar" % (exec_self.__class__.__name__), k, v, getattr(exec_self, k)
+                        x[k] = getattr(exec_self, k) # v
+                    elif type(v) is list:
+                        print "%s.decstep list" % (exec_self.__class__.__name__), k, v
+                        stack = [exec_self.bus[bk] for bk in v]
+                        # x[k] = stack
+                        x[k] = np.vstack(stack)
+                    elif type(v) is dict:
+                        print "%s.decstep dict" % (exec_self.__class__.__name__), k, v
+                        stack = [exec_self.bus[bk][bv[0]:bv[1]]
+                                     for bk,bv in v.items()]
+                        # x[k] = stack
+                        x[k] = np.vstack(stack)
+                    elif type(v) is np.ndarray:
+                        print "%s.decstep array" % (exec_self.__class__.__name__), k, v
+                        x[k] = v
 
-            # print "decStep: x.shape = %s" % (x.shape,)
+                    print "%s.decstep x[%s] = %s" % (exec_self.__class__.__name__, k, x[k])
+
+                    # print "decStep: x.shape = %s" % (x.shape,)
             
-            # write to input buffer
-            if x.shape == (exec_self.idim, 1):
-                if exec_self.ibufsize > 1:
-                    exec_self.bufs["ibuf"] = np.roll(exec_self.bufs["ibuf"], shift = -1, axis = 1)
-                exec_self.bufs["ibuf"][:,-1,np.newaxis] = x
+                    # write to input buffer
+                    # if x.shape == (exec_self.idim, 1):
+                    # for k, v 
+                    if exec_self.ibufsize > 1:
+                        exec_self.bufs['ibuf'][k] = np.roll(exec_self.bufs['ibuf'][k], shift = -1, axis = 1)
+                    print "shapes", "ibuf", \
+                      exec_self.bufs['ibuf'][k][:,-1,np.newaxis].shape,\
+                      'x[k]', x[k].shape
+                    exec_self.bufs['ibuf'][k][:,-1,np.newaxis] = x[k]
 
             # call the function
             f_out = f(exec_self, x)
@@ -89,7 +116,7 @@ handles both primitive and composite blocks
         'topblock': False,
         'ros': False,
         'debug': False,
-        'inputs': [],
+        'inputs': {}, # internal port, scalar / vector/ bus key, [slice]
         'outputs': {'x': [1]} # name, dim
     }
 
@@ -116,80 +143,115 @@ handles both primitive and composite blocks
         # minimum blocksize downstairs
         self.blocksize_min = BLOCKSIZE_MAX
 
-        # initialize local buffers
-        self.init_bufs()
-
         # global bus (SMT)
         self.bus = bus
         # block's nodes
         self.nodes = None
+
+        # print "init", conf
         
-        # init sub-nodes if this is a composite node
+        # composite node: init sub-nodes
         if type(conf) is dict and conf.has_key('graph'):
-            self.nodes = OrderedDict()
+            
             # topblock is special, connecting experiment with the outside
             if self.topblock:
                 # initialize global signal bus
                 self.bus = {}
                 # initialize global logging
                 log.log_pd_init(conf)
-            # for node_key, node_val in conf.items():
+            
+            # pass 1 compute all missing numbers
             for i, node in enumerate(conf['graph'].items()):
                 nk, nv = node
-                # print "key: %s, val = %s", (node_key, node_val)
+                # print "key: %s, val = %s" % (nk, nv)
                 self.debug_print("node[%d] = %s(%s)", (i, nv['block'], nv['params']))
                 # s = "%s(%s)", (node_val["block"], node_val["params"])
                 # self.nodes[node_key] = node_val['block'](node_val['params'])
-                nodekey = nv['params']['id'] # self.id # 'n%04d' % i
-                self.debug_print("nodekey = %s", (nodekey))
+                assert nk == nv['params']['id']
+                # nodekey =  # self.id # 'n%04d' % i
+                self.debug_print("nodekey = %s", (nk))
                 # self.nodes[nodekey] = Block(block = nv['block'], conf = nv['params'])
+                # blocksize check over entire graph
+                if nv['blocksize'] < self.blocksize_min:
+                    self.blocksize_min = self.nodes[nk].blocksize
+
+                
+                    
+            # print "%s.init: conf = %s"  %(self.__class__.__name__, conf)
+
+            # done, all block added to top block, now reiterate
+            # for i, node in enumerate(self.nodes.items()):
+            #     print "%s.init nodes.item = %s" % (self.__class__.__name__, node)
+            #     nk, nv = node
+            
+            # node dictionary
+            self.nodes = OrderedDict()
+            
+            # pass 2 instantiate blocks in config
+            for i, node in enumerate(conf['graph'].items()):
+                nk, nv = node
+
                 # create node
-                self.nodes[nodekey] = nv['block'](
+                self.nodes[nk] = nv['block'](
                     block = nv['block'],
                     conf = nv['params'],
                     bus = self.bus)
 
-                # blocksize check
-                if self.nodes[nodekey].blocksize < self.blocksize_min:
-                    self.blocksize_min = self.nodes[nodekey].blocksize
-                    
                 # initialize block logging
-                for k, v in self.nodes[nodekey].outputs.items():
+                for k, v in self.nodes[nk].outputs.items():
                     log.log_pd_init_block(
-                        tbl_name = "%s/%s" % (self.nodes[nodekey].id, k),
+                        tbl_name = "%s/%s" % (self.nodes[nk].id, k),
                         tbl_dim = v[0], # odim
                         tbl_columns = ["out_%d" % col for col in range(v[0])],
                                         numsteps = self.numsteps)
-            # print "%s.init: conf = %s"  %(self.__class__.__name__, conf)
-
-            # done, all block added to top block, now reiterate
-            for i, node in enumerate(self.nodes.items()):
-                print "%s.init nodes.item = %s" % (self.__class__.__name__, node)
-                nk, nv = node
+                
                 # FIXME: make one min_blocksize bus group for each node output
                 for outkey, outparams in self.nodes[nk].outputs.items():
                     nodeoutkey = "%s/%s" % (nk, outkey)
                     print "bus %s, outkey %s, odim = %d" % (nk, nodeoutkey, outparams[0])
                     self.bus[nodeoutkey] = np.zeros((self.nodes[nk].odim, 1))
+                    
+                # initialize local buffers
+                self.nodes[nk].init_bufs()
             
         # atomic block
         elif type(conf) is dict and block is not None:
             self.debug_print("block is %s, nothing to do", (block))
             # self.nodes['n0000'] = self
-            # self.step = step_funcs[block]
+            # self.step = step_funcs[block]            
 
     def init_bufs(self):
         self.bufs = {}
+        print "%s self.bus" % (self.__class__.__name__), self.bus
         # check for blocksize argument, ibuf needs to be at least of size blocksize
         self.ibufsize = max(self.ibufsize, self.blocksize)
         self.ibufidx = self.cnt
         # current index
         if not self.idim is None:
-            self.bufs["ibuf"] = np.zeros((self.idim, self.ibufsize))
+            self.bufs['ibuf'] = {}
+            for k,v in self.inputs.items():
+                # self.bufs['ibuf'] = np.zeros((self.idim, self.ibufsize))
+                idim = 0
+                if np.isscalar(v):
+                    idim = 1
+                elif type(v) is list:
+                    for bk in v:
+                        idim += self.bus[bk].shape[0]
+                elif type(v) is dict:
+                    idim = 0
+                    for bk,bv in v.items():
+                        idim += self.bus[bk][bv[0]:bv[1]].shape[0]
+                elif type(v) is np.ndarray:
+                    idim = v.shape[0]
+
+                print "init_bufs", k, v, idim
+                setattr(self, k, np.zeros((idim, self.ibufsize)))
+                self.bufs['ibuf'][k] = getattr(self, k)
+            # self.bufs['ibuf'][k] = np.zeros((self.idim, self.ibufsize))
             # self.bufs["obuf"] = np.zeros((self.odim, self.obufsize))
             
     @decStep()
-    def step(self, x = None):
+    def step(self, x = {}):
         self.debug_print("%s-%s.step: x = %s", (self.__class__.__name__, self.id, x))
         # iterate all nodes and step them
         if self.nodes is not None:
@@ -200,7 +262,7 @@ handles both primitive and composite blocks
             x_ = x
 
         if self.topblock:
-            # do logging
+            # do logging for all bus items
             for k, v in self.bus.items():
                 self.debug_print("%s.step: bus k = %s, v = %s, %s", (self.__class__.__name__, k, v.shape))
                 # print "%s id" % (self.__class__.__name__), self.id, "k", k, v.shape, v
@@ -247,12 +309,14 @@ class UniformRandomBlock(Block):
     @decInit()
     def __init__(self, block = None, conf = None, bus = None):
         Block.__init__(self, block = block, conf = conf, bus = bus)
+        # self.lo = 0
+        # self.hi = 1
         self.x = np.random.uniform(self.lo, self.hi, (self.odim, 1))
 
     @decStep()
     def step(self, x = None):
         self.debug_print("%s.step: x = %s, bus = %s, inputs = %s", (self.__class__.__name__, x, self.bus, self.inputs))
-        self.hi = x
+        self.hi = x['hi']
         self.x = np.random.uniform(self.lo, self.hi, (self.odim, 1))
         # loop over outputs dict and copy them to a slot in the bus
         for k, v in self.outputs.items():
@@ -273,6 +337,10 @@ def read_puppy_hk_pickles(lfile, key = None):
     # data = np.atleast_2d(data).T
     # print "wavdata", data.shape
     data = d
+    x = d['x']
+    # special treatment for x with addtional dimension
+    data['x'] = x[:,:,0]
+    # print "x.shape", data['x'].shape
     return (data, rate, offset)
     
 class FileBlock(Block):
@@ -307,10 +375,6 @@ class FileBlock(Block):
         for k, v in self.outputs.items():
             buskey = "%s/%s" % (self.id, k)
             # self.bus[buskey] = getattr(self, k)
-            if k.endswith('x'):
-                print "endswith"
-                self.bus[buskey] = self.data[k][[self.cnt],:,0].T
-            else:
-                self.bus[buskey] = self.data[k][[self.cnt]].T
+            self.bus[buskey] = self.data[k][[self.cnt]].T
         # self.bus[buskey] = self.x
         return self.x

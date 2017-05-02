@@ -31,7 +31,7 @@ class TimeseriesPlotBlock(Block):
                         self.__class__.__name__, idx, plotconf))
                     plotconf['plot'](
                         fig.axes[idx],
-                        self.bufs['ibuf'][plotconf['inputs'][0]:plotconf['inputs'][1]].T)
+                        self.bufs['ibuf'][plotconf['input']][plotconf['slice'][0]:plotconf['slice'][1]].T)
                     # timeseries(fig.axes[idx], self.bufs['ibuf'][plotcol[0]:plotcol[1]].T)
                     # histogram(fig.axes[idx], self.bufs['ibuf'][plotcol[0]:plotcol[1]].T)
             fig.show()

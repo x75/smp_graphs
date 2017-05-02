@@ -17,7 +17,7 @@ from smp_base.plot import rp_timeseries_embedding
 import numpy as np
 
 # reuse
-numsteps = 1000
+numsteps = 20
 
 # files array or enclosing loop block?
 
@@ -57,9 +57,9 @@ graph = OrderedDict([
             'id': 'b2',
             'idim': 6,
             'odim': 3,
-            'lo': 0,
-            'hi': 1,
-            'inputs': ['b1/x'],
+            # 'lo': 0,
+            # 'hi': 1,
+            'inputs': {'lo': 0, 'hi': ['b1/x']},
             'outputs': {'x': [3]},
             'debug': True,
         },
@@ -74,17 +74,25 @@ graph = OrderedDict([
             'idim': 4,
             'odim': 1,
             'debug': True,
-            'inputs': ['puppydata/x', 'b2/x'],
+            'inputs': {
+                'puppydata/x': ['puppydata/x'],
+                'puppydata/y': ['puppydata/y'],
+                'b2/x': ['b2/x']},
             'subplots': [
                 [
-                    {'inputs': (0, 1), 'plot': timeseries},
-                    {'inputs': (0, 1), 'plot': histogram},
-                    {'inputs': (0, 1), 'plot': rp_timeseries_embedding},
+                    {'input': 'puppydata/x', 'slice': (0, 6), 'plot': timeseries},
+                    {'input': 'puppydata/x', 'slice': (0, 6), 'plot': histogram},
+                    {'input': 'puppydata/x', 'slice': (0, 6), 'plot': rp_timeseries_embedding},
                 ],
                 [
-                    {'inputs': (1, 4), 'plot': timeseries},
-                    {'inputs': (1, 4), 'plot': histogram},
-                    {'inputs': (1, 4), 'plot': rp_timeseries_embedding},
+                    {'input': 'puppydata/y', 'slice': (0, 4), 'plot': timeseries},
+                    {'input': 'puppydata/y', 'slice': (0, 4), 'plot': histogram},
+                    {'input': 'puppydata/y', 'slice': (0, 4), 'plot': rp_timeseries_embedding},
+                ],
+                [
+                    {'input': 'b2/x', 'slice': (0, 3), 'plot': timeseries},
+                    {'input': 'b2/x', 'slice': (0, 3), 'plot': histogram},
+                    {'input': 'b2/x', 'slice': (0, 3), 'plot': rp_timeseries_embedding},
                 ],
             ]
         }

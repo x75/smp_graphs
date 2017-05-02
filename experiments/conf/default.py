@@ -32,7 +32,7 @@ graph = OrderedDict([
             'idim': None,
             'odim': 3,
             'const': np.random.uniform(-1, 1, (3, 1)),
-            'outputs': {'x': [3]},
+            'outputs': {'x': [(3,1)]},
             'debug': False,
         },
     }),
@@ -43,11 +43,11 @@ graph = OrderedDict([
             'id': 'b2',
             'idim': 6,
             'odim': 3,
-            'lo': 0,
-            'hi': 1,
-            'inputs': ['b1/x'],
-            'outputs': {'x': [3]},
+            # 'lo': 0,
+            # 'hi': 1,
+            'outputs': {'x': [(3, 1)]},
             'debug': True,
+            'inputs': {'lo': 0, 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
         },
     }),
     # plot module with blocksize = episode, fetching input from busses
@@ -59,17 +59,17 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'idim': 6,
             'odim': 3,
-            'debug': False,
-            'inputs': ['b1/x', 'b2/x'],
+            'debug': True,
+            'inputs': {'data': ['b1/x', 'b2/x']},
             'outputs': {'x': [3]},
             'subplots': [
                 [
-                    {'inputs': (0, 3), 'plot': timeseries},
-                    {'inputs': (0, 3), 'plot': histogram},
+                    {'input': 'data', 'slice': (0, 3), 'plot': timeseries},
+                    {'input': 'data', 'slice': (0, 3), 'plot': histogram},
                 ],
                 [
-                    {'inputs': (3, 6), 'plot': timeseries},
-                    {'inputs': (3, 6), 'plot': histogram},
+                    {'input': 'data', 'slice': (3, 6), 'plot': timeseries},
+                    {'input': 'data', 'slice': (3, 6), 'plot': histogram},
                 ],
             ]
         }
