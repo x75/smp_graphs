@@ -6,7 +6,7 @@
 Specifiy experiments as a graph of nodes and a set of signals,
 corresponding nicely with tapping approach.
 
-** v2
+** items / todo
  - x dict printing for dynamic reconf inspection
 
  - x base block
@@ -31,6 +31,16 @@ corresponding nicely with tapping approach.
 
  - sync / async block execution
 
+ - minor stuff
+  - print_dict print fully compilable python code
+
+** Examples
+
+: cd smp_graph/experiments
+: python experiment.py --conf conf/default2.conf
+: python experiment.py --conf conf/default2_loop.conf
+
+* smp_graphs legacy notes
 ** v1 stalled
 
  - x load graph and execute in given order, each node knows which bus line maps onto its inputs

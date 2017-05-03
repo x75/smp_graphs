@@ -6,7 +6,7 @@ Specifiy experiments as a graph of nodes and a set of signals,
 corresponding nicely with tapping approach.
 
 
-## v2
+## items / todo
 
 -   x dict printing for dynamic reconf inspection
 
@@ -31,6 +31,19 @@ corresponding nicely with tapping approach.
     -   how to optimize of min bs > 1?
 
 -   sync / async block execution
+
+-   minor stuff
+    -   print\_dict print fully compilable python code
+
+
+## Examples
+
+    cd smp_graph/experiments
+    python experiment.py --conf conf/default2.conf
+    python experiment.py --conf conf/default2_loop.conf
+
+
+# smp\_graphs legacy notes
 
 
 ## v1 stalled

@@ -19,6 +19,7 @@ def get_args():
     parser = argparse.ArgumentParser()
     # add required arguments
     parser.add_argument("-c", "--conf",     type=str, default=default_conf,     help="Configuration file [%s]" % default_conf)
+    parser.add_argument("-m", "--mode",     type=str, default="run",            help="Which subprogram to run [run], one of [run, graphviz]")
     parser.add_argument("-n", "--numsteps", type=int, default=default_numsteps, help="Number of outer loop steps [%s]" % default_numsteps)
     # 
     # parse arguments
@@ -102,3 +103,13 @@ Load a config from the file in args.conf
         print "final return value topblock.x = %s" % (topblock_x)
 
         # plt.show()
+
+
+class Graphviz(object):
+    def __init__(self, args):
+        # self.conf = get_config_raw(args.conf)
+        f = open(args.conf, "r")
+        self.conf = f.read()
+
+    def run(self):
+        print self.conf

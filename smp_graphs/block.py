@@ -172,7 +172,15 @@ class Block2(object):
             self.init_graph_pass_2()
             
             self.debug_print("self.bus = %s", (print_dict(self.bus),))
-                            
+
+            finalconf = self.get_config()
+            print type(finalconf), finalconf
+            # pickle.dump(finalconf, open("data/%s_conf.pkl" % (self.id, ), "wb"))
+            f = open("data/%s.conf" % (self.id), "w")
+            f.write("conf = {'block': Block2, 'params': " + repr(finalconf[1]['params']) + "}")
+            f.flush()
+            f.close()
+                                        
         else:
             # pass 1: complete config with runtime info
             # get bus
