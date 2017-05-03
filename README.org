@@ -6,6 +6,13 @@
 Specifiy experiments as a graph of nodes and a set of signals,
 corresponding nicely with tapping approach.
 
+** v2
+ - loop block
+
+ - networkx for visualization?
+
+** v1 stalled
+
  - x load graph and execute in given order, each node knows which bus line maps onto its inputs
 
  - x reuse config as block in other config / nested experiments

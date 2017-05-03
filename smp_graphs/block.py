@@ -149,7 +149,8 @@ class Block2(object):
                 self.debug_print("__init__:\nk = %s,\nv = %s", (k, print_dict(v)))
                 self.graph[k]['block'] = self.graph[k]['block'](conf = v, paren = self, top = self)
                 # print "self.graph[k]['block']", self.graph[k]['block']
-
+        elif hasattr(self, "loopblock"):
+            pass
         else:
             # pass 1: complete config with runtime info
             # get bus
