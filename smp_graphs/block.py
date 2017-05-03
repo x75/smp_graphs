@@ -16,6 +16,25 @@ from smp_graphs.utils import print_dict
 
 BLOCKSIZE_MAX = 10000
 
+# utils
+def ordereddict_insert(ordereddict = None, insertionpoint = None, itemstoadd = []):
+    """self rolled ordered dict insertion
+    from http://stackoverflow.com/questions/29250479/insert-into-ordereddict-behind-key-foo-inplace
+    """
+    assert ordereddict is not None
+    new_ordered_dict = ordereddict.__class__()
+    for key, value in ordereddict.items():
+        new_ordered_dict[key] = value
+        if key == insertionpoint:
+            for item in itemstoadd:
+                keytoadd, valuetoadd = item
+                new_ordered_dict[keytoadd] = valuetoadd
+    ordereddict.clear()
+    ordereddict.update(new_ordered_dict)
+    return ordereddict
+    
+
+
 ################################################################################
 # v2 blocks
 
@@ -109,14 +128,14 @@ class Block2(object):
         'ibuf': 1,
         'cnt': 0,
         'blocksize': 1,
+        'inputs': {}, # internal port, scalar / vector/ bus key, [slice]
+        'outputs': {}, # name, dim
         # 'idim': None,
         # 'odim': None,
         # # 'obufsize': 1,
         # 'logging': True, # normal logging
         # # 'savedata': True,
         # 'ros': False,
-        # 'inputs': {}, # internal port, scalar / vector/ bus key, [slice]
-        # 'outputs': {'x': [1]} # name, dim
     }
         
     def __init__(self, conf = {}, paren = None, top = None):
@@ -141,25 +160,57 @@ class Block2(object):
 
         if self.topblock:
             # pass 1: complete config with runtime info
-            # create global messaging bus
+            # init global messaging bus
             self.bus = {}
-            # tune graph
-            self.graph = self.conf['params']['graph']
-            for k, v in self.graph.items():
-                self.debug_print("__init__:\nk = %s,\nv = %s", (k, print_dict(v)))
-                self.graph[k]['block'] = self.graph[k]['block'](conf = v, paren = self, top = self)
-                # print "self.graph[k]['block']", self.graph[k]['block']
-        elif hasattr(self, "loopblock"):
-            pass
+            # init pass 1: complete the graph by expanding dynamic variables and initializing the outputs to get the bus def
+            self.init_graph_pass_1()
+
+            # init pass 2:
+            self.init_graph_pass_2()
+            
+            self.debug_print("self.bus = %s", (print_dict(self.bus),))
+                            
         else:
             # pass 1: complete config with runtime info
             # get bus
             self.bus = self.top.bus
+
+            self.init_outputs()
             
-            # check inputs
+            # TODO: init logging
+
+    def init_graph_pass_1(self):
+        self.graph = self.conf['params']['graph']
+        # pass 1 init
+        for k, v in self.graph.items():
+            self.debug_print("__init__: pass 1\nk = %s,\nv = %s", (k, print_dict(v)))
+            self.graph[k]['block'] = self.graph[k]['block'](conf = v, paren = self, top = self)
+            print "%s self.graph[k]['block'] = %s" % (self.graph[k]['block'].__class__.__name__, self.graph[k]['block'].bus)
+        # done pass 1 init
+
+    def init_graph_pass_2(self):
+        # pass 2 init
+        for k, v in self.graph.items():
+            self.debug_print("__init__: pass 2\nk = %s,\nv = %s", (k, print_dict(v)))
+            self.graph[k]['block'].init_pass_2()
+
+    def init_outputs(self):
+        # create outputs
+        # format: variable: [shape]
+        for k, v in self.outputs.items():
+            # create self attribute for output item
+            setattr(self, k, np.zeros(v[0]))
+            buskey = "%s/%s" % (self.id, k)
+            self.bus[buskey] = getattr(self, k)
+                                
+    def init_pass_2(self):
+        """second init pass which needs to be done after all outputs have been initialized"""
+        if not self.topblock:
+            # create inputs by mapping from constants or bus
+            # that's actually for pass 2 to enable recurrent connections
             # format: variable: [buffered const/array, shape, bus, localbuf]
             for k, v in self.inputs.items():
-                self.debug_print("__init__:\nk = %s,\nv = %s", (k, print_dict(v)))
+                self.debug_print("__init__: pass 2\nk = %s,\nv = %s", (k, print_dict(v)))
                 assert len(v) > 0
                 # set input from bus
                 if type(v[0]) is str:
@@ -182,18 +233,7 @@ class Block2(object):
                     self.inputs[k].append(None)
                 # add input buffer
                 self.inputs[k][0] = np.hstack((np.zeros((self.inputs[k][1][0], self.ibuf-1)), self.inputs[k][0]))
-
-            # create outputs
-            # format: variable: [shape]
-            for k, v in self.outputs.items():
-                # create self attribute for output item
-                setattr(self, k, np.zeros(v[0]))
-                buskey = "%s/%s" % (self.id, k)
-                self.bus[buskey] = getattr(self, k)
-
-
-            # TODO: init logging
-
+            
     def debug_print(self, fmtstring, data):
         """only print if debug is enabled for this block"""
         fmtstring = "\n%s." + fmtstring
@@ -205,6 +245,71 @@ class Block2(object):
         # return False
         for k, v in self.graph.items():
             v['block'].step()
+
+    def get_config(self):
+        params = {}
+        for k, v in self.__dict__.items():
+            # FIXME: include bus, top, paren?
+            if k not in ['conf', 'bus', 'top', 'paren']:
+                params[k] = v
+            
+        conf = ('%s' % self.id,
+                {
+                    'block': self.__class__,
+                    'params': params
+                })
+        return conf
+
+class LoopBlock2(Block2):
+    """Loop block: dynamically create block variations according to some specificiations of variation
+
+    two modes:
+     - parallel mode: modify the graph structure and all block variations at the same time
+     - sequential mode: modify execution to run each variation in one after the other
+     """
+
+    def __init__(self, conf = {}, paren = None, top = None):
+        self.defaults['loop'] = [1]
+        self.defaults['loopmode'] = 'sequential'
+        self.defaults['loopblock'] = {}
+        Block2.__init__(self, conf = conf, paren = paren, top = top)
+
+        loopblocks = []
+        for i, lparams in enumerate(self.loop):
+            # print lparams, self.loopblock['params']
+            
+            # copy params
+            loopblock_params = {}
+            for k, v in self.loopblock['params'].items():
+                if k == 'id':
+                    loopblock_params[k] = "%s-%d" % (self.id, i+1)
+                elif k == lparams[0]:
+                    loopblock_params[k] = lparams[1]
+                else:
+                    loopblock_params[k] = v
+
+            loopblock_conf = {'block': self.loopblock['block'], 'params': loopblock_params}
+            dynblock = self.loopblock['block'](conf = loopblock_conf,
+                                               paren = self.paren, top = self.top)
+            
+            # dynblockparams = {}
+            # for k, v in self.loopblock['params']
+            
+            dynblockconf = dynblock.get_config()
+            dynblockconf[1]['block'] = dynblock
+            
+            loopblocks.append(dynblockconf)
+            # print print_dict(self.top.graph)
+            
+        for item in loopblocks:
+            print "%s.__init__ loopblocks = %s: %s" % (self.__class__.__name__, item[0], print_dict(item[1]))
+
+        # FIXME: this good?
+        ordereddict_insert(ordereddict = self.top.graph, insertionpoint = '%s' % self.id, itemstoadd = loopblocks)
+            
+    def step(self, x = None):
+        """loop block does nothing for now"""
+        pass
 
 class PrimBlock2(Block2):
     def __init__(self, conf = {}, paren = None, top = None):

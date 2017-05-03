@@ -7,7 +7,19 @@ Specifiy experiments as a graph of nodes and a set of signals,
 corresponding nicely with tapping approach.
 
 ** v2
+ - x dict printing for dynamic reconf inspection
+
+ - x base block
+
+ - x two-pass init: complete by putting input init into second pass
+
  - loop block
+ 
+ - logging
+
+ - step, blocksize, ibuf
+
+ - sync / async block execution
 
  - networkx for visualization?
 
@@ -43,7 +55,7 @@ corresponding nicely with tapping approach.
 
  - sync vs. async nodes
 
- - functional, decorators
+ - x functional, decorators
 
  - recurrence, backprop, signal propagation and execution order
 

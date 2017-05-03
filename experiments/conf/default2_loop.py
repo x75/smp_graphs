@@ -12,10 +12,12 @@ from smp_graphs.experiment import make_expr_id
 
 from collections import OrderedDict
 
-# from smp_graphs.block import Block, ConstBlock, UniformRandomBlock
-from smp_graphs.block import Block2, ConstBlock2, UniformRandomBlock2
+# graph handling blocks
+from smp_graphs.block import Block2, LoopBlock2
+# primitive data sources
+from smp_graphs.block import ConstBlock2, UniformRandomBlock2
+# plotting / analysis
 from smp_graphs.block_plot import TimeseriesPlotBlock2
-# from smp_graphs.block_plot import TimeseriesPlotBlock
 
 from smp_base.plot import timeseries, histogram
 
@@ -46,7 +48,7 @@ graph = OrderedDict([
             # 'lo': 0,
             # 'hi': 1,
             'outputs': {'x': [(3, 1)]},
-            'debug': True,
+            'debug': False,
             'inputs': {'lo': [0, (3, 1)], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
         },
     }),
@@ -55,16 +57,15 @@ graph = OrderedDict([
         'block': LoopBlock2,
         'params': {
             'id': 'b3',
-            'loop': [
-                {'c': 1 }
-            ],
+            'loop': [('inputs', {'c': [np.random.uniform(-i, i, (3, 1))]}) for i in range(1, 4)],
+            'loopmode': 'parallel',
             'loopblock': {
                 'block': ConstBlock2,
                 'params': {
-                    'id': 'bla',
+                    'id': 'b3',
                     'inputs': {'c': [np.random.uniform(-1, 1, (3, 1))]},
                     'outputs': {'x': [(3,1)]},
-                    'debug': False,
+                    'debug': True,
                 },
             },
         },
@@ -78,8 +79,8 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'idim': 6,
             'odim': 3,
-            'debug': True,
-            'inputs': {'d1': ['b1/x'], 'd2': ['b2/x']},
+            'debug': False,
+            'inputs': {'d1': ['b1/x'], 'd2': ['b2/x'], 'd3': ['b3-1/x'], 'd4': ['b3-2/x'], 'd5': ['b3-3/x']},
             'outputs': {'x': [(3, 1)]},
             'subplots': [
                 [
@@ -90,7 +91,10 @@ graph = OrderedDict([
                     {'input': 'd2', 'slice': (3, 6), 'plot': timeseries},
                     {'input': 'd2', 'slice': (3, 6), 'plot': histogram},
                 ],
-            ]
+            ] + [[
+                {'input': 'd%d' % i, 'slice': (1, 1), 'plot': timeseries},
+                {'input': 'd%d' % i, 'slice': (1, 1), 'plot': histogram},
+                ] for i in range(3, 6)]
         }
     })
 ])
@@ -100,7 +104,7 @@ conf = {
     'block': Block2,
     'params': {
         'id': make_expr_id(),
-        'debug': True,
+        'debug': False,
         'topblock': True,
         "numsteps": numsteps,
         "graph": graph,

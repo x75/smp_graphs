@@ -47,7 +47,9 @@ graph = OrderedDict([
             # 'hi': 1,
             'outputs': {'x': [(3, 1)]},
             'debug': True,
-            'inputs': {'lo': [0, (3, 1)], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+            # 'inputs': {'lo': [0, (3, 1)], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+            # recurrent connection
+            'inputs': {'lo': ['b2/x'], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
         },
     }),
     # plot module with blocksize = episode, fetching input from busses
