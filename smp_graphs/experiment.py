@@ -102,7 +102,7 @@ Load a config from the file in args.conf
 
         print "final return value topblock.x = %s" % (topblock_x)
 
-        # plt.show()
+        plt.show()
 
 
 class Graphviz(object):
