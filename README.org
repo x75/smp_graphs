@@ -14,14 +14,22 @@ corresponding nicely with tapping approach.
  - x two-pass init: complete by putting input init into second pass
 
  - loop block
+   1. x parallel loop within graph, modify graph
+   2. sequential loop for running block variations 
  
  - logging
-
- - step, blocksize, ibuf
-
- - sync / async block execution
+   - std logging OK
+   - include git revision, initial and final config in log
 
  - networkx for visualization?
+   - standalone networkx graph from final config
+   - graphviz
+
+ - step, blocksize, ibuf
+   - min blocksize after pass 1
+   - how to optimize of min bs > 1?
+
+ - sync / async block execution
 
 ** v1 stalled
 

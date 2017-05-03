@@ -24,7 +24,7 @@ from smp_base.plot import timeseries, histogram
 import numpy as np
 
 # reuse
-numsteps = 100
+numsteps = 1000
 
 # graph
 graph = OrderedDict([
@@ -65,7 +65,7 @@ graph = OrderedDict([
                     'id': 'b3',
                     'inputs': {'c': [np.random.uniform(-1, 1, (3, 1))]},
                     'outputs': {'x': [(3,1)]},
-                    'debug': True,
+                    'debug': False,
                 },
             },
         },

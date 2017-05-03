@@ -20,6 +20,7 @@ def get_args():
     # add required arguments
     parser.add_argument("-c", "--conf",     type=str, default=default_conf,     help="Configuration file [%s]" % default_conf)
     parser.add_argument("-n", "--numsteps", type=int, default=default_numsteps, help="Number of outer loop steps [%s]" % default_numsteps)
+    # 
     # parse arguments
     args = parser.parse_args()
     # return arguments
@@ -89,7 +90,7 @@ Load a config from the file in args.conf
 
         # print self.conf['params']
         
-        print "print_dict\n", print_dict(self.conf)
+        # print "print_dict\n", print_dict(self.conf)
     
     def run(self):
         print "%s.run: conf['numsteps'] = %d" % (self.__class__.__name__, self.params['numsteps'])
@@ -100,4 +101,4 @@ Load a config from the file in args.conf
 
         print "final return value topblock.x = %s" % (topblock_x)
 
-        plt.show()
+        # plt.show()

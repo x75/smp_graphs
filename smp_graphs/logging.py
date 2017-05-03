@@ -98,7 +98,7 @@ Arguments:
     config: the global configuration dictionary
 """
     global log_store
-    experiment = "%s" % (config["id"])
+    experiment = "%s" % (config['params']['id'])
     log_store = pd.HDFStore("data/%s_pd.h5" % (experiment))
 
 def log_pd_init_block(tbl_name, tbl_dim, tbl_columns = None, numsteps=100):
@@ -122,20 +122,20 @@ def log_pd_store():
         # print "storing table k = %s with data type = %s" % (k, v)
         log_store[k] = v
     
-def log_pd(nodeid, data):
+def log_pd(tbl_name, data):
     """log_pd: log to tables via pandas, local node logging
 
 Arguments:
-    nodeid: node id storage key
+    tbl_name: node id storage key
       data: the data as a dim x 1 numpy vector
 """
     global log_lognodes, log_lognodes_idx
-    # print "data.shape", data.flatten().shape, log_lognodes_idx[nodeid]
-    cloc = log_lognodes_idx[nodeid]
-    # print "log_lognodes[nodeid].loc[cloc].shape = %s, data.shape = %s" % (log_lognodes[nodeid].loc[cloc].shape, data.shape)
+    # print "data.shape", data.flatten().shape, log_lognodes_idx[tbl_name]
+    cloc = log_lognodes_idx[tbl_name]
+    # print "log_lognodes[tbl_name].loc[cloc].shape = %s, data.shape = %s" % (log_lognodes[tbl_name].loc[cloc].shape, data.shape)
     # using flatten to remove last axis, FIXME for block based logging
-    log_lognodes[nodeid].loc[cloc] = data.flatten()
-    # log_lognodes[nodeid].loc[0] = 1
-    # print "log_lognodes[nodeid]", log_lognodes[nodeid], log_lognodes[nodeid].loc[cloc]
-    log_lognodes_idx[nodeid] += 1
+    log_lognodes[tbl_name].loc[cloc] = data.flatten()
+    # log_lognodes[tbl_name].loc[0] = 1
+    # print "log_lognodes[tbl_name]", log_lognodes[tbl_name], log_lognodes[tbl_name].loc[cloc]
+    log_lognodes_idx[tbl_name] += 1
     

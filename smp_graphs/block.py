@@ -130,10 +130,10 @@ class Block2(object):
         'blocksize': 1,
         'inputs': {}, # internal port, scalar / vector/ bus key, [slice]
         'outputs': {}, # name, dim
+        'logging': True, # normal logging
         # 'idim': None,
         # 'odim': None,
         # # 'obufsize': 1,
-        # 'logging': True, # normal logging
         # # 'savedata': True,
         # 'ros': False,
     }
@@ -162,6 +162,9 @@ class Block2(object):
             # pass 1: complete config with runtime info
             # init global messaging bus
             self.bus = {}
+
+            log.log_pd_init(self.conf)
+
             # init pass 1: complete the graph by expanding dynamic variables and initializing the outputs to get the bus def
             self.init_graph_pass_1()
 
@@ -178,6 +181,7 @@ class Block2(object):
             self.init_outputs()
             
             # TODO: init logging
+            self.init_logging()
 
     def init_graph_pass_1(self):
         self.graph = self.conf['params']['graph']
@@ -202,6 +206,24 @@ class Block2(object):
             setattr(self, k, np.zeros(v[0]))
             buskey = "%s/%s" % (self.id, k)
             self.bus[buskey] = getattr(self, k)
+
+    def init_logging(self):
+        # initialize block logging
+        if not self.logging: return
+        
+        for k, v in self.outputs.items():
+            log.log_pd_init_block(
+                tbl_name = "%s/%s" % (self.id, k),
+                tbl_dim = v[0], # odim
+                tbl_columns = ["%s_%d" % (k, col) for col in range(v[0][0])],
+                numsteps = self.top.numsteps
+            )
+                
+        # # FIXME: make one min_blocksize bus group for each node output
+        # for outkey, outparams in self.nodes[nk].outputs.items():
+        #     nodeoutkey = "%s/%s" % (nk, outkey)
+        #     print "bus %s, outkey %s, odim = %d" % (nk, nodeoutkey, outparams[0])
+        #     self.bus[nodeoutkey] = np.zeros((self.nodes[nk].odim, 1))
                                 
     def init_pass_2(self):
         """second init pass which needs to be done after all outputs have been initialized"""
@@ -240,11 +262,30 @@ class Block2(object):
         data = (self.cname,) + data
         if self.debug:
             print fmtstring % data
-            
+
+    # undecorated step, need to count ourselves
     def step(self, x = None):
-        # return False
-        for k, v in self.graph.items():
-            v['block'].step()
+        if self.topblock:
+            for k, v in self.graph.items():
+                v['block'].step()
+
+            # do logging for all bus items
+            # for k, v in self.bus.items():
+            for k, v in self.graph.items():
+                if not v['block'].logging: continue
+                
+                self.debug_print("%s.step: bus k = %s, v = %s", (self.__class__.__name__, k, v))
+                # print "%s id" % (self.__class__.__name__), self.id, "k", k, v.shape, v
+                for k_o, v_o in v['block'].outputs.items():
+                    buskey = "%s/%s" % (v['block'].id, k_o)
+                    log.log_pd(tbl_name = buskey, data = self.bus[buskey])
+
+            # store log
+            if (self.cnt+1) % 100 == 0:
+                print "storing log @iter %04d" % (self.cnt)
+                log.log_pd_store()
+
+            self.cnt += 1
 
     def get_config(self):
         params = {}
