@@ -37,6 +37,8 @@ from smp_graphs.block_plot import TimeseriesPlotBlock2
 from smp_base.plot import timeseries, histogram, rp_timeseries_embedding
 
 import numpy as np
+
+debug = False
 """
 
 conf_footer = """
@@ -46,7 +48,7 @@ conf = {
     'block': Block2,
     'params': {
         'id': make_expr_id(),
-        'debug': True,
+        'debug': debug,
         'topblock': True,
         'numsteps': numsteps,
         'graph': graph,

@@ -181,6 +181,7 @@ class Block2(object):
             self.bus = {}
 
             log.log_pd_init(self.conf)
+            log.log_pd_store_config_initial(print_dict(self.conf))
 
             # init pass 1: complete the graph by expanding dynamic variables and initializing the outputs to get the bus def
             self.init_graph_pass_1()
@@ -191,6 +192,8 @@ class Block2(object):
             self.debug_print("self.bus = %s", (print_dict(self.bus),))
 
             self.dump_final_config()
+            
+            # log.log_pd_dump_config()
                                                     
         else:
             # pass 1: complete config with runtime info
@@ -328,10 +331,13 @@ class Block2(object):
         f = open(dump_final_config_file, "w")
         # confstr = repr(finalconf[1]['params'])
         confstr = print_dict(pdict = finalconf[1]['params'])
-        f.write("conf = {'block': 'Block2', 'params': %s}" % (confstr, ))
+        confstr_ = "conf = {'block': 'Block2', 'params': %s}" % (confstr, )
+        f.write(confstr_)
         f.flush()
         print "%s.dump_final_config wrote config, closing file %s" % (self.cname, dump_final_config_file,)
         f.close()
+
+        log.log_pd_store_config_final(confstr_)
     
 class LoopBlock2(Block2):
     """Loop block: dynamically create block variations according to some specificiations of variation

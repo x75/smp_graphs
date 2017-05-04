@@ -5,7 +5,10 @@
 Specifiy sensorimotor learning experiments as a graph of nodes and a
 set of signals, corresponding nicely with the tapping approach. The
 basis framework functions are independent of external libs but the
-block implementations make use of other *smp* libs such as [smp\_base](https://github.com/x75/smp_base).
+block implementations make use of other *smp* libs such as
+[smp\_base](https://github.com/x75/smp_base). The design flow is similar to block based visual programming
+approaches and DSP design techniques found in supercollider, puredata,
+or gnuradio to name a few.
 
 
 ## Items
@@ -30,12 +33,13 @@ block implementations make use of other *smp* libs such as [smp\_base](https://g
 
 -   step, blocksize, ibuf
     -   min blocksize after pass 1
-    -   how to optimize of min bs > 1?
+    -   how to optimize if min(bs) > 1?
 
 -   sync / async block execution
 
 -   minor stuff
     -   x print\_dict print fully compilable python code
+    -   x separate header/footer for full config file to remove code replication and clutter
 
 
 ## Examples

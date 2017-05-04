@@ -1,5 +1,7 @@
 """smp_graphs logging module
 
+2017 Oswald Berthold
+
 log_tb snatched from smpblocks
 log_pd snatched from smq
 """
@@ -101,6 +103,18 @@ Arguments:
     experiment = "%s" % (config['params']['id'])
     log_store = pd.HDFStore("data/%s_pd.h5" % (experiment))
 
+def log_pd_store_config_initial(conf):
+    # store the initial config for this run via the node attribute hack
+    df_conf = pd.DataFrame([[0]])
+    log_store['conf'] = df_conf
+    log_store.get_storer('conf').attrs.conf = conf
+
+def log_pd_store_config_final(conf):
+    # store the final config for this run via the node attribute hack
+    df_conf = pd.DataFrame([[0]])
+    log_store['conf_final'] = df_conf
+    log_store.get_storer('conf_final').attrs.conf = conf
+        
 def log_pd_init_block(tbl_name, tbl_dim, tbl_columns = None, numsteps=100):
     """log_pd: log to tables via pandas, local node init
 
@@ -121,7 +135,7 @@ def log_pd_store():
     for k,v in log_lognodes.items():
         # print "storing table k = %s with data type = %s" % (k, v)
         log_store[k] = v
-    
+
 def log_pd(tbl_name, data):
     """log_pd: log to tables via pandas, local node logging
 
@@ -138,4 +152,21 @@ Arguments:
     # log_lognodes[tbl_name].loc[0] = 1
     # print "log_lognodes[tbl_name]", log_lognodes[tbl_name], log_lognodes[tbl_name].loc[cloc]
     log_lognodes_idx[tbl_name] += 1
+
+def log_pd_dump_config(h5store, storekey = None):
+    assert h5store is not None
+    assert storekey is not None
+    store = pd.HDFStore(h5store)
+    try:
+        ret = store.get_storer(storekey).attrs.conf
+    except AttributeError:
+        print "key %s doesn't exist" % (storekey)
+        ret = None
+    store.close()
+    return ret
     
+# def log_pd_dump_log(h5store = None):
+#     assert h5store is not None
+#     store = pd.HDFStore(h5store)
+
+#     print "initial config = %s" % store.get_storer('conf').attrs.conf
