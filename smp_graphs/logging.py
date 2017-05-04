@@ -145,13 +145,19 @@ Arguments:
 """
     global log_lognodes, log_lognodes_idx
     # print "data.shape", data.flatten().shape, log_lognodes_idx[tbl_name]
+    # infer blocksize from data
+    blocksize = data.shape[1]
+    # get last index
     cloc = log_lognodes_idx[tbl_name]
     # print "log_lognodes[tbl_name].loc[cloc].shape = %s, data.shape = %s" % (log_lognodes[tbl_name].loc[cloc].shape, data.shape)
     # using flatten to remove last axis, FIXME for block based logging
-    log_lognodes[tbl_name].loc[cloc] = data.flatten()
+    # print "data.shape", data.shape, cloc, cloc+blocksize
+    sl = slice(cloc, (cloc + blocksize) - 1)
+    # print "log.shape", log_lognodes[tbl_name].loc[sl].shape
+    log_lognodes[tbl_name].loc[sl] = data.T # data.flatten()
     # log_lognodes[tbl_name].loc[0] = 1
     # print "log_lognodes[tbl_name]", log_lognodes[tbl_name], log_lognodes[tbl_name].loc[cloc]
-    log_lognodes_idx[tbl_name] += 1
+    log_lognodes_idx[tbl_name] += blocksize
 
 def log_pd_dump_config(h5store, storekey = None):
     assert h5store is not None

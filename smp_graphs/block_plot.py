@@ -16,7 +16,9 @@ class TimeseriesPlotBlock2(PrimBlock2):
 
     @decStep()
     def step(self, x = None):
-        if (self.cnt % self.blocksize) == (self.blocksize - 1):
+        # print "plotblock conf", self.ibuf
+        # print "plotblock real", self.inputs['d1'][0].shape
+        if (self.cnt % self.blocksize) == 0: # (self.blocksize - 1):
             self.debug_print("%s.step ibuf = %s", (self.cname, self.inputs['d1'][0]))
             # plt.plot(self.bufs['ibuf'].T)
             # plt.show()

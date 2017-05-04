@@ -119,14 +119,14 @@ Load a config from the file in args.conf
         self.conf = get_config_raw(args.conf)
         self.conf = set_config_defaults(self.conf)
         
-        print "%s.init: conf keys = %s\n" % (self.__class__.__name__, self.conf.keys())
+        # print "%s.init: conf keys = %s\n" % (self.__class__.__name__, self.conf.keys())
         
         for k in self.conf.keys():
             setattr(self, k, self.conf[k])
-            print "%s.init: self.%s = %s\n" % (self.__class__.__name__, k, getattr(self, k))
+            # print "%s.init: self.%s = %s\n" % (self.__class__.__name__, k, getattr(self, k))
         # self.numsteps = self.conf['params']['numsteps']
 
-        print "print_dict\n", print_dict(self.conf)
+        # print "Experiment.init\n", print_dict(self.conf)
 
         # self.topblock = Block(
         #     block = self.conf['block'],

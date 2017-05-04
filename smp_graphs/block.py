@@ -67,68 +67,44 @@ class decStep():
     """step decorator"""
     def __call__(self, f):
         def wrap(exec_self, *args, **kwargs):
-            # # get any input or set to default
-            # if len(args) > 0:
-            #     x = np.atleast_2d(args[0])
-            # elif kwargs.has_key('x'):
-            #     x = np.atleast_2d(kwargs['x'])
-            # else:
-            #     x = None
-
-            # input argument above might be obsolete due to busses
-            # get the input from the bus
             if True:
-                # stack = [exec_self.bus[k] for k in exec_self.inputs]
-                # print "stack", stack
-                # x = np.vstack(stack)
-                # print "x", x
+                # dummy input
                 x = {}
+                # loop over block's inputs
                 for k, v in exec_self.inputs.items():
-                        
-                    # # print type(v)
-                    # if np.isscalar(v):
-                    #     print "%s.decstep scalar" % (exec_self.__class__.__name__), k, v, getattr(exec_self, k)
-                    #     x[k] = getattr(exec_self, k) # v
-                    # elif type(v) is list:
-                    #     print "%s.decstep list" % (exec_self.__class__.__name__), k, v
-                    #     stack = [exec_self.bus[bk] for bk in v]
-                    #     # x[k] = stack
-                    #     x[k] = np.vstack(stack)
-                    # elif type(v) is dict:
-                    #     print "%s.decstep dict" % (exec_self.__class__.__name__), k, v
-                    #     stack = [exec_self.bus[bk][bv[0]:bv[1]]
-                    #                  for bk,bv in v.items()]
-                    #     # x[k] = stack
-                    #     x[k] = np.vstack(stack)
-                    # elif type(v) is np.ndarray:
-                    #     print "%s.decstep array" % (exec_self.__class__.__name__), k, v
-                    #     x[k] = v
-
-                    # print "%s.decstep x[%s] = %s" % (exec_self.__class__.__name__, k, x[k])
-
-                    # print "decStep: x.shape = %s" % (x.shape,)
-            
-                    # write to input buffer
-                    # if x.shape == (exec_self.idim, 1):
-                    # for k, v 
+                    # copy bus inputs to input buffer
                     if v[2] is not None:
+                        # if extended input buffer, rotate the data with each step
                         if exec_self.ibuf > 1:
-                            exec_self.inputs[k][0] = np.roll(exec_self.inputs[k][0], shift = -1, axis = 1)
-                        # print "shapes", "ibuf", \
-                        #   exec_self.bufs['ibuf'][k][:,-1,np.newaxis].shape,\
-                        #   'x[k]', x[k].shape
-                        exec_self.inputs[k][0][:,-1,np.newaxis] = exec_self.bus[v[2]]
+                            # input blocksize
+                            blocksize_input = exec_self.bus[v[2]].shape[1]
+                            # input block border 
+                            if (exec_self.cnt % blocksize_input) == 0: # (blocksize_input - 1):
+                                # shift by input blocksize
+                                exec_self.inputs[k][0] = np.roll(exec_self.inputs[k][0], shift = -blocksize_input, axis = 1)
+                                # print "decinit", exec_self.inputs[k][0].shape
+                                
+                                # set inputs [last-inputbs:last] if input blocksize reached
+                                sl = slice(-blocksize_input, None)
+                                exec_self.inputs[k][0][:,sl] = exec_self.bus[v[2]] # np.fliplr(exec_self.bus[v[2]])
+                                # exec_self.inputs[k][0][:,-1,np.newaxis] = exec_self.bus[v[2]]
+                        else: # ibuf = 1
+                                exec_self.inputs[k][0][:,[0]] = exec_self.bus[v[2]]
+                            
 
-            # call the function
-            f_out = f(exec_self, x)
+            # call the function depending on the blocksize
+            if (exec_self.cnt % exec_self.blocksize) == 0: # (exec_self.blocksize - 1):
+                f_out = f(exec_self, x)
 
-            # copy output to bus
-            for k, v in exec_self.outputs.items():
-                buskey = "%s/%s" % (exec_self.id, k)
-                exec_self.bus[buskey] = getattr(exec_self, k)
+                # copy output to bus
+                for k, v in exec_self.outputs.items():
+                    buskey = "%s/%s" % (exec_self.id, k)
+                    exec_self.bus[buskey] = getattr(exec_self, k)
+            else:
+                f_out = None
             
             # count calls
-            exec_self.cnt += 1
+            exec_self.cnt += 1 # should be min_blocksize
             # exec_self.ibufidx = exec_self.cnt % exec_self.ibufsize
             
             return f_out
@@ -143,7 +119,7 @@ class Block2(object):
         'debug': False,
         'topblock': False,
         'ibuf': 1,
-        'cnt': 0,
+        'cnt': 1,
         'blocksize': 1,
         'inputs': {}, # internal port, scalar / vector/ bus key, [slice]
         'outputs': {}, # name, dim
@@ -186,10 +162,15 @@ class Block2(object):
             # init pass 1: complete the graph by expanding dynamic variables and initializing the outputs to get the bus def
             self.init_graph_pass_1()
 
+            # self.debug_print("init_1: buskeys = %s", (self.bus.keys(),)) # (print_dict(self.bus),))
+            # for k,v in self.bus.items():
+            #     self.debug_print("init_1: self.bus[%s].shape = %s", (k, v.shape)) # (print_dict(self.bus),))
+
             # init pass 2:
             self.init_graph_pass_2()
-            
-            self.debug_print("self.bus = %s", (print_dict(self.bus),))
+
+            # for k,v in self.bus.items():
+            #     self.debug_print("init_2: self.bus[%s].shape = %s", (k, v.shape)) # (print_dict(self.bus),))
 
             self.dump_final_config()
             
@@ -209,23 +190,25 @@ class Block2(object):
         self.graph = self.conf['params']['graph']
         # pass 1 init
         for k, v in self.graph.items():
-            self.debug_print("__init__: pass 1\nk = %s,\nv = %s", (k, print_dict(v)))
+            # self.debug_print("__init__: pass 1\nk = %s,\nv = %s", (k, print_dict(v)))
             self.graph[k]['block'] = self.graph[k]['block'](conf = v, paren = self, top = self)
-            print "%s self.graph[k]['block'] = %s" % (self.graph[k]['block'].__class__.__name__, self.graph[k]['block'].bus)
+            # print "%s self.graph[k]['block'] = %s" % (self.graph[k]['block'].__class__.__name__, self.graph[k]['block'].bus)
         # done pass 1 init
 
     def init_graph_pass_2(self):
         # pass 2 init
         for k, v in self.graph.items():
-            self.debug_print("__init__: pass 2\nk = %s,\nv = %s", (k, print_dict(v)))
+            # self.debug_print("__init__: pass 2\nk = %s,\nv = %s", (k, print_dict(v)))
             self.graph[k]['block'].init_pass_2()
 
     def init_outputs(self):
         # create outputs
         # format: variable: [shape]
         for k, v in self.outputs.items():
+            # alloc dim x blocksize buf
+            self.outputs[k][0] = (v[0][0], self.blocksize)
             # create self attribute for output item
-            setattr(self, k, np.zeros(v[0]))
+            setattr(self, k, np.zeros(self.outputs[k][0]))
             buskey = "%s/%s" % (self.id, k)
             self.bus[buskey] = getattr(self, k)
 
@@ -252,17 +235,29 @@ class Block2(object):
         if not self.topblock:
             # create inputs by mapping from constants or bus
             # that's actually for pass 2 to enable recurrent connections
-            # format: variable: [buffered const/array, shape, bus, localbuf]
+            # format: variable: [buffered const/array, shape, bus]
             for k, v in self.inputs.items():
-                self.debug_print("__init__: pass 2\nk = %s,\nv = %s", (k, print_dict(v)))
+                self.debug_print("__init__: pass 2\n    k = %s,\n    v = %s", (k, v))
                 assert len(v) > 0
                 # set input from bus
                 if type(v[0]) is str:
+                    # enforce bus blocksize smaller than local blocksize, tackle later
+                    assert self.bus[v[0]].shape[1] <= self.blocksize
+                    # create input tuple
                     tmp = [None for i in range(3)]
-                    tmp[0] = self.bus[v[0]]
+                    # get the bus
+                    inbus = self.bus[v[0]]
+                    # alloc the inbuf
+                    tmp[0] = np.zeros((inbus.shape[0], self.ibuf)) # ibuf >= blocksize
+                    # splice buf into inbuf
+                    tmp[0][:,0:inbus.shape[1]] = inbus
+                    # store shape fwiw
                     tmp[1] = tmp[0].shape
+                    # store buskey
                     tmp[2] = v[0]
-                    self.inputs[k] = tmp
+                    # assign tuple
+                    self.inputs[k] = tmp # 
+                    print "%s.init_pass_2: %s, bus[%s] = %s, input = %s" % (self.cname, self.id, v[0], self.bus[v[0]].shape, self.inputs[k][0].shape)
                 else:
                     # expand scalar to vector
                     if np.isscalar(self.inputs[k][0]):
@@ -276,12 +271,14 @@ class Block2(object):
                         self.inputs[k] += [self.inputs[k][0].shape]
                     self.inputs[k].append(None)
                 # add input buffer
-                self.inputs[k][0] = np.hstack((np.zeros((self.inputs[k][1][0], self.ibuf-1)), self.inputs[k][0]))
+                # stack??
+                # self.inputs[k][0] = np.hstack((np.zeros((self.inputs[k][1][0], self.ibuf-1)), self.inputs[k][0]))
+                self.debug_print("init_pass_2 %s in_k.shape = %s", (self.id, self.inputs[k][0].shape))
             
     def debug_print(self, fmtstring, data):
         """only print if debug is enabled for this block"""
-        fmtstring = "\n%s." + fmtstring
-        data = (self.cname,) + data
+        fmtstring = "\n%s[%d]." + fmtstring
+        data = (self.cname,self.cnt) + data
         if self.debug:
             print fmtstring % data
 
@@ -291,13 +288,14 @@ class Block2(object):
             for k, v in self.graph.items():
                 v['block'].step()
 
-            # do logging for all bus items
-            # for k, v in self.bus.items():
-            for k, v in self.graph.items():
+            # do logging for all nodes, was bus items
+            for k, v in self.graph.items(): # self.bus.items():
+                # return if block doesn't want logging
                 if not v['block'].logging: continue
-                
-                self.debug_print("%s.step: bus k = %s, v = %s", (self.__class__.__name__, k, v))
-                # print "%s id" % (self.__class__.__name__), self.id, "k", k, v.shape, v
+                if (self.cnt % v['block'].blocksize) != (v['block'].blocksize - 1): continue
+                # print debug foo
+                self.debug_print("%s.step: node k = %s, v = %s", (self.__class__.__name__, k, v))
+                # do logging for all of the node's output variables
                 for k_o, v_o in v['block'].outputs.items():
                     buskey = "%s/%s" % (v['block'].id, k_o)
                     log.log_pd(tbl_name = buskey, data = self.bus[buskey])
@@ -325,7 +323,7 @@ class Block2(object):
 
     def dump_final_config(self):
         finalconf = self.get_config()
-        print type(finalconf), finalconf
+        # print "Block2.dump_final_config", type(finalconf), finalconf
         # pickle.dump(finalconf, open("data/%s_conf.pkl" % (self.id, ), "wb"))
         dump_final_config_file = "data/%s.conf" % (self.id)
         f = open(dump_final_config_file, "w")
@@ -334,7 +332,7 @@ class Block2(object):
         confstr_ = "conf = {'block': 'Block2', 'params': %s}" % (confstr, )
         f.write(confstr_)
         f.flush()
-        print "%s.dump_final_config wrote config, closing file %s" % (self.cname, dump_final_config_file,)
+        # print "%s.dump_final_config wrote config, closing file %s" % (self.cname, dump_final_config_file,)
         f.close()
 
         log.log_pd_store_config_final(confstr_)
@@ -404,7 +402,7 @@ class ConstBlock2(PrimBlock2):
 
     @decStep()
     def step(self, x = None):
-        self.debug_print("%s.step: x = %s, bus = %s", (self.__class__.__name__, self.x, self.bus))
+        # self.debug_print("%s.step: x = %s, bus = %s", (self.__class__.__name__, self.x, self.bus))
 
         # self.x = self.in        
         # # loop over outputs dict and copy them to a slot in the bus
@@ -413,7 +411,16 @@ class ConstBlock2(PrimBlock2):
         #     self.bus[buskey] = getattr(self, k)
             
         return self.x
-    
+
+class CountBlock2(PrimBlock2):
+    @decInit()
+    def __init__(self, conf = {}, paren = None, top = None):
+        PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
+
+    @decStep()
+    def step(self, x = None):
+        pass
+        
 class UniformRandomBlock2(PrimBlock2):
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
@@ -460,10 +467,10 @@ class FileBlock2(Block2):
             # print "v[0]", v[0]
             if v[0] is None:
                 # self.outputs[k][0] = (self.data[k].shape[1], 1)
-                print "data", self.data[k].shape[1]
-                print "out dim", conf['params']['outputs'][k]
-                conf['params']['outputs'][k][0] = (self.data[k].shape[1], 1)
-                print "out dim", conf['params']['outputs'][k]
+                # print "data", self.data[k].shape[1]
+                # print "out dim", conf['params']['outputs'][k]
+                conf['params']['outputs'][k][0] = (self.data[k].shape[1], conf['params']['blocksize'])
+                # print "out dim", conf['params']['outputs'][k]
             # self.x = np.zeros((self.odim, 1))
         
         Block2.__init__(self, conf = conf, paren = paren, top = top)
@@ -476,7 +483,10 @@ class FileBlock2(Block2):
         self.debug_print("%s.step: x = %s, bus = %s", (self.__class__.__name__, x, self.bus))
         # self.x = np.atleast_2d(self.data[[self.cnt]]).T #?
         self.debug_print("self.x = %s", (self.x,))
-        for k, v in self.outputs.items():
-            setattr(self, k, self.data[k][[self.cnt]].T)
+        if (self.cnt % self.blocksize) == 0: # (self.blocksize - 1):
+            for k, v in self.outputs.items():
+                sl = slice(self.cnt-self.blocksize, self.cnt)
+                setattr(self, k, self.data[k][sl].T)
+                # setattr(self, k, self.data[k][[self.cnt]].T)
             
         return self.x
