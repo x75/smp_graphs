@@ -3,10 +3,10 @@
 
 * smp_graphs
 
-Specifiy experiments as a graph of nodes and a set of signals,
-corresponding nicely with tapping approach.
+Specifiy sensorimotor learning experiments as a graph of nodes and a
+set of signals, corresponding nicely with the tapping approach.
 
-** items / todo
+** Items
  - x dict printing for dynamic reconf inspection
 
  - x base block
@@ -21,9 +21,9 @@ corresponding nicely with tapping approach.
    - x std logging OK
    - include git revision, initial and final config in log
 
- - networkx for visualization?
-   - standalone networkx graph from final config
-   - graphviz
+ - x networkx for visualization?
+   - x standalone networkx graph from final config
+   - x graphviz
 
  - step, blocksize, ibuf
    - min blocksize after pass 1
@@ -32,7 +32,7 @@ corresponding nicely with tapping approach.
  - sync / async block execution
 
  - minor stuff
-  - print_dict print fully compilable python code
+  - x print_dict print fully compilable python code
 
 ** Examples
 
