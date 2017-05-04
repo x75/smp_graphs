@@ -16,19 +16,21 @@ approaches and DSP design techniques found in supercollider, puredata,
 or gnuradio to name a few.
 
 ** Items
- - logging
-   - x std logging OK
-   - include git revision, initial and final config in log
+ - step, blocksize, ibuf
+   - x basic blocksize handling
+   - check if logging still works properly
+   - min blocksize after pass 1
+   - how to optimize if min(bs) > 1?
 
  - loop block
    - x parallel loop within graph, modify graph
    - sequential loop for running block variations e.g hyperopt or evo
 
- - step, blocksize, ibuf
-   - min blocksize after pass 1
-   - how to optimize if min(bs) > 1?
-
  - sync / async block execution
+
+ - x logging
+   - x std logging OK
+   - x include git revision, initial and final config in log
  
  - x networkx for visualization?
    - x standalone networkx graph from final config

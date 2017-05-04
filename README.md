@@ -13,33 +13,35 @@ or gnuradio to name a few.
 
 ## Items
 
--   x dict printing for dynamic reconf inspection
-
--   x base block
-
--   x two-pass init: complete by putting input init into second pass
+-   step, blocksize, ibuf
+    -   x basic blocksize handling
+    -   check if logging still works properly
+    -   min blocksize after pass 1
+    -   how to optimize if min(bs) > 1?
 
 -   loop block
     -   x parallel loop within graph, modify graph
     -   sequential loop for running block variations e.g hyperopt or evo
 
--   logging
+-   sync / async block execution
+
+-   x logging
     -   x std logging OK
-    -   include git revision, initial and final config in log
+    -   x include git revision, initial and final config in log
 
 -   x networkx for visualization?
     -   x standalone networkx graph from final config
     -   x graphviz
 
--   step, blocksize, ibuf
-    -   min blocksize after pass 1
-    -   how to optimize if min(bs) > 1?
-
--   sync / async block execution
-
 -   minor stuff
     -   x print\_dict print fully compilable python code
     -   x separate header/footer for full config file to remove code replication and clutter
+
+-   x two-pass init: complete by putting input init into second pass
+
+-   x base block
+
+-   x dict printing for dynamic reconf inspection
 
 
 ## Examples
