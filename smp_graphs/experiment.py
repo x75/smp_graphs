@@ -8,6 +8,9 @@ import matplotlib.pyplot as plt
 
 import numpy as np
 
+# for config reading
+from numpy import array
+
 from smp_graphs.block import Block, Block2
 from smp_graphs.utils import print_dict
 
@@ -107,9 +110,10 @@ Load a config from the file in args.conf
 
 class Graphviz(object):
     def __init__(self, args):
-        # self.conf = get_config_raw(args.conf)
+        self.conf1 = get_config_raw(args.conf)
         f = open(args.conf, "r")
         self.conf = f.read()
+        # clean up all spaces and newlines?
 
     def run(self):
-        print self.conf
+        print print_dict(pdict = self.conf[7:])

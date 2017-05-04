@@ -2,8 +2,13 @@
 from collections import OrderedDict
 
 from numpy import ndarray
+from numpy import float64
 
 def print_dict(pdict = {}, level = 1, indent = None):
+    """pretty print a dictionary for debugging by recursive construction of print string
+
+    replace classes, objects, functions with their repr string within ''
+    """
     # if level == 0:
     #     print "#" * 80
     pstring = ""
@@ -25,21 +30,36 @@ def print_dict(pdict = {}, level = 1, indent = None):
             pstring += "\n%s" % (indent)
             pstring += print_dict(pdict = k, level = level+1)
             pstring += ": "
-            if type(v) in [dict, OrderedDict, list, ndarray]:
+            if type(v) in [dict, OrderedDict, list, ndarray, tuple]:
                 pstring += print_dict(pdict = v, level = level+1)
             else:
                 pstring += print_dict(pdict = v, level = level+1, indent = "")
             pstring += ", "
         pstring += "\n%s}" % (level_indent_str_m1)
-    elif type(pdict) in [list, ndarray]:
-        pstring += "["
+    elif type(pdict) in [list, ndarray, tuple]:
+        # fix start end markers for list / array / tuple
+        s1 = '['
+        s2 = ']'
+        if type(pdict) == tuple:
+            s1 = '('
+            s2 = ')'
+            
+        pstring += s1
         for i, pdict_elem in enumerate(pdict):
             pstring += print_dict(pdict = pdict_elem, level = level+1)
-            pstring += ", "
-        pstring += "]"
+            pstring += ', '
+        pstring += s2
     else:
-        pstring += "%s"  % (pdict,)
-        
+        if type(pdict) not in [int, float, float64, bool, tuple, None]:
+            pstring += "'%s'"  % (pdict,)
+        else:
+            pstring += "%s"  % (pdict,)
+            
     # print "level %d: %s: %s" % (level, k, pstring)
+    if "array" in pstring:
+        print "array", pstring, level, indent
     return pstring
 
+
+def print_dict_clean(pdict = {}, level = 1, indent = None):
+    return pdict

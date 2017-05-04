@@ -12,7 +12,7 @@ import pickle
 import numpy as np
 
 import smp_graphs.logging as log
-from smp_graphs.utils import print_dict
+from smp_graphs.utils import print_dict, print_dict_clean
 
 BLOCKSIZE_MAX = 10000
 
@@ -173,14 +173,8 @@ class Block2(object):
             
             self.debug_print("self.bus = %s", (print_dict(self.bus),))
 
-            finalconf = self.get_config()
-            print type(finalconf), finalconf
-            # pickle.dump(finalconf, open("data/%s_conf.pkl" % (self.id, ), "wb"))
-            f = open("data/%s.conf" % (self.id), "w")
-            f.write("conf = {'block': Block2, 'params': " + repr(finalconf[1]['params']) + "}")
-            f.flush()
-            f.close()
-                                        
+            self.dump_final_config()
+                                                    
         else:
             # pass 1: complete config with runtime info
             # get bus
@@ -309,6 +303,19 @@ class Block2(object):
                 })
         return conf
 
+    def dump_final_config(self):
+        finalconf = self.get_config()
+        print type(finalconf), finalconf
+        # pickle.dump(finalconf, open("data/%s_conf.pkl" % (self.id, ), "wb"))
+        dump_final_config_file = "data/%s.conf" % (self.id)
+        f = open(dump_final_config_file, "w")
+        # confstr = repr(finalconf[1]['params'])
+        confstr = print_dict(pdict = finalconf[1]['params'])
+        f.write("conf = {'block': 'Block2', 'params': %s}" % (confstr, ))
+        f.flush()
+        print "%s.dump_final_config wrote config, closing file %s" % (self.cname, dump_final_config_file,)
+        f.close()
+    
 class LoopBlock2(Block2):
     """Loop block: dynamically create block variations according to some specificiations of variation
 
@@ -331,7 +338,7 @@ class LoopBlock2(Block2):
             loopblock_params = {}
             for k, v in self.loopblock['params'].items():
                 if k == 'id':
-                    loopblock_params[k] = "%s-%d" % (self.id, i+1)
+                    loopblock_params[k] = "%s_%d" % (self.id, i+1)
                 elif k == lparams[0]:
                     loopblock_params[k] = lparams[1]
                 else:
@@ -355,7 +362,10 @@ class LoopBlock2(Block2):
 
         # FIXME: this good?
         ordereddict_insert(ordereddict = self.top.graph, insertionpoint = '%s' % self.id, itemstoadd = loopblocks)
-            
+
+        # replace loopblock block entry
+        self.loopblock['block'] = Block2.__class__.__name__
+                   
     def step(self, x = None):
         """loop block does nothing for now"""
         pass

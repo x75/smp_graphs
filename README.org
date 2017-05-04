@@ -14,11 +14,11 @@ corresponding nicely with tapping approach.
  - x two-pass init: complete by putting input init into second pass
 
  - loop block
-   1. x parallel loop within graph, modify graph
-   2. sequential loop for running block variations 
+   - x parallel loop within graph, modify graph
+   - sequential loop for running block variations e.g hyperopt or evo
  
  - logging
-   - std logging OK
+   - x std logging OK
    - include git revision, initial and final config in log
 
  - networkx for visualization?
