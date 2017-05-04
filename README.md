@@ -43,60 +43,21 @@ set of signals, corresponding nicely with the tapping approach.
     python experiment.py --conf conf/default2_loop.conf
 
 
-# smp\_graphs legacy notes
+# Notes
 
+This is my n-th attempt at designing a framework for computational
+sensorimotor learning experiments. Earlier attempts include
 
-## v1 stalled
-
--   x load graph and execute in given order, each node knows which bus line maps onto its inputs
-
--   x reuse config as block in other config / nested experiments
-
--   x logging
-
--   x input mapping: what are inputs / params, how to select from busses
-    and map to local variable
-
--   x input buffering: ring buffer decorator: use np.roll hoping it
-    does that internally
-
--   global config: e.g. fileblock setting its odim, use global config
-    inside blocks, dynamic graph structure, change notification. make
-    dynamic foo and write back the results into config
-    -   loop block / dynamic blocks that can change the graph
-
--   file sources: load data in config or in block?
-
--   blocksize vs. numsteps
-
--   bus: make bus a structured dict, allowing blocks to have several
-    outputs, this make odim obsolete
-
--   read/write: ros
-
--   read/write: osc
-
--   sync vs. async nodes
-
--   x functional, decorators
-
--   recurrence, backprop, signal propagation and execution order
-
--   networkx?
-
-
-## Predecessors
-
-My fourth attempt at a framework for computational sensorimotor
-learning experiments. Earlier attempts are:
-
--   smp\_experiments: config as name value pairs and some python code
-    wrapping to reuse singular experiments in an outer loop
--   smpblocks: first attempt at python config files containing a
-    dictionary specifying generic computation blocks and their
-    connections
--   smq: smpblocks had too small granularity, here i tried to be more
-    specific introducing specific and fixed modules world, robot,
-    brain. Alas it turned out that was too specific and didn't fit
-    experiments deviating from that paradigm. Is where we are ;)
+-   **smp\_experiments**: defined config as name value pairs and some
+    python code wrapping enabling the reuse of singular experiments
+    defined elsewhere in an outer loop doing variations (collecting
+    statistics, optimizing, &#x2026;)
+-   **smpblocks**: first attempt at using plain python config files
+    containing a dictionary specifying generic computation blocks and
+    their connections. granularity was too small and specifying
+    connections was too complicated
+-   **smq**: tried to be more high-level, introducing three specific and
+    fixed modules 'world', 'robot', 'brain'. Alas it turned out that
+    left us too inflexible and obviosuly couldn't accomodate any
+    experiments deviating from that schema. Is where we are ;)
 
