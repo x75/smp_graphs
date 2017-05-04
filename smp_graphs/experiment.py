@@ -22,6 +22,40 @@ from numpy import array
 from smp_graphs.block import Block2
 from smp_graphs.utils import print_dict
 
+################################################################################
+# static templates
+conf_header = """
+from smp_graphs.experiment import make_expr_id
+
+from collections import OrderedDict
+
+from smp_graphs.block import Block2, ConstBlock2, UniformRandomBlock2
+from smp_graphs.block import LoopBlock2
+from smp_graphs.block import FileBlock2
+from smp_graphs.block_plot import TimeseriesPlotBlock2
+
+from smp_base.plot import timeseries, histogram, rp_timeseries_embedding
+
+import numpy as np
+"""
+
+conf_footer = """
+# top block
+# FIXME: would like to get rid of this, common for all conf
+conf = {
+    'block': Block2,
+    'params': {
+        'id': make_expr_id(),
+        'debug': True,
+        'topblock': True,
+        'numsteps': numsteps,
+        'graph': graph,
+    }
+}
+"""
+
+################################################################################
+# utils, TODO: move to utils.py
 def get_args():
     # define defaults
     default_conf     = "conf/default.py"
@@ -39,23 +73,22 @@ def get_args():
     return args
 
 def get_config_raw(conf):
-    # open and read config file containing a dictionary spec
-    s = open(conf, "r").read()
+    # open and read config file containing a dictionary spec of the graph
+    s_ = open(conf, "r").read()
 
-    # parse config into variable, easy
-    # conf = eval(s)
+    # prepend / append header and footer
+    s   = "%s\n%s\n%s" % (conf_header, s_, conf_footer)
 
-    # proper version with more powerS!
+    # load config by running the code string
     code = compile(s, "<string>", "exec")
     global_vars = {}
     local_vars  = {}
     exec(code, global_vars, local_vars)
 
-    conf = local_vars["conf"]
-
+    # conf = local_vars["conf"]
     # print "conf", conf
-
-    return conf
+    # return conf
+    return local_vars["conf"]
 
 def set_config_defaults(conf):
     if not conf['params'].has_key("numsteps"):

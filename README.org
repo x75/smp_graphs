@@ -1,6 +1,10 @@
 
 #+OPTIONS: ^:nil toc:nil
 
+#+LATEX_HEADER: \usepackage{fullpage}
+#+LATEX_HEADER: \usepackage{lmodern}
+#+LATEX_HEADER: \renewcommand{\familydefault}{\sfdefault}
+
 * smp_graphs
 
 Specifiy sensorimotor learning experiments as a graph of nodes and a
@@ -29,12 +33,13 @@ block implementations make use of other /smp/ libs such as [[https://github.com/
 
  - step, blocksize, ibuf
    - min blocksize after pass 1
-   - how to optimize of min bs > 1?
+   - how to optimize if min(bs) > 1?
 
  - sync / async block execution
 
  - minor stuff
   - x print_dict print fully compilable python code
+  - separate header/footer for full config file to remove code replication and clutter
 
 ** Examples
 

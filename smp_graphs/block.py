@@ -16,7 +16,8 @@ from smp_graphs.utils import print_dict
 
 BLOCKSIZE_MAX = 10000
 
-# utils
+################################################################################
+# utils, TODO move to utils.py
 def ordereddict_insert(ordereddict = None, insertionpoint = None, itemstoadd = []):
     """self rolled ordered dict insertion
     from http://stackoverflow.com/questions/29250479/insert-into-ordereddict-behind-key-foo-inplace
@@ -50,7 +51,7 @@ def read_puppy_hk_pickles(lfile, key = None):
     data['y'] = y[:,:,0]
     # print "x.shape", data['x'].shape
     return (data, rate, offset)
-    
+
 ################################################################################
 # v2 blocks
 
@@ -337,9 +338,8 @@ class LoopBlock2(Block2):
 
     two modes:
      - parallel mode: modify the graph structure and all block variations at the same time
-     - sequential mode: modify execution to run each variation in one after the other
+     - sequential mode: modify execution to run each variation one after the other
      """
-
     def __init__(self, conf = {}, paren = None, top = None):
         self.defaults['loop'] = [1]
         self.defaults['loopmode'] = 'sequential'

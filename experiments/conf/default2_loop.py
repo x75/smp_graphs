@@ -5,24 +5,6 @@ the config is python, so we
  - put the graph config into a dict
 """
 
-# would like to get rid of this, common for all conf
-
-# imports
-from smp_graphs.experiment import make_expr_id
-
-from collections import OrderedDict
-
-# graph handling blocks
-from smp_graphs.block import Block2, LoopBlock2
-# primitive data sources
-from smp_graphs.block import ConstBlock2, UniformRandomBlock2
-# plotting / analysis
-from smp_graphs.block_plot import TimeseriesPlotBlock2
-
-from smp_base.plot import timeseries, histogram
-
-import numpy as np
-
 # reuse
 numsteps = 10
 
@@ -98,15 +80,3 @@ graph = OrderedDict([
         }
     })
 ])
-
-# top block
-conf = {
-    'block': Block2,
-    'params': {
-        'id': make_expr_id(),
-        'debug': False,
-        'topblock': True,
-        "numsteps": numsteps,
-        "graph": graph,
-    }
-}
