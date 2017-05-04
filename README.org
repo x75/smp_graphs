@@ -4,7 +4,9 @@
 * smp_graphs
 
 Specifiy sensorimotor learning experiments as a graph of nodes and a
-set of signals, corresponding nicely with the tapping approach.
+set of signals, corresponding nicely with the tapping approach. The
+basis framework functions are independent of external libs but the
+block implementations make use of other /smp/ libs such as [[https://github.com/x75/smp_base][smp_base]].
 
 ** Items
  - x dict printing for dynamic reconf inspection
