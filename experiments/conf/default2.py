@@ -12,7 +12,6 @@ from smp_graphs.experiment import make_expr_id
 
 from collections import OrderedDict
 
-# from smp_graphs.block import Block, ConstBlock, UniformRandomBlock
 from smp_graphs.block import Block2, ConstBlock2, UniformRandomBlock2
 from smp_graphs.block_plot import TimeseriesPlotBlock2
 # from smp_graphs.block_plot import TimeseriesPlotBlock

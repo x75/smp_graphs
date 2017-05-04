@@ -1,3 +1,11 @@
+"""smp_graphs - smp sensorimotor experiments as computation graphs
+
+2017 Oswald Berthold
+
+experiment: basic experiment shell for
+ - running a graph
+ - loading and drawing a graph (networkx)
+"""
 
 import argparse
 import time
@@ -11,7 +19,7 @@ import numpy as np
 # for config reading
 from numpy import array
 
-from smp_graphs.block import Block, Block2
+from smp_graphs.block import Block2
 from smp_graphs.utils import print_dict
 
 def get_args():
@@ -107,13 +115,40 @@ Load a config from the file in args.conf
 
         plt.show()
 
-
+import networkx as nx
+import re
 class Graphviz(object):
     def __init__(self, args):
-        self.conf1 = get_config_raw(args.conf)
-        f = open(args.conf, "r")
-        self.conf = f.read()
-        # clean up all spaces and newlines?
+        self.conf = get_config_raw(args.conf)
+        # f = open(args.conf, "r")
+        # self.conf = f.read()
 
     def run(self):
-        print print_dict(pdict = self.conf[7:])
+        G = nx.MultiDiGraph()
+        # pass one add nodes
+        for k, v in self.conf['params']['graph'].items():
+            blockname = re.sub(r"<smp_graphs.block.*\.(.*) object.*", "\\1", v['block'])
+            G.add_node(k, block = blockname)
+            # print "k", k
+            # print "v", v
+            
+        # pass two add edges
+        for k, v in self.conf['params']['graph'].items():
+            # print "v['params']", v['params']
+            if not v['params'].has_key('inputs'): continue
+            for inputkey, inputval in v['params']['inputs'].items():
+                # print inputkey
+                # print inputval
+                if inputval[2] not in ['None']:
+                    k_from, v_to = inputval[2].split('/')
+                    G.add_edge(k_from, k)
+        # print print_dict(pdict = self.conf[7:])
+        layout = nx.spring_layout(G)
+        print G.nodes(data = True)
+        labels = {'%s' % node[0]: '%s' % node[1]['block'] for node in G.nodes(data = True)}
+        print "labels = %s" % labels
+        # nx.draw(G)
+        # nx.draw_networkx_labels(G)
+        nx.draw_networkx(G, pos = layout, node_color = 'g', node_shape = '8')
+        nx.draw_networkx_labels(G, pos = layout, labels = labels, font_color = 'r')
+        plt.show()

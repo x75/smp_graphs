@@ -56,10 +56,6 @@ def print_dict(pdict = {}, level = 1, indent = None):
             pstring += "%s"  % (pdict,)
             
     # print "level %d: %s: %s" % (level, k, pstring)
-    if "array" in pstring:
-        print "array", pstring, level, indent
+    # if "array" in pstring:
+    #     print "array", pstring, level, indent
     return pstring
-
-
-def print_dict_clean(pdict = {}, level = 1, indent = None):
-    return pdict
