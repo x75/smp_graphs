@@ -22,6 +22,7 @@ from numpy import array
 from smp_graphs.block import Block2
 from smp_graphs.utils import print_dict
 from smp_graphs.common import conf_header, conf_footer
+from smp_graphs.common import get_config_raw
 
 ################################################################################
 # utils, TODO: move to utils.py
@@ -40,24 +41,6 @@ def get_args():
     args = parser.parse_args()
     # return arguments
     return args
-
-def get_config_raw(conf):
-    # open and read config file containing a dictionary spec of the graph
-    s_ = open(conf, "r").read()
-
-    # prepend / append header and footer
-    s   = "%s\n%s\n%s" % (conf_header, s_, conf_footer)
-
-    # load config by running the code string
-    code = compile(s, "<string>", "exec")
-    global_vars = {}
-    local_vars  = {}
-    exec(code, global_vars, local_vars)
-
-    # conf = local_vars["conf"]
-    # print "conf", conf
-    # return conf
-    return local_vars["conf"]
 
 def set_config_defaults(conf):
     if not conf['params'].has_key("numsteps"):
@@ -129,10 +112,19 @@ class Graphviz(object):
 
     def run(self):
         G = nx.MultiDiGraph()
+
+        # FIXME: make the node and edge finding stuff into recursive functions
+        
         # pass one add nodes
         for k, v in self.conf['params']['graph'].items():
+            print "k", k #, v
             blockname = re.sub(r"<smp_graphs.block.*\.(.*) object.*", "\\1", v['block'])
             G.add_node(k, block = blockname)
+            if v['params'].has_key('graph'): # hierarchical block containing subgraph
+                for subk, subv in v['params']['graph'].items():
+                    # print "sub", subk, subv
+                    blockname = re.sub(r"<smp_graphs.block.*\.(.*) object.*", "\\1", v['block'])
+                    G.add_node(subk, block = blockname)
             # print "k", k
             # print "v", v
             

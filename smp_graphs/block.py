@@ -14,6 +14,7 @@ import numpy as np
 import smp_graphs.logging as log
 from smp_graphs.utils import print_dict
 from smp_graphs.common import conf_header, conf_footer
+from smp_graphs.common import get_config_raw
 
 BLOCKSIZE_MAX = 10000
 
@@ -176,7 +177,15 @@ class Block2(object):
             self.dump_final_config()
             
             # log.log_pd_dump_config()
-                                                    
+        elif hasattr(self, 'subblock'):
+            self.bus = self.top.bus
+            self.conf['params']['graph'] = get_config_raw(self.subblock, 'graph')
+            print "graph", self.conf['params']['graph']
+            # pass 1
+            self.init_graph_pass_1()
+            # pass 2
+            self.init_graph_pass_2()
+            
         else:
             # pass 1: complete config with runtime info
             # get bus
@@ -191,7 +200,7 @@ class Block2(object):
         self.graph = self.conf['params']['graph']
         # pass 1 init
         for k, v in self.graph.items():
-            # self.debug_print("__init__: pass 1\nk = %s,\nv = %s", (k, print_dict(v)))
+            self.debug_print("__init__: pass 1\nk = %s,\nv = %s", (k, print_dict(v)))
             self.graph[k]['block'] = self.graph[k]['block'](conf = v, paren = self, top = self)
             # print "%s self.graph[k]['block'] = %s" % (self.graph[k]['block'].__class__.__name__, self.graph[k]['block'].bus)
         # done pass 1 init
@@ -290,7 +299,7 @@ class Block2(object):
 
         if topblock iterate graph and step each node block, reiterate graph and do the logging for each node, store the log every n steps
         """
-        if self.topblock:
+        if self.topblock or hasattr(self, 'subblock'):
             for k, v in self.graph.items():
                 v['block'].step()
 
@@ -307,12 +316,13 @@ class Block2(object):
                     buskey = "%s/%s" % (v['block'].id, k_o)
                     log.log_pd(tbl_name = buskey, data = self.bus[buskey])
 
+        if self.topblock:
             # store log
             if (self.cnt) % 100 == 0:
                 print "storing log @iter %04d" % (self.cnt)
                 log.log_pd_store()
 
-            self.cnt += 1
+        self.cnt += 1
 
     def get_config(self):
         params = {}

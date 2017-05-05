@@ -30,3 +30,21 @@ conf = {
     }
 }
 """
+
+
+def get_config_raw(conf, confvar = 'conf'):
+    # open and read config file containing a dictionary spec of the graph
+    s_ = open(conf, "r").read()
+
+    # prepend / append header and footer
+    s   = "%s\n%s\n%s" % (conf_header, s_, conf_footer)
+
+    # load config by running the code string
+    code = compile(s, "<string>", "exec")
+    global_vars = {}
+    local_vars  = {}
+    exec(code, global_vars, local_vars)
+
+    # return resulting variable
+    return local_vars[confvar]
+
