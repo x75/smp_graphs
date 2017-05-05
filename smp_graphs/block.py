@@ -297,7 +297,7 @@ class Block2(object):
                 # if (self.cnt % v['block'].blocksize) != (v['block'].blocksize - 1): continue
                 if (self.cnt % v['block'].blocksize) > 0: continue
                 # print debug foo
-                self.debug_print("step: node k = %s, v = %s", (self.__class__.__name__, k, v))
+                self.debug_print("step: node k = %s, v = %s", (k, v))
                 # do logging for all of the node's output variables
                 for k_o, v_o in v['block'].outputs.items():
                     buskey = "%s/%s" % (v['block'].id, k_o)

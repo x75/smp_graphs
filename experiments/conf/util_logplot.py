@@ -6,7 +6,7 @@ the config is python, so we
 """
 
 # reuse
-numsteps = 100
+numsteps = 500
 debug = True
 
 # graph
@@ -23,7 +23,8 @@ graph = OrderedDict([
             'type': 'selflog',
             # this is looping demand
             'file': [
-                'data/experiment_20170505_083801_pd.h5',
+                'data/experiment_20170505_084006_pd.h5'
+                # 'data/experiment_20170505_083801_pd.h5',
                 # 'data/experiment_20170505_003754_pd.h5',
                 # 'data/experiment_20170505_001511_pd.h5',
                 # 'data/experiment_20170505_001143_pd.h5',
@@ -45,8 +46,8 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'inputs': {'d1': ['selflog//b1/x'],
                            'd2': ['selflog//b2/x'],
-                           # 'd3': ['selflog//puppydata/x'],
-                           # 'd4': ['selflog//puppydata/y']
+                           'd3': ['selflog//puppydata/x'],
+                           'd4': ['selflog//puppydata/y']
             },
             'outputs': {},#'x': [(3, 1)]},
             'subplots': [
@@ -58,14 +59,14 @@ graph = OrderedDict([
                     {'input': 'd2', 'slice': (3, 6), 'plot': timeseries},
                     # {'input': 'd2', 'slice': (3, 6), 'plot': histogram},
                 ],
-                # [
-                #     {'input': 'd3', 'slice': (3, 6), 'plot': timeseries},
-                #     # {'input': 'd3', 'slice': (3, 6), 'plot': histogram},
-                # ],
-                # [
-                #     {'input': 'd4', 'slice': (3, 6), 'plot': timeseries},
-                #     # {'input': 'd4', 'slice': (3, 6), 'plot': histogram},
-                # ],
+                [
+                    {'input': 'd3', 'slice': (3, 6), 'plot': timeseries},
+                    # {'input': 'd3', 'slice': (3, 6), 'plot': histogram},
+                ],
+                [
+                    {'input': 'd4', 'slice': (3, 6), 'plot': timeseries},
+                    # {'input': 'd4', 'slice': (3, 6), 'plot': histogram},
+                ],
             ]
         },
     }),
