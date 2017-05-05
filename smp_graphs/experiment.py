@@ -142,6 +142,7 @@ Load a config from the file in args.conf
     def run(self):
         print "%s.run: conf['numsteps'] = %d" % (self.__class__.__name__, self.params['numsteps'])
         
+        # topblock_x = self.topblock.step(x = None)
         for i in xrange(self.params['numsteps']):
             topblock_x = self.topblock.step(x = None)
             # FIXME: progress bar / display

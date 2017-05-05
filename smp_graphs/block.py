@@ -89,7 +89,7 @@ class decStep():
                                 exec_self.inputs[k][0][:,sl] = exec_self.bus[v[2]] # np.fliplr(exec_self.bus[v[2]])
                                 # exec_self.inputs[k][0][:,-1,np.newaxis] = exec_self.bus[v[2]]
                         else: # ibuf = 1
-                                exec_self.inputs[k][0][:,[0]] = exec_self.bus[v[2]]
+                            exec_self.inputs[k][0][:,[0]] = exec_self.bus[v[2]]
                             
 
             # call the function depending on the blocksize
@@ -99,6 +99,7 @@ class decStep():
                 # copy output to bus
                 for k, v in exec_self.outputs.items():
                     buskey = "%s/%s" % (exec_self.id, k)
+                    # print "getattr", getattr(exec_self, k)
                     exec_self.bus[buskey] = getattr(exec_self, k)
             else:
                 f_out = None
@@ -242,6 +243,7 @@ class Block2(object):
                 # set input from bus
                 if type(v[0]) is str:
                     # enforce bus blocksize smaller than local blocksize, tackle later
+                    print "%s" % self.cname, self.bus.keys()
                     assert self.bus[v[0]].shape[1] <= self.blocksize
                     # create input tuple
                     tmp = [None for i in range(3)]
@@ -292,16 +294,17 @@ class Block2(object):
             for k, v in self.graph.items(): # self.bus.items():
                 # return if block doesn't want logging
                 if not v['block'].logging: continue
-                if (self.cnt % v['block'].blocksize) != (v['block'].blocksize - 1): continue
+                # if (self.cnt % v['block'].blocksize) != (v['block'].blocksize - 1): continue
+                if (self.cnt % v['block'].blocksize) > 0: continue
                 # print debug foo
-                self.debug_print("%s.step: node k = %s, v = %s", (self.__class__.__name__, k, v))
+                self.debug_print("step: node k = %s, v = %s", (self.__class__.__name__, k, v))
                 # do logging for all of the node's output variables
                 for k_o, v_o in v['block'].outputs.items():
                     buskey = "%s/%s" % (v['block'].id, k_o)
                     log.log_pd(tbl_name = buskey, data = self.bus[buskey])
 
             # store log
-            if (self.cnt+1) % 100 == 0:
+            if (self.cnt) % 100 == 0:
                 print "storing log @iter %04d" % (self.cnt)
                 log.log_pd_store()
 
@@ -335,7 +338,7 @@ class Block2(object):
         # print "%s.dump_final_config wrote config, closing file %s" % (self.cname, dump_final_config_file,)
         f.close()
 
-        log.log_pd_store_config_final(confstr_)
+        # log.log_pd_store_config_final(confstr_)
     
 class LoopBlock2(Block2):
     """Loop block: dynamically create block variations according to some specificiations of variation
@@ -457,22 +460,27 @@ class FileBlock2(Block2):
         # print conf
         lfile = conf['params']['file'][0]
         # puppy homeokinesis (andi)
-        # if lfile.startswith('data/pickles_puppy') and lfile.endswith('.pickle'):
         if conf['params']['type'] == 'puppy':
             (self.data, self.rate, self.offset) = read_puppy_hk_pickles(lfile)
             # setattr(self, 'x', self.data['x'])
             # setattr(self, 'x', self.data['x'])
             self.step = self.step_puppy
-        # selflogs
-        # elif lfile.endswith('_pd.h5'):
+        # selflogconfs
+        elif conf['params']['type'] == 'selflogconf':
+            self.store = pd.HDFStore(lfile)
+            self.step = self.step_selflogconf
         elif conf['params']['type'] == 'selflog':
             self.store = pd.HDFStore(lfile)
-            # ret = store.get_storer(storekey).attrs.conf
-            # store.close()
+            # clean up dummy entry
+            del conf['params']['outputs']['log']
+            # loop log tables
+            for k in self.store.keys():
+                print "%s" % self.__class__.__name__, k, self.store[k].shape
+                conf['params']['outputs'][k] = [self.store[k].T.shape]
+                conf['params']['blocksize'] = self.store[k].shape[0]
             self.step = self.step_selflog
 
         # init states
-        # for k, v in self.outputs.items(): # ['x', 'y']:
         for k, v in conf['params']['outputs'].items(): # ['x', 'y']:
             # print "key", self.data[key]
             # setattr(self, k, np.zeros((self.data[k].shape[1], 1)))
@@ -505,19 +513,24 @@ class FileBlock2(Block2):
                 setattr(self, k, self.data[k][sl].T)
                 # setattr(self, k, self.data[k][[self.cnt]].T)
             
-        return self.x
-
     @decStep()
     def step_selflog(self, x = None):
+        if (self.cnt % self.blocksize) == 0:
+            for k, v in self.outputs.items():
+                # if k.startswith('conf'):
+                print "step: cnt = %d key = %s, log.sh = %s" % (self.cnt, k, self.store[k].shape)
+                # print self.store[k].values
+                setattr(self, k, self.store[k][self.cnt-self.blocksize:self.cnt].values.T)
+                # print self.store[k][self.cnt-self.blocksize:self.cnt].values.T
+                # print k
+        # for k in self.__dict__.keys(): #self.bus.keys():
+            # k = k.replace("/", "_")
+            # print "k", k
+                        
+    @decStep()
+    def step_selflogconf(self, x = None):
         self.debug_print("%s.step: x = %s, bus = %s", (self.__class__.__name__, x, self.bus))
-        if (self.cnt % self.blocksize) == 0: # (self.blocksize - 1):
+        if (self.cnt % self.blocksize) == 0:
             for k, v in self.outputs.items():
                 if k.startswith('conf'):
                     print "%s = %s" % (k, self.store.get_storer(k).attrs.conf,)
-                    
-                # sl = slice(self.cnt-self.blocksize, self.cnt)
-                # setattr(self, k, self.data[k][sl].T)
-                # setattr(self, k, self.data[k][[self.cnt]].T)
-            
-        # return None
-    

@@ -127,6 +127,7 @@ Arguments:
     global log_store, log_lognodes
     # print "logging.log_pd_init_block: adding %s to log_lognodes with columns %s" % (tbl_name, tbl_columns)
     log_lognodes[tbl_name] = pd.DataFrame(columns=tbl_columns, index = range(numsteps), dtype=float)
+    # print "log_tables.shape", log_lognodes[tbl_name].shape
     log_lognodes_idx[tbl_name] = 0
 
 def log_pd_store():
@@ -151,9 +152,9 @@ Arguments:
     cloc = log_lognodes_idx[tbl_name]
     # print "log_lognodes[tbl_name].loc[cloc].shape = %s, data.shape = %s" % (log_lognodes[tbl_name].loc[cloc].shape, data.shape)
     # using flatten to remove last axis, FIXME for block based logging
-    # print "data.shape", data.shape, cloc, cloc+blocksize
-    sl = slice(cloc, (cloc + blocksize) - 1)
-    # print "log.shape", log_lognodes[tbl_name].loc[sl].shape
+    print "logging.log_pd: data.shape", data.shape, cloc, cloc + blocksize - 1, "bs", blocksize
+    sl = slice(cloc, cloc + blocksize - 1)
+    print "logging.log_pd: log.shape at sl", sl, log_lognodes[tbl_name].loc[sl].shape
     log_lognodes[tbl_name].loc[sl] = data.T # data.flatten()
     # log_lognodes[tbl_name].loc[0] = 1
     # print "log_lognodes[tbl_name]", log_lognodes[tbl_name], log_lognodes[tbl_name].loc[cloc]
