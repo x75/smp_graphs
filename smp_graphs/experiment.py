@@ -123,7 +123,7 @@ class Graphviz(object):
             if v['params'].has_key('graph'): # hierarchical block containing subgraph
                 for subk, subv in v['params']['graph'].items():
                     # print "sub", subk, subv
-                    blockname = re.sub(r"<smp_graphs.block.*\.(.*) object.*", "\\1", v['block'])
+                    blockname = re.sub(r"<smp_graphs.block.*\.(.*) object.*", "\\1", subv['block'])
                     G.add_node(subk, block = blockname)
             # print "k", k
             # print "v", v
@@ -138,6 +138,8 @@ class Graphviz(object):
                 if inputval[2] not in ['None']:
                     k_from, v_to = inputval[2].split('/')
                     G.add_edge(k_from, k)
+
+        # FIXME: add _loop_ and _containment_ edges with different color
         # print print_dict(pdict = self.conf[7:])
         layout = nx.spring_layout(G)
         print G.nodes(data = True)

@@ -17,17 +17,27 @@ or gnuradio to name a few.
 
 ** Items
  - step, blocksize, ibuf
-   - x basic blocksize handling
-   - x check if logging still works properly
-   - x make prim blocks blocksize aware
    - min blocksize after pass 1
    - how to optimize if min(bs) > 1?
+   - x make prim blocks blocksize aware
+   - x check if logging still works properly
+   - x basic blocksize handling
+
+ - hierarchical composition
+   - think about these issues: outer vs. inner numsteps and blocksizes,
+     how to get data in and out in a subgraph independent way
+   - for now: assert inner numsteps <= outer numsteps, could either
+     enforce 1 or equality
+   - x use blocks that contain other graphs (default2_hierarchical.py)
 
  - loop block
-   - x parallel loop within graph, modify graph
-   - sequential loop for running block variations e.g hyperopt or evo
-
- - hierarchical composition: block taking another config file as input
+   - special hierarchical block with additional spec about how often
+     and with which variations to iterate the subgraph
+   - sequential loop for running block variations e.g hyperopt or evo,
+     for now assert blocksize = numloops, one loop iteration returns
+     one data point
+   - x parallel loop within graph, modify graph. this is different
+     from dynamic containment
 
  - sync / async block execution
 
@@ -41,8 +51,7 @@ or gnuradio to name a few.
    - x standalone networkx graph from final config
    - x graphviz
 
- - minor stuff
-   - x print_dict print fully compilable python code
+ - misc stuff
    - x separate header/footer for full config file to remove code
      replication and clutter
 
@@ -50,7 +59,12 @@ or gnuradio to name a few.
 
  - x base block
 
- - x dict printing for dynamic reconf inspection
+ - dict printing for dynamic reconf inspection
+   - fix OrderedDict in reconstructed config dicts
+   - x print_dict print compilable python code?
+   - x basic formatted dict printing. issues: different needs in
+     different contexts, runtime version vs. init version. disregard
+     runtime version in logging and storage
 
 ** Examples
 

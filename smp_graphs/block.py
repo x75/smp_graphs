@@ -11,6 +11,8 @@ import pickle
 
 import numpy as np
 
+from hyperopt import STATUS_OK, STATUS_FAIL
+
 import smp_graphs.logging as log
 from smp_graphs.utils import print_dict
 from smp_graphs.common import conf_header, conf_footer
@@ -177,10 +179,15 @@ class Block2(object):
             self.dump_final_config()
             
             # log.log_pd_dump_config()
-        elif hasattr(self, 'subblock'):
+        elif hasattr(self, 'subgraph'):
+            # FIXME: call that graph
             self.bus = self.top.bus
-            self.conf['params']['graph'] = get_config_raw(self.subblock, 'graph')
-            print "graph", self.conf['params']['graph']
+            subconf = get_config_raw(self.subgraph, 'conf') # 'graph')
+            # make sure subordinate number of steps is less than top level numsteps
+            assert subconf['params']['numsteps'] <= self.top.numsteps, "enclosed numsteps = %d greater than top level numsteps = %d" % (subconf['params']['numsteps'], self.top.numsteps)
+            
+            self.conf['params']['graph'] = subconf['params']['graph']
+            # print "graph", self.conf['params']['graph']
             # pass 1
             self.init_graph_pass_1()
             # pass 2
@@ -299,7 +306,7 @@ class Block2(object):
 
         if topblock iterate graph and step each node block, reiterate graph and do the logging for each node, store the log every n steps
         """
-        if self.topblock or hasattr(self, 'subblock'):
+        if self.topblock or hasattr(self, 'subgraph'):
             for k, v in self.graph.items():
                 v['block'].step()
 
@@ -356,7 +363,16 @@ class Block2(object):
         f.close()
 
         # log.log_pd_store_config_final(confstr_)
-    
+
+class FuncBlock2(Block2):
+    """function block: wrap a function given by the configuration in params['func']"""
+    def __init__(self, conf = {}, paren = None, top = None):
+        Block2.__init__(self, conf = conf, paren = paren, top = top)
+
+    @decStep()
+    def step(self, x = None):
+        self.y = self.func(self.inputs)
+            
 class LoopBlock2(Block2):
     """Loop block: dynamically create block variations according to some specificiations of variation
 
@@ -416,10 +432,103 @@ class LoopBlock2(Block2):
 
 class SeqLoopBlock2(Block2):
     def __init__(self, conf = {}, paren = None, top = None):
+        self.defaults['loop'] = [1]
+        # self.defaults['loopmode'] = 'sequential'
+        self.defaults['loopblock'] = {}
         Block2.__init__(self, conf = conf, paren = paren, top = top)
 
+        if type(self.loop) is list: # it's a list
+            self.f_loop = self.f_loop_list
+            assert len(self.loop) == self.blocksize, "%s step blocksize (%d) needs to be equal the loop length (%d)" % (self.cname, self.blocksize, len(self.loop))
+        else: # it's a func
+            self.f_loop = self.f_loop_func
+
+    def f_loop_list(self, i, f_obj):
+        results = f_obj(self.loop[i])
+        return results
+
+    def f_loop_func(self, i, f_obj):
+        results = self.loop(self, i, f_obj)
+        return results
+            
+    @decStep()
     def step(self, x = None):
-        pass
+
+        def f_obj(lparams):
+            print "f_obj lparams", lparams
+            # copy params
+            loopblock_params = {}
+            for k, v in self.loopblock['params'].items():
+                if k == 'id':
+                    loopblock_params[k] = "%s_%d" % (self.id, i+1)
+                elif k == lparams[0]:
+                    loopblock_params[k] = lparams[1]
+                else:
+                    loopblock_params[k] = v
+
+            # print "loopblock_params", loopblock_params
+            # create dynamic conf
+            loopblock_conf = {'block': self.loopblock['block'], 'params': loopblock_params}
+            # instantiate block
+            dynblock = self.loopblock['block'](conf = loopblock_conf,
+                                               paren = self.paren, top = self.top)
+            # second pass
+            dynblock.init_pass_2()
+
+            for j in range(dynblock.blocksize):
+                # print "j", j
+                dynblock.step()
+
+            loss = 0
+            for outk in self.outputs.keys():
+                loss += np.mean(getattr(dynblock, outk), axis = 1, keepdims = True)
+
+            print "loss", loss
+                
+            rundata = {
+                'loss': loss[0,0], # compute_complexity(Xs)
+                'status': STATUS_OK, # compute_complexity(Xs)
+                'dynblock': dynblock,
+                'lparams': lparams,
+                # "M": M, # n.networks["slow"]["M"], # n.M
+                # "timeseries": Xs.copy(),
+                # "loss": np.var(Xs),
+            }
+                
+            return rundata
+        
+        def f_obj_hpo(params):
+            print "f_obj_hpo: params", params
+            lparams = ('inputs', {'x': [np.array([params]).T]})
+            print "lparams", lparams
+            rundata = f_obj(lparams)
+            return rundata # {'loss': , 'status': STATUS_OK, 'dynblock': None,                 'lparams': lparams}
+
+        if type(self.loop) is list:
+            f_obj_ = f_obj
+        else:
+            f_obj_ = f_obj_hpo
+            
+        # loop the loop
+        for i in range(self.blocksize):
+            
+            # dynblock = obj()
+            # func: need input function from config
+            results = self.f_loop(i, f_obj_)#_hpo)
+            dynblock = results['dynblock']
+            lparams = results['lparams']
+            
+            print "%s.steploop[%d], %s, %s" % (self.cname, i, lparams, self.loopblock['params'])
+            # for k,v in dynblock.outputs.items():
+            #     print "dynout", getattr(dynblock, k)
+
+            for outk in self.outputs.keys():
+                # outvar = getattr(self, outk)
+                # outvar[:,[i] = bla
+                
+                # func: need output function from config
+                # self.__dict__[outk][:,[i]] = np.mean(getattr(dynblock, outk), axis = 1, keepdims = True)
+                self.__dict__[outk][:,[i]] = np.mean(getattr(dynblock, outk), axis = 1, keepdims = True)
     
 class PrimBlock2(Block2):
     """PrimBlock2: base class for primitive blocks"""
@@ -439,16 +548,25 @@ class ConstBlock2(PrimBlock2):
 class CountBlock2(PrimBlock2):
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
+        # defaults
+        self.scale  = 1
+        self.offset = 0
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
+        # single output key
+        self.outk = self.outputs.keys()[0]
+        # init cnt_ of blocksize
+        self.cnt_ = np.zeros((self.outputs[self.outk][0][0], self.blocksize))
+        # print self.inputs
         
     @decStep()
     def step(self, x = None):
         """CountBlock step: if blocksize is 1 just copy the counter, if bs > 1 set cnt_ to range"""
         if self.blocksize > 1:
-            self.cnt % self.blocksize
-            self.cnt_[:,-self.blocksize:] = np.arange(self.cnt - self.blocksize, self.cnt).reshape(self.outputs['cnt_'][0])
+            self.cnt_[:,-self.blocksize:] = np.arange(self.cnt - self.blocksize, self.cnt).reshape(self.outputs[self.outk][0])
         else:
             self.cnt_[:,0] = self.cnt
+        # FIXME: make that a for output items loop
+        setattr(self, self.outputs.keys()[0], (self.cnt_ * self.scale) + self.offset)
         
 class UniformRandomBlock2(PrimBlock2):
     @decInit()

@@ -1,12 +1,9 @@
-"""smp_graphs default conf
-
-the config is python, so we
- - import stuff we need in the config
- - put the graph config into a dict
+"""smp_graphs testing hierarchical composition config
 """
 
 # reused variables
-numsteps = 100
+graphconf = 'conf/default2_loop.py'; numsteps = 1000
+# graphconf = 'conf/default2.py' ; numsteps = 100
 
 # graph
 graph = OrderedDict([
@@ -15,10 +12,11 @@ graph = OrderedDict([
         'block': Block2,
         'params': {
             'id': 'b1',
-            'debug': True,
+            'debug': False,
             'topblock': False,
             'numsteps': numsteps,
-            'subblock': 'conf/default2.py',
+            # contains the subgraph specified in this config file
+            'subgraph': graphconf,
         },
     }),
 ])
