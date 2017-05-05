@@ -22,10 +22,11 @@ graph = OrderedDict([
             'type': 'selflogconf',
             # this is looping demand
             'file': [
+                'data/experiment_20170505_110833_pd.h5' # default2_loop 1000 steps
                 # 'data/experiment_20170504_192821_pd.h5',
-                'data/experiment_20170504_202016_pd.h5',
+                # 'data/experiment_20170504_202016_pd.h5',
                 ],
-            'outputs': {'conf': [(1,1)], 'conf_final': [(1,1)]},
+            'outputs': {'conf': [(1,1)]}, #, 'conf_final': [(1,1)]},
             # 'outputs': {'x': [None], 'y': [None]},
         },
     }),

@@ -6,7 +6,7 @@ the config is python, so we
 """
 
 # reuse
-numsteps = 100
+numsteps = 1000
 
 # graph
 graph = OrderedDict([
