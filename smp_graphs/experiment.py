@@ -21,40 +21,7 @@ from numpy import array
 
 from smp_graphs.block import Block2
 from smp_graphs.utils import print_dict
-
-################################################################################
-# static templates
-conf_header = """
-from smp_graphs.experiment import make_expr_id
-
-from collections import OrderedDict
-
-from smp_graphs.block import Block2, ConstBlock2, UniformRandomBlock2
-from smp_graphs.block import LoopBlock2
-from smp_graphs.block import FileBlock2
-from smp_graphs.block_plot import TimeseriesPlotBlock2
-
-from smp_base.plot import timeseries, histogram, rp_timeseries_embedding
-
-import numpy as np
-
-debug = False
-"""
-
-conf_footer = """
-# top block
-# FIXME: would like to get rid of this, common for all conf
-conf = {
-    'block': Block2,
-    'params': {
-        'id': make_expr_id(),
-        'debug': debug,
-        'topblock': True,
-        'numsteps': numsteps,
-        'graph': graph,
-    }
-}
-"""
+from smp_graphs.common import conf_header, conf_footer
 
 ################################################################################
 # utils, TODO: move to utils.py
@@ -156,6 +123,7 @@ import re
 class Graphviz(object):
     def __init__(self, args):
         self.conf = get_config_raw(args.conf)
+        print self.conf
         # f = open(args.conf, "r")
         # self.conf = f.read()
 

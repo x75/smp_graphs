@@ -15,7 +15,8 @@ or gnuradio to name a few.
 
 -   step, blocksize, ibuf
     -   x basic blocksize handling
-    -   check if logging still works properly
+    -   x check if logging still works properly
+    -   x make prim blocks blocksize aware
     -   min blocksize after pass 1
     -   how to optimize if min(bs) > 1?
 
@@ -24,6 +25,8 @@ or gnuradio to name a few.
     -   sequential loop for running block variations e.g hyperopt or evo
 
 -   sync / async block execution
+
+-   read/write: ros, osc, &#x2026;
 
 -   x logging
     -   x std logging OK
@@ -35,7 +38,8 @@ or gnuradio to name a few.
 
 -   minor stuff
     -   x print\_dict print fully compilable python code
-    -   x separate header/footer for full config file to remove code replication and clutter
+    -   x separate header/footer for full config file to remove code
+        replication and clutter
 
 -   x two-pass init: complete by putting input init into second pass
 
@@ -53,7 +57,7 @@ or gnuradio to name a few.
 
 # Notes
 
-This is my n-th attempt at designing a framework for computational
+This is my 5th attempt at designing a framework for computational
 sensorimotor learning experiments. Earlier attempts include
 
 -   **smp\_experiments**: defined config as name value pairs and some

@@ -13,6 +13,7 @@ import numpy as np
 
 import smp_graphs.logging as log
 from smp_graphs.utils import print_dict
+from smp_graphs.common import conf_header, conf_footer
 
 BLOCKSIZE_MAX = 10000
 
@@ -68,8 +69,6 @@ class decStep():
     def __call__(self, f):
         def wrap(exec_self, *args, **kwargs):
             if True:
-                # dummy input
-                x = {}
                 # loop over block's inputs
                 for k, v in exec_self.inputs.items():
                     # copy bus inputs to input buffer
@@ -90,11 +89,12 @@ class decStep():
                                 # exec_self.inputs[k][0][:,-1,np.newaxis] = exec_self.bus[v[2]]
                         else: # ibuf = 1
                             exec_self.inputs[k][0][:,[0]] = exec_self.bus[v[2]]
-                            
 
-            # call the function depending on the blocksize
-            if (exec_self.cnt % exec_self.blocksize) == 0: # (exec_self.blocksize - 1):
-                f_out = f(exec_self, x)
+            # call the function on blocksize boundaries
+            # FIXME: might not be the best idea to control that on the wrapper level as some
+            #        blocks might need to be called every step nonetheless?
+            if (exec_self.cnt % exec_self.blocksize) == 0:
+                f_out = f(exec_self, None)
 
                 # copy output to bus
                 for k, v in exec_self.outputs.items():
@@ -243,7 +243,7 @@ class Block2(object):
                 # set input from bus
                 if type(v[0]) is str:
                     # enforce bus blocksize smaller than local blocksize, tackle later
-                    print "%s" % self.cname, self.bus.keys()
+                    # print "%s" % self.cname, self.bus.keys()
                     assert self.bus[v[0]].shape[1] <= self.blocksize
                     # create input tuple
                     tmp = [None for i in range(3)]
@@ -286,6 +286,10 @@ class Block2(object):
 
     # undecorated step, need to count ourselves
     def step(self, x = None):
+        """Base block step function
+
+        if topblock iterate graph and step each node block, reiterate graph and do the logging for each node, store the log every n steps
+        """
         if self.topblock:
             for k, v in self.graph.items():
                 v['block'].step()
@@ -331,8 +335,11 @@ class Block2(object):
         dump_final_config_file = "data/%s.conf" % (self.id)
         f = open(dump_final_config_file, "w")
         # confstr = repr(finalconf[1]['params'])
-        confstr = print_dict(pdict = finalconf[1]['params'])
-        confstr_ = "conf = {'block': 'Block2', 'params': %s}" % (confstr, )
+        confstr = print_dict(pdict = finalconf[1]['params']['graph'])
+        # print "graph", confstr
+        # confstr_ = "numsteps = %d\nconf = {'block': 'Block2', 'params': %s}" % (self.numsteps, confstr, )
+        confstr_ = conf_header + "numsteps = %d\ngraph = %s" % (self.numsteps, confstr, ) + conf_footer
+        # print confstr_
         f.write(confstr_)
         f.flush()
         # print "%s.dump_final_config wrote config, closing file %s" % (self.cname, dump_final_config_file,)
@@ -343,17 +350,18 @@ class Block2(object):
 class LoopBlock2(Block2):
     """Loop block: dynamically create block variations according to some specificiations of variation
 
-    two modes:
-     - parallel mode: modify the graph structure and all block variations at the same time
-     - sequential mode: modify execution to run each variation one after the other
+    Two loop modes in this framework:
+     - parallel mode (LoopBlock2): modify the graph structure and all block variations at the same time
+     - sequential mode (SeqLoopBlock2): modify execution to run each variation one after the other
      """
     def __init__(self, conf = {}, paren = None, top = None):
         self.defaults['loop'] = [1]
-        self.defaults['loopmode'] = 'sequential'
+        # self.defaults['loopmode'] = 'sequential'
         self.defaults['loopblock'] = {}
         Block2.__init__(self, conf = conf, paren = paren, top = top)
 
         loopblocks = []
+        # loop the loop
         for i, lparams in enumerate(self.loop):
             # print lparams, self.loopblock['params']
             
@@ -367,62 +375,70 @@ class LoopBlock2(Block2):
                 else:
                     loopblock_params[k] = v
 
+            # create dynamic conf
             loopblock_conf = {'block': self.loopblock['block'], 'params': loopblock_params}
+            # instantiate block
             dynblock = self.loopblock['block'](conf = loopblock_conf,
                                                paren = self.paren, top = self.top)
-            
-            # dynblockparams = {}
-            # for k, v in self.loopblock['params']
-            
+
+            # get config and store it
             dynblockconf = dynblock.get_config()
             dynblockconf[1]['block'] = dynblock
-            
+
+            # append to list of dynamic blocks
             loopblocks.append(dynblockconf)
             # print print_dict(self.top.graph)
-            
+
+        # debug
         for item in loopblocks:
             print "%s.__init__ loopblocks = %s: %s" % (self.__class__.__name__, item[0], print_dict(item[1]))
 
         # FIXME: this good?
+        # insert dynamic blocks into existing ordered dict
         ordereddict_insert(ordereddict = self.top.graph, insertionpoint = '%s' % self.id, itemstoadd = loopblocks)
 
-        # replace loopblock block entry
+        # replace loopblock block entry in original config, propagated back to the top / global namespace
         self.loopblock['block'] = Block2.__class__.__name__
                    
     def step(self, x = None):
         """loop block does nothing for now"""
         pass
 
-class PrimBlock2(Block2):
+class SeqLoopBlock2(Block2):
     def __init__(self, conf = {}, paren = None, top = None):
         Block2.__init__(self, conf = conf, paren = paren, top = top)
 
-class ConstBlock2(PrimBlock2):
-    @decInit()
+    def step(self, x = None):
+        pass
+    
+class PrimBlock2(Block2):
+    """PrimBlock2: base class for primitive blocks"""
     def __init__(self, conf = {}, paren = None, top = None):
-        PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
-        self.x = self.inputs['c'][0]
-
+        Block2.__init__(self, conf = conf, paren = paren, top = top)
+        
     @decStep()
     def step(self, x = None):
-        # self.debug_print("%s.step: x = %s, bus = %s", (self.__class__.__name__, self.x, self.bus))
+        """PrimBlock2.step: step the block, decorated, blocksize boundaries"""
+        pass
 
-        # self.x = self.in        
-        # # loop over outputs dict and copy them to a slot in the bus
-        # for k, v in self.outputs.items():
-        #     buskey = "%s/%s" % (self.id, k)
-        #     self.bus[buskey] = getattr(self, k)
-            
-        return self.x
+class ConstBlock2(PrimBlock2):
+    def __init__(self, conf = {}, paren = None, top = None):
+        PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
+        self.x = np.tile(self.inputs['c'][0], self.blocksize)
 
 class CountBlock2(PrimBlock2):
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
-
+        
     @decStep()
     def step(self, x = None):
-        pass
+        """CountBlock step: if blocksize is 1 just copy the counter, if bs > 1 set cnt_ to range"""
+        if self.blocksize > 1:
+            self.cnt % self.blocksize
+            self.cnt_[:,-self.blocksize:] = np.arange(self.cnt - self.blocksize, self.cnt).reshape(self.outputs['cnt_'][0])
+        else:
+            self.cnt_[:,0] = self.cnt
         
 class UniformRandomBlock2(PrimBlock2):
     @decInit()

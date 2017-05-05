@@ -6,6 +6,7 @@ the config is python, so we
 """
 
 from smp_graphs.block import CountBlock2
+from smp_graphs.block import SeqLoopBlock2
 
 from functools import partial
 
@@ -20,7 +21,8 @@ graph = OrderedDict([
         'params': {
             'id': 'b1',
             'inputs': {},
-            'outputs': {'cnt': [(1,1)]},
+            'outputs': {'cnt_': [(1,1)]},
+            'blocksize': 10,
             'debug': False,
         },
     }),
@@ -29,15 +31,17 @@ graph = OrderedDict([
         'block': SeqLoopBlock2,
         'params': {
             'id': 'b2',
-            'idim': 6,
-            'odim': 3,
-            # 'lo': 0,
-            # 'hi': 1,
-            'outputs': {'x': [(3, 1)]},
-            'debug': True,
-            # 'inputs': {'lo': [0, (3, 1)], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
-            # recurrent connection
-            'inputs': {'lo': ['b2/x'], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+            'loop': [('inputs', {'c': [np.random.uniform(-i, i, (3, 1))]}) for i in range(1, 4)],
+            'loopmode': 'parallel',
+            'loopblock': {
+                'block': ConstBlock2,
+                'params': {
+                    'id': 'b3',
+                    'inputs': {'c': [np.random.uniform(-1, 1, (3, 1))]},
+                    'outputs': {'x': [(3,1)]},
+                    'debug': False,
+                },
+            },
         },
     }),
     # plot module with blocksize = episode, fetching input from busses
@@ -50,7 +54,7 @@ graph = OrderedDict([
             'idim': 6,
             'odim': 3,
             'debug': True,
-            'inputs': {'d1': ['b1/cnt']}, # 'd2': ['b2/x']},
+            'inputs': {'d1': ['b1/cnt_']}, # 'd2': ['b2/x']},
             'outputs': {'x': [(3, 1)]},
             'subplots': [
                 [

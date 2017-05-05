@@ -18,7 +18,8 @@ or gnuradio to name a few.
 ** Items
  - step, blocksize, ibuf
    - x basic blocksize handling
-   - check if logging still works properly
+   - x check if logging still works properly
+   - x make prim blocks blocksize aware
    - min blocksize after pass 1
    - how to optimize if min(bs) > 1?
 
@@ -26,7 +27,11 @@ or gnuradio to name a few.
    - x parallel loop within graph, modify graph
    - sequential loop for running block variations e.g hyperopt or evo
 
+ - hierarchical composition: block taking another config file as input
+
  - sync / async block execution
+
+ - read/write: ros, osc, ...
 
  - x logging
    - x std logging OK
@@ -38,7 +43,8 @@ or gnuradio to name a few.
 
  - minor stuff
    - x print_dict print fully compilable python code
-   - x separate header/footer for full config file to remove code replication and clutter
+   - x separate header/footer for full config file to remove code
+     replication and clutter
 
  - x two-pass init: complete by putting input init into second pass
 
@@ -54,7 +60,7 @@ or gnuradio to name a few.
 
 * Notes
 
-This is my n-th attempt at designing a framework for computational
+This is my 5th attempt at designing a framework for computational
 sensorimotor learning experiments. Earlier attempts include
  - *smp_experiments*: defined config as name value pairs and some
    python code wrapping enabling the reuse of singular experiments
@@ -69,41 +75,3 @@ sensorimotor learning experiments. Earlier attempts include
    left us too inflexible and obviosuly couldn't accomodate any
    experiments deviating from that schema. Is where we are ;)
 
-* smp_graphs legacy notes                                          :noexport:
-** v1 stalled
-
- - x load graph and execute in given order, each node knows which bus line maps onto its inputs
-
- - x reuse config as block in other config / nested experiments
-
- - x logging
-
- - x input mapping: what are inputs / params, how to select from busses
-   and map to local variable
-
- - x input buffering: ring buffer decorator: use np.roll hoping it
-   does that internally
-
- - global config: e.g. fileblock setting its odim, use global config
-   inside blocks, dynamic graph structure, change notification. make
-   dynamic foo and write back the results into config
-   - loop block / dynamic blocks that can change the graph
-
- - file sources: load data in config or in block?
-
- - blocksize vs. numsteps
- 
- - bus: make bus a structured dict, allowing blocks to have several
-   outputs, this make odim obsolete
-
- - read/write: ros
-
- - read/write: osc
-
- - sync vs. async nodes
-
- - x functional, decorators
-
- - recurrence, backprop, signal propagation and execution order
-
- - networkx?

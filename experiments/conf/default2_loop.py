@@ -18,6 +18,7 @@ graph = OrderedDict([
             'inputs': {'c': [np.random.uniform(-1, 1, (3, 1))]},
             'outputs': {'x': [(3,1)]},
             'debug': False,
+            'blocksize': 1,
         },
     }),
     # a random number generator, mapping const input to hi
@@ -32,6 +33,7 @@ graph = OrderedDict([
             'outputs': {'x': [(3, 1)]},
             'debug': False,
             'inputs': {'lo': [0, (3, 1)], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+            'blocksize': 1,
         },
     }),
     # loop block test
@@ -40,7 +42,7 @@ graph = OrderedDict([
         'params': {
             'id': 'b3',
             'loop': [('inputs', {'c': [np.random.uniform(-i, i, (3, 1))]}) for i in range(1, 4)],
-            'loopmode': 'parallel',
+            # 'loopmode': 'parallel',
             'loopblock': {
                 'block': ConstBlock2,
                 'params': {

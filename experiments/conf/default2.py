@@ -30,7 +30,7 @@ graph = OrderedDict([
             # 'lo': 0,
             # 'hi': 1,
             'outputs': {'x': [(3, 1)]},
-            'debug': True,
+            'debug': False,
             # 'inputs': {'lo': [0, (3, 1)], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
             # recurrent connection
             'inputs': {'lo': ['b2/x'], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
@@ -45,7 +45,7 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'idim': 6,
             'odim': 3,
-            'debug': True,
+            'debug': False,
             'inputs': {'d1': ['b1/x'], 'd2': ['b2/x']},
             'outputs': {'x': [(3, 1)]},
             'subplots': [
