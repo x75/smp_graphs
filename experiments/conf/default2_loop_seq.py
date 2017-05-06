@@ -33,7 +33,7 @@ loopblock = {
         'params': {
             'id': 'f1',
             'inputs': {'x': [np.random.uniform(-1, 1, (3, 1))]},
-            'outputs': {'y': [(1,1)]},
+            'outputs': {'x': [(3,1)], 'y': [(1,1)]},
             'func': f_sinesquare4,
             'blocksize': 1,
             'debug': False,
@@ -52,7 +52,7 @@ graph = OrderedDict([
             'scale': np.pi/float(numsteps),
             'offset': np.pi/2,
             'blocksize': 1,
-            'debug': True,
+            'debug': False,
         },
     }),
     # a function
@@ -105,7 +105,7 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'idim': 6,
             'odim': 3,
-            'debug': True,
+            'debug': False,
             'inputs': {'d1': ['b1/x'], 'd2': ['f1/y'], 'd3': ['b2/y'], 'd4': ['f2/y']},
             'outputs': {'x': [(3, 1)]},
             'subplots': [

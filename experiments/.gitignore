@@ -1,3 +1,5 @@
 *~
 *.pyc
+data/experiment*_pd.h5
+data/experiment*.conf
 

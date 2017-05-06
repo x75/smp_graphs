@@ -57,18 +57,18 @@ def read_puppy_hk_pickles(lfile, key = None):
     return (data, rate, offset)
 
 ################################################################################
-# v2 blocks
-
-# some decorators
+# Block decorator init
 class decInit():
+    """Block init wrapper"""
     def __call__(self, f):
         def wrap(exec_self, *args, **kwargs):
             f(exec_self, *args, **kwargs)
         return wrap
-            
 
+################################################################################
+# Block decorator step
 class decStep():
-    """step decorator"""
+    """Block step wrapper"""
     def __call__(self, f):
         def wrap(exec_self, *args, **kwargs):
             if True:
@@ -116,7 +116,7 @@ class decStep():
         return wrap
 
 ################################################################################
-# base blocks
+# Base block class
 class Block2(object):
     defaults = {
         'id': None,
@@ -455,7 +455,7 @@ class SeqLoopBlock2(Block2):
     def step(self, x = None):
 
         def f_obj(lparams):
-            print "f_obj lparams", lparams
+            # print "f_obj lparams", lparams
             # copy params
             loopblock_params = {}
             for k, v in self.loopblock['params'].items():
@@ -483,7 +483,7 @@ class SeqLoopBlock2(Block2):
             for outk in self.outputs.keys():
                 loss += np.mean(getattr(dynblock, outk), axis = 1, keepdims = True)
 
-            print "loss", loss
+            # print "loss", loss
                 
             rundata = {
                 'loss': loss[0,0], # compute_complexity(Xs)
@@ -498,11 +498,12 @@ class SeqLoopBlock2(Block2):
             return rundata
         
         def f_obj_hpo(params):
-            print "f_obj_hpo: params", params
+            # print "f_obj_hpo: params", params
             lparams = ('inputs', {'x': [np.array([params]).T]})
-            print "lparams", lparams
+            # print "lparams", lparams
             rundata = f_obj(lparams)
-            return rundata # {'loss': , 'status': STATUS_OK, 'dynblock': None,                 'lparams': lparams}
+            return rundata
+        # {'loss': , 'status': STATUS_OK, 'dynblock': None, 'lparams': lparams}
 
         if type(self.loop) is list:
             f_obj_ = f_obj
@@ -518,7 +519,7 @@ class SeqLoopBlock2(Block2):
             dynblock = results['dynblock']
             lparams = results['lparams']
             
-            print "%s.steploop[%d], %s, %s" % (self.cname, i, lparams, self.loopblock['params'])
+            # print "%s.steploop[%d], %s, %s" % (self.cname, i, lparams, self.loopblock['params'])
             # for k,v in dynblock.outputs.items():
             #     print "dynout", getattr(dynblock, k)
 
