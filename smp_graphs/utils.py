@@ -51,7 +51,10 @@ def print_dict(pdict = {}, level = 1, indent = None):
         pstring += s2
     else:
         if type(pdict) not in [int, float, float64, bool, tuple, None]:
-            pstring += "'%s'"  % (pdict,)
+            # replace single quotes within string
+            pdictstr = str(pdict).replace("'", "\\'")
+            # print type(pdictstr), pdict, pdictstr.replace("'", "X")
+            pstring += "'%s'"  % (pdictstr,)
         else:
             pstring += "%s"  % (pdict,)
             

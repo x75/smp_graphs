@@ -1,3 +1,11 @@
+"""smp_graphs funcs
+
+2017 Oswald Berthold
+
+'small' function blocks for use in loop blocks, configuration files,
+and of course everywhere else
+"""
+
 import numpy as np
 
 from hyperopt import hp
@@ -6,13 +14,14 @@ from hyperopt import fmin, tpe, Trials, rand, anneal
 
 
 # some minimal functions
-
 f_sinesquare = lambda args: np.sin(args['x'][0])**2
 
 def f_sinesquare2(args):
     x = args['x'][0]
-    scaler = np.arange(1, x.shape[0] + 1).reshape(x.shape) * 0.3
-    offser = np.array([[0.1, -0.05, 0.3]]).T
+    scaler = np.arange(1, x.shape[0] + 1).reshape(x.shape) * 0.3 + 1.0
+    # offser = np.array([[0.1, -0.05, 0.3]]).T
+    # offser = np.random.uniform(-0.3, 0.3, x.shape)
+    offser = np.zeros(x.shape)
     # print x.shape, scaler.shape
     # print "scaler", scaler
     return np.sin(x * scaler + offser)**2

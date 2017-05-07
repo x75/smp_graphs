@@ -72,10 +72,14 @@ class decStep():
     def __call__(self, f):
         def wrap(exec_self, *args, **kwargs):
             if True:
+                sname  = self.__class__.__name__
+                esname = exec_self.cname
+                esid   = exec_self.id
+                escnt  = exec_self.cnt
                 # loop over block's inputs
                 for k, v in exec_self.inputs.items():
                     # copy bus inputs to input buffer
-                    if v[2] is not None:
+                    if v[2] is not None: # input item has a bus associated in v[2]
                         # if extended input buffer, rotate the data with each step
                         if exec_self.ibuf > 1:
                             # input blocksize
@@ -88,10 +92,28 @@ class decStep():
                                 
                                 # set inputs [last-inputbs:last] if input blocksize reached
                                 sl = slice(-blocksize_input, None)
+                                print "%s-%s.%s[%d] bus[%s] = %s" % (esname, esid,
+                                                                         sname,
+                                                                         escnt,
+                                                                         v[2],
+                                                                         exec_self.bus[v[2]].shape)
                                 exec_self.inputs[k][0][:,sl] = exec_self.bus[v[2]] # np.fliplr(exec_self.bus[v[2]])
-                                # exec_self.inputs[k][0][:,-1,np.newaxis] = exec_self.bus[v[2]]
+                                # exec_self.inputs[k][0][:,-1,np.newaxis] = exec_self.bus[v[2]]                                
                         else: # ibuf = 1
                             exec_self.inputs[k][0][:,[0]] = exec_self.bus[v[2]]
+                            
+                    # copy input to output if inkey k is in outkeys
+                    if k in exec_self.outputs.keys():
+                        # outvar = v[2].split("/")[-1]
+                        # print "%s.stepwrap split %s from %s" % (exec_self.cname, outvar, v[2])
+                        setattr(exec_self, k, v[0])
+                        esk = getattr(exec_self, k)
+                        print "%s.%s[%d]  self.%s = %s" % (esname, sname, escnt, k, esk)
+                        print "%s.%s[%d] outkeys = %s" % (esname, sname, escnt, exec_self.outputs.keys())
+                        if k in exec_self.outputs.keys():
+                            print "%s.%s[%d]:   outk = %s" % (esname, sname, escnt, k)
+                            print "%s.%s[%d]:    ink = %s" % (esname, sname, escnt, k)
+                            # exec_self.outputs[k] = exec_self.inputs[k][0]
 
             # call the function on blocksize boundaries
             # FIXME: might not be the best idea to control that on the wrapper level as some
@@ -219,14 +241,19 @@ class Block2(object):
             self.graph[k]['block'].init_pass_2()
 
     def init_outputs(self):
+        print "%s.init_outputs: inputs = %s" % (self.cname, self.inputs)
         # create outputs
         # format: variable: [shape]
         for k, v in self.outputs.items():
+            print "%s.init_outputs: outk = %s, outv = %s" % (self.cname, k, v)
+            # if self.inputs.has_key(k):
+            #     print "%s init_outputs ink = %s, inv = %s" % (self.cname, k, self.inputs[k])
             # alloc dim x blocksize buf
             self.outputs[k][0] = (v[0][0], self.blocksize)
-            # create self attribute for output item
-            setattr(self, k, np.zeros(self.outputs[k][0]))
+            # create self attribute for output item, FIXME: blocksize?
+            setattr(self, k, np.zeros(v[0])) # self.outputs[k][0]
             buskey = "%s/%s" % (self.id, k)
+            print "%s.init_outputs: bus[%s] = %s" % (self.cname, buskey, getattr(self, k).shape)
             self.bus[buskey] = getattr(self, k)
 
     def init_logging(self):
@@ -371,6 +398,7 @@ class FuncBlock2(Block2):
 
     @decStep()
     def step(self, x = None):
+        # print "%s.step inputs[%d] = %s" % (self.cname, self.cnt, self.inputs)
         self.y = self.func(self.inputs)
             
 class LoopBlock2(Block2):
@@ -431,6 +459,7 @@ class LoopBlock2(Block2):
         pass
 
 class SeqLoopBlock2(Block2):
+    """Sequential loop block"""
     def __init__(self, conf = {}, paren = None, top = None):
         self.defaults['loop'] = [1]
         # self.defaults['loopmode'] = 'sequential'
@@ -466,7 +495,7 @@ class SeqLoopBlock2(Block2):
                 else:
                     loopblock_params[k] = v
 
-            # print "loopblock_params", loopblock_params
+            print "%s.step.f_obj: loopblock_params = %s" % (self.cname, loopblock_params)
             # create dynamic conf
             loopblock_conf = {'block': self.loopblock['block'], 'params': loopblock_params}
             # instantiate block
@@ -476,7 +505,7 @@ class SeqLoopBlock2(Block2):
             dynblock.init_pass_2()
 
             for j in range(dynblock.blocksize):
-                # print "j", j
+                # print "%s trying %s.step[%d]" % (self.cname, dynblock.cname, j)
                 dynblock.step()
 
             loss = 0
@@ -499,8 +528,10 @@ class SeqLoopBlock2(Block2):
         
         def f_obj_hpo(params):
             # print "f_obj_hpo: params", params
-            lparams = ('inputs', {'x': [np.array([params]).T]})
-            # print "lparams", lparams
+            x = np.array([params]).T
+            # XXX
+            lparams = ('inputs', {'x': [x]}) # , x.shape, self.outputs['x']
+            print "%s.step.f_obj_hpo lparams = {%s}" % (self.cname, lparams)
             rundata = f_obj(lparams)
             return rundata
         # {'loss': , 'status': STATUS_OK, 'dynblock': None, 'lparams': lparams}
@@ -512,7 +543,7 @@ class SeqLoopBlock2(Block2):
             
         # loop the loop
         for i in range(self.blocksize):
-            
+            print "%s iter# %d" % (self.cname, i)
             # dynblock = obj()
             # func: need input function from config
             results = self.f_loop(i, f_obj_)#_hpo)

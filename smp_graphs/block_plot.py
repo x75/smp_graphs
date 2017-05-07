@@ -31,26 +31,54 @@ class TimeseriesPlotBlock2(PrimBlock2):
             fig = makefig(rows = rows, cols = cols)
             # self.debug_print("fig.axes = %s", (fig.axes, ))
 
-            # loop over configured plots
-            for i, plot in enumerate(self.subplots):
-                for j, plotconf in enumerate(plot):
+            # loop over configured subplots
+            for i, subplot in enumerate(self.subplots):
+                for j, subplotconf in enumerate(subplot):
                     idx = (i*cols)+j
                     # self.debug_print("%s.step idx = %d, conf = %s, data = %s", (
                     #     self.__class__.__name__, idx,
-                    #     plotconf, self.inputs[plotconf['input']][0]))
-                    if type(plotconf['input']) is str:
+                    #     subplotconf, self.inputs[subplotconf['input']][0]))
+                    if type(subplotconf['input']) is str:
                         t = np.linspace(0, self.blocksize-1, self.blocksize)
-                        plotdata = self.inputs[plotconf['input']][0].T
-                    elif type(plotconf['input']) is list:
-                        t = self.inputs[plotconf['input'][0]][0].T
-                        plotdata = self.inputs[plotconf['input'][1]][0].T
+                        plotdata = self.inputs[subplotconf['input']][0].T
+                    elif type(subplotconf['input']) is list:
+                        t = self.inputs[subplotconf['input'][0]][0].T
+                        plotdata = self.inputs[subplotconf['input'][1]][0].T
                     # fix nans
                     plotdata[np.isnan(plotdata)] = -1.0
-                    
-                    # print plotdata
-                    plotconf['plot'](
+                    if hasattr(subplotconf['plot'], 'func_name'):
+                        # plain function
+                        plottype = subplotconf['plot'].func_name
+                    elif hasattr(subplotconf['plot'], 'func'):
+                        # partial'ized func
+                        plottype = subplotconf['plot'].func.func_name
+                    else:
+                        # unknown func type
+                        plottype = "unk type"
+
+                    if type(subplotconf['input']) is list:
+                        plotvar = ""
+                        # FIXME: if len == 2 it is x over y, if len > 2 concatenation
+                        for k, inputvar in enumerate(subplotconf['input']):
+                            tmpinput = self.inputs[inputvar][2]
+                            plotvar += str(tmpinput)
+                            if k != (len(subplotconf['input']) - 1):
+                                plotvar += " revo "
+                    else:
+                        plotvar = self.inputs[subplotconf['input']][2]
+                        
+                    print "plotvar", plotvar
+                        
+                    # plot the plotdata
+                    subplotconf['plot'](
                         fig.axes[idx],
-                        data = plotdata, ordinate = t) # [plotconf['slice'][0]:plotconf['slice'][1]].T)
+                        data = plotdata, ordinate = t)
+                    # metadata
+                    fig.axes[idx].set_title("%s of %s" % (plottype, plotvar, ), fontsize=8)
+                    # [subplotconf['slice'][0]:subplotconf['slice'][1]].T)
+
+                    
+                    
                     # timeseries(fig.axes[idx], self.bufs['ibuf'][plotcol[0]:plotcol[1]].T)
                     # histogram(fig.axes[idx], self.bufs['ibuf'][plotcol[0]:plotcol[1]].T)
             fig.show()
