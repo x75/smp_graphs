@@ -6,27 +6,46 @@ Specifiy sensorimotor learning experiments as a graph of nodes and a
 set of signals, corresponding nicely with the tapping approach. The
 basis framework functions are independent of external libs but the
 block implementations make use of other *smp* libs such as
-[smp\_base](https://github.com/x75/smp_base). The design flow is similar to block based visual programming
+[smp\_base](https://github.com/x75/smp_base).
+
+The design flow is similar to block based visual programming
 approaches and DSP design techniques found in supercollider, puredata,
-or gnuradio to name a few.
+or gnuradio, to name a few. The idea is to use predefined blocks that
+implement a function of the block's inputs. The assignment of values
+to a given input is part of the graph configuration and is either a
+constant computed at configuration time or another block's output
+provided on a globally accessible bus structure. Every block writes
+it's outputs to the bus.
 
 
-## Items
+## Framework items
 
 -   step, blocksize, ibuf
-    -   x basic blocksize handling
-    -   x check if logging still works properly
-    -   x make prim blocks blocksize aware
     -   min blocksize after pass 1
     -   how to optimize if min(bs) > 1?
+    -   x make prim blocks blocksize aware
+    -   x check if logging still works properly
+    -   x basic blocksize handling
+
+-   hierarchical composition
+    -   think about these issues: outer vs. inner numsteps and blocksizes,
+        how to get data in and out in a subgraph independent way
+    -   for now: assert inner numsteps <= outer numsteps, could either
+        enforce 1 or equality
+    -   x use blocks that contain other graphs (default2\_hierarchical.py)
 
 -   loop block
-    -   x parallel loop within graph, modify graph
-    -   sequential loop for running block variations e.g hyperopt or evo
+    -   special hierarchical block with additional spec about how often
+        and with which variations to iterate the subgraph
+    -   x sequential loop for running block variations e.g hyperopt or evo,
+        for now assert blocksize = numloops, one loop iteration returns
+        one data point
+    -   x parallel loop within graph, modify graph. this is different
+        from dynamic containment
 
 -   sync / async block execution
 
--   read/write: ros, osc, &#x2026;
+-   read/write: integrate input from and output to ROS, OSC, &#x2026;
 
 -   x logging
     -   x std logging OK
@@ -36,8 +55,7 @@ or gnuradio to name a few.
     -   x standalone networkx graph from final config
     -   x graphviz
 
--   minor stuff
-    -   x print\_dict print fully compilable python code
+-   misc stuff
     -   x separate header/footer for full config file to remove code
         replication and clutter
 
@@ -45,7 +63,12 @@ or gnuradio to name a few.
 
 -   x base block
 
--   x dict printing for dynamic reconf inspection
+-   dict printing for dynamic reconf inspection
+    -   fix OrderedDict in reconstructed config dicts
+    -   x print\_dict print compilable python code?
+    -   x basic formatted dict printing. issues: different needs in
+        different contexts, runtime version vs. init version. disregard
+        runtime version in logging and storage
 
 
 ## Examples

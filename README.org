@@ -11,11 +11,18 @@ Specifiy sensorimotor learning experiments as a graph of nodes and a
 set of signals, corresponding nicely with the tapping approach. The
 basis framework functions are independent of external libs but the
 block implementations make use of other /smp/ libs such as
-[[https://github.com/x75/smp_base][smp_base]]. The design flow is similar to block based visual programming
-approaches and DSP design techniques found in supercollider, puredata,
-or gnuradio to name a few.
+[[https://github.com/x75/smp_base][smp_base]].
 
-** Items
+The design flow is similar to block based visual programming
+approaches and DSP design techniques found in supercollider, puredata,
+or gnuradio, to name a few. The idea is to use predefined blocks that
+implement a function of the block's inputs. The assignment of values
+to a given input is part of the graph configuration and is either a
+constant computed at configuration time or another block's output
+provided on a globally accessible bus structure. Every block writes
+it's outputs to the bus.
+
+** Framework items
  - step, blocksize, ibuf
    - min blocksize after pass 1
    - how to optimize if min(bs) > 1?
@@ -33,7 +40,7 @@ or gnuradio to name a few.
  - loop block
    - special hierarchical block with additional spec about how often
      and with which variations to iterate the subgraph
-   - sequential loop for running block variations e.g hyperopt or evo,
+   - x sequential loop for running block variations e.g hyperopt or evo,
      for now assert blocksize = numloops, one loop iteration returns
      one data point
    - x parallel loop within graph, modify graph. this is different
@@ -41,7 +48,7 @@ or gnuradio to name a few.
 
  - sync / async block execution
 
- - read/write: ros, osc, ...
+ - read/write: integrate input from and output to ROS, OSC, ...
 
  - x logging
    - x std logging OK
