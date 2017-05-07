@@ -110,7 +110,7 @@ class Graphviz(object):
         # print self.conf
         # set the layout
         self.layouts = ["spring", "shell", "pygraphviz", "random"]
-        self.layout  = self.layouts[3]
+        self.layout  = self.layouts[2]
 
     def run(self):
         # create nx graph
@@ -121,7 +121,7 @@ class Graphviz(object):
         
         # pass 1: add the nodes
         for k, v in self.conf['params']['graph'].items():
-            print "k", k #, v
+            print "k", k, "v", v
             blockname = re.sub(r"<smp_graphs.block.*\.(.*) object.*", "\\1", v['block'])
             G.add_node(k, block = blockname)
             if v['params'].has_key('graph'): # hierarchical block containing subgraph
@@ -129,16 +129,19 @@ class Graphviz(object):
                     # print "sub", subk, subv
                     blockname = re.sub(r"<smp_graphs.block.*\.(.*) object.*", "\\1", subv['block'])
                     G.add_node(subk, block = blockname)
-            elif v['params'].has_key('loopblock'):
+            elif v['params'].has_key('loopblock') and v['params'].has_key('blocksize'):
+                if len(v['params']['loopblock']) < 1: continue
                 # for subk, subv in v['params']['loopblock'].items():
                 # print "sub", subk, subv
+                # print k, print_dict(v['params'])
                 lblock = v['params']['loopblock']
+                # print "lblock", lblock, v['params']['blocksize']
                 blockname = re.sub(r"<class 'smp_graphs.block.*\.(.*)'>", "\\1", lblock['block'])
-                print "block.id", lblock['params']['id']
+                # print "block.id", lblock['params']['id']
                 for i in range(v['params']['blocksize']):
                     k_from = lblock['params']['id'] + "/%d" % (i,)
                     G.add_node(k_from, block = blockname)
-                    G.add_edge(k_from, k)
+                    G.add_edge(k, k_from)
                     
             # print "k", k
             # print "v", v
@@ -146,6 +149,14 @@ class Graphviz(object):
         # pass 2: add the edges
         for k, v in self.conf['params']['graph'].items():
             # print "v['params']", v['params']
+            # loop edges
+            if v['params'].has_key('loopblock') and len(v['params']['loopblock']) == 0:
+
+                # print "G", G[k]
+                k_from = k.split("_")[0]
+                G.add_edge(k_from, k)
+            
+            # input edges
             if not v['params'].has_key('inputs'): continue
             for inputkey, inputval in v['params']['inputs'].items():
                 # print inputkey
@@ -169,7 +180,7 @@ class Graphviz(object):
             for node in G.nodes_iter():
                 # shells =
                 # print node
-                if re.search("/", node):
+                if re.search("/", node) or re.search("_", node):
                     s2.append(node)
                 else:
                     s1.append(node)
@@ -189,6 +200,19 @@ class Graphviz(object):
         print "labels = %s" % labels
         # nx.draw(G)
         # nx.draw_networkx_labels(G)
-        nx.draw_networkx(G, pos = layout, node_color = 'g', node_shape = '8')
+        # nx.draw_networkx(G, pos = layout, node_color = 'g', node_shape = '8')
+        nx.draw_networkx_nodes(G, pos = layout, node_color = 'g', node_shape = '8')
         nx.draw_networkx_labels(G, pos = layout, labels = labels, font_color = 'r', font_size = 8, )
+        # print G.nodes()
+        e1 = [] # std edges
+        e2 = [] # loop edges
+        for edge in G.edges():
+            # print edge
+            if re.search("[_/]", edge[1]):
+                e2.append(edge)
+            else:
+                e1.append(edge)
+
+        nx.draw_networkx_edges(G, pos = layout, edgelist = e1, edge_color = "g", width = 2)
+        nx.draw_networkx_edges(G, pos = layout, edgelist = e2, edge_color = "k")
         plt.show()

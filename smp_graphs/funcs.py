@@ -71,7 +71,7 @@ def f_loop_hpo(ref, i, obj, space = None):
     best = fmin(obj, space, algo = suggest, max_evals=i+1, rstate=lrstate, trials=trials, verbose = 1)
     bests.append(best)
         
-    print "space", ref.hp_space
+    # print "space", ref.hp_space
     # print "results", trials.results
     # print "losses", trials.losses()
     # print "trials", len(trials.trials), trials.trials[-1]

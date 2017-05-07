@@ -91,12 +91,14 @@ class decStep():
                                 # print "decinit", exec_self.inputs[k][0].shape
                                 
                                 # set inputs [last-inputbs:last] if input blocksize reached
+                                # # debugging in to out copy
+                                # print "%s-%s.%s[%d] bus[%s] = %s" % (esname, esid,
+                                #                                          sname,
+                                #                                          escnt,
+                                #                                          v[2],
+                                #                                          exec_self.bus[v[2]].shape)
+                                
                                 sl = slice(-blocksize_input, None)
-                                print "%s-%s.%s[%d] bus[%s] = %s" % (esname, esid,
-                                                                         sname,
-                                                                         escnt,
-                                                                         v[2],
-                                                                         exec_self.bus[v[2]].shape)
                                 exec_self.inputs[k][0][:,sl] = exec_self.bus[v[2]] # np.fliplr(exec_self.bus[v[2]])
                                 # exec_self.inputs[k][0][:,-1,np.newaxis] = exec_self.bus[v[2]]                                
                         else: # ibuf = 1
@@ -108,12 +110,13 @@ class decStep():
                         # print "%s.stepwrap split %s from %s" % (exec_self.cname, outvar, v[2])
                         setattr(exec_self, k, v[0])
                         esk = getattr(exec_self, k)
-                        print "%s.%s[%d]  self.%s = %s" % (esname, sname, escnt, k, esk)
-                        print "%s.%s[%d] outkeys = %s" % (esname, sname, escnt, exec_self.outputs.keys())
-                        if k in exec_self.outputs.keys():
-                            print "%s.%s[%d]:   outk = %s" % (esname, sname, escnt, k)
-                            print "%s.%s[%d]:    ink = %s" % (esname, sname, escnt, k)
-                            # exec_self.outputs[k] = exec_self.inputs[k][0]
+                        # # debug in to out copy
+                        # print "%s.%s[%d]  self.%s = %s" % (esname, sname, escnt, k, esk)
+                        # print "%s.%s[%d] outkeys = %s" % (esname, sname, escnt, exec_self.outputs.keys())
+                        # if k in exec_self.outputs.keys():
+                        #     print "%s.%s[%d]:   outk = %s" % (esname, sname, escnt, k)
+                        #     print "%s.%s[%d]:    ink = %s" % (esname, sname, escnt, k)
+                        #     # exec_self.outputs[k] = exec_self.inputs[k][0]
 
             # call the function on blocksize boundaries
             # FIXME: might not be the best idea to control that on the wrapper level as some
@@ -241,11 +244,11 @@ class Block2(object):
             self.graph[k]['block'].init_pass_2()
 
     def init_outputs(self):
-        print "%s.init_outputs: inputs = %s" % (self.cname, self.inputs)
+        # print "%s.init_outputs: inputs = %s" % (self.cname, self.inputs)
         # create outputs
         # format: variable: [shape]
         for k, v in self.outputs.items():
-            print "%s.init_outputs: outk = %s, outv = %s" % (self.cname, k, v)
+            # print "%s.init_outputs: outk = %s, outv = %s" % (self.cname, k, v)
             # if self.inputs.has_key(k):
             #     print "%s init_outputs ink = %s, inv = %s" % (self.cname, k, self.inputs[k])
             # alloc dim x blocksize buf
@@ -253,7 +256,7 @@ class Block2(object):
             # create self attribute for output item, FIXME: blocksize?
             setattr(self, k, np.zeros(v[0])) # self.outputs[k][0]
             buskey = "%s/%s" % (self.id, k)
-            print "%s.init_outputs: bus[%s] = %s" % (self.cname, buskey, getattr(self, k).shape)
+            # print "%s.init_outputs: bus[%s] = %s" % (self.cname, buskey, getattr(self, k).shape)
             self.bus[buskey] = getattr(self, k)
 
     def init_logging(self):
@@ -443,9 +446,9 @@ class LoopBlock2(Block2):
             loopblocks.append(dynblockconf)
             # print print_dict(self.top.graph)
 
-        # debug
-        for item in loopblocks:
-            print "%s.__init__ loopblocks = %s: %s" % (self.__class__.__name__, item[0], print_dict(item[1]))
+        # # debug loopblocks in LoopBlock2 init
+        # for item in loopblocks:
+        #     print "%s.__init__ loopblocks = %s: %s" % (self.__class__.__name__, item[0], print_dict(item[1]))
 
         # FIXME: this good?
         # insert dynamic blocks into existing ordered dict
@@ -495,7 +498,7 @@ class SeqLoopBlock2(Block2):
                 else:
                     loopblock_params[k] = v
 
-            print "%s.step.f_obj: loopblock_params = %s" % (self.cname, loopblock_params)
+            # print "%s.step.f_obj: loopblock_params = %s" % (self.cname, loopblock_params)
             # create dynamic conf
             loopblock_conf = {'block': self.loopblock['block'], 'params': loopblock_params}
             # instantiate block
@@ -511,10 +514,10 @@ class SeqLoopBlock2(Block2):
             loss = 0
             for outk in self.outputs.keys():
                 if outk in dynblock.inputs.keys(): continue
-                print "outk", outk, getattr(dynblock, outk)
+                # print "outk", outk, getattr(dynblock, outk)
                 loss += np.mean(getattr(dynblock, outk), axis = 1, keepdims = True)
 
-            print "loss", loss
+            # print "loss", loss
                 
             rundata = {
                 'loss': loss[0,0], # compute_complexity(Xs)
@@ -533,7 +536,7 @@ class SeqLoopBlock2(Block2):
             x = np.array([params]).T
             # XXX
             lparams = ('inputs', {'x': [x]}) # , x.shape, self.outputs['x']
-            print "%s.step.f_obj_hpo lparams = {%s}" % (self.cname, lparams)
+            # print "%s.step.f_obj_hpo lparams = {%s}" % (self.cname, lparams)
             rundata = f_obj(lparams)
             return rundata
         # {'loss': , 'status': STATUS_OK, 'dynblock': None, 'lparams': lparams}
@@ -545,7 +548,7 @@ class SeqLoopBlock2(Block2):
             
         # loop the loop
         for i in range(self.blocksize):
-            print "%s iter# %d" % (self.cname, i)
+            # print "%s iter# %d" % (self.cname, i)
             # dynblock = obj()
             # func: need input function from config
             results = self.f_loop(i, f_obj_)#_hpo)
@@ -563,9 +566,9 @@ class SeqLoopBlock2(Block2):
                 # func: need output function from config
                 # self.__dict__[outk][:,[i]] = np.mean(getattr(dynblock, outk), axis = 1, keepdims = True)
                 self.__dict__[outk][:,[i]] = np.mean(getattr(dynblock, outk), axis = 1, keepdims = True)
-        # hack for checking hpo minimum
-        if hasattr(self, 'hp_bests'):
-            print "%s.step: bests = %s, %s" % (self.cname, self.hp_bests[-1], f_obj_hpo(tuple([self.hp_bests[-1][k] for k in sorted(self.hp_bests[-1])])))
+        # # hack for checking hpo minimum
+        # if hasattr(self, 'hp_bests'):
+        #     print "%s.step: bests = %s, %s" % (self.cname, self.hp_bests[-1], f_obj_hpo(tuple([self.hp_bests[-1][k] for k in sorted(self.hp_bests[-1])])))
     
 class PrimBlock2(Block2):
     """PrimBlock2: base class for primitive blocks"""
