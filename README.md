@@ -73,9 +73,43 @@ it's outputs to the bus.
 
 ## Examples
 
+Currently depends on the following python libs
+
+-   External: numpy, matplotlib, pandas, networkx, hyperopt
+-   smp world: smp\_base
+
+smp stuff is 'installed' via setting the PYTHONPATH to include the
+relevant directories like
+
+    export PYTHONPATH=/path/to/smp_base:/path/to/smp_graphs:$PYTHONPATH
+
+then go into smp\_graphs/experiments directory where experiments are
+run from
+
     cd smp_graph/experiments
-    python experiment.py --conf conf/default2.conf
-    python experiment.py --conf conf/default2_loop.conf
+
+Example configurations are 
+
+    # default2.py, test most basic functionality with const and random blocks
+    python experiment.py --conf conf/default2.py
+
+    # default2_loop.py, test the graph modifying loop block
+    python experiment.py --conf conf/default2_loop.py
+
+    # default2_hierarchical.py, test hierarchical composition loading a subblock from
+    #                             an existing configuration
+    python experiment.py --conf conf/default2_hierarchical.py
+
+    # default2_loop_seq.py, test dynamic loop instantiating the loopblock
+    #                         for every loop iteration
+    python experiment.py --conf conf/default2_loop_seq.py
+
+and so on. Other configurations are puppy\_rp.py and
+puppy\_rp\_blocksize.py which load a logfile and do analysis on that
+data.
+
+Two utilities for inspecting logged configurations and data are
+provided in util\_logdump.py and util\_logplot.py
 
 
 # Notes
