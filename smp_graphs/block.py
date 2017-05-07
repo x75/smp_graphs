@@ -510,9 +510,11 @@ class SeqLoopBlock2(Block2):
 
             loss = 0
             for outk in self.outputs.keys():
+                if outk in dynblock.inputs.keys(): continue
+                print "outk", outk, getattr(dynblock, outk)
                 loss += np.mean(getattr(dynblock, outk), axis = 1, keepdims = True)
 
-            # print "loss", loss
+            print "loss", loss
                 
             rundata = {
                 'loss': loss[0,0], # compute_complexity(Xs)
@@ -561,6 +563,9 @@ class SeqLoopBlock2(Block2):
                 # func: need output function from config
                 # self.__dict__[outk][:,[i]] = np.mean(getattr(dynblock, outk), axis = 1, keepdims = True)
                 self.__dict__[outk][:,[i]] = np.mean(getattr(dynblock, outk), axis = 1, keepdims = True)
+        # hack for checking hpo minimum
+        if hasattr(self, 'hp_bests'):
+            print "%s.step: bests = %s, %s" % (self.cname, self.hp_bests[-1], f_obj_hpo(tuple([self.hp_bests[-1][k] for k in sorted(self.hp_bests[-1])])))
     
 class PrimBlock2(Block2):
     """PrimBlock2: base class for primitive blocks"""

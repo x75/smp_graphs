@@ -105,17 +105,21 @@ import networkx as nx
 import re
 class Graphviz(object):
     def __init__(self, args):
+        # load graph config
         self.conf = get_config_raw(args.conf)
-        print self.conf
-        # f = open(args.conf, "r")
-        # self.conf = f.read()
+        # print self.conf
+        # set the layout
+        self.layouts = ["spring", "shell", "pygraphviz", "random"]
+        self.layout  = self.layouts[3]
 
     def run(self):
+        # create nx graph
         G = nx.MultiDiGraph()
 
         # FIXME: make the node and edge finding stuff into recursive functions
+        #        to accomodate nesting and loops at arbitrary levels
         
-        # pass one add nodes
+        # pass 1: add the nodes
         for k, v in self.conf['params']['graph'].items():
             print "k", k #, v
             blockname = re.sub(r"<smp_graphs.block.*\.(.*) object.*", "\\1", v['block'])
@@ -125,10 +129,21 @@ class Graphviz(object):
                     # print "sub", subk, subv
                     blockname = re.sub(r"<smp_graphs.block.*\.(.*) object.*", "\\1", subv['block'])
                     G.add_node(subk, block = blockname)
+            elif v['params'].has_key('loopblock'):
+                # for subk, subv in v['params']['loopblock'].items():
+                # print "sub", subk, subv
+                lblock = v['params']['loopblock']
+                blockname = re.sub(r"<class 'smp_graphs.block.*\.(.*)'>", "\\1", lblock['block'])
+                print "block.id", lblock['params']['id']
+                for i in range(v['params']['blocksize']):
+                    k_from = lblock['params']['id'] + "/%d" % (i,)
+                    G.add_node(k_from, block = blockname)
+                    G.add_edge(k_from, k)
+                    
             # print "k", k
             # print "v", v
             
-        # pass two add edges
+        # pass 2: add the edges
         for k, v in self.conf['params']['graph'].items():
             # print "v['params']", v['params']
             if not v['params'].has_key('inputs'): continue
@@ -141,12 +156,39 @@ class Graphviz(object):
 
         # FIXME: add _loop_ and _containment_ edges with different color
         # print print_dict(pdict = self.conf[7:])
-        layout = nx.spring_layout(G)
+
+        # pass 3: create the layout
+
+        if self.layout == "spring":
+            # spring
+            layout = nx.spring_layout(G)
+        elif self.layout == "shell":
+            # shell, needs add. computation
+            s1 = []
+            s2 = []
+            for node in G.nodes_iter():
+                # shells =
+                # print node
+                if re.search("/", node):
+                    s2.append(node)
+                else:
+                    s1.append(node)
+                
+            print "s1", s1, "s2", s2
+            layout = nx.shell_layout(G, [s1, s2])
+        elif self.layout == "pygraphviz":
+            # pygraphviz
+            import pygraphviz
+            A = nx.nx_agraph.to_agraph(G)
+            layout = nx.nx_agraph.graphviz_layout(G)
+        elif self.layout == "random":
+            layout = nx.random_layout(G)
+            
         print G.nodes(data = True)
         labels = {'%s' % node[0]: '%s' % node[1]['block'] for node in G.nodes(data = True)}
         print "labels = %s" % labels
         # nx.draw(G)
         # nx.draw_networkx_labels(G)
         nx.draw_networkx(G, pos = layout, node_color = 'g', node_shape = '8')
-        nx.draw_networkx_labels(G, pos = layout, labels = labels, font_color = 'r')
+        nx.draw_networkx_labels(G, pos = layout, labels = labels, font_color = 'r', font_size = 8, )
         plt.show()

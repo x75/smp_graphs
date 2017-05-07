@@ -1,11 +1,10 @@
-"""smp_graphs: configuration for testing the sequential
-loop block (SeqLoopBlock2)
+"""smp_graphs: configuration for testing the sequential loop block (SeqLoopBlock2)
 
+explain
  - CountBlock2 drives two function blocks to test FuncBlock2 evaluation
  - SeqLoopBlock2 is driven by the 'loop' object which can be either an
    array of (variable group, {variable name, value}) tuples or a generator
    function returning the same kind of tuple on each call
-
 """
 
 from smp_graphs.block import CountBlock2, FuncBlock2
@@ -35,9 +34,9 @@ loopblock1 = {
 loopblock = {
     'block': FuncBlock2,
     'params': {
-        'id': 'f1',
-        'inputs': {'x': [np.random.uniform(-1, 1, (1, 1))]},
-        'outputs': {'x': [(1, 1)], 'y': [(1, 1)]},
+        'id': 'f3',
+        'inputs': {'x': [np.random.uniform(-1, 1, (3, 1))]},
+        'outputs': {'x': [(3, 1)], 'y': [(1, 1)]},
         'func': f_sinesquare4,
         'blocksize': 1,
         'debug': False,
@@ -92,15 +91,16 @@ graph = OrderedDict([
         'block': SeqLoopBlock2,
         'params': {
             'id': 'b2',
-            # loop specification, check hierarchical block to completely pass on the contained i/o space?
+            # loop specification, check hierarchical block to completely
+            # pass on the contained in/out space?
             'blocksize': numsteps, # same as loop length
             # can't do this dynamically yet without changing init passes
-            'outputs': {'x': [(1, 1)], 'y': [(1, 1)]},
+            'outputs': {'x': [(3, 1)], 'y': [(1, 1)]},
             # 'loop': [('inputs', {
             #     'lo': [np.random.uniform(-i, 0, (3, 1))], 'hi': [np.random.uniform(0.1, i, (3, 1))]}) for i in range(1, 11)],
             # 'loop': lambda ref, i: ('inputs', {'lo': [10 * i], 'hi': [20*i]}),
-            #'loop': [('inputs', {'x': [np.random.uniform(np.pi/2, 3*np.pi/2, (1,1))]}) for i in range(1, numsteps+1)],
-            'loop': f_loop_hpo,
+            # 'loop': [('inputs', {'x': [np.random.uniform(np.pi/2, 3*np.pi/2, (3,1))]}) for i in range(1, numsteps+1)],
+            'loop': partial(f_loop_hpo, space = f_loop_hpo_space_f3(pdim = 3)),
             'loopmode': 'sequential',
             'loopblock': loopblock,
         },

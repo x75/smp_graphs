@@ -42,13 +42,19 @@ def f_loop_1(ref, i):
 def f_obj_inverse(params, result):
     pass
 
-def f_loop_hpo(ref, i, obj):
-    # print "funcs.py: loop_hpo: i", i
+def f_loop_hpo_space_f3(pdim = 1):
+    return [hp.uniform("m%d" % i, np.pi/2, 3*np.pi/2) for i in range(pdim)]
+
+def f_loop_hpo(ref, i, obj, space = None):
+    # print "funcs.py: f_loop_hpo: i", i, ref
+    # init first time round and store in parent
     if i < 1:
         trials = Trials()
-        space = [hp.uniform("m%d" % i, np.pi/2, 3*np.pi/2) for i in range(1)]
+        # paramdim = 1
+        # space = [hp.uniform("m%d" % i, np.pi/2, 3*np.pi/2) for i in range(paramdim)]
+        # space = ref.space
         bests = []
-        lrstate = np.random.RandomState(1234)
+        lrstate = np.random.RandomState(1237)
 
         ref.hp_trials = trials
         ref.hp_space = space
@@ -65,7 +71,7 @@ def f_loop_hpo(ref, i, obj):
     best = fmin(obj, space, algo = suggest, max_evals=i+1, rstate=lrstate, trials=trials, verbose = 1)
     bests.append(best)
         
-    # print "space", ref.hp_space
+    print "space", ref.hp_space
     # print "results", trials.results
     # print "losses", trials.losses()
     # print "trials", len(trials.trials), trials.trials[-1]
