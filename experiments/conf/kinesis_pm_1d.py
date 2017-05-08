@@ -10,10 +10,11 @@ see also smq/experiments/conf2/kinesis_pm_1d.py
 from smp_graphs.block_systems import PointmassBlock2
 
 # reuse
-numsteps = 100
-debug = True
+numsteps = 1000
+debug = False
 motors = 3
 dt = 0.1
+showplot = True
 
 # graph
 graph = OrderedDict([
@@ -39,6 +40,7 @@ graph = OrderedDict([
             "force_min": -1.0,
             "friction": 0.01,
             "sysnoise": 1e-3,
+            'debug': False,
         }
     }),
     # plotting

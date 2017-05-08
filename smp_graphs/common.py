@@ -15,6 +15,7 @@ from smp_base.plot import timeseries, histogram, rp_timeseries_embedding
 import numpy as np
 
 debug = False
+showplot = True
 """
 
 conf_footer = """
@@ -27,6 +28,7 @@ conf = {
         'topblock': True,
         'numsteps': numsteps,
         'graph': graph,
+        'showplot': showplot,
     }
 }
 """

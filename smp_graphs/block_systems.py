@@ -18,7 +18,7 @@ class PointmassBlock2(SysBlock2):
     def __init__(self, conf = {}, paren = None, top = None):
         SysBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
-        print "conf", conf
+        self.debug_print("init: conf = %s", (conf,))
         self.system = PointmassSys(conf['params'])
         # output variables
         self.x = {
