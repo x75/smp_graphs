@@ -2,12 +2,27 @@
 
 kinesis on a 1D point mass system
 
-see also smq/experiments/conf2/kinesis_pm_1d.py
+porting from smq/experiments/conf2/kinesis_pm_1d.py
 
+components for kinesis:
+ - world (identity)
+ - robot (pointmass)
+ - motivation: goal state
+ - action: activity modulated proportionally by distance to goal
 
+now: motivation and action are of the same kind (a prediction), but
+placed on different levels. can we make the levels very general and
+self-organizing?
+
+start with innermost (fundamental drives) and outermost (raw sensors)
+layers and start to grow connecting pathways
+ 
 """
 
 from smp_graphs.block_systems import PointmassBlock2
+from smp_graphs.block import FuncBlock2
+
+from smp_graphs.funcs import f_sin
 
 # reuse
 numsteps = 1000
@@ -18,6 +33,73 @@ showplot = True
 
 # graph
 graph = OrderedDict([
+    # brain first
+    # brain a) write down into graph directly
+    ('braina', {
+        'block': Block2,
+        'params': {
+            'numsteps': numsteps,
+            'id': 'braina',
+            # open loop sinewave brain ;)
+            'graph': OrderedDict([
+                # test signal
+                ('sin', {
+                    'block': FuncBlock2,
+                    'params': {
+                        'id': 'sin',
+                        'inputs': {'x': ['sin/cnt'], 'f': [np.array([[0.1, 0.2, 0.3]]).T]},
+                        'outputs': {'cnt': [(1,1)], 'y': [(3,1)]},
+                        'func': f_sin,
+                        'debug': True,
+                    },
+                }),
+                ('sin2', {
+                    'block': FuncBlock2,
+                    'params': {
+                        'id': 'sin2',
+                        'inputs': {'x': ['sin2/cnt'], 'f': [np.array([[0.11, 0.191, 0.313]]).T]},
+                        'outputs': {'cnt': [(1,1)], 'y': [(3,1)]},
+                        'func': f_sin,
+                        'debug': True,
+                    },
+                }),
+                # kinesis, goal detector, output is binary or continuous, on-goal/off-goal, d(goal)
+                # ('motivation', {
+                #     'block': FuncBlock2,
+                #     'params': {
+                #         'id': 'sin2',
+                #         'inputs': {'x': ['robot1/s_extero']},
+                #         'outputs': {'y': [(3,1)]},
+                #         'func': f_sin,
+                #         'debug': True,
+                #     },
+                # }),
+                # kinesis, search, noise, motor babbling - modulated by goal detector
+                ('search', {
+                    'block': UniformRandomBlock2,
+                    'params': {
+                        'id': 'search',
+                        'inputs': {'lo': ['sin/y'], 'hi': ['sin2/y']},
+                        'outputs': {'x': [(3,1)]}
+                        },
+                    })
+            ]),
+            # 'outputs': {'cnt': [(1,1)], 'y': [(3,1)]}
+        }
+    }),
+    
+    # brain b) include subgraph config
+    # ('brainb': {}),
+    
+    # # brain c) primblock
+    # ('brainc', {
+    #     'block': PredBrainBlock2,
+    #     'params': {
+    #         'id': 'brainc',
+            
+    #         },
+    # }),
+    
     # a robot
     ('robot1', {
         'block': PointmassBlock2,
@@ -25,8 +107,9 @@ graph = OrderedDict([
             'id': 'robot1',
             'blocksize': numsteps, # FIXME: make pm blocksize aware!
             'sysdim': motors,
-            'inputs': {'u': [np.random.uniform(-1, 1, (3, numsteps))]},
-            'outputs': {'s_proprio': [(3,1)], 's_extero': [(3,1)], 's_all': [(9, 1)]},
+            # 'inputs': {'u': [np.random.uniform(-1, 1, (3, numsteps))]},
+            'inputs': {'u': ['search/x']},
+            'outputs': {'s_proprio': [(3,1)], 's_extero': [(3,1)]}, # , 's_all': [(9, 1)]},
             # "class": PointmassRobot2, # SimpleRandomRobot,
             # "type": "explauto",
             # "name": make_robot_name(expr_id, "pm", 0),
@@ -49,7 +132,9 @@ graph = OrderedDict([
         'params': {
             'id': 'plot',
             'blocksize': numsteps,
-            'inputs': {'d1': ['robot1/s_proprio'], 'd2': ['robot1/s_extero'], 'd3': ['robot1/s_all']},
+            'inputs': {'d1': ['robot1/s_proprio'], 'd2': ['robot1/s_extero'],
+                    # 'd3': ['robot1/s_all']},
+                    'd4': ['sin/y']},
             'subplots': [
                 [
                     {'input': 'd1', 'plot': timeseries},
@@ -59,9 +144,13 @@ graph = OrderedDict([
                     {'input': 'd2', 'plot': timeseries},
                     {'input': 'd2', 'plot': histogram},
                 ],
+                # [
+                #     {'input': 'd3', 'plot': timeseries},
+                #     {'input': 'd3', 'plot': histogram},
+                # ]
                 [
-                    {'input': 'd3', 'plot': timeseries},
-                    {'input': 'd3', 'plot': histogram},
+                    {'input': 'd4', 'plot': timeseries},
+                    {'input': 'd4', 'plot': histogram},
                 ]
             ],
         },

@@ -16,6 +16,16 @@ from hyperopt import fmin, tpe, Trials, rand, anneal
 # some minimal functions
 f_sinesquare = lambda args: np.sin(args['x'][0])**2
 
+def f_sin(args):
+    """return the sin of input"""
+    try:
+        x = args['x'][0]
+        f = args['f'][0]
+        return np.sin(x * f)
+    except KeyError, e:
+        print "KeyError", e, args
+        # print "Block %s doesn't have an input %s" % (args['id'], 'x')
+
 def f_sinesquare2(args):
     x = args['x'][0]
     scaler = np.arange(1, x.shape[0] + 1).reshape(x.shape) * 0.3 + 1.0

@@ -7,10 +7,11 @@ experiment: basic experiment shell for
  - loading and drawing a graph (networkx)
 """
 
-import argparse
+import argparse, os
 import time
 
 from collections import OrderedDict
+from functools import partial
 
 import matplotlib.pyplot as plt
 
@@ -47,9 +48,15 @@ def set_config_defaults(conf):
         conf['params']['numsteps'] = 100
     return conf
 
-def make_expr_id(name = "experiment"):
+def make_expr_id_configfile(name = "experiment", configfile = "conf/default2.py"):
     """return experiment signature as name and timestamp"""
-    return "%s_%s" % (name, make_expr_sig())
+    confs = configfile.split("/")
+    confs = confs[-1].split(".")[0]
+    print "configfile", confs
+    return "%s_%s_%s" % (name, make_expr_sig(), confs)
+
+def make_expr_id(name = "experiment"):
+    pass
 
 def make_expr_sig(args =  None):
     """return experiment timestamp"""
@@ -66,7 +73,10 @@ Load a config from the file in args.conf
 
     """
     def __init__(self, args):
+        global make_expr_id
+        make_expr_id = partial(make_expr_id_configfile, configfile = args.conf)
         self.conf = get_config_raw(args.conf)
+        assert self.conf is not None, "%s.init: Couldn't read config file %s" % (self.__class__.__name__, args.conf)
         self.conf = set_config_defaults(self.conf)
         
         # print "%s.init: conf keys = %s\n" % (self.__class__.__name__, self.conf.keys())
@@ -108,7 +118,8 @@ class Graphviz(object):
     def __init__(self, args):
         # load graph config
         self.conf = get_config_raw(args.conf)
-        # print self.conf
+        assert self.conf is not None, "%s.init: Couldn't read config file %s" % (self.__class__.__name__, args.conf)
+
         # set the layout
         self.layouts = ["spring", "shell", "pygraphviz", "random"]
         self.layout  = self.layouts[2]

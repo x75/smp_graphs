@@ -16,7 +16,7 @@ from hyperopt import STATUS_OK, STATUS_FAIL
 import smp_graphs.logging as log
 from smp_graphs.utils import print_dict
 from smp_graphs.common import conf_header, conf_footer
-from smp_graphs.common import get_config_raw
+from smp_graphs.common import get_config_raw, get_config_raw_from_string
 
 BLOCKSIZE_MAX = 10000
 
@@ -185,6 +185,8 @@ class Block2(object):
             # init global messaging bus
             self.bus = {}
 
+            self.top = self
+            
             log.log_pd_init(self.conf)
             log.log_pd_store_config_initial(print_dict(self.conf))
 
@@ -208,6 +210,7 @@ class Block2(object):
             # FIXME: call that graph
             self.bus = self.top.bus
             subconf = get_config_raw(self.subgraph, 'conf') # 'graph')
+            assert subconf is not None
             # make sure subordinate number of steps is less than top level numsteps
             assert subconf['params']['numsteps'] <= self.top.numsteps, "enclosed numsteps = %d greater than top level numsteps = %d" % (subconf['params']['numsteps'], self.top.numsteps)
             
@@ -217,7 +220,17 @@ class Block2(object):
             self.init_graph_pass_1()
             # pass 2
             self.init_graph_pass_2()
-            
+
+        elif not self.topblock and hasattr(self, 'graph'):
+            self.bus = self.top.bus
+            if not hasattr(self, 'numsteps'):
+                self.numsteps = self.top.numsteps
+            # subconf = get_config_raw_from_string(self.subgraph, 'conf')
+            # print "graph", self.graph, self.conf['params']['graph']
+            # print "graph same", self.graph is self.conf['params']['graph']
+            self.init_graph_pass_1()
+            self.init_graph_pass_2()
+
         else:
             # pass 1: complete config with runtime info
             # get bus
@@ -233,7 +246,7 @@ class Block2(object):
         # pass 1 init
         for k, v in self.graph.items():
             self.debug_print("__init__: pass 1\nk = %s,\nv = %s", (k, print_dict(v)))
-            self.graph[k]['block'] = self.graph[k]['block'](conf = v, paren = self, top = self)
+            self.graph[k]['block'] = self.graph[k]['block'](conf = v, paren = self, top = self.top)
             # print "%s self.graph[k]['block'] = %s" % (self.graph[k]['block'].__class__.__name__, self.graph[k]['block'].bus)
         # done pass 1 init
 
@@ -336,7 +349,8 @@ class Block2(object):
 
         if topblock iterate graph and step each node block, reiterate graph and do the logging for each node, store the log every n steps
         """
-        if self.topblock or hasattr(self, 'subgraph'):
+        # if self.topblock or hasattr(self, 'subgraph'):
+        if hasattr(self, 'graph') or hasattr(self, 'subgraph'):
             for k, v in self.graph.items():
                 v['block'].step()
 
@@ -394,15 +408,28 @@ class Block2(object):
 
         # log.log_pd_store_config_final(confstr_)
 
+    def check_attrs(self, attrs):
+        """Block2: check if a block has been given all necessary attributes via configuration"""
+
+        for attr in attrs:
+            assert hasattr(self, attr), "%s.check_attrs: Don't have attr = %s" % (self.__class__.__name__, attr)
+
 class FuncBlock2(Block2):
     """function block: wrap a function given by the configuration in params['func']"""
     def __init__(self, conf = {}, paren = None, top = None):
         Block2.__init__(self, conf = conf, paren = paren, top = top)
 
+        self.check_attrs(['func'])
+
     @decStep()
     def step(self, x = None):
         # print "%s.step inputs[%d] = %s" % (self.cname, self.cnt, self.inputs)
+        # self.inputs is a dict with values [array]
+        assert self.inputs.has_key('x'), "%s.inputs expected to have key 'x' with function input vector. Check config."
+
+        self.debug_print("step[%d]: x = %s", (self.cnt, self.inputs,))
         self.y = self.func(self.inputs)
+        self.debug_print("step[%d]: y = %s", (self.cnt, self.y,))
             
 class LoopBlock2(Block2):
     """Loop block: dynamically create block variations according to some specificiations of variation
@@ -608,7 +635,7 @@ class CountBlock2(PrimBlock2):
             self.cnt_[:,0] = self.cnt
         # FIXME: make that a for output items loop
         setattr(self, self.outputs.keys()[0], (self.cnt_ * self.scale) + self.offset)
-        
+
 class UniformRandomBlock2(PrimBlock2):
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
@@ -631,7 +658,7 @@ class UniformRandomBlock2(PrimBlock2):
         #     self.bus[buskey] = getattr(self, k)
         # self.bus[self.id] = self.x
         return self.x
-
+    
 import pandas as pd
 class FileBlock2(Block2):
     @decInit()

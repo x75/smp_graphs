@@ -20,7 +20,7 @@ class PointmassBlock2(SysBlock2):
 
         self.debug_print("init: conf = %s", (conf,))
         self.system = PointmassSys(conf['params'])
-        # output variables
+        # latent output variables defined by pointmass system
         self.x = {
             's_proprio': np.zeros((self.sysdim,   self.blocksize)),
             's_extero':  np.zeros((self.sysdim,   self.blocksize)),
@@ -37,7 +37,9 @@ class PointmassBlock2(SysBlock2):
         for i in range(self.blocksize):
             self.u = self.inputs['u'][0][:,[i]]
             self.x = self.system.step(self.u)
-            for k in ['s_proprio', 's_extero', 's_all']:
+            # real output variables defined by config
+            # for k in ['s_proprio', 's_extero', 's_all']:
+            for k in self.outputs.keys():
                 k_ = getattr(self, k)
                 k_[:,[i]] = self.x[k]
                 # setattr(self, k, self.x[k])
