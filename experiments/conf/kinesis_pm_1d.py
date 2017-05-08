@@ -24,8 +24,8 @@ graph = OrderedDict([
             'id': 'robot1',
             'blocksize': numsteps, # FIXME: make pm blocksize aware!
             'sysdim': motors,
-            'inputs': {'u': [np.random.uniform(-1, 1, (3,1))]},
-            'outputs': {'s_proprio': [(3,1)], 's_extero': [(3,1)]},
+            'inputs': {'u': [np.random.uniform(-1, 1, (3, numsteps))]},
+            'outputs': {'s_proprio': [(3,1)], 's_extero': [(3,1)], 's_all': [(9, 1)]},
             # "class": PointmassRobot2, # SimpleRandomRobot,
             # "type": "explauto",
             # "name": make_robot_name(expr_id, "pm", 0),
@@ -47,7 +47,7 @@ graph = OrderedDict([
         'params': {
             'id': 'plot',
             'blocksize': numsteps,
-            'inputs': {'d1': ['robot1/s_proprio'], 'd2': ['robot1/s_extero']},
+            'inputs': {'d1': ['robot1/s_proprio'], 'd2': ['robot1/s_extero'], 'd3': ['robot1/s_all']},
             'subplots': [
                 [
                     {'input': 'd1', 'plot': timeseries},
@@ -56,6 +56,10 @@ graph = OrderedDict([
                 [
                     {'input': 'd2', 'plot': timeseries},
                     {'input': 'd2', 'plot': histogram},
+                ],
+                [
+                    {'input': 'd3', 'plot': timeseries},
+                    {'input': 'd3', 'plot': histogram},
                 ]
             ],
         },

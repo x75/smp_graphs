@@ -583,7 +583,8 @@ class PrimBlock2(Block2):
 class ConstBlock2(PrimBlock2):
     def __init__(self, conf = {}, paren = None, top = None):
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
-        self.x = np.tile(self.inputs['c'][0], self.blocksize)
+        if self.x.shape[1] == 1:
+            self.x = np.tile(self.inputs['c'][0], self.blocksize) # FIXME as that good? only works for single column vector
 
 class CountBlock2(PrimBlock2):
     @decInit()
