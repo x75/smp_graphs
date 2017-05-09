@@ -65,6 +65,16 @@ graph = OrderedDict([
                         'debug': False,
                     },
                 }),
+                # more randomness
+                ('mot0', {
+                    'block': UniformRandomBlock2,
+                    'params': {
+                        'id': 'mot0',
+                        'rate': 200,
+                        'inputs': {'lo': ['motivation/y1'], 'hi': ['motivation/y']},
+                        'outputs': {'x': [(3,1)]}
+                        },
+                    }),
                 # kinesis, goal detector, output is binary or continuous, on-goal/off-goal, d(goal)
                 ('motivation', {
                     'block': FuncBlock2,
@@ -85,7 +95,7 @@ graph = OrderedDict([
                         'inputs': {'lo': ['motivation/y1'], 'hi': ['motivation/y']},
                         'outputs': {'x': [(3,1)]}
                         },
-                    })
+                    }),
             ]),
             # 'outputs': {'cnt': [(1,1)], 'y': [(3,1)]}
         }
