@@ -217,6 +217,30 @@ class Block2(object):
 
                 # write initial configuration to dummy table attribute in hdf5
                 log.log_pd_store_config_initial(print_dict(self.conf))
+
+                # init pass 1: construct the exec graph by expanding dynamic variables
+                # and initializing the outputs to get the bus definitions
+                self.init_graph_pass_1()
+
+                # debug bus init
+                # self.debug_print("init_1: buskeys = %s", (self.bus.keys(),)) # (print_dict(self.bus),))
+                # for k,v in self.bus.items():
+                #     self.debug_print("init_1: self.bus[%s].shape = %s", (k, v.shape)) # (print_dict(self.bus),))
+
+                # debug bus init
+                # for k,v in self.bus.items():
+                #     self.debug_print("init_2: self.bus[%s].shape = %s", (k, v.shape)) # (print_dict(self.bus),))
+
+                # dump the exec graph configuration to a file
+                # init pass 2: only from topblock on the flattened graph
+                self.init_graph_pass_2()
+
+                finalconf = self.dump_final_config()
+                # this needs more work
+                log.log_pd_store_config_final(finalconf)
+                
+                # print "init top graph", print_dict(self.top.graph)
+                
             # non topblock configuration driven blocks
             else:
                 self.bus = self.top.bus
@@ -229,11 +253,8 @@ class Block2(object):
                     assert subconf['params']['numsteps'] <= self.top.numsteps, "enclosed numsteps = %d greater than top level numsteps = %d" % (subconf['params']['numsteps'], self.top.numsteps)
 
                     self.conf['params']['graph'] = subconf['params']['graph']
+                    self.graph = self.conf['params']['graph']
                     # print "subgraph %s" % (self.id), self.conf['params']['graph']
-
-                    # insert subgraph into top graph
-                    ordereddict_insert(ordereddict = self.top.graph, insertionpoint = '%s' % self.id, itemstoadd = subconf['params']['graph'])
-                    # print "topgraph", print_dict(self.top.graph)
                                         
                     # # pass 1
                     # self.init_graph_pass_1()
@@ -249,33 +270,15 @@ class Block2(object):
                     # print "graph same", self.graph is self.conf['params']['graph']
                     # self.init_graph_pass_1()
                     # self.init_graph_pass_2()
+
+                # print "self.graph", self.id, print_dict(self.graph)
+                # init self.graph
+                self.init_graph_pass_1()
+                # print "self.graph", self.id, print_dict(self.graph)
+                # insert self.graph into top.graph
+                ordereddict_insert(ordereddict = self.top.graph, insertionpoint = '%s' % self.id, itemstoadd = self.graph)
+                # print "topgraph", print_dict(self.top.graph)
                     
-            # common for all configuration driven blocks
-                
-            # init pass 1: construct the exec graph by expanding dynamic variables
-            # and initializing the outputs to get the bus definitions
-            self.init_graph_pass_1()
-
-            # debug bus init
-            # self.debug_print("init_1: buskeys = %s", (self.bus.keys(),)) # (print_dict(self.bus),))
-            # for k,v in self.bus.items():
-            #     self.debug_print("init_1: self.bus[%s].shape = %s", (k, v.shape)) # (print_dict(self.bus),))
-
-            # init pass 2:
-            self.init_graph_pass_2()
-
-            # debug bus init
-            # for k,v in self.bus.items():
-            #     self.debug_print("init_2: self.bus[%s].shape = %s", (k, v.shape)) # (print_dict(self.bus),))
-
-            # dump the exec graph configuration to a file
-            if self.topblock:
-                finalconf = self.dump_final_config()
-                # this needs more work
-                log.log_pd_store_config_final(finalconf)
-                
-            # print "init top graph", self.top.graph.keys(), self.top.graph['bhier']
-
         # primitive block
         else:
             """pass 1: complete config with runtime info"""
@@ -288,6 +291,7 @@ class Block2(object):
             self.init_logging()
 
     def init_graph_pass_1(self):
+        """!@brief initialize this block's graph by instantiating all graph nodes"""
         self.graph = self.conf['params']['graph']
         # pass 1 init
         for k, v in self.graph.items():
@@ -299,7 +303,7 @@ class Block2(object):
     def init_graph_pass_2(self):
         # pass 2 init
         for k, v in self.graph.items():
-            # self.debug_print("__init__: pass 2\nk = %s,\nv = %s", (k, print_dict(v)))
+            self.debug_print("__init__: pass 2\nk = %s,\nv = %s", (k, print_dict(v)))
             self.graph[k]['block'].init_pass_2()
 
     def init_outputs(self):
@@ -315,7 +319,7 @@ class Block2(object):
             # create self attribute for output item, FIXME: blocksize?
             setattr(self, k, np.zeros(v[0])) # self.outputs[k][0]
             buskey = "%s/%s" % (self.id, k)
-            # print "%s.init_outputs: bus[%s] = %s" % (self.cname, buskey, getattr(self, k).shape)
+            print "%s.init_outputs: %s.bus[%s] = %s" % (self.cname, self.id, buskey, getattr(self, k).shape)
             self.bus[buskey] = getattr(self, k)
 
     def init_logging(self):
@@ -347,9 +351,10 @@ class Block2(object):
                 assert len(v) > 0
                 # set input from bus
                 if type(v[0]) is str:
+                    # check if key exists or not. if it doesn't, that means this is a block inside 
                     assert self.bus.has_key(v[0]), "Bus item %s doesn't not in %s" % (v[0], self.bus.keys())
                     # enforce bus blocksize smaller than local blocksize, tackle later
-                    # print "%s" % self.cname, self.bus.keys()
+                    # print "%s" % self.cname, self.bus.keys(), self.blocksize
                     assert self.bus[v[0]].shape[1] <= self.blocksize
                     # create input tuple
                     tmp = [None for i in range(3)]
@@ -471,6 +476,8 @@ class FuncBlock2(Block2):
 
         self.check_attrs(['func'])
 
+        # FIXME: check return type of func at init time and set step function
+
     @decStep()
     def step(self, x = None):
         # print "%s.step inputs[%d] = %s" % (self.cname, self.cnt, self.inputs)
@@ -478,7 +485,12 @@ class FuncBlock2(Block2):
         assert self.inputs.has_key('x'), "%s.inputs expected to have key 'x' with function input vector. Check config."
 
         self.debug_print("step[%d]: x = %s", (self.cnt, self.inputs,))
-        self.y = self.func(self.inputs)
+        f_val = self.func(self.inputs)
+        if type(f_val) is dict:
+            for k, v in f_val.items():
+                setattr(self, k, v)
+        else:
+            self.y = f_val
         self.debug_print("step[%d]: y = %s", (self.cnt, self.y,))
             
 class LoopBlock2(Block2):

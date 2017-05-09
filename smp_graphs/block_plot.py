@@ -38,14 +38,25 @@ class TimeseriesPlotBlock2(PrimBlock2):
                     # self.debug_print("%s.step idx = %d, conf = %s, data = %s", (
                     #     self.__class__.__name__, idx,
                     #     subplotconf, self.inputs[subplotconf['input']][0]))
-                    if type(subplotconf['input']) is str:
-                        t = np.linspace(0, self.blocksize-1, self.blocksize)
-                        plotdata = self.inputs[subplotconf['input']][0].T
-                    elif type(subplotconf['input']) is list:
+
+                    # configure x axis
+                    if subplotconf.has_key('xaxis'):
                         t = self.inputs[subplotconf['input'][0]][0].T
-                        plotdata = self.inputs[subplotconf['input'][1]][0].T
-                    # fix nans
-                    plotdata[np.isnan(plotdata)] = -1.0
+                    else:
+                        t = np.linspace(0, self.blocksize-1, self.blocksize)
+                        
+                    if type(subplotconf['input']) is str:
+                        subplotconf['input'] = [subplotconf['input']]
+
+                    # plotdata = self.inputs[subplotconf['input']][0].T
+                    # elif type(subplotconf['input']) is list:
+                    # plotdata = self.inputs[subplotconf['input'][1]][0].T
+                    plotdata = {}
+                    for k, ink in enumerate(subplotconf['input']):
+                        plotdata[ink] = self.inputs[ink][0].T
+                        # fix nans
+                        plotdata[ink][np.isnan(plotdata[ink])] = -1.0
+                        
                     if hasattr(subplotconf['plot'], 'func_name'):
                         # plain function
                         plottype = subplotconf['plot'].func_name
@@ -56,7 +67,8 @@ class TimeseriesPlotBlock2(PrimBlock2):
                         # unknown func type
                         plottype = "unk type"
 
-                    if type(subplotconf['input']) is list:
+                    # if type(subplotconf['input']) is list:
+                    if subplotconf.has_key('xaxis'):
                         plotvar = ""
                         # FIXME: if len == 2 it is x over y, if len > 2 concatenation
                         for k, inputvar in enumerate(subplotconf['input']):
@@ -65,15 +77,16 @@ class TimeseriesPlotBlock2(PrimBlock2):
                             if k != (len(subplotconf['input']) - 1):
                                 plotvar += " revo "
                     else:
-                        plotvar = self.inputs[subplotconf['input']][2]
+                        plotvar = self.inputs[subplotconf['input'][0]][2]
                         
                     print "plotvar", plotvar
                         
                     # plot the plotdata
-                    subplotconf['plot'](
-                        fig.axes[idx],
-                        data = plotdata, ordinate = t)
-                    # metadata
+                    for ink, inv in plotdata.items():
+                        subplotconf['plot'](
+                            fig.axes[idx],
+                            data = inv, ordinate = t)
+                        # metadata
                     fig.axes[idx].set_title("%s of %s" % (plottype, plotvar, ), fontsize=8)
                     # [subplotconf['slice'][0]:subplotconf['slice'][1]].T)
 

@@ -3,7 +3,7 @@
 2017 Oswald Berthold
 
 'small' function blocks for use in loop blocks, configuration files,
-and of course everywhere else
+and of course everywhere else. this only works for memoryless functions so far
 """
 
 import numpy as np
@@ -16,8 +16,21 @@ from hyperopt import fmin, tpe, Trials, rand, anneal
 # some minimal functions
 f_sinesquare = lambda args: np.sin(args['x'][0])**2
 
+def f_motivation(args):
+    for k in ['x_', 'x']:
+        assert args.has_key(k), "f_sin needs param '%s'" % (k,)
+
+    x = args['x'][0]
+    x_ = args['x_'][0]
+    d = x_ - x
+    return {'y': d, 'y_': -d}
+
 def f_sin(args):
     """return the sin of input"""
+    # FIXME: check that at configuration time?
+    for k in ['x', 'f']:
+        assert args.has_key(k), "f_sin needs param '%s'" % (k,)
+        
     try:
         x = args['x'][0]
         f = args['f'][0]

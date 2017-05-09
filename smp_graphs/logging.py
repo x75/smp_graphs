@@ -113,7 +113,7 @@ def log_pd_store_config_final(conf):
     # store the final config for this run via the node attribute hack
     df_conf = pd.DataFrame([[0]])
     log_store['conf_final'] = df_conf
-    log_store.get_storer('conf_final').attrs.conf = conf
+    log_store.get_storer('conf_final').attrs.conf = "" # (conf)
         
 def log_pd_init_block(tbl_name, tbl_dim, tbl_columns = None, numsteps=100):
     """log_pd: log to tables via pandas, local node init
