@@ -9,12 +9,13 @@ from smp_graphs.block import decStep, PrimBlock2
 from smp_sys.systems import PointmassSys
 
 class SysBlock2(PrimBlock2):
+    """!@brief Basic system block"""
     def __init__(self, conf = {}, paren = None, top = None):
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
 
 class PointmassBlock2(SysBlock2):
-    """pointmass block, very thin wrapper around smp_sys.systems.PointmassSys"""
+    """!@brief Pointmass system block, very thin wrapper around smp_sys.systems.PointmassSys"""
     def __init__(self, conf = {}, paren = None, top = None):
         SysBlock2.__init__(self, conf = conf, paren = paren, top = top)
 

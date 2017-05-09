@@ -4,7 +4,7 @@
 # reuse
 numsteps = 500
 blocksize = 100
-debug = True
+debug = False
 # graph
 graph = OrderedDict([
     # puppy data
@@ -61,7 +61,8 @@ graph = OrderedDict([
             'inputs': {
                 'd1': ['puppydata/x'],
                 'd2': ['puppydata/y'],
-                'd3': ['b2/x']},
+                'd3': ['b1/x'],
+                'd4': ['b2/x']},
             'subplots': [
                 [
                     {'input': 'd1', 'slice': (0, 6), 'plot': timeseries},
@@ -77,6 +78,11 @@ graph = OrderedDict([
                     {'input': 'd3', 'slice': (0, 3), 'plot': timeseries},
                     {'input': 'd3', 'slice': (0, 3), 'plot': histogram},
                     {'input': 'd3', 'slice': (0, 3), 'plot': rp_timeseries_embedding},
+                ],
+                [
+                    {'input': 'd4', 'slice': (0, 3), 'plot': timeseries},
+                    {'input': 'd4', 'slice': (0, 3), 'plot': histogram},
+                    {'input': 'd4', 'slice': (0, 3), 'plot': rp_timeseries_embedding},
                 ],
             ]
         }

@@ -37,6 +37,9 @@ it's outputs to the bus.
    - x basic blocksize handling
 
  - hierarchical composition
+   - two ways of handling subgraphs: 1) insert into flattened
+     topgraph, 2) keep hierarchical graph structure, for now going
+     with 1)
    - think about these issues: outer vs. inner numsteps and blocksizes,
      how to get data in and out in a subgraph independent way
    - for now: assert inner numsteps <= outer numsteps, could either

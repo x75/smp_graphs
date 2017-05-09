@@ -52,7 +52,7 @@ def make_expr_id_configfile(name = "experiment", configfile = "conf/default2.py"
     """return experiment signature as name and timestamp"""
     confs = configfile.split("/")
     confs = confs[-1].split(".")[0]
-    print "configfile", confs
+    # print "configfile", confs
     return "%s_%s_%s" % (name, make_expr_sig(), confs)
 
 def make_expr_id(name = "experiment"):
@@ -63,7 +63,7 @@ def make_expr_sig(args =  None):
     return time.strftime("%Y%m%d_%H%M%S")
 
 class Experiment(object):
-    """smp_graphs Experiment
+    """!@brief Main experiment class
 
 Arguments:
    args: argparse configuration namespace (key, value)
@@ -115,6 +115,7 @@ Load a config from the file in args.conf
 import networkx as nx
 import re
 class Graphviz(object):
+    """!@brief Special experiment: Load runtime config into a networkx graph and plot it"""
     def __init__(self, args):
         # load graph config
         self.conf = get_config_raw(args.conf)

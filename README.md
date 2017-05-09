@@ -20,6 +20,12 @@ it's outputs to the bus.
 
 ## Framework items
 
+-   don't need to copy outputs of subgraph because the bus is global,
+    FIXME consider making hierarchical bus identifiers or assert all
+    keys and subkeys uniq
+
+-   can we map top down - bottom up flow into the graph?
+
 -   step, blocksize, ibuf
     -   min blocksize after pass 1
     -   how to optimize if min(bs) > 1?
@@ -28,6 +34,9 @@ it's outputs to the bus.
     -   x basic blocksize handling
 
 -   hierarchical composition
+    -   two ways of handling subgraphs: 1) insert into flattened
+        topgraph, 2) keep hierarchical graph structure, for now going
+        with 1)
     -   think about these issues: outer vs. inner numsteps and blocksizes,
         how to get data in and out in a subgraph independent way
     -   for now: assert inner numsteps <= outer numsteps, could either

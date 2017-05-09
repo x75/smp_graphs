@@ -150,6 +150,7 @@ Arguments:
     blocksize = data.shape[1]
     # get last index
     cloc = log_lognodes_idx[tbl_name]
+    # print "cloc", cloc
     # print "log_lognodes[tbl_name].loc[cloc].shape = %s, data.shape = %s" % (log_lognodes[tbl_name].loc[cloc].shape, data.shape)
     # using flatten to remove last axis, FIXME for block based logging
     # print "logging.log_pd: data.shape", data.shape, cloc, cloc + blocksize - 1, "bs", blocksize

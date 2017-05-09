@@ -16,6 +16,8 @@ self-organizing?
 
 start with innermost (fundamental drives) and outermost (raw sensors)
 layers and start to grow connecting pathways
+
+rename brain to smloop
  
 """
 
@@ -63,7 +65,7 @@ graph = OrderedDict([
                         'debug': True,
                     },
                 }),
-                # kinesis, goal detector, output is binary or continuous, on-goal/off-goal, d(goal)
+                # # kinesis, goal detector, output is binary or continuous, on-goal/off-goal, d(goal)
                 # ('motivation', {
                 #     'block': FuncBlock2,
                 #     'params': {

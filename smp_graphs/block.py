@@ -13,10 +13,13 @@ import numpy as np
 
 from hyperopt import STATUS_OK, STATUS_FAIL
 
+import pandas as pd
+
 import smp_graphs.logging as log
 from smp_graphs.utils import print_dict
 from smp_graphs.common import conf_header, conf_footer
 from smp_graphs.common import get_config_raw, get_config_raw_from_string
+from smp_graphs.common import set_attr_from_dict
 
 BLOCKSIZE_MAX = 10000
 
@@ -27,13 +30,22 @@ def ordereddict_insert(ordereddict = None, insertionpoint = None, itemstoadd = [
     from http://stackoverflow.com/questions/29250479/insert-into-ordereddict-behind-key-foo-inplace
     """
     assert ordereddict is not None
+    assert insertionpoint in ordereddict.keys()
     new_ordered_dict = ordereddict.__class__()
     for key, value in ordereddict.items():
         new_ordered_dict[key] = value
         if key == insertionpoint:
-            for item in itemstoadd:
-                keytoadd, valuetoadd = item
-                new_ordered_dict[keytoadd] = valuetoadd
+            # check if itemstoadd is list or dict
+            if type(itemstoadd) is list:
+                for item in itemstoadd:
+                    keytoadd, valuetoadd = item
+                    new_ordered_dict[keytoadd] = valuetoadd
+            else:
+                for keytoadd, valuetoadd in itemstoadd.items():
+                    new_ordered_dict[keytoadd] = valuetoadd
+        # else:
+        #     print "insertionpoint %s doesn't exist in dict" % (insertionpoint)
+        #     sys.exit(1)
     ordereddict.clear()
     ordereddict.update(new_ordered_dict)
     return ordereddict
@@ -59,7 +71,7 @@ def read_puppy_hk_pickles(lfile, key = None):
 ################################################################################
 # Block decorator init
 class decInit():
-    """Block init wrapper"""
+    """!@brief Block.init wrapper"""
     def __call__(self, f):
         def wrap(exec_self, *args, **kwargs):
             f(exec_self, *args, **kwargs)
@@ -68,7 +80,7 @@ class decInit():
 ################################################################################
 # Block decorator step
 class decStep():
-    """Block step wrapper"""
+    """!@brief Block.step wrapper"""
     def __call__(self, f):
         def wrap(exec_self, *args, **kwargs):
             if True:
@@ -110,6 +122,7 @@ class decStep():
                         # print "%s.stepwrap split %s from %s" % (exec_self.cname, outvar, v[2])
                         setattr(exec_self, k, v[0])
                         esk = getattr(exec_self, k)
+                        
                         # # debug in to out copy
                         # print "%s.%s[%d]  self.%s = %s" % (esname, sname, escnt, k, esk)
                         # print "%s.%s[%d] outkeys = %s" % (esname, sname, escnt, exec_self.outputs.keys())
@@ -127,7 +140,7 @@ class decStep():
                 # copy output to bus
                 for k, v in exec_self.outputs.items():
                     buskey = "%s/%s" % (exec_self.id, k)
-                    # print "getattr", getattr(exec_self, k)
+                    # print "copy %s.outputs[%s] = %s to bus[%s], bs = %d" % (exec_self.id, k, np.mean(getattr(exec_self, k)), buskey, exec_self.blocksize)
                     exec_self.bus[buskey] = getattr(exec_self, k)
             else:
                 f_out = None
@@ -143,6 +156,8 @@ class decStep():
 ################################################################################
 # Base block class
 class Block2(object):
+    """!@brief Basic block class
+    """
     defaults = {
         'id': None,
         'debug': False,
@@ -159,7 +174,11 @@ class Block2(object):
         # # 'savedata': True,
         # 'ros': False,
     }
-        
+
+    def load_defaults(self):
+        for k,v in self.defaults.items():
+            self.__dict__[k] = v
+                
     def __init__(self, conf = {}, paren = None, top = None):
         self.conf = conf
         self.paren = paren
@@ -167,32 +186,77 @@ class Block2(object):
         self.cname = self.__class__.__name__
         
         # load defaults
-        for k,v in self.defaults.items():
-            self.__dict__[k] = v
+        # self.load_defaults()
+        set_attr_from_dict(self, self.defaults)
                     
         # fetch existing configuration arguments
         if type(self.conf) == dict:
-            for k,v in self.conf['params'].items():
-                # self.__dict__[k] = v
-                setattr(self, k, v)
+            set_attr_from_dict(self, self.conf['params'])
+        else:
+            print "What could it be? Look at %s" % (self.conf)
+
+        # check
+        assert hasattr(self, 'id')
 
         # input buffer vs. blocksize: input buffer is sliding, blocksize is jumping
         if self.blocksize > self.ibuf:
             self.ibuf = self.blocksize
 
-        if self.topblock:
-            # pass 1: complete config with runtime info
-            # init global messaging bus
-            self.bus = {}
+        """pass 1: complete config with runtime info"""
+        if hasattr(self, 'graph') or hasattr(self, 'subgraph'):
+            # the topblock, there can only be one
+            if self.topblock:
+                # initialize the global messaging bus
+                self.bus = {}
 
-            self.top = self
-            
-            log.log_pd_init(self.conf)
-            log.log_pd_store_config_initial(print_dict(self.conf))
+                # set the top reference
+                self.top = self
 
-            # init pass 1: complete the graph by expanding dynamic variables and initializing the outputs to get the bus def
+                # initialize pandas based hdf5 logging
+                log.log_pd_init(self.conf)
+
+                # write initial configuration to dummy table attribute in hdf5
+                log.log_pd_store_config_initial(print_dict(self.conf))
+            # non topblock configuration driven blocks
+            else:
+                self.bus = self.top.bus
+                # hierarchical block with config from a file
+                if hasattr(self, 'subgraph'):
+                    # FIXME: call that graph
+                    subconf = get_config_raw(self.subgraph, 'conf') # 'graph')
+                    assert subconf is not None
+                    # make sure subordinate number of steps is less than top level numsteps
+                    assert subconf['params']['numsteps'] <= self.top.numsteps, "enclosed numsteps = %d greater than top level numsteps = %d" % (subconf['params']['numsteps'], self.top.numsteps)
+
+                    self.conf['params']['graph'] = subconf['params']['graph']
+                    # print "subgraph %s" % (self.id), self.conf['params']['graph']
+
+                    # insert subgraph into top graph
+                    ordereddict_insert(ordereddict = self.top.graph, insertionpoint = '%s' % self.id, itemstoadd = subconf['params']['graph'])
+                    # print "topgraph", print_dict(self.top.graph)
+                                        
+                    # # pass 1
+                    # self.init_graph_pass_1()
+                    # # pass 2
+                    # self.init_graph_pass_2()
+
+                # hierarchical block with config right inside block: what does it buy you if you ditch hierarchy during exe graph init?
+                elif hasattr(self, 'graph'):
+                    if not hasattr(self, 'numsteps'):
+                        self.numsteps = self.top.numsteps
+                    # subconf = get_config_raw_from_string(self.subgraph, 'conf')
+                    # print "graph", self.graph, self.conf['params']['graph']
+                    # print "graph same", self.graph is self.conf['params']['graph']
+                    # self.init_graph_pass_1()
+                    # self.init_graph_pass_2()
+                    
+            # common for all configuration driven blocks
+                
+            # init pass 1: construct the exec graph by expanding dynamic variables
+            # and initializing the outputs to get the bus definitions
             self.init_graph_pass_1()
 
+            # debug bus init
             # self.debug_print("init_1: buskeys = %s", (self.bus.keys(),)) # (print_dict(self.bus),))
             # for k,v in self.bus.items():
             #     self.debug_print("init_1: self.bus[%s].shape = %s", (k, v.shape)) # (print_dict(self.bus),))
@@ -200,39 +264,21 @@ class Block2(object):
             # init pass 2:
             self.init_graph_pass_2()
 
+            # debug bus init
             # for k,v in self.bus.items():
             #     self.debug_print("init_2: self.bus[%s].shape = %s", (k, v.shape)) # (print_dict(self.bus),))
 
-            self.dump_final_config()
-            
-            # log.log_pd_dump_config()
-        elif hasattr(self, 'subgraph'):
-            # FIXME: call that graph
-            self.bus = self.top.bus
-            subconf = get_config_raw(self.subgraph, 'conf') # 'graph')
-            assert subconf is not None
-            # make sure subordinate number of steps is less than top level numsteps
-            assert subconf['params']['numsteps'] <= self.top.numsteps, "enclosed numsteps = %d greater than top level numsteps = %d" % (subconf['params']['numsteps'], self.top.numsteps)
-            
-            self.conf['params']['graph'] = subconf['params']['graph']
-            # print "graph", self.conf['params']['graph']
-            # pass 1
-            self.init_graph_pass_1()
-            # pass 2
-            self.init_graph_pass_2()
+            # dump the exec graph configuration to a file
+            if self.topblock:
+                finalconf = self.dump_final_config()
+                # this needs more work
+                log.log_pd_store_config_final(finalconf)
+                
+            # print "init top graph", self.top.graph.keys(), self.top.graph['bhier']
 
-        elif not self.topblock and hasattr(self, 'graph'):
-            self.bus = self.top.bus
-            if not hasattr(self, 'numsteps'):
-                self.numsteps = self.top.numsteps
-            # subconf = get_config_raw_from_string(self.subgraph, 'conf')
-            # print "graph", self.graph, self.conf['params']['graph']
-            # print "graph same", self.graph is self.conf['params']['graph']
-            self.init_graph_pass_1()
-            self.init_graph_pass_2()
-
+        # primitive block
         else:
-            # pass 1: complete config with runtime info
+            """pass 1: complete config with runtime info"""
             # get bus
             self.bus = self.top.bus
 
@@ -297,10 +343,11 @@ class Block2(object):
             # that's actually for pass 2 to enable recurrent connections
             # format: variable: [buffered const/array, shape, bus]
             for k, v in self.inputs.items():
-                self.debug_print("__init__: pass 2\n    k = %s,\n    v = %s", (k, v))
+                self.debug_print("__init__: pass 2\n    in_k = %s,\n    in_v = %s", (k, v))
                 assert len(v) > 0
                 # set input from bus
                 if type(v[0]) is str:
+                    assert self.bus.has_key(v[0]), "Bus item %s doesn't not in %s" % (v[0], self.bus.keys())
                     # enforce bus blocksize smaller than local blocksize, tackle later
                     # print "%s" % self.cname, self.bus.keys()
                     assert self.bus[v[0]].shape[1] <= self.blocksize
@@ -350,7 +397,9 @@ class Block2(object):
         if topblock iterate graph and step each node block, reiterate graph and do the logging for each node, store the log every n steps
         """
         # if self.topblock or hasattr(self, 'subgraph'):
-        if hasattr(self, 'graph') or hasattr(self, 'subgraph'):
+        # if hasattr(self, 'graph') or hasattr(self, 'subgraph'):
+        # mode 1 for handling hierarchical blocks: graph is flattened during init, only topblock iterates nodes
+        if self.topblock:
             for k, v in self.graph.items():
                 v['block'].step()
 
@@ -406,6 +455,7 @@ class Block2(object):
         # print "%s.dump_final_config wrote config, closing file %s" % (self.cname, dump_final_config_file,)
         f.close()
 
+        return confstr_
         # log.log_pd_store_config_final(confstr_)
 
     def check_attrs(self, attrs):
@@ -415,7 +465,7 @@ class Block2(object):
             assert hasattr(self, attr), "%s.check_attrs: Don't have attr = %s" % (self.__class__.__name__, attr)
 
 class FuncBlock2(Block2):
-    """function block: wrap a function given by the configuration in params['func']"""
+    """!@brief Function block: wrap the function given by the configuration in params['func'] in a block"""
     def __init__(self, conf = {}, paren = None, top = None):
         Block2.__init__(self, conf = conf, paren = paren, top = top)
 
@@ -432,7 +482,7 @@ class FuncBlock2(Block2):
         self.debug_print("step[%d]: y = %s", (self.cnt, self.y,))
             
 class LoopBlock2(Block2):
-    """Loop block: dynamically create block variations according to some specificiations of variation
+    """!@brief Loop block: dynamically create block variations according to some specificiations of variation
 
     Two loop modes in this framework:
      - parallel mode (LoopBlock2): modify the graph structure and all block variations at the same time
@@ -447,7 +497,7 @@ class LoopBlock2(Block2):
         loopblocks = []
         # loop the loop
         for i, lparams in enumerate(self.loop):
-            # print lparams, self.loopblock['params']
+            # print "lparams", lparams, "self.loopblock['params']", self.loopblock['params']
             
             # copy params
             loopblock_params = {}
@@ -477,9 +527,16 @@ class LoopBlock2(Block2):
         # for item in loopblocks:
         #     print "%s.__init__ loopblocks = %s: %s" % (self.__class__.__name__, item[0], print_dict(item[1]))
 
+        # print "loopblocks", self.id, loopblocks
+                
         # FIXME: this good?
         # insert dynamic blocks into existing ordered dict
+        # print "topgraph", print_dict(self.top.graph)
         ordereddict_insert(ordereddict = self.top.graph, insertionpoint = '%s' % self.id, itemstoadd = loopblocks)
+
+        # print "top graph", print_dict(self.top.graph)
+        # print "top graph", self.top.graph.keys()
+        # print "top graph", print_dict(self.top.graph[self.top.graph.keys()[0]])
 
         # replace loopblock block entry in original config, propagated back to the top / global namespace
         self.loopblock['block'] = Block2.__class__.__name__
@@ -489,7 +546,7 @@ class LoopBlock2(Block2):
         pass
 
 class SeqLoopBlock2(Block2):
-    """Sequential loop block"""
+    """!@brief Sequential loop block"""
     def __init__(self, conf = {}, paren = None, top = None):
         self.defaults['loop'] = [1]
         # self.defaults['loopmode'] = 'sequential'
@@ -598,22 +655,35 @@ class SeqLoopBlock2(Block2):
         #     print "%s.step: bests = %s, %s" % (self.cname, self.hp_bests[-1], f_obj_hpo(tuple([self.hp_bests[-1][k] for k in sorted(self.hp_bests[-1])])))
     
 class PrimBlock2(Block2):
-    """PrimBlock2: base class for primitive blocks"""
+    """!@brief Base class for primitive blocks"""
     def __init__(self, conf = {}, paren = None, top = None):
         Block2.__init__(self, conf = conf, paren = paren, top = top)
         
     @decStep()
     def step(self, x = None):
         """PrimBlock2.step: step the block, decorated, blocksize boundaries"""
+        # print "primblock step id %s, v = %s" % (self.id, self.x)
         pass
 
 class ConstBlock2(PrimBlock2):
+    """!@brief Constant block: output is a constant vector
+    """
     def __init__(self, conf = {}, paren = None, top = None):
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
-        if self.x.shape[1] == 1:
+        
+        # either column vector to be replicated or blocksize already
+        assert self.x.shape[1] in [1, self.blocksize]
+
+        # replicate column vector
+        # if self.x.shape[1] == 1: # this was wrong
+        if self.inputs['c'][0].shape[1] == 1:
             self.x = np.tile(self.inputs['c'][0], self.blocksize) # FIXME as that good? only works for single column vector
+        else:
+            self.x = self.inputs['c'][0].copy() # FIXME as that good? only works for single column vector
 
 class CountBlock2(PrimBlock2):
+    """!@brief Count block: output is just the count
+    """
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
         # defaults
@@ -637,6 +707,8 @@ class CountBlock2(PrimBlock2):
         setattr(self, self.outputs.keys()[0], (self.cnt_ * self.scale) + self.offset)
 
 class UniformRandomBlock2(PrimBlock2):
+    """!@brief Uniform random numbers: output is uniform random vector
+    """
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
@@ -658,9 +730,10 @@ class UniformRandomBlock2(PrimBlock2):
         #     self.bus[buskey] = getattr(self, k)
         # self.bus[self.id] = self.x
         return self.x
-    
-import pandas as pd
+
+# FIXME: this should go into systems    
 class FileBlock2(Block2):
+    """!@brief File block: read some log or data file and output blocksize lines each step"""
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
         # ad hoc default
@@ -745,4 +818,4 @@ class FileBlock2(Block2):
         if (self.cnt % self.blocksize) == 0:
             for k, v in self.outputs.items():
                 if k.startswith('conf'):
-                    print "%s = %s" % (k, self.store.get_storer(k).attrs.conf,)
+                    print "%s = %s\n" % (k, self.store.get_storer(k).attrs.conf,)

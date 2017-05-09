@@ -23,7 +23,8 @@ graph = OrderedDict([
             'type': 'selflog',
             # this is looping demand
             'file': [
-                'data/experiment_20170507_154742_pd.h5',
+                'data/experiment_20170509_131125_puppy_rp_blocksize_pd.h5',
+                # 'data/experiment_20170507_154742_pd.h5',
                 # 'data/experiment_20170505_111138_pd.h5', # puppy_rp, 500 steps
                 # 'data/experiment_20170505_110833_pd.h5' # default2_loop 1000 steps
                 # 'data/experiment_20170505_084006_pd.h5'
