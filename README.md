@@ -18,33 +18,34 @@ provided on a globally accessible bus structure. Every block writes
 it's outputs to the bus.
 
 
-## Framework items
+## Framework considerations
 
+This is a dynamic list, items already implemented should trickle down
+to the bottom as they consolidate, hottest items at the top.
+
+-   profiling: logging: make logging internal blocksize
 -   kinesis rate param for blocks = blocksize?
--   can we map top down - bottom up flow nicely into the graph?
+-   experiment: map an sm manifold from logdata via scattermatrix or
+    dimstack, sort the axes by pairwise MI/infodist
+-   predictive processing
+    -   can we map top down - bottom up flow nicely into the graph? think
+        yes.
+    -   make pp mapping explicit: single sm-interface struct with 3
+        layers [raw input, error, prediction], see
+        <doc/img/agent-world-interface-sm.pdf>
+-   scheduling / phases
+    -   be able to prescribe definite or variable-dependent sequences of
+        development
+    -   cache results of each stage by augmenting the log with computed
+        results
 
 -   don't need to copy outputs of subgraph because the bus is global,
     FIXME consider making hierarchical bus identifiers or assert all
     keys and subkeys uniq
 
--   step, blocksize, ibuf
-    -   min blocksize after pass 1
-    -   how to optimize if min(bs) > 1?
-    -   x make prim blocks blocksize aware
-    -   x check if logging still works properly
-    -   x basic blocksize handling
-
--   hierarchical composition
-    -   two ways of handling subgraphs: 1) insert into flattened
-        topgraph, 2) keep hierarchical graph structure, for now going
-        with 1)
-    -   think about these issues: outer vs. inner numsteps and blocksizes,
-        how to get data in and out in a subgraph independent way
-    -   for now: assert inner numsteps <= outer numsteps, could either
-        enforce 1 or equality
-    -   x use blocks that contain other graphs (default2\_hierarchical.py)
-
 -   loop block
+    -   test looping over more complex blocks to evaluate / grid\_search /
+        hpo real hyper params
     -   special hierarchical block with additional spec about how often
         and with which variations to iterate the subgraph
     -   x sequential loop for running block variations e.g hyperopt or evo,
@@ -53,17 +54,47 @@ it's outputs to the bus.
     -   x parallel loop within graph, modify graph. this is different
         from dynamic containment
 
--   sync / async block execution
-
 -   read/write: integrate input from and output to ROS, OSC, &#x2026;
+
+-   sync / async block execution
+    -   spawn/fork threads as worker cloud, can be sequential loop or
+        custom parallel version
+    -   ros style callback inputs as usual simple buffer to local var copy
+
+-   dynamic growth
+    -   grow the acutal execution graph, take care of logging, timebase
+        for block step indexing
+
+-   graph / subgraph similarity search and reuse
+
+-   / step, blocksize, ibuf
+    -   min blocksize after pass 1
+    -   how to optimize if min(bs) > 1?
+    -   x make prim blocks blocksize aware
+    -   x check if logging still works properly
+    -   x basic blocksize handling
+
+-   / networkx
+    -   put entire runtime graph into nx.graph with proper edges etc
+    -   x standalone networkx graph from final config
+    -   x graphviz
+    -   x visualization
+
+-   x hierarchical composition
+    -   x two ways of handling subgraphs: 1) insert into flattened
+        topgraph, 2) keep hierarchical graph structure: for now going
+        with 1)
+    -   x think about these issues: outer vs. inner numsteps and blocksizes,
+        how to get data in and out in a subgraph independent way: global
+        bus solves i/o, scaling to be seen
+    -   x for now: assert inner numsteps <= outer numsteps, could either
+        enforce 1 or equality: flattening of graph enforces std graph
+        rule bs\_earlier\_lt\_bs\_later
+    -   x use blocks that contain other graphs (default2\_hierarchical.py)
 
 -   x logging
     -   x std logging OK
     -   x include git revision, initial and final config in log
-
--   x networkx for visualization?
-    -   x standalone networkx graph from final config
-    -   x graphviz
 
 -   misc stuff
     -   x separate header/footer for full config file to remove code
