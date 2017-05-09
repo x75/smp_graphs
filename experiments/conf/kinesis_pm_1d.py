@@ -61,7 +61,7 @@ graph = OrderedDict([
                         'id': 'sin2',
                         'inputs': {'x': ['sin2/cnt'], 'f': [np.array([[0.11, 0.191, 0.313]]).T]},
                         'outputs': {'cnt': [(1,1)], 'y': [(3,1)]},
-                        'func': f_pulse,
+                        'func': f_sin, # f_pulse,
                         'debug': False,
                     },
                 }),
