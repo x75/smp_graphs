@@ -34,11 +34,11 @@ def f_motivation_bin(args):
     x = args['x'][0]
     x_ = args['x_'][0]
     d = x_ - x
-    d_ = np.ones_like(d) * 0.1 # thresh
+    d_ = np.ones_like(d) * 0.03 # thresh
     # if np.linalg.norm(d) < 0.1:
     # mod = 0.0
 
-    mod = (d > d_) * 0.3
+    mod = (np.abs(d) > d_) * 0.4
     # print mod
 
     # d = np.ones_like(d)

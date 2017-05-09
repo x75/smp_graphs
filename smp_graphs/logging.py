@@ -6,6 +6,7 @@ log_tb snatched from smpblocks
 log_pd snatched from smq
 """
 
+import numpy as np
 import tables as tb
 
 # declare global h5 file handle
@@ -89,8 +90,10 @@ Arguments:
 # pandas mediated tables logging
 import pandas as pd
 
+log_blocksize = 50
 log_store = 0
 log_lognodes = {}
+log_logarray = {}
 log_lognodes_idx = {}
 
 def log_pd_init(config):
@@ -127,6 +130,7 @@ Arguments:
     global log_store, log_lognodes
     # print "logging.log_pd_init_block: adding %s to log_lognodes with columns %s" % (tbl_name, tbl_columns)
     log_lognodes[tbl_name] = pd.DataFrame(columns=tbl_columns, index = range(numsteps), dtype=float)
+    log_logarray[tbl_name] = np.zeros((len(tbl_columns), log_blocksize))
     # print "log_tables.shape", log_lognodes[tbl_name].shape
     log_lognodes_idx[tbl_name] = 0
 
@@ -144,7 +148,7 @@ Arguments:
     tbl_name: node id storage key
       data: the data as a dim x 1 numpy vector
 """
-    global log_lognodes, log_lognodes_idx
+    global log_lognodes, log_lognodes_idx, log_blocksize
     # print "data.shape", data.flatten().shape, log_lognodes_idx[tbl_name]
     # infer blocksize from data
     blocksize = data.shape[1]
@@ -154,9 +158,16 @@ Arguments:
     # print "log_lognodes[tbl_name].loc[cloc].shape = %s, data.shape = %s" % (log_lognodes[tbl_name].loc[cloc].shape, data.shape)
     # using flatten to remove last axis, FIXME for block based logging
     # print "logging.log_pd: data.shape", data.shape, cloc, cloc + blocksize - 1, "bs", blocksize
-    sl = slice(cloc, cloc + blocksize - 1)
-    # print "logging.log_pd: log.shape at sl", sl, log_lognodes[tbl_name].loc[sl].shape
-    log_lognodes[tbl_name].loc[sl] = data.T # data.flatten()
+    # print log_logarray[tbl_name][:,[-1]].shape, data.shape
+    log_logarray[tbl_name][:,[-1]] = data
+    np.roll(log_logarray[tbl_name], shift = -1, axis = 1)
+
+    if cloc % log_blocksize == 0:
+        # sl = slice(cloc, cloc + blocksize - 1)
+        sl = slice(cloc, cloc + log_blocksize - 1)
+        # print "logging.log_pd: log.shape at sl", sl, log_lognodes[tbl_name].loc[sl].shape
+        # log_lognodes[tbl_name].loc[sl] = data.T # data.flatten()
+        log_lognodes[tbl_name].loc[sl] = log_logarray[tbl_name].T # data.flatten()
     # log_lognodes[tbl_name].loc[0] = 1
     # print "log_lognodes[tbl_name]", log_lognodes[tbl_name], log_lognodes[tbl_name].loc[cloc]
     log_lognodes_idx[tbl_name] += blocksize

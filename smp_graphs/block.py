@@ -168,6 +168,7 @@ class Block2(object):
         'inputs': {}, # internal port, scalar / vector/ bus key, [slice]
         'outputs': {}, # name, dim
         'logging': True, # normal logging
+        'rate': 1, # execution rate rel. to cnt
         # 'idim': None,
         # 'odim': None,
         # # 'obufsize': 1,
@@ -304,8 +305,12 @@ class Block2(object):
         # pass 2 init
         for k, v in self.graph.items():
             self.debug_print("__init__: pass 2\nk = %s,\nv = %s", (k, print_dict(v)))
-            self.graph[k]['block'].init_pass_2()
+            # self.graph[k]['block'].init_pass_2()
+            v['block'].init_pass_2()
 
+        # for k, v in self.graph.items():
+        #     v['block'].step()
+            
     def init_outputs(self):
         # print "%s.init_outputs: inputs = %s" % (self.cname, self.inputs)
         # create outputs
@@ -423,7 +428,7 @@ class Block2(object):
 
         if self.topblock:
             # store log
-            if (self.cnt) % 100 == 0:
+            if (self.cnt) % 500 == 0 or self.cnt == (self.numsteps - 1):
                 print "storing log @iter %04d" % (self.cnt)
                 log.log_pd_store()
 
@@ -728,13 +733,15 @@ class UniformRandomBlock2(PrimBlock2):
         # self.lo = 0
         # self.hi = 1
         # self.x = np.random.uniform(self.lo, self.hi, (self.odim, 1))
-
+        
     @decStep()
     def step(self, x = None):
         self.debug_print("%s.step:\n\tx = %s,\n\tbus = %s,\n\tinputs = %s,\n\toutputs = %s", (self.__class__.__name__, self.x, self.bus, self.inputs,
                                                                     self.outputs))
         # self.hi = x['hi']
-        self.x = np.random.uniform(self.inputs['lo'][0][:,[-1]], self.inputs['hi'][0][:,[-1]], (self.outputs['x'][0]))
+        if self.cnt % self.rate == 0:
+            self.x = np.random.uniform(self.inputs['lo'][0][:,[-1]], self.inputs['hi'][0][:,[-1]], (self.outputs['x'][0]))
+            # print "self.x", self.x
         
         # # loop over outputs dict and copy them to a slot in the bus
         # for k, v in self.outputs.items():

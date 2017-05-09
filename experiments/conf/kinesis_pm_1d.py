@@ -27,7 +27,7 @@ from smp_graphs.block import FuncBlock2
 from smp_graphs.funcs import f_sin, f_motivation, f_motivation_bin
 
 # reuse
-numsteps = 1000
+numsteps = 10000
 debug = False
 motors = 3
 dt = 0.1
@@ -70,8 +70,8 @@ graph = OrderedDict([
                     'block': UniformRandomBlock2,
                     'params': {
                         'id': 'mot0',
-                        'rate': 200,
-                        'inputs': {'lo': ['motivation/y1'], 'hi': ['motivation/y']},
+                        'rate': 500,
+                        'inputs': {'lo': [-0.2], 'hi': [0.2]},
                         'outputs': {'x': [(3,1)]}
                         },
                     }),
@@ -80,8 +80,8 @@ graph = OrderedDict([
                     'block': FuncBlock2,
                     'params': {
                         'id': 'motivation',
-                        # 'inputs': {'x': ['robot1/s_extero'], 'x_': [np.array([[0.11, 0.191, 0.313]]).T]},
-                        'inputs': {'x': ['robot1/s_extero'], 'x_': [np.random.uniform(-0.05, 0.05, (3,1))]},
+                        # 'inputs': {'x': ['robot1/s_extero'], 'x_': [np.random.uniform(-0.05, 0.05, (3,1))]},
+                        'inputs': {'x': ['robot1/s_extero'], 'x_': ['mot0/x']},
                         'outputs': {'y': [(3,1)], 'y1': [(3,1)], 'x_': [(3,1)]},
                         'func': f_motivation_bin,
                         'debug': False,
@@ -121,7 +121,7 @@ graph = OrderedDict([
             'blocksize': 1, # FIXME: make pm blocksize aware!
             'sysdim': motors,
             # initial state
-            'x0': np.random.uniform(-1, 1, (motors * 3, 1)),
+            'x0': np.random.uniform(-0.3, 0.3, (motors * 3, 1)),
             # 'inputs': {'u': [np.random.uniform(-1, 1, (3, numsteps))]},
             'inputs': {'u': ['search/x']},
             'outputs': {'s_proprio': [(3,1)], 's_extero': [(3,1)]}, # , 's_all': [(9, 1)]},
@@ -136,7 +136,7 @@ graph = OrderedDict([
             "mass": 1.0,
             "force_max":  1.0,
             "force_min": -1.0,
-            "friction": 0.01,
+            "friction": 0.001,
             "sysnoise": 1e-3,
             'debug': False,
         }
@@ -150,7 +150,8 @@ graph = OrderedDict([
             'inputs': {'d1': ['robot1/s_proprio'], 'd2': ['robot1/s_extero'],
                     'd3': ['motivation/x_'],
                     'd4': ['sin/y'],
-                    'd5': ['motivation/y']},
+                    'd5': ['motivation/y'],
+                    'd6': ['mot0/x']},
             'subplots': [
                 [
                     {'input': 'd1', 'plot': timeseries},
@@ -166,7 +167,11 @@ graph = OrderedDict([
                 # ],
                 [
                     {'input': 'd5', 'plot': timeseries},
-                    {'input': 'd4', 'plot': histogram},
+                    {'input': 'd5', 'plot': histogram},
+                ],
+                [
+                    {'input': 'd6', 'plot': timeseries},
+                    {'input': 'd6', 'plot': histogram},
                 ]
             ],
         },

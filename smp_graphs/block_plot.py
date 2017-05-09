@@ -20,7 +20,7 @@ class TimeseriesPlotBlock2(PrimBlock2):
         if len(self.inputs) < 1: return
         # print "plotblock conf", self.ibuf
         # print "plotblock real", self.inputs['d1'][0].shape
-        if (self.cnt % self.blocksize) == 0: # (self.blocksize - 1):
+        if self.cnt > 0 and (self.cnt % self.blocksize) == 0: # (self.blocksize - 1):
             # self.debug_print("step ibuf = %s, in(%s).shape = %s", (self.ibuf, ink, inv[0]))
             # plt.plot(self.bufs['ibuf'].T)
             # plt.show()
@@ -98,6 +98,7 @@ class TimeseriesPlotBlock2(PrimBlock2):
                     
                     # timeseries(fig.axes[idx], self.bufs['ibuf'][plotcol[0]:plotcol[1]].T)
                     # histogram(fig.axes[idx], self.bufs['ibuf'][plotcol[0]:plotcol[1]].T)
+            fig.suptitle("%s" % (self.top.id,))
             fig.show()
         else:
             self.debug_print("%s.step", (self.__class__.__name__,))
