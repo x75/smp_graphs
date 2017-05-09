@@ -21,7 +21,7 @@ rename brain to smloop
  
 """
 
-from smp_graphs.block_systems import PointmassBlock2
+from smp_graphs.block_cls import PointmassBlock2
 from smp_graphs.block import FuncBlock2
 
 from smp_graphs.funcs import f_sin
@@ -65,17 +65,17 @@ graph = OrderedDict([
                         'debug': True,
                     },
                 }),
-                # # kinesis, goal detector, output is binary or continuous, on-goal/off-goal, d(goal)
-                # ('motivation', {
-                #     'block': FuncBlock2,
-                #     'params': {
-                #         'id': 'sin2',
-                #         'inputs': {'x': ['robot1/s_extero']},
-                #         'outputs': {'y': [(3,1)]},
-                #         'func': f_sin,
-                #         'debug': True,
-                #     },
-                # }),
+                # kinesis, goal detector, output is binary or continuous, on-goal/off-goal, d(goal)
+                ('motivation', {
+                    'block': FuncBlock2,
+                    'params': {
+                        'id': 'sin2',
+                        'inputs': {'x': ['robot1/s_extero']},
+                        'outputs': {'y': [(3,1)]},
+                        'func': f_sin,
+                        'debug': True,
+                    },
+                }),
                 # kinesis, search, noise, motor babbling - modulated by goal detector
                 ('search', {
                     'block': UniformRandomBlock2,

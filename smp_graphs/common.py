@@ -10,7 +10,7 @@ from collections import OrderedDict
 
 from smp_graphs.block import Block2, ConstBlock2, UniformRandomBlock2
 from smp_graphs.block import LoopBlock2
-from smp_graphs.block import FileBlock2
+from smp_graphs.block_ols import FileBlock2
 from smp_graphs.block_plot import TimeseriesPlotBlock2
 
 from smp_base.plot import timeseries, histogram, rp_timeseries_embedding
