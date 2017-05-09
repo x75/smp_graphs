@@ -23,11 +23,12 @@ provided on a globally accessible bus structure. Every block writes
 it's outputs to the bus.
 
 ** Framework items
+ - kinesis rate param for blocks = blocksize?
+ - can we map top down - bottom up flow nicely into the graph?
+
  - don't need to copy outputs of subgraph because the bus is global,
    FIXME consider making hierarchical bus identifiers or assert all
    keys and subkeys uniq 
-
- - can we map top down - bottom up flow into the graph?
 
  - step, blocksize, ibuf
    - min blocksize after pass 1
