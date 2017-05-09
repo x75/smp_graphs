@@ -35,13 +35,14 @@ class TimeseriesPlotBlock2(PrimBlock2):
             for i, subplot in enumerate(self.subplots):
                 for j, subplotconf in enumerate(subplot):
                     idx = (i*cols)+j
-                    # self.debug_print("%s.step idx = %d, conf = %s, data = %s", (
-                    #     self.__class__.__name__, idx,
-                    #     subplotconf, self.inputs[subplotconf['input']][0]))
+                    self.debug_print("%s.step idx = %d, conf = %s, data = %s", (
+                        self.__class__.__name__, idx,
+                        subplotconf, subplotconf['input']))
+                    # self.inputs[subplotconf['input']][0]))
 
                     # configure x axis
                     if subplotconf.has_key('xaxis'):
-                        t = self.inputs[subplotconf['input'][0]][0].T
+                        t = self.inputs[subplotconf['xaxis']][0].T
                     else:
                         t = np.linspace(0, self.blocksize-1, self.blocksize)
                         
@@ -52,10 +53,12 @@ class TimeseriesPlotBlock2(PrimBlock2):
                     # elif type(subplotconf['input']) is list:
                     # plotdata = self.inputs[subplotconf['input'][1]][0].T
                     plotdata = {}
+                    plotvar = ""
                     for k, ink in enumerate(subplotconf['input']):
                         plotdata[ink] = self.inputs[ink][0].T
                         # fix nans
                         plotdata[ink][np.isnan(plotdata[ink])] = -1.0
+                        plotvar += "%s, " % (self.inputs[ink][2],)
                         
                     if hasattr(subplotconf['plot'], 'func_name'):
                         # plain function
@@ -69,15 +72,16 @@ class TimeseriesPlotBlock2(PrimBlock2):
 
                     # if type(subplotconf['input']) is list:
                     if subplotconf.has_key('xaxis'):
-                        plotvar = ""
-                        # FIXME: if len == 2 it is x over y, if len > 2 concatenation
-                        for k, inputvar in enumerate(subplotconf['input']):
-                            tmpinput = self.inputs[inputvar][2]
-                            plotvar += str(tmpinput)
-                            if k != (len(subplotconf['input']) - 1):
-                                plotvar += " revo "
-                    else:
-                        plotvar = self.inputs[subplotconf['input'][0]][2]
+                        plotvar += " over %s" % (self.inputs[subplotconf['xaxis']][2], )
+                        # plotvar = ""
+                        # # FIXME: if len == 2 it is x over y, if len > 2 concatenation
+                        # for k, inputvar in enumerate(subplotconf['input']):
+                        #     tmpinput = self.inputs[inputvar][2]
+                        #     plotvar += str(tmpinput)
+                        #     if k != (len(subplotconf['input']) - 1):
+                        #         plotvar += " revo "
+                    # else:
+                    # plotvar = self.inputs[subplotconf['input'][0]][2]
                         
                     print "plotvar", plotvar
                         

@@ -319,7 +319,7 @@ class Block2(object):
             # create self attribute for output item, FIXME: blocksize?
             setattr(self, k, np.zeros(v[0])) # self.outputs[k][0]
             buskey = "%s/%s" % (self.id, k)
-            print "%s.init_outputs: %s.bus[%s] = %s" % (self.cname, self.id, buskey, getattr(self, k).shape)
+            # print "%s.init_outputs: %s.bus[%s] = %s" % (self.cname, self.id, buskey, getattr(self, k).shape)
             self.bus[buskey] = getattr(self, k)
 
     def init_logging(self):

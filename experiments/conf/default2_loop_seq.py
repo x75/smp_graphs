@@ -14,7 +14,7 @@ from smp_graphs.funcs import *
 from functools import partial
 
 # reused variables
-numsteps = 200
+numsteps = 2000
 
 # singular block specs for use in loop block
 loopblock1 = {
@@ -87,10 +87,10 @@ graph = OrderedDict([
     
     # a loop block calling the enclosed block len(loop) times,
     # returning data of looplength in one outer step
-    ("b2", {
+    ("hpo", {
         'block': SeqLoopBlock2,
         'params': {
-            'id': 'b2',
+            'id': 'hpo',
             # loop specification, check hierarchical block to completely
             # pass on the contained in/out space?
             'blocksize': numsteps, # same as loop length
@@ -115,31 +115,31 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'idim': 6,
             'odim': 3,
-            'debug': False,
-            'inputs': {'d1': ['b1/x'], 'd2': ['f1/y'], 'd3': ['b2/y'],
-                           'd4': ['f2/y'], 'd5': ['b2/x']},
+            'debug': True,
+            'inputs': {'d1': ['b1/x'], 'd2': ['f1/y'], 'd3': ['hpo/y'],
+                           'd4': ['f2/y'], 'd5': ['hpo/x']},
             'outputs': {}, # 'x': [(1, 1)]
             'subplots': [
+                # [
+                #     {'input': 'd1', 'slice': (0, 3),
+                #          'plot': partial(timeseries, marker = 'o',
+                #                              linestyle = 'None')},
+                #     {'input': 'd1', 'slice': (0, 3), 'plot': histogram},
+                # ],
+                # [
+                #     {'input': 'd2', 'slice': (3, 6), 'plot': timeseries},
+                #     {'input': 'd2', 'slice': (3, 6), 'plot': histogram},
+                # ],
+                # [
+                #     {'input': ['d2'], 'xaxis': 'd1', 'slice': (3, 6), 'plot': timeseries},
+                #     {'input': 'd2', 'slice': (3, 6), 'plot': histogram},
+                # ],
+                # [
+                #     {'input': ['d4'], 'xaxis': 'd1', 'slice': (3, 6), 'plot': timeseries},
+                #     {'input': 'd4', 'slice': (3, 6), 'plot': histogram},
+                # ],
                 [
-                    {'input': 'd1', 'slice': (0, 3),
-                         'plot': partial(timeseries, marker = 'o',
-                                             linestyle = 'None')},
-                    {'input': 'd1', 'slice': (0, 3), 'plot': histogram},
-                ],
-                [
-                    {'input': 'd2', 'slice': (3, 6), 'plot': timeseries},
-                    {'input': 'd2', 'slice': (3, 6), 'plot': histogram},
-                ],
-                [
-                    {'input': ['d1', 'd2'], 'slice': (3, 6), 'plot': timeseries},
-                    {'input': 'd2', 'slice': (3, 6), 'plot': histogram},
-                ],
-                [
-                    {'input': ['d1', 'd4'], 'slice': (3, 6), 'plot': timeseries},
-                    {'input': 'd4', 'slice': (3, 6), 'plot': histogram},
-                ],
-                [
-                    {'input': ['d5', 'd3'], 'slice': (3, 6),
+                    {'input': ['d3'], 'xaxis': 'd5', 'slice': (3, 6),
                          'plot': partial(timeseries, marker = 'o',
                                              linestyle = 'None')},
                     {'input': 'd5', 'slice': (3, 6), 'plot': histogram},

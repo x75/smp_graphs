@@ -17,13 +17,38 @@ from hyperopt import fmin, tpe, Trials, rand, anneal
 f_sinesquare = lambda args: np.sin(args['x'][0])**2
 
 def f_motivation(args):
+    """distance / error motivation for cont activity modulation"""
     for k in ['x_', 'x']:
         assert args.has_key(k), "f_sin needs param '%s'" % (k,)
 
     x = args['x'][0]
     x_ = args['x_'][0]
     d = x_ - x
-    return {'y': d, 'y_': -d}
+    return {'y': d, 'y1': -d}
+
+def f_motivation_bin(args):
+    """distance / error motivation for binary activity modulation"""
+    for k in ['x_', 'x']:
+        assert args.has_key(k), "f_sin needs param '%s'" % (k,)
+
+    x = args['x'][0]
+    x_ = args['x_'][0]
+    d = x_ - x
+    d_ = np.ones_like(d) * 0.1 # thresh
+    # if np.linalg.norm(d) < 0.1:
+    # mod = 0.0
+
+    mod = (d > d_) * 0.3
+    # print mod
+
+    # d = np.ones_like(d)
+        
+    return {'y': mod, 'y1': -mod}
+
+def f_pulse(args):
+    for k in ['x']:
+        assert args.has_key(k), "f_pulse needs param '%s'" % (k,)
+
 
 def f_sin(args):
     """return the sin of input"""
