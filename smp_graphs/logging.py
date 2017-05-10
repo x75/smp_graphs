@@ -90,11 +90,12 @@ Arguments:
 # pandas mediated tables logging
 import pandas as pd
 
-log_blocksize = 50
 log_store = 0
-log_lognodes = {}
-log_logarray = {}
 log_lognodes_idx = {}
+log_lognodes     = {}
+log_logarray     = {}
+log_blocksize    = {}
+log_lognodes_blockidx = {}
 
 def log_pd_init(config):
     """log_pd: log to tables via pandas, global init
@@ -118,7 +119,7 @@ def log_pd_store_config_final(conf):
     log_store['conf_final'] = df_conf
     log_store.get_storer('conf_final').attrs.conf = "" # (conf)
         
-def log_pd_init_block(tbl_name, tbl_dim, tbl_columns = None, numsteps=100):
+def log_pd_init_block(tbl_name, tbl_dim, tbl_columns = None, numsteps=100, blocksize = 1):
     """log_pd: log to tables via pandas, local node init
 
 Arguments:
@@ -127,12 +128,16 @@ Arguments:
  tbl_columns: node component labels
     numsteps: experiment number of steps for preallocation
 """
-    global log_store, log_lognodes
+    global log_store, log_lognodes, log_lognodes_idx, log_blocksize, log_lognodes_blockidx
     # print "logging.log_pd_init_block: adding %s to log_lognodes with columns %s" % (tbl_name, tbl_columns)
     log_lognodes[tbl_name] = pd.DataFrame(columns=tbl_columns, index = range(numsteps), dtype=float)
-    log_logarray[tbl_name] = np.zeros((len(tbl_columns), log_blocksize))
+    # log_logarray[tbl_name] = np.zeros((len(tbl_columns), log_blocksize))
+    log_logarray[tbl_name] = np.zeros((len(tbl_columns), numsteps))
     # print "log_tables.shape", log_lognodes[tbl_name].shape
     log_lognodes_idx[tbl_name] = 0
+    log_lognodes_blockidx[tbl_name] = 0
+    # logging blocksize, FIXME: enforce max and integer multiple relation
+    log_blocksize[tbl_name]    = max(50, blocksize)
 
 def log_pd_store():
     # store logs, FIXME incrementally
@@ -148,26 +153,57 @@ Arguments:
     tbl_name: node id storage key
       data: the data as a dim x 1 numpy vector
 """
-    global log_lognodes, log_lognodes_idx, log_blocksize
+    global log_lognodes, log_lognodes_idx, log_blocksize, log_logarray, log_lognodes_blockidx
     # print "data.shape", data.flatten().shape, log_lognodes_idx[tbl_name]
     # infer blocksize from data
     blocksize = data.shape[1]
     # get last index
     cloc = log_lognodes_idx[tbl_name]
+
+    if cloc == 0 and blocksize == 1:
+        cloc = 1
+        log_lognodes_idx[tbl_name] = 1
+        # bsinc = blocksize - 1
+        
+    # if cloc == 0:
+    #     cloc += 1
+    #     # sl1 += 1
+    #     log_lognodes_idx[tbl_name] = 1
+    #     # sl1 = 1
+    #     # sl2 = cloc + blocksize - 1
+    #     # if blocksize > 1:
+
+    sl1 = cloc
+    sl2 = cloc + blocksize
+    # sl2 -= sl2 % blocksize
+        
+    # else:
     # print "cloc", cloc
     # print "log_lognodes[tbl_name].loc[cloc].shape = %s, data.shape = %s" % (log_lognodes[tbl_name].loc[cloc].shape, data.shape)
     # using flatten to remove last axis, FIXME for block based logging
     # print "logging.log_pd: data.shape", data.shape, cloc, cloc + blocksize - 1, "bs", blocksize
     # print log_logarray[tbl_name][:,[-1]].shape, data.shape
-    log_logarray[tbl_name][:,[-1]] = data
-    np.roll(log_logarray[tbl_name], shift = -1, axis = 1)
+    
+    # log_logarray[tbl_name][:,[-1]] = data
+    # np.roll(log_logarray[tbl_name], shift = -1, axis = 1)
 
-    if cloc % log_blocksize == 0:
-        # sl = slice(cloc, cloc + blocksize - 1)
-        sl = slice(cloc, cloc + log_blocksize - 1)
-        # print "logging.log_pd: log.shape at sl", sl, log_lognodes[tbl_name].loc[sl].shape
+    # always copy current data into array
+    sl = slice(sl1, sl2)
+    print "log_pd sl = %s, data.shape = %s" % (sl, data.shape)
+    # if cloc == 1 and blocksize > 1:
+    #     log_logarray[tbl_name][:,sl] = data[:,1:].copy()
+    # else:
+    log_logarray[tbl_name][:,sl] = data.copy()
+
+    # if logging blocksize aligns with count
+    if cloc % log_blocksize[tbl_name] == 0:
+        dloc = log_lognodes_blockidx[tbl_name]
+        pdsl = slice(dloc, dloc + log_blocksize[tbl_name] - 1)
+        sl = slice(dloc, dloc + log_blocksize[tbl_name])
+        print "logging.log_pd: log.shape at sl", sl, log_lognodes[tbl_name].loc[pdsl].shape, log_logarray[tbl_name][:,sl].T.shape
         # log_lognodes[tbl_name].loc[sl] = data.T # data.flatten()
-        log_lognodes[tbl_name].loc[sl] = log_logarray[tbl_name].T # data.flatten()
+        log_lognodes[tbl_name].loc[pdsl] = log_logarray[tbl_name][:,sl].T # data.flatten()
+        log_lognodes_blockidx[tbl_name] += log_blocksize[tbl_name]
     # log_lognodes[tbl_name].loc[0] = 1
     # print "log_lognodes[tbl_name]", log_lognodes[tbl_name], log_lognodes[tbl_name].loc[cloc]
     log_lognodes_idx[tbl_name] += blocksize

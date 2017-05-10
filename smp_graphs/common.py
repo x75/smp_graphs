@@ -1,6 +1,7 @@
 
 import traceback
 import sys
+import pickle
 
 ################################################################################
 # static config templates
@@ -88,3 +89,21 @@ def set_attr_from_dict(obj, dictionary):
     """set attributes of an object with names from the dictionary's keys and their values from the dictionary's values"""
     for k,v in dictionary.items():
         setattr(obj, k, v)
+
+def read_puppy_hk_pickles(lfile, key = None):
+    """read pickled log dicts from andi's puppy experiments"""
+    d = pickle.load(open(lfile, 'rb'))
+    # print "d.keys", d.keys()
+    # data = d["y"][:,0,0] # , d["y"]
+    rate = 20
+    offset = 0
+    # data = np.atleast_2d(data).T
+    # print "wavdata", data.shape
+    # special treatment for x,y with addtional dimension
+    data = d
+    x = d['x']
+    data['x'] = x[:,:,0]
+    y = d['y']
+    data['y'] = y[:,:,0]
+    # print "x.shape", data['x'].shape
+    return (data, rate, offset)

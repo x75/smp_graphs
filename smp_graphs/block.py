@@ -7,7 +7,6 @@ block: basic block of computation
 
 import uuid, sys
 from collections import OrderedDict
-import pickle
 
 import numpy as np
 
@@ -50,24 +49,6 @@ def ordereddict_insert(ordereddict = None, insertionpoint = None, itemstoadd = [
     ordereddict.update(new_ordered_dict)
     return ordereddict
     
-def read_puppy_hk_pickles(lfile, key = None):
-    """read pickled log dicts from andi's puppy experiments"""
-    d = pickle.load(open(lfile, 'rb'))
-    # print "d.keys", d.keys()
-    # data = d["y"][:,0,0] # , d["y"]
-    rate = 20
-    offset = 0
-    # data = np.atleast_2d(data).T
-    # print "wavdata", data.shape
-    # special treatment for x,y with addtional dimension
-    data = d
-    x = d['x']
-    data['x'] = x[:,:,0]
-    y = d['y']
-    data['y'] = y[:,:,0]
-    # print "x.shape", data['x'].shape
-    return (data, rate, offset)
-
 ################################################################################
 # Block decorator init
 class decInit():
@@ -336,10 +317,11 @@ class Block2(object):
         
         for k, v in self.outputs.items():
             log.log_pd_init_block(
-                tbl_name = "%s/%s" % (self.id, k),
-                tbl_dim = v[0], # odim
+                tbl_name    = "%s/%s" % (self.id, k),
+                tbl_dim     = v[0], # odim
                 tbl_columns = ["%s_%d" % (k, col) for col in range(v[0][0])],
-                numsteps = self.top.numsteps
+                numsteps    = self.top.numsteps,
+                blocksize   = self.blocksize,
             )
                 
         # # FIXME: make one min_blocksize bus group for each node output
@@ -358,9 +340,9 @@ class Block2(object):
                 self.debug_print("__init__: pass 2\n    in_k = %s,\n    in_v = %s", (k, v))
                 assert len(v) > 0
                 # set input from bus
-                if type(v[0]) is str:
+                if type(v[0]) is str and self.bus.has_key(v[0]):
                     # check if key exists or not. if it doesn't, that means this is a block inside 
-                    assert self.bus.has_key(v[0]), "Bus item %s doesn't not in %s" % (v[0], self.bus.keys())
+                    assert self.bus.has_key(v[0]), "Requested bus item %s is not in buskeys %s" % (v[0], self.bus.keys())
                     # enforce bus blocksize smaller than local blocksize, tackle later
                     # print "%s" % self.cname, self.bus.keys(), self.blocksize
                     assert self.bus[v[0]].shape[1] <= self.blocksize
@@ -379,6 +361,9 @@ class Block2(object):
                     # assign tuple
                     self.inputs[k] = tmp # 
                     print "%s.init_pass_2: %s, bus[%s] = %s, input = %s" % (self.cname, self.id, v[0], self.bus[v[0]].shape, self.inputs[k][0].shape)
+                elif type(v[0]) is str:
+                    if v[0].endswith('.h5'):
+                        setattr(self, k, v[0])
                 else:
                     # expand scalar to vector
                     if np.isscalar(self.inputs[k][0]):
@@ -743,6 +728,7 @@ class UniformRandomBlock2(PrimBlock2):
                                                                     self.outputs))
         # self.hi = x['hi']
         if self.cnt % self.rate == 0:
+            # FIXME: take care of rate/blocksize issue
             self.x = np.random.uniform(self.inputs['lo'][0][:,[-1]], self.inputs['hi'][0][:,[-1]], (self.outputs['x'][0]))
             # print "self.x", self.x
         

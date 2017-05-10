@@ -1,7 +1,8 @@
 import numpy as np
 import pandas as pd
 
-from smp_graphs.block import Block2, decInit, decStep
+from smp_graphs.common import read_puppy_hk_pickles
+from smp_graphs.block  import Block2, decInit, decStep
 
 # FIXME: this should go into systems    
 class FileBlock2(Block2):

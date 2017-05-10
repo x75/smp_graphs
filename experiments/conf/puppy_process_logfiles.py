@@ -18,14 +18,15 @@ graph = OrderedDict([
             'id': 'selflog',
             'logging': False,
             'inputs': {},
-            'debug': False,
+            'debug': True,
             'blocksize': numsteps,
-            'type': 'selflog',
+            'type': 'puppy',
+            # 'inputs': {'file': [
+            #     'data/experiment_20170509_131125_puppy_rp_blocksize_pd.h5',
+            #     ]},
             # this is looping demand
             'file': [
-                'data/experiment_20170510_124440_puppy_rp_pd.h5',
-                # 'data/experiment_20170510_123450_puppy_rp_pd.h5',
-                # 'data/experiment_20170510_121248_puppy_rp_pd.h5',
+                'data/pickles_puppy_03_22_14U/recording_eC0.00_eA0.26_c0.50_n1000_id0.pickle',
                 # 'data/experiment_20170509_131125_puppy_rp_blocksize_pd.h5',
                 # 'data/experiment_20170507_154742_pd.h5',
                 # 'data/experiment_20170505_111138_pd.h5', # puppy_rp, 500 steps
@@ -41,7 +42,8 @@ graph = OrderedDict([
                 # 'data/experiment_20170504_222828_pd.h5',
                 ],
             # 'outputs': {'conf': [(1,1)], 'conf_final': [(1,1)]},
-            'outputs': {'log': [None]},
+            # 'outputs': {'log': [None]},
+            'outputs': {'x': [None]},
         },
     }),
     ('plotter', {
