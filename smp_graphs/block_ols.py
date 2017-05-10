@@ -10,7 +10,8 @@ class FileBlock2(Block2):
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
         # ad hoc default
-        if not conf['params'].has_key('type'): conf['params']['type'] = 'puppy'
+        # if not conf['params'].has_key('type'): conf['params']['type'] = 'puppy'
+        assert conf['params'].has_key('type'), "Type required for FileBlock2"
         # multiple files: concat? block manipulation blocks?
         self.file = []
         # auto odim
@@ -31,11 +32,18 @@ class FileBlock2(Block2):
             self.store = pd.HDFStore(lfile)
             # clean up dummy entry
             del conf['params']['outputs']['log']
-            # loop log tables
+            # loop over log tables and create output for each table
+            conf['params']['storekeys'] = {}
             for k in self.store.keys():
+                # process key from selflog format: remove the block id in the beginning of the key
+                k_ = k.lstrip("/")
+                if not k_.startswith('conf'):
+                    k_ = "/".join(k_.split("/")[1:])
                 print "%s" % self.__class__.__name__, k, self.store[k].shape
-                conf['params']['outputs'][k] = [self.store[k].T.shape]
+                conf['params']['outputs'][k_] = [self.store[k].T.shape]
                 conf['params']['blocksize'] = self.store[k].shape[0]
+                # map output key to log table key
+                conf['params']['storekeys'][k_] = k
             self.step = self.step_selflog
 
         # init states
@@ -76,9 +84,10 @@ class FileBlock2(Block2):
         if (self.cnt % self.blocksize) == 0:
             for k, v in self.outputs.items():
                 # if k.startswith('conf'):
-                print "step: cnt = %d key = %s, log.sh = %s" % (self.cnt, k, self.store[k].shape)
+                storek = self.storekeys[k]
+                print "step: cnt = %d key = %s, log.sh = %s" % (self.cnt, k, self.store[storek].shape)
                 # print self.store[k].values
-                setattr(self, k, self.store[k][self.cnt-self.blocksize:self.cnt].values.T)
+                setattr(self, k, self.store[storek][self.cnt-self.blocksize:self.cnt].values.T)
                 # print self.store[k][self.cnt-self.blocksize:self.cnt].values.T
                 # print k
         # for k in self.__dict__.keys(): #self.bus.keys():

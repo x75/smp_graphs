@@ -340,7 +340,8 @@ class Block2(object):
                 self.debug_print("__init__: pass 2\n    in_k = %s,\n    in_v = %s", (k, v))
                 assert len(v) > 0
                 # set input from bus
-                if type(v[0]) is str and self.bus.has_key(v[0]):
+                if type(v[0]) is str:
+                    # assert self.bus.has_key(v[0]):
                     # check if key exists or not. if it doesn't, that means this is a block inside 
                     assert self.bus.has_key(v[0]), "Requested bus item %s is not in buskeys %s" % (v[0], self.bus.keys())
                     # enforce bus blocksize smaller than local blocksize, tackle later
@@ -361,10 +362,10 @@ class Block2(object):
                     # assign tuple
                     self.inputs[k] = tmp # 
                     print "%s.init_pass_2: %s, bus[%s] = %s, input = %s" % (self.cname, self.id, v[0], self.bus[v[0]].shape, self.inputs[k][0].shape)
-                elif type(v[0]) is str:
-                    # it's a string but no valid buskey, init zeros(1,1)?
-                    if v[0].endswith('.h5'):
-                        setattr(self, k, v[0])
+                # elif type(v[0]) is str:
+                #     # it's a string but no valid buskey, init zeros(1,1)?
+                #     if v[0].endswith('.h5'):
+                #         setattr(self, k, v[0])
                 else:
                     # expand scalar to vector
                     if np.isscalar(self.inputs[k][0]):
@@ -380,6 +381,7 @@ class Block2(object):
                 # add input buffer
                 # stack??
                 # self.inputs[k][0] = np.hstack((np.zeros((self.inputs[k][1][0], self.ibuf-1)), self.inputs[k][0]))
+                print "%s.init k = %s, v = %s" % (self.cname, k, v)
                 self.debug_print("init_pass_2 %s in_k.shape = %s", (self.id, self.inputs[k][0].shape))
             
     def debug_print(self, fmtstring, data):
