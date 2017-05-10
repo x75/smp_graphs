@@ -1,31 +1,40 @@
-"""smp_graphs default conf
+"""smp_graphs process puppy logfiles
 
-the config is python, so we
- - import stuff we need in the config
- - put the graph config into a dict
+loop over puppy pickles and concatenate all x,y data
+
 """
 
+from smp_graphs.block import SeqLoopBlock2
+
 # reuse
-numsteps = 500
+looparray = [
+    ('file', ['data/pickles_puppy_03_22_14U/recording_eC0.41_eA0.03_c0.50_n1000_id0.pickle']),
+    ('file', ['data/pickles_puppy_03_22_14U/recording_eC0.00_eA0.26_c0.50_n1000_id0.pickle']),
+]
+
+f = open('data/goodPickles/allpickles.txt')
+looparray = [('file', [fname.rstrip()]) for fname in f.readlines()]
+f.close()
+
+loopblocksize = 1000
+numsteps = len(looparray) * loopblocksize
 debug = True
 
-# graph
-graph = OrderedDict([
-    # a constant
-    ("selflog", {
+loopblock = {
         'block': FileBlock2,
         'params': {
-            'id': 'selflog',
+            'id': 'puppylog',
             'logging': False,
             'inputs': {},
             'debug': True,
-            'blocksize': numsteps,
+            'blocksize': loopblocksize,
             'type': 'puppy',
             # 'inputs': {'file': [
             #     'data/experiment_20170509_131125_puppy_rp_blocksize_pd.h5',
             #     ]},
             # this is looping demand
             'file': [
+                'data/pickles_puppy_03_22_14U/recording_eC0.41_eA0.03_c0.50_n1000_id0.pickle',
                 'data/pickles_puppy_03_22_14U/recording_eC0.00_eA0.26_c0.50_n1000_id0.pickle',
                 # 'data/experiment_20170509_131125_puppy_rp_blocksize_pd.h5',
                 # 'data/experiment_20170507_154742_pd.h5',
@@ -43,9 +52,36 @@ graph = OrderedDict([
                 ],
             # 'outputs': {'conf': [(1,1)], 'conf_final': [(1,1)]},
             # 'outputs': {'log': [None]},
-            'outputs': {'x': [None]},
+            'outputs': {'x': [None], 'y': [None]},
+        },
+    }
+
+# graph
+graph = OrderedDict([
+    # # a constant
+    ("puppylog", {
+        'block': SeqLoopBlock2,
+        'params': {
+            'id': 'puppylog',
+            # loop specification, check hierarchical block to completely
+            # pass on the contained in/out space?
+            'blocksize': numsteps,
+            'numsteps': numsteps, # same as loop length
+            'loopblocksize': loopblocksize,
+            # can't do this dynamically yet without changing init passes
+            'outputs': {'x': [(6, numsteps * 1000)], 'y': [(4, numsteps * 1000)]},
+            # 'loop': [('inputs', {
+            #     'lo': [np.random.uniform(-i, 0, (3, 1))], 'hi': [np.random.uniform(0.1, i, (3, 1))]}) for i in range(1, 11)],
+            # 'loop': lambda ref, i: ('inputs', {'lo': [10 * i], 'hi': [20*i]}),
+            'loop': looparray,
+            # 'loop': partial(f_loop_hpo, space = f_loop_hpo_space_f3(pdim = 3)),
+            'loopmode': 'sequential',
+            'loopblock': loopblock,
         },
     }),
+    
+    # ("puppylog", loopblock),
+    
     ('plotter', {
         'block': TimeseriesPlotBlock2,
         'params': {
@@ -53,28 +89,29 @@ graph = OrderedDict([
             'logging': False,
             'debug': False,
             'blocksize': numsteps,
-            'inputs': {'d1': ['selflog//b1/x'],
-                           'd2': ['selflog//b2/x'],
-                           'd3': ['selflog//puppydata/x'],
-                           'd4': ['selflog//puppydata/y']
+            'inputs': {
+                # 'd1': ['puppylog/b1/x'],
+                # 'd2': ['puppylog/b2/x'],
+                'd3': ['puppylog/x'],
+                'd4': ['puppylog/y'],
             },
             'outputs': {},#'x': [(3, 1)]},
             'subplots': [
-                [
-                    {'input': 'd1', 'slice': (0, 3), 'plot': timeseries},
-                    # {'input': 'd1', 'slice': (0, 3), 'plot': histogram},
-                ],
-                [
-                    {'input': 'd2', 'slice': (3, 6), 'plot': timeseries},
-                    # {'input': 'd2', 'slice': (3, 6), 'plot': histogram},
-                ],
+                # [
+                #     {'input': 'd1', 'slice': (0, 3), 'plot': timeseries},
+                #     # {'input': 'd1', 'slice': (0, 3), 'plot': histogram},
+                # ],
+                # [
+                #     {'input': 'd2', 'slice': (3, 6), 'plot': timeseries},
+                #     # {'input': 'd2', 'slice': (3, 6), 'plot': histogram},
+                # ],
                 [
                     {'input': 'd3', 'slice': (3, 6), 'plot': timeseries},
-                    # {'input': 'd3', 'slice': (3, 6), 'plot': histogram},
+                    {'input': 'd3', 'slice': (3, 6), 'plot': histogram},
                 ],
                 [
                     {'input': 'd4', 'slice': (3, 6), 'plot': timeseries},
-                    # {'input': 'd4', 'slice': (3, 6), 'plot': histogram},
+                    {'input': 'd4', 'slice': (3, 6), 'plot': histogram},
                 ],
             ]
         },

@@ -189,7 +189,7 @@ Arguments:
 
     # always copy current data into array
     sl = slice(sl1, sl2)
-    print "log_pd sl = %s, data.shape = %s" % (sl, data.shape)
+    # print "log_pd sl = %s, data.shape = %s" % (sl, data.shape)
     # if cloc == 1 and blocksize > 1:
     #     log_logarray[tbl_name][:,sl] = data[:,1:].copy()
     # else:
@@ -200,7 +200,7 @@ Arguments:
         dloc = log_lognodes_blockidx[tbl_name]
         pdsl = slice(dloc, dloc + log_blocksize[tbl_name] - 1)
         sl = slice(dloc, dloc + log_blocksize[tbl_name])
-        print "logging.log_pd: log.shape at sl", sl, log_lognodes[tbl_name].loc[pdsl].shape, log_logarray[tbl_name][:,sl].T.shape
+        # print "logging.log_pd: log.shape at sl", sl, log_lognodes[tbl_name].loc[pdsl].shape, log_logarray[tbl_name][:,sl].T.shape
         # log_lognodes[tbl_name].loc[sl] = data.T # data.flatten()
         log_lognodes[tbl_name].loc[pdsl] = log_logarray[tbl_name][:,sl].T # data.flatten()
         log_lognodes_blockidx[tbl_name] += log_blocksize[tbl_name]

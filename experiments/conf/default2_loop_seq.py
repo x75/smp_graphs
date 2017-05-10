@@ -14,7 +14,10 @@ from smp_graphs.funcs import *
 from functools import partial
 
 # reused variables
-numsteps = 2000
+loopblocksize = 1
+loopsteps = 2000
+numsteps = loopsteps * loopblocksize
+# showplot = False
 
 # singular block specs for use in loop block
 loopblock1 = {
@@ -38,8 +41,9 @@ loopblock = {
         'inputs': {'x': [np.random.uniform(-1, 1, (3, 1))]},
         'outputs': {'x': [(3, 1)], 'y': [(1, 1)]},
         'func': f_sinesquare4,
-        'blocksize': 1,
+        'blocksize': loopblocksize,
         'debug': False,
+        'logging': False,
         },
     }
     
@@ -94,6 +98,8 @@ graph = OrderedDict([
             # loop specification, check hierarchical block to completely
             # pass on the contained in/out space?
             'blocksize': numsteps, # same as loop length
+            'numsteps':  numsteps,
+            'loopblocksize': loopblocksize,
             # can't do this dynamically yet without changing init passes
             'outputs': {'x': [(3, 1)], 'y': [(1, 1)]},
             # 'loop': [('inputs', {

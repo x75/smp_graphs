@@ -362,6 +362,7 @@ class Block2(object):
                     self.inputs[k] = tmp # 
                     print "%s.init_pass_2: %s, bus[%s] = %s, input = %s" % (self.cname, self.id, v[0], self.bus[v[0]].shape, self.inputs[k][0].shape)
                 elif type(v[0]) is str:
+                    # it's a string but no valid buskey, init zeros(1,1)?
                     if v[0].endswith('.h5'):
                         setattr(self, k, v[0])
                 else:
@@ -558,16 +559,19 @@ class SeqLoopBlock2(Block2):
         self.defaults['loopblock'] = {}
         Block2.__init__(self, conf = conf, paren = paren, top = top)
 
+        # check 'loop' parameter type and set the loop function
         if type(self.loop) is list: # it's a list
             self.f_loop = self.f_loop_list
-            assert len(self.loop) == self.blocksize, "%s step blocksize (%d) needs to be equal the loop length (%d)" % (self.cname, self.blocksize, len(self.loop))
+            # assert len(self.loop) == (self.numsteps/self.blocksize), "%s step numsteps / blocksize (%s/%s = %s) needs to be equal the loop length (%d)" % (self.cname, self.numsteps, self.blocksize, self.numsteps/self.blocksize, len(self.loop))
         else: # it's a func
             self.f_loop = self.f_loop_func
 
+    # loop function for self.loop = list 
     def f_loop_list(self, i, f_obj):
         results = f_obj(self.loop[i])
         return results
 
+    # loop function for self.loop = func
     def f_loop_func(self, i, f_obj):
         results = self.loop(self, i, f_obj)
         return results
@@ -576,6 +580,7 @@ class SeqLoopBlock2(Block2):
     def step(self, x = None):
 
         def f_obj(lparams):
+            """instantiate the loopblock and run it"""
             # print "f_obj lparams", lparams
             # copy params
             loopblock_params = {}
@@ -591,34 +596,15 @@ class SeqLoopBlock2(Block2):
             # create dynamic conf
             loopblock_conf = {'block': self.loopblock['block'], 'params': loopblock_params}
             # instantiate block
-            dynblock = self.loopblock['block'](conf = loopblock_conf,
+            self.dynblock = self.loopblock['block'](conf = loopblock_conf,
                                                paren = self.paren, top = self.top)
             # second pass
-            dynblock.init_pass_2()
+            self.dynblock.init_pass_2()
 
-            for j in range(dynblock.blocksize):
+            # run the block
+            for j in range(self.dynblock.blocksize):
                 # print "%s trying %s.step[%d]" % (self.cname, dynblock.cname, j)
-                dynblock.step()
-
-            loss = 0
-            for outk in self.outputs.keys():
-                if outk in dynblock.inputs.keys(): continue
-                # print "outk", outk, getattr(dynblock, outk)
-                loss += np.mean(getattr(dynblock, outk), axis = 1, keepdims = True)
-
-            # print "loss", loss
-                
-            rundata = {
-                'loss': loss[0,0], # compute_complexity(Xs)
-                'status': STATUS_OK, # compute_complexity(Xs)
-                'dynblock': dynblock,
-                'lparams': lparams,
-                # "M": M, # n.networks["slow"]["M"], # n.M
-                # "timeseries": Xs.copy(),
-                # "loss": np.var(Xs),
-            }
-                
-            return rundata
+                self.dynblock.step()
         
         def f_obj_hpo(params):
             # print "f_obj_hpo: params", params
@@ -626,7 +612,31 @@ class SeqLoopBlock2(Block2):
             # XXX
             lparams = ('inputs', {'x': [x]}) # , x.shape, self.outputs['x']
             # print "%s.step.f_obj_hpo lparams = {%s}" % (self.cname, lparams)
-            rundata = f_obj(lparams)
+            f_obj(lparams)
+
+            # now we have self.dynblock
+            assert hasattr(self, 'dynblock')
+
+            # compute the loss for hpo from dynblock outputs
+            loss = 0
+            for outk in self.outputs.keys():
+                # omit input values / FIXME
+                if outk in self.dynblock.inputs.keys(): continue
+                # print "outk", outk, getattr(dynblock, outk)
+                # FIXME: if outk == 'y' as functions result
+                loss += np.mean(getattr(self.dynblock, outk), axis = 1, keepdims = True)
+
+            # print "loss", loss
+                
+            rundata = {
+                'loss': loss[0,0], # compute_complexity(Xs)
+                'status': STATUS_OK, # compute_complexity(Xs)
+                # 'dynblock': self.dynblock,
+                'lparams': lparams,
+                # "M": M, # n.networks["slow"]["M"], # n.M
+                # "timeseries": Xs.copy(),
+                # "loss": np.var(Xs),
+            }
             return rundata
         # {'loss': , 'status': STATUS_OK, 'dynblock': None, 'lparams': lparams}
 
@@ -636,13 +646,16 @@ class SeqLoopBlock2(Block2):
             f_obj_ = f_obj_hpo
             
         # loop the loop
-        for i in range(self.blocksize):
-            # print "%s iter# %d" % (self.cname, i)
+        for i in range(self.numsteps/self.loopblocksize):
+            print "%s iter# %d" % (self.cname, i)
             # dynblock = obj()
             # func: need input function from config
             results = self.f_loop(i, f_obj_)#_hpo)
-            dynblock = results['dynblock']
-            lparams = results['lparams']
+            if results is not None:
+                for k, v in results.items():
+                    setattr(self, k, v)
+            # dynblock = results['dynblock']
+            # lparams = results['lparams']
             
             # print "%s.steploop[%d], %s, %s" % (self.cname, i, lparams, self.loopblock['params'])
             # for k,v in dynblock.outputs.items():
@@ -653,8 +666,13 @@ class SeqLoopBlock2(Block2):
                 # outvar[:,[i] = bla
                 
                 # func: need output function from config
+                # FIXME: handle loopblock blocksizes greater than one
                 # self.__dict__[outk][:,[i]] = np.mean(getattr(dynblock, outk), axis = 1, keepdims = True)
-                self.__dict__[outk][:,[i]] = np.mean(getattr(dynblock, outk), axis = 1, keepdims = True)
+                outslice = slice(i*self.dynblock.blocksize, (i+1)*self.dynblock.blocksize)
+                # print "%s.step self.%s = %s, outslice = %s" % (self.cname, outk, self.__dict__[outk].shape, outslice, )
+                # self.__dict__[outk][:,[i]] = getattr(self.dynblock, outk)
+                self.__dict__[outk][:,outslice] = getattr(self.dynblock, outk)
+
         # # hack for checking hpo minimum
         # if hasattr(self, 'hp_bests'):
         #     print "%s.step: bests = %s, %s" % (self.cname, self.hp_bests[-1], f_obj_hpo(tuple([self.hp_bests[-1][k] for k in sorted(self.hp_bests[-1])])))
