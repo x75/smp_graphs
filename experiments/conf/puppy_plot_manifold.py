@@ -5,8 +5,8 @@ plot the sensorimotor manifold / pointcloud, example data from andi gerken's pup
 
 from smp_base.plot import histogramnd
 
-# numsteps = 147000
-numsteps = 2000
+numsteps = 147000
+# numsteps = 2000
 
 graph = OrderedDict([
     ('puppylog', {
@@ -17,9 +17,9 @@ graph = OrderedDict([
             'type': 'selflog',
             'file': [
                 # all files
-                # 'data/experiment_20170510_155432_puppy_process_logfiles_pd.h5',
+                'data/experiment_20170510_155432_puppy_process_logfiles_pd.h5',
                 # short version
-                'data/experiment_20170510_173800_puppy_process_logfiles_pd.h5',
+                # 'data/experiment_20170510_173800_puppy_process_logfiles_pd.h5',
                 ],
             'blocksize': numsteps,
             'outputs': {'log': [None]},
@@ -53,7 +53,9 @@ graph = OrderedDict([
                     {'input': 'd4', 'slice': (3, 6), 'plot': timeseries},
                 ],
                 [
-                    {'input': ['d3', 'd4'], 'slice': (3, 6), 'plot': histogramnd},
+                    # stack inputs into one vector (stack, combine, concat
+                    {'input': ['d3', 'd4'], 'mode': 'stack',
+                         'slice': (3, 6), 'plot': histogramnd},
                     {'input': [], 'plot': timeseries},
                     
                 ],

@@ -45,7 +45,8 @@ class TimeseriesPlotBlock2(PrimBlock2):
                         t = self.inputs[subplotconf['xaxis']][0].T
                     else:
                         t = np.linspace(0, self.blocksize-1, self.blocksize)
-                        
+
+                    # assert input an array 
                     if type(subplotconf['input']) is str:
                         subplotconf['input'] = [subplotconf['input']]
 
@@ -59,6 +60,14 @@ class TimeseriesPlotBlock2(PrimBlock2):
                         # fix nans
                         plotdata[ink][np.isnan(plotdata[ink])] = -1.0
                         plotvar += "%s, " % (self.inputs[ink][2],)
+                    # different 
+                    if subplotconf.has_key('mode'):
+                        ivecs = tuple(self.inputs[ink][0].T for k, ink in enumerate(subplotconf['input']))
+                        for item in ivecs:
+                            print "ive.shape", item.shape
+                        plotdata = {}
+                        if subplotconf['mode'] in ['stack', 'combine', 'concat']:
+                            plotdata['all'] = np.hstack(ivecs)
                         
                     if hasattr(subplotconf['plot'], 'func_name'):
                         # plain function

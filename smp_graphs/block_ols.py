@@ -1,3 +1,6 @@
+
+import os
+
 import numpy as np
 import pandas as pd
 
@@ -29,6 +32,7 @@ class FileBlock2(Block2):
             self.store = pd.HDFStore(lfile)
             self.step = self.step_selflogconf
         elif conf['params']['type'] == 'selflog':
+            assert os.path.exists(lfile), "logfile %s not found" % (lfile, )
             self.store = pd.HDFStore(lfile)
             # clean up dummy entry
             del conf['params']['outputs']['log']

@@ -346,7 +346,7 @@ class Block2(object):
                     assert self.bus.has_key(v[0]), "Requested bus item %s is not in buskeys %s" % (v[0], self.bus.keys())
                     # enforce bus blocksize smaller than local blocksize, tackle later
                     # print "%s" % self.cname, self.bus.keys(), self.blocksize
-                    assert self.bus[v[0]].shape[1] <= self.blocksize
+                    assert self.bus[v[0]].shape[1] <= self.blocksize, "input block size needs to be less than or equal self blocksize"
                     # create input tuple
                     tmp = [None for i in range(3)]
                     # get the bus
