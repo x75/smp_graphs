@@ -19,6 +19,7 @@ import numpy as np
 
 debug = False
 showplot = True
+randseed = 0
 """
 
 conf_footer = """# top block
@@ -31,6 +32,7 @@ conf = {
         'numsteps': numsteps,
         'graph': graph,
         'showplot': showplot,
+        'randseed': randseed,
     }
 }
 """

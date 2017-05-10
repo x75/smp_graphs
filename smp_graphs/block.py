@@ -207,6 +207,9 @@ class Block2(object):
         if hasattr(self, 'graph') or hasattr(self, 'subgraph'):
             # the topblock, there can only be one
             if self.topblock:
+                # fix the random seed
+                np.random.seed(self.randseed)
+                
                 # initialize the global messaging bus
                 self.bus = {}
 

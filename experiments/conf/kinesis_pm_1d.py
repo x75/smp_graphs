@@ -32,6 +32,7 @@ debug = False
 motors = 3
 dt = 0.1
 showplot = True
+randseed = 123
 
 # graph
 graph = OrderedDict([
@@ -83,7 +84,8 @@ graph = OrderedDict([
                         # 'inputs': {'x': ['robot1/s_extero'], 'x_': [np.random.uniform(-0.05, 0.05, (3,1))]},
                         'inputs': {'x': ['robot1/s_extero'], 'x_': ['mot0/x']},
                         'outputs': {'y': [(3,1)], 'y1': [(3,1)], 'x_': [(3,1)]},
-                        'func': f_motivation_bin,
+                        # 'func': f_motivation_bin,
+                        'func': f_motivation,
                         'debug': False,
                     },
                 }),
