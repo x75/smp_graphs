@@ -3,7 +3,10 @@
 plot the sensorimotor manifold / pointcloud, example data from andi gerken's puppy
 """
 
-numsteps = 147000
+from smp_base.plot import histogramnd
+
+# numsteps = 147000
+numsteps = 2000
 
 graph = OrderedDict([
     ('puppylog', {
@@ -13,12 +16,17 @@ graph = OrderedDict([
             'inputs': {},
             'type': 'selflog',
             'file': [
-                'data/experiment_20170510_155432_puppy_process_logfiles_pd.h5',
+                # all files
+                # 'data/experiment_20170510_155432_puppy_process_logfiles_pd.h5',
+                # short version
+                'data/experiment_20170510_173800_puppy_process_logfiles_pd.h5',
                 ],
             'blocksize': numsteps,
             'outputs': {'log': [None]},
             }
         }),
+    # puppy process data block: integrate acc, diff motors
+    # ('puppyproc', {}),
     ('plot', {
         'block': TimeseriesPlotBlock2,
         'params': {
@@ -42,11 +50,12 @@ graph = OrderedDict([
                 # ],
                 [
                     {'input': 'd3', 'slice': (3, 6), 'plot': timeseries},
-                    # {'input': 'd3', 'slice': (3, 6), 'plot': histogram},
+                    {'input': 'd4', 'slice': (3, 6), 'plot': timeseries},
                 ],
                 [
-                    {'input': 'd4', 'slice': (3, 6), 'plot': timeseries},
-                    # {'input': 'd4', 'slice': (3, 6), 'plot': histogram},
+                    {'input': ['d3', 'd4'], 'slice': (3, 6), 'plot': histogramnd},
+                    {'input': [], 'plot': timeseries},
+                    
                 ],
             ]
         },

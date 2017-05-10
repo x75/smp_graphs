@@ -12,9 +12,9 @@ looparray = [
     ('file', ['data/pickles_puppy_03_22_14U/recording_eC0.00_eA0.26_c0.50_n1000_id0.pickle']),
 ]
 
-f = open('data/goodPickles/allpickles.txt')
-looparray = [('file', [fname.rstrip()]) for fname in f.readlines()]
-f.close()
+# f = open('data/goodPickles/allpickles.txt')
+# looparray = [('file', [fname.rstrip()]) for fname in f.readlines()]
+# f.close()
 
 loopblocksize = 1000
 numsteps = len(looparray) * loopblocksize
