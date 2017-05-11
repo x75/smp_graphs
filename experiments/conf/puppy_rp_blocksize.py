@@ -51,7 +51,7 @@ graph = OrderedDict([
     # plot module with blocksize = episode, fetching input from busses
     # and mapping that onto plots
     ("bplot", {
-        'block': TimeseriesPlotBlock2,
+        'block': PlotBlock2,
         'params': {
             'id': 'bplot',
             'blocksize': numsteps,

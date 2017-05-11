@@ -145,7 +145,7 @@ graph = OrderedDict([
     }),
     # plotting
     ('plot', {
-        'block': TimeseriesPlotBlock2,
+        'block': PlotBlock2,
         'params': {
             'id': 'plot',
             'blocksize': numsteps,

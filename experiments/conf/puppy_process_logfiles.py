@@ -7,14 +7,23 @@ loop over puppy pickles and concatenate all x,y data
 from smp_graphs.block import SeqLoopBlock2
 
 # reuse
-looparray = [
-    ('file', ['data/pickles_puppy_03_22_14U/recording_eC0.41_eA0.03_c0.50_n1000_id0.pickle']),
-    ('file', ['data/pickles_puppy_03_22_14U/recording_eC0.00_eA0.26_c0.50_n1000_id0.pickle']),
-]
+# looparray = [
+#     ('file', ['data/pickles_puppy_03_22_14U/recording_eC0.41_eA0.03_c0.50_n1000_id0.pickle']),
+#     ('file', ['data/pickles_puppy_03_22_14U/recording_eC0.00_eA0.26_c0.50_n1000_id0.pickle']),
+# ]
 
-# f = open('data/goodPickles/allpickles.txt')
-# looparray = [('file', [fname.rstrip()]) for fname in f.readlines()]
-# f.close()
+f = open('data/goodPickles/allpickles.txt')
+filearray = [fname.rstrip() for fname in f.readlines()]
+f.close()
+
+# sys.exit()
+
+filearray_ = np.random.choice(filearray, size=(10,), replace=False).tolist()
+# print "choice", 
+# print looparray_
+# looparray = looparray_
+looparray = [('file', [fname]) for fname in filearray_]
+print "looparray", looparray
 
 loopblocksize = 1000
 numsteps = len(looparray) * loopblocksize
@@ -83,7 +92,7 @@ graph = OrderedDict([
     # ("puppylog", loopblock),
     
     ('plotter', {
-        'block': TimeseriesPlotBlock2,
+        'block': PlotBlock2,
         'params': {
             'id': 'plotter',
             'logging': False,

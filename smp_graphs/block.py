@@ -346,7 +346,7 @@ class Block2(object):
                     assert self.bus.has_key(v[0]), "Requested bus item %s is not in buskeys %s" % (v[0], self.bus.keys())
                     # enforce bus blocksize smaller than local blocksize, tackle later
                     # print "%s" % self.cname, self.bus.keys(), self.blocksize
-                    assert self.bus[v[0]].shape[1] <= self.blocksize, "input block size needs to be less than or equal self blocksize"
+                    assert self.bus[v[0]].shape[1] <= self.blocksize, "input block size needs to be less than or equal self blocksize in %s/%s\ncheck blocksize param" % (self.cname, self.id)
                     # create input tuple
                     tmp = [None for i in range(3)]
                     # get the bus
@@ -683,13 +683,172 @@ class PrimBlock2(Block2):
     """!@brief Base class for primitive blocks"""
     def __init__(self, conf = {}, paren = None, top = None):
         Block2.__init__(self, conf = conf, paren = paren, top = top)
-        
+
     @decStep()
     def step(self, x = None):
         """PrimBlock2.step: step the block, decorated, blocksize boundaries"""
         # print "primblock step id %s, v = %s" % (self.id, self.x)
         pass
+    
+class IBlock2(PrimBlock2):
+    """!@brief Integrator block: integrate input and write to output
 
+params: inputs, outputs, leakrate    
+    """
+    @decInit()
+    def __init__(self, conf = {}, paren = None, top = None):
+        for k in conf['params']['inputs'].keys():
+            # print "%s.init inkeys %s" % (self.__class__.__name__, k)
+            conf['params']['outputs']["I%s" % k] = [top.bus[conf['params']['inputs'][k][0]].shape]
+            
+        PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
+
+        if hasattr(self, 'leak'):# and self.leak > 0.0:
+            self.step = self.step_leak
+        else:
+            self.step = self.step_all
+
+    @decStep()
+    def step_leak(self, x = None):
+        for i in range(self.blocksize):
+            for ink in self.inputs.keys():
+                outk = "I%s" % ink
+                tmp_ = getattr(self, outk)
+                tmp_[:,i] = ((1 - self.leak) * tmp_[:,i-1]) + (self.inputs[ink][0][:,i] * self.d)
+                setattr(self, outk, tmp_)
+
+    @decStep()
+    def step_all(self, x = None):
+        for ink in self.inputs.keys():
+            outk = "I%s" % ink
+            # input integral / cumsum
+            Iin = np.cumsum(self.inputs[ink][0], axis = 1) * self.d
+            print getattr(self, outk)[:,[-1]].shape, self.inputs[ink][0].shape, Iin.shape
+            setattr(self, outk, getattr(self, outk)[:,[-1]] + Iin)
+            # setattr(self, outk, getattr(self, outk) + (self.inputs[ink][0] * 1.0))
+            # print getattr(self, outk).shape
+
+class dBlock2(PrimBlock2):
+    """!@brief Differentiator block: compute differences of input and write to output
+
+params: inputs, outputs, leakrate / smoothrate?
+    """
+    @decInit()
+    def __init__(self, conf = {}, paren = None, top = None):
+        """dBlock2 init"""
+        for ink in conf['params']['inputs'].keys():
+            # get input shape
+            inshape = top.bus[conf['params']['inputs'][ink][0]].shape
+            # alloc copy of previous input block 
+            setattr(self, "%s_" % ink, np.zeros(inshape))
+            # set output members
+            conf['params']['outputs']["d%s" % ink] = [inshape]
+            
+        # base block init
+        PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
+
+    @decStep()
+    def step(self, x = None):
+        """dBlock2 step"""
+        for ink in self.inputs.keys():
+            # output key
+            outk = "d%s" % ink
+            # input from last block
+            ink_ = "%s_" % ink
+            inv_ = getattr(self, ink_)
+            # stack last and current block input
+            tmp_   = np.hstack((inv_, self.inputs[ink][0]))
+            # slice -(blocksize + 1) until now
+            tmp_sl = slice(self.blocksize - 1, self.blocksize * 2)
+            # compute the diff in the input
+            din = np.diff(tmp_[:,tmp_sl], axis = 1) # * self.d
+            # which should be same shape is input
+            assert din.shape == self.inputs[ink][0].shape
+            print getattr(self, outk)[:,[-1]].shape, self.inputs[ink][0].shape, din.shape
+            setattr(self, outk, din)
+            # store current input
+            setattr(self, ink_, self.inputs[ink][0].copy())
+
+class DelayBlock2(PrimBlock2):
+    """!@brief Delay block: delay shift input by n steps
+
+params: inputs, delay in steps / shift
+    """
+    @decInit() # outputs from inputs block decorator
+    def __init__(self, conf = {}, paren = None, top = None):
+        """DelayBlock2 init"""
+        params = conf['params']
+        if not params.has_key('outputs'):
+            params['outputs'] = {}
+            
+        for ink in params['inputs'].keys():
+            # get input shape
+            inshape = top.bus[params['inputs'][ink][0]].shape
+            # alloc delay block
+            # print ink, params['delays'][ink]
+            setattr(self, "%s_" % ink, np.zeros((inshape[0], inshape[1] + params['delays'][ink])))
+            # set output members
+            params['outputs']["d%s" % ink] = [inshape]
+            
+        # base block init
+        PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
+
+    @decStep()
+    def step(self, x = None):
+        """DelayBlock2 step"""
+        for ink in self.inputs.keys():
+            # output key
+            outk = "d%s" % ink
+            # input from last block
+            ink_ = "%s_" % ink
+            # stack last and current block input
+            # tmp_   = np.hstack((inv_, self.inputs[ink][0]))
+            # slice -(blocksize + 1) until now
+            inv_ = getattr(self, ink_)
+            sl = slice(self.delays[ink], self.delays[ink]+self.blocksize)
+            # print "sl", sl
+            inv_[:,sl] = self.inputs[ink][0].copy()
+            
+            # compute the diff in the input
+            # din = np.diff(tmp_[:,tmp_sl], axis = 1) # * self.d
+            # which should be same shape is input
+            # assert din.shape == self.inputs[ink][0].shape
+            # print getattr(self, outk)[:,[-1]].shape, self.inputs[ink][0].shape, din.shape
+            setattr(self, outk, inv_[:,slice(0, self.blocksize)])
+            # store current input
+            setattr(self, ink_, np.roll(inv_, shift = -self.blocksize, axis = 1))
+                        
+class SliceBlock2(PrimBlock2):
+    """!@brief Slice block can cut slices from the input
+    """
+    def __init__(self, conf = {}, paren = None, top = None):
+        params = conf['params']
+        if not params.has_key('outputs'):
+            params['outputs'] = {}
+            
+        for k in params['inputs'].keys():
+            slicespec = params['slices'][k]
+            # print slicespec
+            for slk, slv in slicespec.items():
+                # print "%s.init inkeys %s" % (self.__class__.__name__, k)
+                outk = "%s_%s" % (k, slk)
+                if type(slv) is slice:
+                    params['outputs'][outk] = [(slv.stop - slv.start, 1)] # top.bus[params['inputs'][k][0]].shape
+                elif type(slv) is list:
+                    params['outputs'][outk] = [(len(slv), 1)] # top.bus[params['inputs'][k][0]].shape
+                elif type(slv) is tuple:
+                    params['outputs'][outk] = [(slv[1] - slv[0], 1)] # top.bus[params['inputs'][k][0]].shape
+            
+        PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
+
+    @decStep()
+    def step(self, x = None):
+        for ink in self.inputs.keys():
+            slicespec = self.slices[ink]
+            for slk, slv in slicespec.items():
+                outk = "%s_%s" % (ink, slk)
+                setattr(self, outk, self.inputs[ink][0][slv])
+                    
 class ConstBlock2(PrimBlock2):
     """!@brief Constant block: output is a constant vector
     """

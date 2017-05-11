@@ -12,7 +12,7 @@ from collections import OrderedDict
 from smp_graphs.block import Block2, ConstBlock2, UniformRandomBlock2
 from smp_graphs.block import LoopBlock2
 from smp_graphs.block_ols import FileBlock2
-from smp_graphs.block_plot import TimeseriesPlotBlock2
+from smp_graphs.block_plot import PlotBlock2
 
 from smp_base.plot import timeseries, histogram, rp_timeseries_embedding
 
@@ -79,7 +79,7 @@ def get_config_raw_from_string(conf, confvar = 'conf'):
         traceback.print_exc(limit = 10)
         # print traceback
         print "Error running config code: %s" % (repr(e),)
-        print "Probably missing parentheses or comma in config"
+        print "Probably causes:\n    missing parentheses or comma\n    dict key followed by , instead of :\nin config"
         sys.exit(1)
 
     # return resulting variable

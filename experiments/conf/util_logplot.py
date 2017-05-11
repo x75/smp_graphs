@@ -45,16 +45,17 @@ graph = OrderedDict([
         },
     }),
     ('plotter', {
-        'block': TimeseriesPlotBlock2,
+        'block': PlotBlock2,
         'params': {
             'id': 'plotter',
             'logging': False,
             'debug': False,
             'blocksize': numsteps,
-            'inputs': {'d1': ['selflog//b1/x'],
-                           'd2': ['selflog//b2/x'],
-                           'd3': ['selflog//puppydata/x'],
-                           'd4': ['selflog//puppydata/y']
+            'inputs': {
+                'd1': ['selflog//b1/x'],
+                'd2': ['selflog//b2/x'],
+                'd3': ['selflog/x'],
+                'd4': ['selflog/y'],
             },
             'outputs': {},#'x': [(3, 1)]},
             'subplots': [

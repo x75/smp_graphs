@@ -15,6 +15,7 @@ graph = OrderedDict([
             'odim': 'auto',
             'debug': False,
             'blocksize': numsteps,
+            'type': 'puppy',
             'file': [
                 'data/pickles_puppy_03_22_14U/recording_eC0.41_eA0.03_c0.50_n1000_id0.pickle',
             ],
@@ -48,7 +49,7 @@ graph = OrderedDict([
     # plot module with blocksize = episode, fetching input from busses
     # and mapping that onto plots
     ("bplot", {
-        'block': TimeseriesPlotBlock2,
+        'block': PlotBlock2,
         'params': {
             'id': 'bplot',
             'blocksize': numsteps,
