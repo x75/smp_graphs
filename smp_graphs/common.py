@@ -8,9 +8,10 @@ import pickle
 conf_header = """from smp_graphs.experiment import make_expr_id
 
 from collections import OrderedDict
+from functools import partial
 
-from smp_graphs.block import Block2, ConstBlock2, UniformRandomBlock2
-from smp_graphs.block import LoopBlock2
+from smp_graphs.block import Block2, ConstBlock2, CountBlock2, UniformRandomBlock2
+from smp_graphs.block import FuncBlock2, LoopBlock2
 from smp_graphs.block_ols import FileBlock2
 from smp_graphs.block_plot import PlotBlock2
 

@@ -64,6 +64,13 @@ def f_sin(args):
         print "KeyError", e, args
         # print "Block %s doesn't have an input %s" % (args['id'], 'x')
 
+def f_sin_noise(args):
+    for k in ['x','f','sigma']:
+        assert args.has_key(k), "f_sin_noise needs param '%s'" % (k,)
+    x = f_sin(args)
+    # print "x", x, args['sigma'][0]
+    return np.random.normal(x, args['sigma'][0])
+        
 def f_sinesquare2(args):
     x = args['x'][0]
     scaler = np.arange(1, x.shape[0] + 1).reshape(x.shape) * 0.3 + 1.0

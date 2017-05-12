@@ -89,7 +89,7 @@ class decStep():
                                 #                                          sname,
                                 #                                          escnt,
                                 #                                          v[2],
-                                #                                          exec_self.bus[v[2]].shape)
+                                #                                          exec_self.bus[v[2]])
                                 
                                 sl = slice(-blocksize_input, None)
                                 exec_self.inputs[k][0][:,sl] = exec_self.bus[v[2]] # np.fliplr(exec_self.bus[v[2]])
@@ -121,7 +121,7 @@ class decStep():
                 # copy output to bus
                 for k, v in exec_self.outputs.items():
                     buskey = "%s/%s" % (exec_self.id, k)
-                    # print "copy %s.outputs[%s] = %s to bus[%s], bs = %d" % (exec_self.id, k, np.mean(getattr(exec_self, k)), buskey, exec_self.blocksize)
+                    # print "copy %s.outputs[%s] = %s to bus[%s], bs = %d" % (exec_self.id, k, getattr(exec_self, k), buskey, exec_self.blocksize)
                     exec_self.bus[buskey] = getattr(exec_self, k)
             else:
                 f_out = None
@@ -339,6 +339,7 @@ class Block2(object):
             for k, v in self.inputs.items():
                 self.debug_print("__init__: pass 2\n    in_k = %s,\n    in_v = %s", (k, v))
                 assert len(v) > 0
+                assert type(v) is list, "input value %s in block %s/%s must be a list but it is %s" % (k, self.cname, self.id, type(v))
                 # set input from bus
                 if type(v[0]) is str:
                     # assert self.bus.has_key(v[0]):
@@ -879,6 +880,7 @@ class CountBlock2(PrimBlock2):
         # init cnt_ of blocksize
         self.cnt_ = np.zeros((self.outputs[self.outk][0][0], self.blocksize))
         # print self.inputs
+        # FIXME: modulo / cout range with reset/overflow
         
     @decStep()
     def step(self, x = None):
@@ -903,12 +905,14 @@ class UniformRandomBlock2(PrimBlock2):
         
     @decStep()
     def step(self, x = None):
-        self.debug_print("%s.step:\n\tx = %s,\n\tbus = %s,\n\tinputs = %s,\n\toutputs = %s", (self.__class__.__name__, self.x, self.bus, self.inputs,
-                                                                    self.outputs))
+        self.debug_print("%s.step:\n\tx = %s,\n\tbus = %s,\n\tinputs = %s,\n\toutputs = %s",
+                         (self.__class__.__name__,self.outputs.keys(), self.bus, self.inputs, self.outputs))
         # self.hi = x['hi']
         if self.cnt % self.rate == 0:
             # FIXME: take care of rate/blocksize issue
-            self.x = np.random.uniform(self.inputs['lo'][0][:,[-1]], self.inputs['hi'][0][:,[-1]], (self.outputs['x'][0]))
+            for k, v in self.outputs.items():
+                x = np.random.uniform(self.inputs['lo'][0][:,[-1]], self.inputs['hi'][0][:,[-1]], (self.outputs[k][0]))
+                setattr(self, k, x.copy())
             # print "self.x", self.x
         
         # # loop over outputs dict and copy them to a slot in the bus
@@ -916,5 +920,5 @@ class UniformRandomBlock2(PrimBlock2):
         #     buskey = "%s/%s" % (self.id, k)
         #     self.bus[buskey] = getattr(self, k)
         # self.bus[self.id] = self.x
-        return self.x
+        return None
 

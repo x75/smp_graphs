@@ -27,8 +27,15 @@ it's outputs to the bus.
 This is a dynamic list, items already implemented should trickle down
 to the bottom as they consolidate, hottest items at the top.
 
- - profiling: logging: make logging internal blocksize
- - kinesis rate param for blocks = blocksize?
+ - power blocks, the real stuff
+  - block_meas: measurement / analysis blocks
+  - block_repr: representation learning, unsupervised learning, input decomposition
+  - block_func: function approximation blocks
+
+ - documentation
+  - doc: all the logic
+  - doc: inputs spec, outputs spec, slicespec, plotinput spec, mixed blocksizes?
+
  - experiment: map an sm manifold from logdata via scattermatrix or
    dimstack, sort the axes by pairwise MI/infodist
  - predictive processing
@@ -38,10 +45,10 @@ to the bottom as they consolidate, hottest items at the top.
      layers [raw input, error, prediction], see
      [[file:doc/img/agent-world-interface-sm.pdf]]
  - scheduling / phases
-  - be able to prescribe definite or variable-dependent sequences of
-    development
-  - cache results of each stage by augmenting the log with computed
-    results
+   - be able to prescribe definite or variable-dependent sequences of
+     development
+   - cache results of each stage by augmenting the log with computed
+     results
 
  - don't need to copy outputs of subgraph because the bus is global,
    FIXME consider making hierarchical bus identifiers or assert all
@@ -66,14 +73,15 @@ to the bottom as they consolidate, hottest items at the top.
    - ros style callback inputs as usual simple buffer to local var copy
 
  - dynamic growth
-  - grow the acutal execution graph, take care of logging, timebase
-    for block step indexing
+   - grow the acutal execution graph, take care of logging, timebase
+     for block step indexing
 
  - graph / subgraph similarity search and reuse
 
  - / step, blocksize, ibuf
    - min blocksize after pass 1
    - how to optimize if min(bs) > 1?
+   - x kinesis rate param for blocks = blocksize: introduced 'rate' parameter
    - x make prim blocks blocksize aware
    - x check if logging still works properly
    - x basic blocksize handling
@@ -99,6 +107,7 @@ to the bottom as they consolidate, hottest items at the top.
  - x logging
    - x std logging OK
    - x include git revision, initial and final config in log
+   - x profiling: logging: make logging internal blocksize
 
  - misc stuff
    - x separate header/footer for full config file to remove code
