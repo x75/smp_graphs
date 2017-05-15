@@ -7,7 +7,7 @@ from smp_base.plot import histogramnd
 from smp_graphs.block_plot import SnsMatrixPlotBlock2, ImgPlotBlock2
 from smp_graphs.block import dBlock2, IBlock2, SliceBlock2, DelayBlock2
 from smp_graphs.block_meas import XCorrBlock2
-from smp_graphs.block_meas_infth import MIBlock2
+from smp_graphs.block_meas_infth import MIBlock2, InfoDistBlock2
 
 # numsteps = 147000
 numsteps = 10000
@@ -81,12 +81,35 @@ graph = OrderedDict([
                     'debug': True,
                     'inputs': {'x': ['puppylog/x'], 'y': ['puppylog/y']},
                     'shift': (-20, 21),
-                    'outputs': {'mi': [(ydim * xdim, 1)]}
+                    'outputs': {'mi': [((ydim + xdim)**2, 1)]}
                 }
             },
         }
     }),
     
+    # mutual information analysis of data
+    ('infodist', {
+        'block': LoopBlock2,
+        'params': {
+            'id': 'infodist',
+            'loop': [('inputs', {'x': ['puppylog/x'], 'y': ['puppylog/y']}),
+                     # ('inputs', {'x': ['puppylog/x'], 'y': ['puppylog/r']}),
+                     # ('inputs', {'x': ['puppylog/y'], 'y': ['puppylog/r']}),
+            ],
+            'loopblock': {
+                'block': InfoDistBlock2,
+                'params': {
+                    'id': 'infodist',
+                    'blocksize': numsteps,
+                    'debug': True,
+                    'inputs': {'x': ['puppylog/x'], 'y': ['puppylog/y']},
+                    'shift': (-20, 21),
+                    'outputs': {'infodist': [((ydim + xdim)**2, 1)]}
+                }
+            },
+        }
+    }),
+
     # # mutual information analysis of data
     # ('mi2', {
     #     'block': MIBlock2,
@@ -208,11 +231,14 @@ graph = OrderedDict([
             'logging': False,
             'debug': False,
             'blocksize': numsteps,
-            'inputs': {'d1': ['mi_1/mi']},
+            'inputs': {'d1': ['mi_1/mi'], 'd2': ['infodist_1/infodist']},
             'outputs': {}, #'x': [(3, 1)]},
             'subplots': [
                 [
-                    {'input': 'd1', 'xslice': (0, xdim * ydim), 'plot': 'bla'},
+                    {'input': 'd1', 'xslice': (0, (xdim + ydim)**2),
+                         'shape': (xdim+ydim, xdim+ydim), 'plot': 'bla'},
+                    {'input': 'd2', 'xslice': (0, (xdim + ydim)**2),
+                         'shape': (xdim+ydim, xdim+ydim), 'plot': 'bla'},
                 ],
             ],
         },

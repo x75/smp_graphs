@@ -1,5 +1,6 @@
 
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -208,7 +209,7 @@ class ImgPlotBlock2(FigPlotBlock2):
                     idx = (i*self.fig_cols)+j
 
                     plotdata = {}
-                    plotdata['i_%d_%d' % (i, j)] = self.inputs[subplotconf['input']][0][:,0].reshape((4, 6))
+                    plotdata['i_%d_%d' % (i, j)] = self.inputs[subplotconf['input']][0][:,0].reshape(subplotconf['shape'])
                     plotvar = self.inputs[subplotconf['input']][2]
                                             
                     # plot the plotdata
@@ -221,7 +222,14 @@ class ImgPlotBlock2(FigPlotBlock2):
                         ax = self.fig.axes[idx]
                         # mormalize to [0, 1]
                         # mpl = ax.imshow(inv, interpolation = "none")
-                        mpl = ax.pcolormesh(inv)
+                        Linv = np.log(inv + 1)
+                        mpl = ax.pcolormesh(Linv)
                         ax.grid()
+                        # Linv = inv
+                        # mpl = ax.pcolormesh(
+                        #     Linv,
+                        #     norm = colors.LogNorm(vmin=Linv.min(), vmax=Linv.max()))
+                        # ax.grid()
+                        # plt.colorbar(mappable = mpl, ax = ax)
                         plt.colorbar(mappable = mpl, ax = ax)
                     ax.set_title("%s of %s" % ('matrix', plotvar, ), fontsize=8)
