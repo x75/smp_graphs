@@ -189,7 +189,8 @@ Arguments:
 
     # always copy current data into array
     sl = slice(sl1, sl2)
-    # print "log_pd sl = %s, data.shape = %s" % (sl, data.shape)
+    assert len(data.shape) == 2, "data of %s is multidimensional array with shape %s, not fully supported yet" % (tbl_name, data.shape)
+    # print "%s log_pd sl = %s, data.shape = %s" % (tbl_name, sl, data.shape)
     # if cloc == 1 and blocksize > 1:
     #     log_logarray[tbl_name][:,sl] = data[:,1:].copy()
     # else:

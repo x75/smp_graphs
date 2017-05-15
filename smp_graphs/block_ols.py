@@ -27,6 +27,25 @@ class FileBlock2(Block2):
             # setattr(self, 'x', self.data['x'])
             # setattr(self, 'x', self.data['x'])
             self.step = self.step_puppy
+        # sphero res learner
+        elif conf['params']['type'] == 'sphero_res_learner':
+            self.data = np.load(lfile)
+            print "fileblock self.data sphero", self.data.keys()
+            del conf['params']['outputs']['log']
+            # for k in self.data.keys():
+            for k in ['x', 'z', 't']:
+                sl = slice(None)
+                k_ = k
+                if k is 'z':
+                    k_ = 'y'
+                elif k == 't': # target
+                    sl = slice(0, 1)
+                else:
+                    pass
+
+                conf['params']['outputs'][k_] = [self.data[k][:,sl].T.shape]
+            self.step = self.step_sphero_res_learner
+            print "fileblock sphero_res_learner conf", conf['params']['outputs']
         # selflogconfs
         elif conf['params']['type'] == 'selflogconf':
             self.store = pd.HDFStore(lfile)
@@ -83,6 +102,25 @@ class FileBlock2(Block2):
                 setattr(self, k, self.data[k][sl].T)
                 # setattr(self, k, self.data[k][[self.cnt]].T)
             
+    @decStep()
+    def step_sphero_res_learner(self, x = None):
+        self.debug_print("%s.step: x = %s, bus = %s", (self.__class__.__name__, x, self.bus))
+        # self.x = np.atleast_2d(self.data[[self.cnt]]).T #?
+        self.debug_print("self.x = %s", (self.x,))
+        if (self.cnt % self.blocksize) == 0: # (self.blocksize - 1):
+            for k, v in self.outputs.items():
+                sl = slice(self.cnt-self.blocksize, self.cnt)
+                sl2 = slice(None)
+                k_ = k
+                if k is 'y':
+                    k_ = 'z'
+                elif k == 't':
+                    sl2 = slice(0, 1)
+                else:
+                    pass
+                setattr(self, k, self.data[k_][sl,sl2].T)
+                # setattr(self, k, self.data[k][[self.cnt]].T)
+                
     @decStep()
     def step_selflog(self, x = None):
         if (self.cnt % self.blocksize) == 0:

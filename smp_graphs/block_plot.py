@@ -63,9 +63,9 @@ class PlotBlock2(FigPlotBlock2):
             for i, subplot in enumerate(self.subplots):
                 for j, subplotconf in enumerate(subplot):
                     idx = (i*self.fig_cols)+j
-                    self.debug_print("[%s]step idx = %d, conf = %s, data = %s/%s", (
-                        self.id, idx,
-                        subplotconf, subplotconf['input'], self.inputs[subplotconf['input']]))
+                    # self.debug_print("[%s]step idx = %d, conf = %s, data = %s/%s", (
+                    #     self.id, idx,
+                    #     subplotconf, subplotconf['input'], self.inputs[subplotconf['input']]))
                     # self.inputs[subplotconf['input']][0]))
 
                     # x axis slice spec
@@ -179,7 +179,8 @@ params
         g = sns.PairGrid(df)
         g.map_diag(plt.hist)
         # g.map_diag(sns.kdeplot)
-        g.map_offdiag(plt.hexbin, cmap="gray", gridsize=20, bins="log");
+        g.map_offdiag(plt.hexbin, cmap="gray", gridsize=40, bins="log");
+        # g.map_offdiag(plt.histogram2d, cmap="gray", bins=30)
         # g.map_offdiag(plt.plot, linestyle = "None", marker = "o", alpha = 0.5) # , bins="log");
 
         # print "dir(g)", dir(g)
@@ -202,14 +203,47 @@ class ImgPlotBlock2(FigPlotBlock2):
         FigPlotBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
     def plot_subplots(self):
+        numrows = len(self.subplots)
+        numcols = len(self.subplots[0])
+        
+        vmins_sb = [[] for i in range(numcols)]
+        vmaxs_sb = [[] for i in range(numcols)]
 
+        vmins = [None for i in range(numcols)]
+        vmaxs = [None for i in range(numcols)]
+        
+        for i, subplot in enumerate(self.subplots):
+            for j, subplotconf in enumerate(subplot):
+                print "j", j, vmins_sb, vmaxs_sb
+                vmins_sb[j].append(np.min(self.inputs[subplotconf['input']][0]))
+                vmaxs_sb[j].append(np.max(self.inputs[subplotconf['input']][0]))
+        vmins_sb = np.array(vmins_sb)
+        vmaxs_sb = np.array(vmaxs_sb)
+        print "vmins_sb, vmaxs_sb", i, j, vmins_sb.shape, vmaxs_sb.shape
+
+        for i in range(numcols):
+            vmins[i] = np.min(vmins_sb[i])
+            # vmins[1] = np.min(vmins_sb[1])
+            vmaxs[i] = np.max(vmaxs_sb[i])
+            # vmaxs[1] = np.max(vmaxs_sb[1])
+
+        print "vmins, vmaxs", i, vmins, vmaxs
+
+        if True:
             for i, subplot in enumerate(self.subplots):
                 for j, subplotconf in enumerate(subplot):
                     # ink = subplot
                     idx = (i*self.fig_cols)+j
+                    print "self.inputs[subplotconf['input']][0].shape", self.inputs[subplotconf['input']][0].shape
 
+                    xslice = slice(subplotconf['xslice'][0], subplotconf['xslice'][1])
+                    print "xslice", xslice
+
+                    # plotdata_cand = self.inputs[subplotconf['input']][0][:,0]
+                    plotdata_cand = self.inputs[subplotconf['input']][0][xslice,0]
+                    
                     plotdata = {}
-                    plotdata['i_%d_%d' % (i, j)] = self.inputs[subplotconf['input']][0][:,0].reshape(subplotconf['shape'])
+                    plotdata['i_%d_%d' % (i, j)] = plotdata_cand.reshape(subplotconf['shape'])
                     plotvar = self.inputs[subplotconf['input']][2]
                                             
                     # plot the plotdata
@@ -222,8 +256,9 @@ class ImgPlotBlock2(FigPlotBlock2):
                         ax = self.fig.axes[idx]
                         # mormalize to [0, 1]
                         # mpl = ax.imshow(inv, interpolation = "none")
-                        Linv = np.log(inv + 1)
-                        mpl = ax.pcolormesh(Linv)
+                        # Linv = np.log(inv + 1)
+                        Linv = inv
+                        mpl = ax.pcolormesh(Linv, vmin = vmins[j], vmax = vmaxs[j])
                         ax.grid()
                         # Linv = inv
                         # mpl = ax.pcolormesh(
@@ -231,5 +266,10 @@ class ImgPlotBlock2(FigPlotBlock2):
                         #     norm = colors.LogNorm(vmin=Linv.min(), vmax=Linv.max()))
                         # ax.grid()
                         # plt.colorbar(mappable = mpl, ax = ax)
-                        plt.colorbar(mappable = mpl, ax = ax)
-                    ax.set_title("%s of %s" % ('matrix', plotvar, ), fontsize=8)
+                    # ax.set_aspect(1)
+                    # plt.colorbar(mappable = mpl, ax = ax, orientation = "horizontal")
+                    # ax.set_title("%s of %s" % ('matrix', plotvar, ), fontsize=8)
+                    ax.set_xlabel("")
+                    ax.set_ylabel("")
+                    ax.set_xticks([])
+                    ax.set_yticks([])
