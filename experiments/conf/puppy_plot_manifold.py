@@ -9,6 +9,8 @@ from smp_graphs.block import dBlock2, IBlock2, SliceBlock2, DelayBlock2
 from smp_graphs.block_meas import XCorrBlock2
 from smp_graphs.block_meas_infth import MIBlock2, InfoDistBlock2, TEBlock2, CTEBlock2
 
+showplot = False
+
 # numsteps = 147000
 # numsteps = 10000
 # numsteps = 2000
