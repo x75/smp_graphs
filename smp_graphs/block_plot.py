@@ -23,13 +23,16 @@ params
 """
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
+        # defaults
+        self.wspace = 0.0
+        self.hspace = 0.0
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
         # configure figure and plot axes
         self.fig_rows = len(self.subplots)
         self.fig_cols = len(self.subplots[0])
         # create figure
-        self.fig = makefig(rows = self.fig_rows, cols = self.fig_cols)
+        self.fig = makefig(rows = self.fig_rows, cols = self.fig_cols, wspace = self.wspace, hspace = self.hspace)
         # self.debug_print("fig.axes = %s", (self.fig.axes, ))
         
     @decStep()
@@ -129,12 +132,15 @@ class PlotBlock2(FigPlotBlock2):
                         
                         
                     # plot the plotdata
+                    labels = []
                     for ink, inv in plotdata.items():
                         # print "%s.plot_subplots: ink = %s, plotvar = %s, inv.sh = %s, t.sh = %s" % (self.cname, ink, plotvar, inv.shape, t.shape)
                         subplotconf['plot'](
                             self.fig.axes[idx],
-                            data = inv, ordinate = t)
+                            data = inv, ordinate = t, label = "%s" % ink)
+                        # labels.append("%s" % ink)
                         # metadata
+                    self.fig.axes[idx].legend()
                     self.fig.axes[idx].set_title("%s of %s" % (plottype, plotvar, ), fontsize=8)
                     # [subplotconf['slice'][0]:subplotconf['slice'][1]].T)
 

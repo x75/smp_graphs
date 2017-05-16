@@ -21,22 +21,24 @@ class FileBlock2(Block2):
         # if self.odim == 'auto':
         # print conf
         lfile = conf['params']['file'][0]
+        ############################################################
         # puppy homeokinesis (andi)
         if conf['params']['type'] == 'puppy':
             (self.data, self.rate, self.offset) = read_puppy_hk_pickles(lfile)
             # setattr(self, 'x', self.data['x'])
             # setattr(self, 'x', self.data['x'])
             self.step = self.step_puppy
+        ############################################################
         # sphero res learner
         elif conf['params']['type'] == 'sphero_res_learner':
             self.data = np.load(lfile)
             print "fileblock self.data sphero", self.data.keys()
             del conf['params']['outputs']['log']
             # for k in self.data.keys():
-            for k in ['x', 'z', 't']:
+            for k in ['x', 'zn', 't']:
                 sl = slice(None)
                 k_ = k
-                if k is 'z':
+                if k is 'zn':
                     k_ = 'y'
                 elif k == 't': # target
                     sl = slice(0, 1)
@@ -46,10 +48,34 @@ class FileBlock2(Block2):
                 conf['params']['outputs'][k_] = [self.data[k][:,sl].T.shape]
             self.step = self.step_sphero_res_learner
             print "fileblock sphero_res_learner conf", conf['params']['outputs']
+        ############################################################
+        # test data format 1
+        elif conf['params']['type'] == 'testdata1':
+            self.data = np.load(lfile)
+            print "fileblock self.data testdata1", self.data.keys()
+            del conf['params']['outputs']['log']
+            for k in self.data.keys():
+            # for k in ['x', 'zn', 't']:
+                sl = slice(None)
+                k_ = k
+                # if k is 'zn':
+                #     k_ = 'y'
+                # elif k == 't': # target
+                #     sl = slice(0, 1)
+                # else:
+                #     pass
+
+                conf['params']['outputs'][k_] = [self.data[k][:,sl].shape]
+            self.step = self.step_testdata1
+            print "fileblock testdata1 conf", conf['params']['outputs']
+            
+        ############################################################
         # selflogconfs
         elif conf['params']['type'] == 'selflogconf':
             self.store = pd.HDFStore(lfile)
             self.step = self.step_selflogconf
+        ############################################################
+        # selflog
         elif conf['params']['type'] == 'selflog':
             assert os.path.exists(lfile), "logfile %s not found" % (lfile, )
             self.store = pd.HDFStore(lfile)
@@ -113,13 +139,25 @@ class FileBlock2(Block2):
                 sl2 = slice(None)
                 k_ = k
                 if k is 'y':
-                    k_ = 'z'
+                    k_ = 'zn'
                 elif k == 't':
                     sl2 = slice(0, 1)
                 else:
                     pass
                 setattr(self, k, self.data[k_][sl,sl2].T)
                 # setattr(self, k, self.data[k][[self.cnt]].T)
+                
+    @decStep()
+    def step_testdata1(self, x = None):
+        self.debug_print("%s.step: x = %s, bus = %s", (self.__class__.__name__, x, self.bus))
+        # self.x = np.atleast_2d(self.data[[self.cnt]]).T #?
+        self.debug_print("self.x = %s", (self.x,))
+        if (self.cnt % self.blocksize) == 0: # (self.blocksize - 1):
+            for k, v in self.outputs.items():
+                k_ = k
+                sl = slice(self.cnt-self.blocksize, self.cnt)
+                sl2 = slice(None)
+                setattr(self, k, self.data[k_][sl,sl2])
                 
     @decStep()
     def step_selflog(self, x = None):

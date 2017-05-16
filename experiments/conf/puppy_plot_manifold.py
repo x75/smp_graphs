@@ -9,21 +9,21 @@ from smp_graphs.block import dBlock2, IBlock2, SliceBlock2, DelayBlock2
 from smp_graphs.block_meas import XCorrBlock2
 from smp_graphs.block_meas_infth import MIBlock2, InfoDistBlock2, TEBlock2, CTEBlock2
 
-showplot = False
+# showplot = False
 
 # numsteps = 147000
-# numsteps = 10000
+numsteps = 10000
 # numsteps = 2000
-# xdim = 6
-# ydim = 4
+xdim = 6
+ydim = 4
 
 # numsteps = 1000
 # xdim = 1
 # ydim = 1
 
-numsteps = 5000
-xdim = 2
-ydim = 1
+# numsteps = 5000
+# xdim = 2
+# ydim = 1
 
 def make_input_matrix(xdim = 1, ydim = 1):
     import numpy as np
@@ -39,20 +39,20 @@ graph = OrderedDict([
         'params': {
             'id': 'puppylog',
             'inputs': {},
-            # 'type': 'selflog',
-            'type': 'sphero_res_learner',
+            'type': 'selflog',
+            # 'type': 'sphero_res_learner',
             'file': [
                 # all files 147000
                 # 'data/experiment_20170510_155432_puppy_process_logfiles_pd.h5',
                 # medium version 10000
-                # 'data/experiment_20170511_145725_puppy_process_logfiles_pd.h5',
+                'data/experiment_20170511_145725_puppy_process_logfiles_pd.h5',
                 # short version 2000
                 # 'data/experiment_20170510_173800_puppy_process_logfiles_pd.h5',
                 # test data
                 # 'data/experiment_20170512_171352_generate_sin_noise_pd.h5',
                 # 'data/experiment_20170512_170835_generate_sin_noise_pd.h5',
                 # 'data/experiment_20170512_153409_generate_sin_noise_pd.h5',
-                '../../smp_infth/sphero_res_learner_1D/log-learner-20150315-223835-eta-0.001000-theta-0.200000-g-0.999000-target-sine.npz',
+                # '../../smp_infth/sphero_res_learner_1D/log-learner-20150315-223835-eta-0.001000-theta-0.200000-g-0.999000-target-sine.npz',
                 # '../../smp_infth/sphero_res_learner_1D/log-learner-20150313-224329.npz',
             ],
             'blocksize': numsteps,
@@ -122,28 +122,28 @@ graph = OrderedDict([
     #     }
     # }),
 
-    # mutual information analysis of data
-    ('te', {
-        'block': LoopBlock2,
-        'params': {
-            'id': 'te',
-            'loop': [('inputs', {'x': ['puppylog/x'], 'y': ['puppylog/y']}),
-                     # ('inputs', {'x': ['puppylog/x'], 'y': ['puppylog/r']}),
-                     # ('inputs', {'x': ['puppylog/y'], 'y': ['puppylog/r']}),
-            ],
-            'loopblock': {
-                'block': TEBlock2,
-                'params': {
-                    'id': 'te',
-                    'blocksize': numsteps,
-                    'debug': True,
-                    'inputs': {'x': ['puppylog/x'], 'y': ['puppylog/y']},
-                    'shift': (-10, 11),
-                    'outputs': {'te': [(21 * ydim * xdim, 1)]}
-                }
-            },
-        }
-    }),
+    # # mutual information analysis of data
+    # ('te', {
+    #     'block': LoopBlock2,
+    #     'params': {
+    #         'id': 'te',
+    #         'loop': [('inputs', {'x': ['puppylog/x'], 'y': ['puppylog/y']}),
+    #                  # ('inputs', {'x': ['puppylog/x'], 'y': ['puppylog/r']}),
+    #                  # ('inputs', {'x': ['puppylog/y'], 'y': ['puppylog/r']}),
+    #         ],
+    #         'loopblock': {
+    #             'block': TEBlock2,
+    #             'params': {
+    #                 'id': 'te',
+    #                 'blocksize': numsteps,
+    #                 'debug': True,
+    #                 'inputs': {'x': ['puppylog/x'], 'y': ['puppylog/y']},
+    #                 'shift': (-10, 11),
+    #                 'outputs': {'te': [(21 * ydim * xdim, 1)]}
+    #             }
+    #         },
+    #     }
+    # }),
     
     # mutual information analysis of data
     ('te', {
@@ -173,7 +173,7 @@ graph = OrderedDict([
         'block': LoopBlock2,
         'params': {
             'id': 'cte',
-            'loop': [('inputs', {'x': ['puppylog/x'], 'y': ['puppylog/y'], 'cond': ['puppylog/t']}),
+            'loop': [('inputs', {'x': ['puppylog/x'], 'y': ['puppylog/y'], 'cond': ['puppylog/y']}),
                      # ('inputs', {'x': ['puppylog/x'], 'y': ['puppylog/r']}),
                      # ('inputs', {'x': ['puppylog/y'], 'y': ['puppylog/r']}),
             ],
@@ -183,7 +183,7 @@ graph = OrderedDict([
                     'id': 'cte',
                     'blocksize': numsteps,
                     'debug': True,
-                    'inputs': {'x': ['puppylog/x'], 'y': ['puppylog/y'], 'cond': ['puppylog/t']},
+                    'inputs': {'x': ['puppylog/x'], 'y': ['puppylog/y'], 'cond': ['puppylog/y']},
                     'shift': (-10, 11),
                     'outputs': {'cte': [(21 * ydim * xdim, 1)]}
                 }
@@ -268,7 +268,7 @@ graph = OrderedDict([
                 'd3': ['puppylog/x'],
                 'd4': ['puppylog/y'], # 'puppylog/y']
                 'd5': ['motordel/dy'], # 'puppylog/y']
-                'd6': ['puppylog/t'],
+                'd6': ['puppylog/y'], # /t
             },
             'outputs': {},#'x': [(3, 1)]},
             'subplots': [
@@ -281,7 +281,7 @@ graph = OrderedDict([
                     {'input': 'd4', 'plot': histogram},
                 ],
                 [
-                    {'input': ['d3', 'd5'], 'plot': timeseries},
+                    {'input': ['d3', 'd4', 'd5'], 'plot': partial(timeseries, marker = ".")},
                     {'input': 'd6', 'plot': timeseries},
                 ],
             ]

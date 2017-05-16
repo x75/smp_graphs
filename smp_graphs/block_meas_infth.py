@@ -3,7 +3,7 @@
 
 import numpy as np
 
-from smp_base.measures_infth import measMI, measH, compute_mutual_information, infth_mi_multivariate, compute_information_distance, compute_transfer_entropy, compute_conditional_transfer_entropy
+from smp_base.measures_infth import measMI, measH, compute_mutual_information, infth_mi_multivariate, compute_information_distance, compute_transfer_entropy, compute_conditional_transfer_entropy, compute_mi_multivariate, compute_transfer_entropy_multivariate
 
 from smp_graphs.block import decInit, decStep, Block2, PrimBlock2
 
@@ -141,3 +141,70 @@ class CTEBlock2(PrimBlock2):
 
         mis = np.array(mis)
         self.cte[:,0] = mis.flatten()
+
+################################################################################
+# multivariate versions
+class MIMVBlock2(PrimBlock2):
+    """Compute cross-correlation functions among all variables in dataset"""
+    def __init__(self, conf = {}, paren = None, top = None):
+        PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
+
+        # self.meas = measMI()
+        # self.measH = measH()
+
+    @decStep()
+    def step(self, x = None):
+        # print "%s meas = %s" % (self.cname, self.meas)
+        mis = []
+        jhs = []
+        src = self.inputs['y'][0].T
+        dst = self.inputs['x'][0].T
+        
+        for i in range(self.shift[0], self.shift[1]):
+            # print "self.inputs['x'][0].T.shape", self.inputs['x'][0].T.shape
+            dst_ = np.roll(dst, shift = i, axis = 0)
+            
+            # st = np.hstack((src, dst))
+            # jh = self.measH.step(st)
+            # mi = self.meas.step(st, st)
+
+            mi = compute_mi_multivariate(data = {'X': src, 'Y': dst_}, estimator = "kraskov2", normalize = True)
+            # print "mimv = %s" % mi
+            mis.append(mi)
+            # jhs.append(jh)
+
+        mis = np.array(mis)
+        # jhs = np.array(jhs)
+        print "mis.shape = %s" % (mis.shape, )
+                    
+        # mi = self.meas.step(self.inputs['x'][0].T, self.inputs['y'][0].T)
+        # np.fill_diagonal(mi, np.min(mi))
+        # print "%s.%s mi = %s, jh = %s, normalized mi = mi/jh = %s" % (self.cname, self.id, mi, jh, mi/jh)
+
+        # maxjh = np.max(jhs)
+        # print "mutual info self.mi.shape = %s, mi.shape = %s, maxjh = %s" % (self.mi.shape, mi.shape, maxjh)
+        
+        # self.mi[:,0] = (mi/jh).flatten()
+        self.mimv[0,:(self.shift[1] - self.shift[0])] = mis.flatten() # /maxjh
+
+class TEMVBlock2(PrimBlock2):
+    def __init__(self, conf = {}, paren = None, top = None):
+        PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
+
+    @decStep()
+    def step(self, x = None):
+        mis = []
+        # jh = self.measH.step(st)
+        src = self.inputs['y'][0].T
+        dst = self.inputs['x'][0].T
+        for i in range(self.shift[0], self.shift[1]):
+            dst_ = np.roll(dst, shift = i, axis = 0)
+            
+            # st = np.hstack((src, dst))
+            
+            # mi = compute_transfer_entropy_multivariate(src, dst, delay = -self.shift[0]+i)
+            mi = compute_transfer_entropy_multivariate(src, dst_, delay = 0)
+            mis.append(mi)
+
+        mis = np.array(mis)
+        self.temv[0,:(self.shift[1] - self.shift[0])] = mis.flatten()

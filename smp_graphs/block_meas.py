@@ -40,7 +40,8 @@ class XCorrBlock2(PrimBlock2):
                 # print "outk = %s, outsh = %s" % (outk, outsh,)
                 # self.outputs[outk][0] = arraytosumraw[i,[j]]
                 outv = getattr(self, outk)
-                outv[:,:41] = arraytosumraw[i,[j]]
+                outsl = slice(0, self.shift[1] - self.shift[0])
+                outv[:,outsl] = arraytosumraw[i,[j]]
                 # setattr(self, outk, arraytosumraw[i,[j]])
                 # print "self.%s = %s" % (outk, getattr(self, outk))
 
@@ -51,15 +52,18 @@ class XCorrBlock2(PrimBlock2):
         # plt.show()
 
 def f1(d, j, k, shift = (-10, 11)):
-    # print "dx.sh", d['x'].shape
-    # print "dy.sh", d['y'].T.shape
-    # return np.abs(
+    # # this makes an implicit diff on the y signal
+    # return np.array([
+    #     np.correlate(
+    #         np.roll(d['x'].T[1:,j], shift = i),
+    #         np.diff(d['y'].T[:,k], axis = 0)) for i in range(shift[0], shift[1])
+    #     ])
+    # don't do that
     return np.array([
         np.correlate(
-            np.roll(d['x'].T[1:,j], shift = i),
-            np.diff(d['y'].T[:,k], axis = 0)) for i in range(shift[0], shift[1])
+            np.roll(d['x'].T[:,j], shift = i),
+            d['y'].T[:,k]) for i in range(shift[0], shift[1])
         ])
-    # )
     
 def f2(d, k, shift = (-10, 11), xdim = 1):
     return np.array([f1(d, j, k, shift = shift) for j in range(xdim)])
