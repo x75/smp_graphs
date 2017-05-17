@@ -24,7 +24,7 @@ class XCorrBlock2(PrimBlock2):
             d[k] = self.inputs[k][0]
             # print "%s.step d[%s] = %s / %s" % (self.cname, k, d[k].shape, self.inputs[k][0])
 
-        arraytosumraw = np.array([f2(d, k, shift = self.shift, xdim = self.xdim) for k in range(self.ydim)]).reshape((self.ydim, self.xdim, 41))
+        arraytosumraw = np.array([f2(d, k, shift = self.shift, xdim = self.xdim) for k in range(self.ydim)]).reshape((self.ydim, self.xdim, self.shift[1] - self.shift[0]))
         # print "%s.step arraytosumraw.sh = %s" % (self.cname, arraytosumraw.shape)
         # for i in range(self.ydim):
         #     print "%s.step arraytosumraw.sh = %s" % (self.cname, arraytosumraw[0,i,:])
@@ -59,11 +59,19 @@ def f1(d, j, k, shift = (-10, 11)):
     #         np.diff(d['y'].T[:,k], axis = 0)) for i in range(shift[0], shift[1])
     #     ])
     # don't do that
-    return np.array([
-        np.correlate(
-            np.roll(d['x'].T[:,j], shift = i),
-            d['y'].T[:,k]) for i in range(shift[0], shift[1])
-        ])
+    x = d['x'].T[:,j]
+    y = d['y'].T[:,k]
+    scov = np.std(x) * np.std(y)
+    x -= np.mean(x)
+    x /= scov
+    y -= np.mean(y)
+    y /= scov
+    corr = np.array([
+        np.correlate(np.roll(x, shift = i), y) for i in range(shift[0], shift[1])
+    ])/y.shape[0]
+    # this is correct if the inputs are the same size
+    # print "f1 corr = %s" % (corr,)
+    return corr
     
 def f2(d, k, shift = (-10, 11), xdim = 1):
     return np.array([f1(d, j, k, shift = shift) for j in range(xdim)])

@@ -46,7 +46,7 @@ params
         self.fig_cols = len(self.subplots[0])
         # create figure
         self.fig = makefig(rows = self.fig_rows, cols = self.fig_cols, wspace = self.wspace, hspace = self.hspace)
-        self.fig.tight_layout(pad = 1.0)
+        # self.fig.tight_layout(pad = 1.0)
         # self.debug_print("fig.axes = %s", (self.fig.axes, ))
         
     @decStep()
@@ -80,8 +80,8 @@ params
         subplotstr = "_".join(np.array([["r%d_c%d_%s" % (r, c, "_".join(subplot_input_fix(sbc['input'])),) for c,sbc in enumerate(sbr)] for r, sbr in enumerate(plotinst.subplots)]).flatten())
         filename = "data/%s_%s_%s_%s.%s" % (plotinst.top.id, plotinst.id, "_".join(plotinst.inputs.keys()), subplotstr, plotinst.savetype)
         print "%s.save filename = %s, subplotstr = %s" % (plotinst.cname, filename, subplotstr)
-        plotinst.fig.set_size_inches((plotinst.fig_cols * 4, plotinst.fig_rows * 2.4))
-        plotinst.fig.savefig(filename, dpi=300, bbox_inches="tight")        
+        plotinst.fig.set_size_inches((plotinst.fig_cols * 2 * 2.5, plotinst.fig_rows * 1.2 * 2.5))
+        plotinst.fig.savefig(filename, dpi=300, bbox_inches="tight")
 
 class PlotBlock2(FigPlotBlock2):
     def __init__(self, conf = {}, paren = None, top = None):
@@ -172,7 +172,7 @@ class PlotBlock2(FigPlotBlock2):
                             data = inv, ordinate = t, label = "%s" % ink, title = title)
                         # labels.append("%s" % ink)
                         # metadata
-                    self.fig.axes[idx].legend()
+                    # self.fig.axes[idx].legend()
                     # self.fig.axes[idx].set_title("%s of %s" % (plottype, plotvar, ), fontsize=8)
                     # [subplotconf['slice'][0]:subplotconf['slice'][1]].T)
 
@@ -254,11 +254,11 @@ class ImgPlotBlock2(FigPlotBlock2):
         vmins = [None for i in range(numcols)]
         vmaxs = [None for i in range(numcols)]
         
-        for i, subplot in enumerate(self.subplots):
-            for j, subplotconf in enumerate(subplot):
-                print "j", j, vmins_sb, vmaxs_sb
+        for i, subplot in enumerate(self.subplots): # rows
+            for j, subplotconf in enumerate(subplot): # cols
                 vmins_sb[j].append(np.min(self.inputs[subplotconf['input']][0]))
                 vmaxs_sb[j].append(np.max(self.inputs[subplotconf['input']][0]))
+                # print "i", i, "j", j, vmins_sb, vmaxs_sb
         vmins_sb = np.array(vmins_sb)
         vmaxs_sb = np.array(vmaxs_sb)
         print "vmins_sb, vmaxs_sb", i, j, vmins_sb.shape, vmaxs_sb.shape
@@ -274,20 +274,28 @@ class ImgPlotBlock2(FigPlotBlock2):
         if True:
             for i, subplot in enumerate(self.subplots):
                 for j, subplotconf in enumerate(subplot):
+                    assert subplotconf.has_key('shape'), "image plot needs shape spec"
+                    assert subplotconf.has_key('xslice'), "image plot needs shape spec"
                     # ink = subplot
                     idx = (i*self.fig_cols)+j
                     print "self.inputs[subplotconf['input']][0].shape", self.inputs[subplotconf['input']][0].shape
 
                     xslice = slice(subplotconf['xslice'][0], subplotconf['xslice'][1])
-                    print "xslice", xslice
+                    print "xslice", xslice, self.inputs[subplotconf['input']][0].shape
 
                     # plotdata_cand = self.inputs[subplotconf['input']][0][:,0]
-                    plotdata_cand = self.inputs[subplotconf['input']][0][xslice,0]
+                    # plotdata_cand = self.inputs[subplotconf['input']][0][xslice,0]
+                    plotdata_cand = self.inputs[subplotconf['input']][0][:,xslice]
+                    print "plotdata_cand.shape", plotdata_cand.shape
                     
                     plotdata = {}
                     plotdata['i_%d_%d' % (i, j)] = plotdata_cand.reshape(subplotconf['shape'])
                     plotvar = self.inputs[subplotconf['input']][2]
-                                            
+
+                    if not subplotconf.has_key('cmap'):
+                        subplotconf['cmap'] = 'gray'
+                    cmap = plt.get_cmap(subplotconf['cmap'])
+                                                                
                     # plot the plotdata
                     for ink, inv in plotdata.items():
                         print "%s.plot_subplots: ink = %s, plotvar = %s, inv.sh = %s" % (self.cname, ink, plotvar, inv.shape)
@@ -300,7 +308,7 @@ class ImgPlotBlock2(FigPlotBlock2):
                         # mpl = ax.imshow(inv, interpolation = "none")
                         # Linv = np.log(inv + 1)
                         Linv = inv
-                        mpl = ax.pcolormesh(Linv, vmin = vmins[j], vmax = vmaxs[j])
+                        mpl = ax.pcolormesh(Linv, vmin = vmins[j], vmax = vmaxs[j], cmap = cmap)
                         ax.grid()
                         # Linv = inv
                         # mpl = ax.pcolormesh(

@@ -25,8 +25,15 @@ class FileBlock2(Block2):
         # puppy homeokinesis (andi)
         if conf['params']['type'] == 'puppy':
             (self.data, self.rate, self.offset) = read_puppy_hk_pickles(lfile)
+            # print "self.data", self.data.keys()
+            # for k,v in self.data.items():
+            #     if type(v) is np.ndarray:
+            #         print "puppylog", k, lfile, v.shape, np.mean(v), np.var(v), v
             # setattr(self, 'x', self.data['x'])
             # setattr(self, 'x', self.data['x'])
+            # conf['params']['outputs'][k_] = [v.shape]
+            # conf['params']['blocksize'] = v.shape[0]
+            # assert filedata eq blocksize
             self.step = self.step_puppy
         ############################################################
         # sphero res learner
@@ -119,9 +126,9 @@ class FileBlock2(Block2):
     
     @decStep()
     def step_puppy(self, x = None):
-        self.debug_print("%s.step: x = %s, bus = %s", (self.__class__.__name__, x, self.bus))
+        self.debug_print("%s.step: x = %s, bus = %s", (self.__class__.__name__, self.x, self.bus))
         # self.x = np.atleast_2d(self.data[[self.cnt]]).T #?
-        self.debug_print("self.x = %s", (self.x,))
+        # self.debug_print("self.x = %s", (self.x,))
         if (self.cnt % self.blocksize) == 0: # (self.blocksize - 1):
             for k, v in self.outputs.items():                
                 sl = slice(self.cnt-self.blocksize, self.cnt)

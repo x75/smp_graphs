@@ -12,17 +12,18 @@ from smp_graphs.block import SeqLoopBlock2
 #     ('file', ['data/pickles_puppy_03_22_14U/recording_eC0.00_eA0.26_c0.50_n1000_id0.pickle']),
 # ]
 
-f = open('data/goodPickles/allpickles.txt')
+# f = open('data/goodPickles/allpickles.txt')
+f = open('data/stepPickles/allpickles.txt')
 filearray = [fname.rstrip() for fname in f.readlines()]
 f.close()
 
 # sys.exit()
 
-filearray_ = np.random.choice(filearray, size=(10,), replace=False).tolist()
+# filearray_ = np.random.choice(filearray, size=(10,), replace=False).tolist()
 # print "choice", 
 # print looparray_
 # looparray = looparray_
-looparray = [('file', [fname]) for fname in filearray_]
+looparray = [('file', [fname]) for fname in filearray]
 print "looparray", looparray
 
 loopblocksize = 1000
@@ -35,7 +36,7 @@ loopblock = {
             'id': 'puppylog',
             'logging': False,
             'inputs': {},
-            'debug': True,
+            'debug': False,
             'blocksize': loopblocksize,
             'type': 'puppy',
             # 'inputs': {'file': [

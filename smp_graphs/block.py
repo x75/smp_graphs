@@ -673,6 +673,7 @@ class SeqLoopBlock2(Block2):
                 # FIXME: handle loopblock blocksizes greater than one
                 # self.__dict__[outk][:,[i]] = np.mean(getattr(dynblock, outk), axis = 1, keepdims = True)
                 outslice = slice(i*self.dynblock.blocksize, (i+1)*self.dynblock.blocksize)
+                # print "self.dynblock", self.dynblock.outputs[outk], getattr(self.dynblock, outk).shape, self.dynblock.file
                 # print "%s.step self.%s = %s, outslice = %s" % (self.cname, outk, self.__dict__[outk].shape, outslice, )
                 # self.__dict__[outk][:,[i]] = getattr(self.dynblock, outk)
                 self.__dict__[outk][:,outslice] = getattr(self.dynblock, outk)
@@ -850,6 +851,18 @@ class SliceBlock2(PrimBlock2):
             for slk, slv in slicespec.items():
                 outk = "%s_%s" % (ink, slk)
                 setattr(self, outk, self.inputs[ink][0][slv])
+
+class StackBlock2(PrimBlock2):
+    """!@brief Stack block can combine input slices into a single output item
+    """
+    def __init__(self, conf = {}, paren = None, top = None):
+        PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
+
+    @decStep()
+    def step(self, x = None):
+        st = [inv[0] for ink, inv in self.inputs.items()]
+        print "Stack st = %s" % ( len(st))
+        self.y = np.vstack(st)
                     
 class ConstBlock2(PrimBlock2):
     """!@brief Constant block: output is a constant vector
