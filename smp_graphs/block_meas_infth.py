@@ -24,8 +24,32 @@ from smp_graphs.block import decInit, decStep, Block2, PrimBlock2
 #  - smp/infth/infth_EH-2D.py
 #  - smp/infth/infth_EH-2D_clean.py
 
+class JHBlock2(PrimBlock2):
+    """Compute joint entropy of multivariate data"""
+    def __init__(self, conf = {}, paren = None, top = None):
+        PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
+    
+    @decStep()
+    def step(self, x = None):
+        jhs = []
+        shiftsl = slice(None, (self.shift[1] - self.shift[0]))
+        # for ink, inv in self.inputs.items():
+        #     print "%s.step[%d] ink = %s, inv = %s" % (self.cname, self.cnt, ink, inv)
+        # data = [inv[0] for inv in self.inputs.values()]
+        # data = np.vstack(data)
+        for i in range(self.shift[0], self.shift[1]):
+            print "%s.step self.inputs['x'][0].T.shape = %s" % (self.cname, self.inputs['x'][0].T.shape)
+            src = np.roll(self.inputs['x'][0].T, shift = i, axis = 0)
+            dst = self.inputs['y'][0].T
+            st = np.hstack((src, dst))
+            jh = compute_mi_multivariate(data = {'X': st, 'Y': st})
+            print "%s.step[%d] data = %s, jh = %f" % (self.cname, self.cnt, st.shape, jh)
+            jhs.append(jh)
+        jhs = np.array(jhs)
+        self.jh[0,shiftsl] = jhs
+        
 class MIBlock2(PrimBlock2):
-    """Compute cross-correlation functions among all variables in dataset"""
+    """Compute elementwise mutual information among all variables in dataset"""
     def __init__(self, conf = {}, paren = None, top = None):
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
@@ -155,6 +179,7 @@ class MIMVBlock2(PrimBlock2):
     @decStep()
     def step(self, x = None):
         # print "%s meas = %s" % (self.cname, self.meas)
+        shiftsl = slice(None, (self.shift[1] - self.shift[0]))
         mis = []
         jhs = []
         src = self.inputs['y'][0].T
@@ -185,7 +210,7 @@ class MIMVBlock2(PrimBlock2):
         # print "mutual info self.mi.shape = %s, mi.shape = %s, maxjh = %s" % (self.mi.shape, mi.shape, maxjh)
         
         # self.mi[:,0] = (mi/jh).flatten()
-        self.mimv[0,:(self.shift[1] - self.shift[0])] = mis.flatten() # /maxjh
+        self.mimv[0,shiftsl] = mis.flatten() # /maxjh
 
 class TEMVBlock2(PrimBlock2):
     def __init__(self, conf = {}, paren = None, top = None):
@@ -194,6 +219,7 @@ class TEMVBlock2(PrimBlock2):
     @decStep()
     def step(self, x = None):
         mis = []
+        shiftsl = slice(None, (self.shift[1] - self.shift[0]))
         # jh = self.measH.step(st)
         src = self.inputs['y'][0].T
         dst = self.inputs['x'][0].T
@@ -207,4 +233,4 @@ class TEMVBlock2(PrimBlock2):
             mis.append(mi)
 
         mis = np.array(mis)
-        self.temv[0,:(self.shift[1] - self.shift[0])] = mis.flatten()
+        self.temv[0,shiftsl] = mis.flatten()

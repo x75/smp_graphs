@@ -7,21 +7,29 @@ from smp_base.plot import histogramnd
 from smp_graphs.block_plot import SnsMatrixPlotBlock2, ImgPlotBlock2
 from smp_graphs.block import dBlock2, IBlock2, SliceBlock2, DelayBlock2
 from smp_graphs.block_meas import XCorrBlock2
-from smp_graphs.block_meas_infth import MIBlock2, InfoDistBlock2, TEBlock2, CTEBlock2, MIMVBlock2, TEMVBlock2
+from smp_graphs.block_meas_infth import JHBlock2, MIBlock2, InfoDistBlock2, TEBlock2, CTEBlock2, MIMVBlock2, TEMVBlock2
 
 # showplot = False
 
 randseed = 12345
 
 ppycnf = {
-    'numsteps': 147000,
+    # 'numsteps': 147000,
     # 'numsteps': 10000,
-    # 'numsteps': 2000,
+    'numsteps': 2000,
     'xdim': 6,
     'ydim': 4,
-    # 'logfile': 'data/experiment_20170510_173800_puppy_process_logfiles_pd.h5', # 2K
+    'logfile': 'data/experiment_20170510_173800_puppy_process_logfiles_pd.h5', # 2K
     # 'logfile': 'data/experiment_20170511_145725_puppy_process_logfiles_pd.h5', # 10K
-    'logfile': 'data/experiment_20170510_155432_puppy_process_logfiles_pd.h5', # 147K
+    # 'logfile': 'data/experiment_20170510_155432_puppy_process_logfiles_pd.h5', # 147K
+    'logtype': 'selflog',
+}
+
+testcnfsin = {
+    'numsteps': 1000,
+    'xdim': 1,
+    'ydim': 1,
+    'logfile': 'data/experiment_20170512_171352_generate_sin_noise_pd.h5',
     'logtype': 'selflog',
 }
 
@@ -30,8 +38,8 @@ sphrcnf = {
 	'xdim': 2,
 	'ydim': 1,
     'logtype': 'sphero_res_learner',
-    'logfile': '../../smp_infth/sphero_res_learner_1D/log-learner-20150315-223835-eta-0.001000-theta-0.200000-g-0.999000-target-sine.npz',
-    # 'logfile': '../../smp_infth/sphero_res_learner_1D/log-learner-20150313-224329.npz',
+    # 'logfile': '../../smp_infth/sphero_res_learner_1D/log-learner-20150315-223835-eta-0.001000-theta-0.200000-g-0.999000-target-sine.npz',
+    'logfile': '../../smp_infth/sphero_res_learner_1D/log-learner-20150313-224329.npz',
 }
     
 testcnf = {
@@ -42,7 +50,7 @@ testcnf = {
     'logtype': 'testdata1',
 }
 
-cnf = testcnf
+cnf = ppycnf
 numsteps = cnf['numsteps']
 xdim = cnf['xdim']
 ydim = cnf['ydim']
@@ -95,8 +103,8 @@ graph = OrderedDict([
             'blocksize': numsteps,
             # puppy sensors
             'inputs': {'x': ['puppylog/x']},
-            # 'slices': {'x': {'acc': slice(0, 3), 'gyr': slice(3, xdim)}},
-            'slices': {'x': {'gyr': slice(0, xdim)}},
+            'slices': {'x': {'acc': slice(0, 3), 'gyr': slice(3, xdim)}},
+            # 'slices': {'x': {'gyr': slice(0, xdim)}},
             }
         }),
     
@@ -124,6 +132,21 @@ graph = OrderedDict([
             'outputs': {'xcorr': [(ydim, xdim, 41)]}
             }
         }),
+
+    # joint entropy analysis
+    ('jh', {
+        'block': JHBlock2,
+        'params': {
+            'id': 'jh',
+            'blocksize': numsteps,
+            'debug': True,
+            'inputs': {'x': ['puppyslice/x_gyr'], 'y': ['puppylog/y']},
+                    # 'shift': (-120, 8),
+            'shift': (-20, 1),
+                    # 'outputs': {'mi': [((ydim + xdim)**2, 1)]}
+            'outputs': {'jh': [(1, 1)]}
+        }
+    }),
         
     # # mutual information analysis of data
     # ('mi', {
@@ -316,7 +339,7 @@ graph = OrderedDict([
             'blocksize': numsteps,
             # 'inputs': {'y': ['motordiff/dy']},
             'inputs': {'y': ['puppylog/y']},
-            'delays': {'y': 15},
+            'delays': {'y': 4},
             }
         }),
     
@@ -403,13 +426,18 @@ graph = OrderedDict([
     ('plotmimv', {
         'block': PlotBlock2,
         'params': {
-            'id': 'mimv',
+            'id': 'plotmimv',
             'logging': False,
             'debug': False,
             'blocksize': numsteps,
-            'inputs': {'d1': ['mimv_1/mimv'], 'd2': ['temv_1/temv'], 't': [np.linspace(-20, 0, 21)]},
+            'inputs': {'d1': ['mimv_1/mimv'], 'd2': ['temv_1/temv'], 't': [np.linspace(-20, 0, 21)],
+                       'd3': ['jh/jh']},
             'outputs': {}, #'x': [(3, 1)]},
             'subplots': [
+                [
+                    {'input': 'd3', 'xslice': (0, 21), 'xaxis': 't',
+                     'plot': partial(timeseries, linestyle="none", marker="o")}
+                ],
                 [
                     {'input': 'd1', 'xslice': (0, 21), 'xaxis': 't',
                      'plot': partial(timeseries, linestyle="none", marker="o")}

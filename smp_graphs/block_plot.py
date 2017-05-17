@@ -12,6 +12,17 @@ from smp_base.plot import makefig, timeseries, histogram
 
 ################################################################################
 # Plotting blocks
+# pull stuff from
+# smp/im/im_quadrotor_plot
+# 
+
+def subplot_input_fix(input_spec):
+    # assert input an array 
+    if type(input_spec) is str:
+        return [input_spec]
+    else:
+        return input_spec
+
 
 class FigPlotBlock2(PrimBlock2):
     """!@brief Basic plotting block
@@ -26,6 +37,8 @@ params
         # defaults
         self.wspace = 0.0
         self.hspace = 0.0
+        self.saveplot = False
+        self.savetype = "jpg"
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
         # configure figure and plot axes
@@ -33,6 +46,7 @@ params
         self.fig_cols = len(self.subplots[0])
         # create figure
         self.fig = makefig(rows = self.fig_rows, cols = self.fig_cols, wspace = self.wspace, hspace = self.hspace)
+        self.fig.tight_layout(pad = 1.0)
         # self.debug_print("fig.axes = %s", (self.fig.axes, ))
         
     @decStep()
@@ -50,11 +64,24 @@ params
             # set figure title and show the fig
             self.fig.suptitle("%s" % (self.top.id, ))
             self.fig.show()
+
+            if self.saveplot:
+                print "%s.step saving plot" % (self.cname,)
+                FigPlotBlock2.save(self)
         else:
             self.debug_print("%s.step", (self.__class__.__name__,))
 
     def plot_subplots(self):
         print "%s.plot_subplots(): implement me" % (self.cname,)
+
+    @staticmethod
+    def save(plotinst):
+        """save the figure using configuration options"""
+        subplotstr = "_".join(np.array([["r%d_c%d_%s" % (r, c, "_".join(subplot_input_fix(sbc['input'])),) for c,sbc in enumerate(sbr)] for r, sbr in enumerate(plotinst.subplots)]).flatten())
+        filename = "data/%s_%s_%s_%s.%s" % (plotinst.top.id, plotinst.id, "_".join(plotinst.inputs.keys()), subplotstr, plotinst.savetype)
+        print "%s.save filename = %s, subplotstr = %s" % (plotinst.cname, filename, subplotstr)
+        plotinst.fig.set_size_inches((plotinst.fig_cols * 4, plotinst.fig_rows * 2.4))
+        plotinst.fig.savefig(filename, dpi=300, bbox_inches="tight")        
 
 class PlotBlock2(FigPlotBlock2):
     def __init__(self, conf = {}, paren = None, top = None):
@@ -83,10 +110,8 @@ class PlotBlock2(FigPlotBlock2):
                     else:
                         t = np.linspace(0, self.blocksize-1, self.blocksize)[xslice]
 
-                    # assert input an array 
-                    if type(subplotconf['input']) is str:
-                        subplotconf['input'] = [subplotconf['input']]
-
+                    subplotconf['input'] = subplot_input_fix(subplotconf['input'])
+                        
                     # plotdata = self.inputs[subplotconf['input']][0].T
                     # elif type(subplotconf['input']) is list:
                     # plotdata = self.inputs[subplotconf['input'][1]][0].T
@@ -156,6 +181,8 @@ params
 """
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
+        self.saveplot = False
+        self.savetype = 'jpg'
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
     @decStep()
@@ -188,11 +215,13 @@ params
         g.map_offdiag(plt.hexbin, cmap="gray", gridsize=40, bins="log");
         # g.map_offdiag(plt.histogram2d, cmap="gray", bins=30)
         # g.map_offdiag(plt.plot, linestyle = "None", marker = "o", alpha = 0.5) # , bins="log");
-
+        self.fig = g.fig
+        self.fig_rows, self.fig_cols = g.axes.shape
         # print "dir(g)", dir(g)
         # print g.diag_axes
         # print g.axes
-    
+        if self.saveplot:
+            FigPlotBlock2.save(self)
         # for i in range(data.shape[1]):
         #     for j in range(data.shape[1]): # 1, 2; 0, 2; 0, 1
         #         if i == j:

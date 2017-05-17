@@ -46,6 +46,8 @@ graph = OrderedDict([
             'idim': 6,
             'odim': 3,
             'debug': False,
+            'saveplot': True,
+            'savetype': 'pdf',
             'inputs': {'d1': ['b1/x'], 'd2': ['b2/x']},
             'outputs': {'x': [(3, 1)]},
             'subplots': [

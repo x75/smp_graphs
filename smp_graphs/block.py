@@ -84,12 +84,12 @@ class decStep():
                                 # print "decinit", exec_self.inputs[k][0].shape
                                 
                                 # set inputs [last-inputbs:last] if input blocksize reached
-                                # debugging in to out copy
-                                print "%s-%s.%s[%d] bus[%s] = %s" % (esname, esid,
-                                                                         sname,
-                                                                         escnt,
-                                                                         v[2],
-                                                                         exec_self.bus[v[2]])
+                                # # debugging in to out copy
+                                # print "%s-%s.%s[%d] bus[%s] = %s" % (esname, esid,
+                                #                                          sname,
+                                #                                          escnt,
+                                #                                          v[2],
+                                #                                          exec_self.bus[v[2]])
                                 
                                 sl = slice(-blocksize_input, None)
                                 exec_self.inputs[k][0][:,sl] = exec_self.bus[v[2]] # np.fliplr(exec_self.bus[v[2]])

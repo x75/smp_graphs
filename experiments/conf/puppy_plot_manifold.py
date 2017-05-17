@@ -12,8 +12,8 @@ from smp_graphs.block_meas_infth import MIBlock2, InfoDistBlock2, TEBlock2, CTEB
 # showplot = False
 
 # numsteps = 147000
-numsteps = 10000
-# numsteps = 2000
+# numsteps = 10000
+numsteps = 2000
 xdim = 6
 ydim = 4
 
@@ -45,9 +45,9 @@ graph = OrderedDict([
                 # all files 147000
                 # 'data/experiment_20170510_155432_puppy_process_logfiles_pd.h5',
                 # medium version 10000
-                'data/experiment_20170511_145725_puppy_process_logfiles_pd.h5',
+                # 'data/experiment_20170511_145725_puppy_process_logfiles_pd.h5',
                 # short version 2000
-                # 'data/experiment_20170510_173800_puppy_process_logfiles_pd.h5',
+                'data/experiment_20170510_173800_puppy_process_logfiles_pd.h5',
                 # test data
                 # 'data/experiment_20170512_171352_generate_sin_noise_pd.h5',
                 # 'data/experiment_20170512_170835_generate_sin_noise_pd.h5',
