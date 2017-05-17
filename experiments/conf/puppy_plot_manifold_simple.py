@@ -367,7 +367,7 @@ graph = OrderedDict([
         }
     }),
     
-    # do some plotting
+    # plot raw data timeseries and histograms
     ('plot', {
         'block': PlotBlock2,
         'params': {
@@ -405,7 +405,7 @@ graph = OrderedDict([
         },
     }),
     
-    # plot xcorr
+    # plot cross-correlation matrix
     ('plot3', {
         'block': PlotBlock2,
         'params': {
@@ -422,7 +422,7 @@ graph = OrderedDict([
         },
     }),
 
-    # plot multivariate mutual information
+    # plot multivariate (global) mutual information over timeshifts
     ('plotmimv', {
         'block': PlotBlock2,
         'params': {
@@ -436,15 +436,18 @@ graph = OrderedDict([
             'subplots': [
                 [
                     {'input': 'd3', 'xslice': (0, 21), 'xaxis': 't',
-                     'plot': partial(timeseries, linestyle="none", marker="o")}
+                     'plot': partial(timeseries, linestyle="none", marker="o"),
+                    'title': 'Joint entropy H(X_1,...,X_n,Y_1,...,Y_n) for time shifts [0, ..., 20]'}
                 ],
                 [
                     {'input': 'd1', 'xslice': (0, 21), 'xaxis': 't',
-                     'plot': partial(timeseries, linestyle="none", marker="o")}
+                     'plot': partial(timeseries, linestyle="none", marker="o"),
+                    'title': 'Multivariate mutual information I(X;Y) for time shifts [0, ..., 20]'}
                 ],
                 [
                     {'input': 'd2', 'xslice': (0, 21), 'xaxis': 't',
-                     'plot': partial(timeseries, linestyle="none", marker="o")}
+                     'plot': partial(timeseries, linestyle="none", marker="o"),
+                    'title': 'Multivariate transfer entropy TE(Y;X;X^-) for time shifts [0, ..., 20]'}
                 ],
             ]
         },

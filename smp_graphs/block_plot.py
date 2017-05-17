@@ -116,12 +116,15 @@ class PlotBlock2(FigPlotBlock2):
                     # elif type(subplotconf['input']) is list:
                     # plotdata = self.inputs[subplotconf['input'][1]][0].T
                     plotdata = {}
-                    plotvar = ""
+                    plotvar = " "
+                    title = ""
+                    if subplotconf.has_key('title'): title += subplotconf['title']
                     for k, ink in enumerate(subplotconf['input']):
                         plotdata[ink] = self.inputs[ink][0].T[xslice]
                         # fix nans
                         plotdata[ink][np.isnan(plotdata[ink])] = -1.0
                         plotvar += "%s, " % (self.inputs[ink][2],)
+                    title += plotvar
                         
                     # different 
                     if subplotconf.has_key('mode'):
@@ -140,7 +143,10 @@ class PlotBlock2(FigPlotBlock2):
                         plottype = subplotconf['plot'].func.func_name
                     else:
                         # unknown func type
-                        plottype = "unk type"
+                        plottype = "unk plottype"
+
+                    # append to title
+                    title += " " + plottype
 
                     # if type(subplotconf['input']) is list:
                     if subplotconf.has_key('xaxis'):
@@ -160,13 +166,14 @@ class PlotBlock2(FigPlotBlock2):
                     labels = []
                     for ink, inv in plotdata.items():
                         # print "%s.plot_subplots: ink = %s, plotvar = %s, inv.sh = %s, t.sh = %s" % (self.cname, ink, plotvar, inv.shape, t.shape)
+                        # this is the plotfunction from the config
                         subplotconf['plot'](
                             self.fig.axes[idx],
-                            data = inv, ordinate = t, label = "%s" % ink)
+                            data = inv, ordinate = t, label = "%s" % ink, title = title)
                         # labels.append("%s" % ink)
                         # metadata
                     self.fig.axes[idx].legend()
-                    self.fig.axes[idx].set_title("%s of %s" % (plottype, plotvar, ), fontsize=8)
+                    # self.fig.axes[idx].set_title("%s of %s" % (plottype, plotvar, ), fontsize=8)
                     # [subplotconf['slice'][0]:subplotconf['slice'][1]].T)
 
 
