@@ -48,7 +48,7 @@ params
             plots = self.plot_subplots()
             
             # set figure title and show the fig
-            self.fig.suptitle("%s" % (self.top.id,))
+            self.fig.suptitle("%s" % (self.top.id, ))
             self.fig.show()
         else:
             self.debug_print("%s.step", (self.__class__.__name__,))

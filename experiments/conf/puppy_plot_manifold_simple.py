@@ -11,6 +11,8 @@ from smp_graphs.block_meas_infth import MIBlock2, InfoDistBlock2, TEBlock2, CTEB
 
 # showplot = False
 
+randseed = 12345
+
 ppycnf = {
     'numsteps': 147000,
     # 'numsteps': 10000,
@@ -28,8 +30,8 @@ sphrcnf = {
 	'xdim': 2,
 	'ydim': 1,
     'logtype': 'sphero_res_learner',
-    # 'logfile': '../../smp_infth/sphero_res_learner_1D/log-learner-20150315-223835-eta-0.001000-theta-0.200000-g-0.999000-target-sine.npz',
-    'logfile': '../../smp_infth/sphero_res_learner_1D/log-learner-20150313-224329.npz',
+    'logfile': '../../smp_infth/sphero_res_learner_1D/log-learner-20150315-223835-eta-0.001000-theta-0.200000-g-0.999000-target-sine.npz',
+    # 'logfile': '../../smp_infth/sphero_res_learner_1D/log-learner-20150313-224329.npz',
 }
     
 testcnf = {
@@ -40,7 +42,7 @@ testcnf = {
     'logtype': 'testdata1',
 }
 
-cnf = ppycnf
+cnf = testcnf
 numsteps = cnf['numsteps']
 xdim = cnf['xdim']
 ydim = cnf['ydim']
@@ -93,7 +95,8 @@ graph = OrderedDict([
             'blocksize': numsteps,
             # puppy sensors
             'inputs': {'x': ['puppylog/x']},
-            'slices': {'x': {'acc': slice(0, 3), 'gyr': slice(3, xdim)}},
+            # 'slices': {'x': {'acc': slice(0, 3), 'gyr': slice(3, xdim)}},
+            'slices': {'x': {'gyr': slice(0, xdim)}},
             }
         }),
     
@@ -325,7 +328,7 @@ graph = OrderedDict([
             'blocksize': numsteps,
             # puppy sensors
             'inputs': {'x': ['puppylog/y']},
-            'slices': {'x': {'y%d' % i: slice(i, i+1) for i in range(4)}},
+            'slices': {'x': {'y%d' % i: slice(i, i+1) for i in range(ydim)}},
         }
     }),
     
@@ -337,7 +340,7 @@ graph = OrderedDict([
             'blocksize': numsteps,
             # puppy sensors
             'inputs': {'x': ['motordel/dy']},
-            'slices': {'x': {'y%d' % i: slice(i, i+1) for i in range(4)}},
+            'slices': {'x': {'y%d' % i: slice(i, i+1) for i in range(ydim)}},
         }
     }),
     
@@ -357,8 +360,8 @@ graph = OrderedDict([
                 # 'd3': ['puppylog/x'],
                 'd4': ['puppylog/y'], # 'puppylog/y']
                 'd5': ['motordel/dy'], # 'puppylog/y']
-                'd6': ['puppyslicem/x_y1'], # /t
-                'd7': ['puppyslicemd/x_y1'], # /t
+                'd6': ['puppyslicem/x_y0'], # /t
+                'd7': ['puppyslicemd/x_y0'], # /t
             },
             'outputs': {},#'x': [(3, 1)]},
             'subplots': [
@@ -371,7 +374,8 @@ graph = OrderedDict([
                     {'input': 'd5', 'plot': histogram},
                 ],
                 [
-                    {'input': ['d6', 'd7'], 'plot': partial(timeseries, marker = ".")},
+                    # {'input': ['d6', 'd7'], 'plot': partial(timeseries, marker = ".")},
+                    {'input': ['d3', 'd4'], 'plot': partial(timeseries, marker = ".")},
                     {'input': 'd6', 'plot': timeseries},
                 ],
             ]
