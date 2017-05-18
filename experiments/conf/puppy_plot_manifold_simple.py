@@ -114,19 +114,20 @@ graph = OrderedDict([
             # 'slices': {'x': {'gyr': slice(0, xdim)}},
             }
         }),
-    
-    # puppy process data block: delay motors by lag to align with their sensory effects
-    ('gyrodel', {
-        'block': DelayBlock2,
+            
+    # puppy process data block: integrate acc, diff motors
+    ('motordiff', {
+        'block': dBlock2,
         'params': {
-            'id': 'gyrodel',
+            'id': 'motordiff',
             'blocksize': numsteps,
-            # 'inputs': {'y': ['motordiff/dy']},
-            'inputs': {'y': ['puppyslice/x_gyr']},
-            'delays': {'y': 1},
-            }
+            'inputs': {'y': ['puppylog/y']},
+            'outputs': {},
+            'd': 0.1,
+            'leak': 0.01,
+            },
         }),
-        
+    
     # cross correlation analysis of data
     # do this with loopblock :)
     ('xcorr', {
@@ -140,95 +141,70 @@ graph = OrderedDict([
             }
         }),
 
-    # # joint entropy analysis
-    # ('jh', {
-    #     'block': JHBlock2,
-    #     'params': {
-    #         'id': 'jh',
-    #         'blocksize': numsteps,
-    #         'debug': True,
-    #         'inputs': {'x': ['puppyslice/x_gyr'], 'y': ['puppylog/y']},
-    #                 # 'shift': (-120, 8),
-    #         'shift': (scanstart, scanstop),
-    #                 # 'outputs': {'mi': [((ydim + xdim)**2, 1)]}
-    #         'outputs': {'jh': [(1, 1)]}
-    #     }
-    # }),
+    # joint entropy analysis
+    ('jh', {
+        'block': JHBlock2,
+        'params': {
+            'id': 'jh',
+            'blocksize': numsteps,
+            'debug': True,
+            'inputs': {'x': ['puppyslice/x_gyr'], 'y': ['puppylog/y']},
+                    # 'shift': (-120, 8),
+            'shift': (scanstart, scanstop),
+                    # 'outputs': {'mi': [((ydim + xdim)**2, 1)]}
+            'outputs': {'jh': [(1, 1)]}
+        }
+    }),
         
-    # # mutual information analysis of data
-    # ('mi', {
-    #     'block': LoopBlock2,
-    #     'params': {
-    #         'id': 'mi',
-    #         'loop': [('inputs', {'x': ['puppyslice/x_gyr'], 'y': ['puppylog/y']}),
-    #                  # ('inputs', {'x': ['puppylog/x'], 'y': ['puppylog/r']}),
-    #                  # ('inputs', {'x': ['puppylog/y'], 'y': ['puppylog/r']}),
-    #         ],
-    #         'loopblock': {
-    #             'block': MIBlock2,
-    #             'params': {
-    #                 'id': 'mi',
-    #                 'blocksize': numsteps,
-    #                 'debug': True,
-    #                 'inputs': {'x': ['puppyslice/x_gyr'], 'y': ['puppylog/y']},
-    #                 # 'shift': (-120, 8),
-    #                 'shift': (-10, 11),
-    #                 # 'outputs': {'mi': [((ydim + xdim)**2, 1)]}
-    #                 'outputs': {'mi': [(scanlen * ydim * (xdim - 3), 1)]}
-    #             }
-    #         },
-    #     }
-    # }),
+    # multivariate mutual information analysis of data I(X^n ; Y^m)
+    ('mimv', {
+        'block': LoopBlock2,
+        'params': {
+            'id': 'mimv',
+            'loop': [('inputs', {'x': ['puppyslice/x_gyr'], 'y': ['puppylog/y']}),
+                     # ('inputs', {'x': ['puppylog/x'], 'y': ['puppylog/r']}),
+                     # ('inputs', {'x': ['puppylog/y'], 'y': ['puppylog/r']}),
+            ],
+            'loopblock': {
+                'block': MIMVBlock2,
+                'params': {
+                    'id': 'mimv',
+                    'blocksize': numsteps,
+                    'debug': True,
+                    'inputs': {'x': ['puppyslice/x_gyr'], 'y': ['puppylog/y']},
+                    # 'shift': (-120, 8),
+                    'shift': (scanstart, scanstop), # len 21
+                    # 'outputs': {'mi': [((ydim + xdim)**2, 1)]}
+                    'outputs': {'mimv': [(1, 1)]}
+                }
+            },
+        }
+    }),
     
-    # # multivariate mutual information analysis of data I(X^n ; Y^m)
-    # ('mimv', {
-    #     'block': LoopBlock2,
-    #     'params': {
-    #         'id': 'mimv',
-    #         'loop': [('inputs', {'x': ['puppyslice/x_gyr'], 'y': ['puppylog/y']}),
-    #                  # ('inputs', {'x': ['puppylog/x'], 'y': ['puppylog/r']}),
-    #                  # ('inputs', {'x': ['puppylog/y'], 'y': ['puppylog/r']}),
-    #         ],
-    #         'loopblock': {
-    #             'block': MIMVBlock2,
-    #             'params': {
-    #                 'id': 'mimv',
-    #                 'blocksize': numsteps,
-    #                 'debug': True,
-    #                 'inputs': {'x': ['puppyslice/x_gyr'], 'y': ['puppylog/y']},
-    #                 # 'shift': (-120, 8),
-    #                 'shift': (scanstart, scanstop), # len 21
-    #                 # 'outputs': {'mi': [((ydim + xdim)**2, 1)]}
-    #                 'outputs': {'mimv': [(1, 1)]}
-    #             }
-    #         },
-    #     }
-    # }),
-    
-    # # multivariate mutual information analysis of data I(X^n ; Y^m)
-    # ('temv', {
-    #     'block': LoopBlock2,
-    #     'params': {
-    #         'id': 'temv',
-    #         'loop': [('inputs', {'x': ['puppyslice/x_gyr'], 'y': ['puppylog/y']}),
-    #                  # ('inputs', {'x': ['puppylog/x'], 'y': ['puppylog/r']}),
-    #                  # ('inputs', {'x': ['puppylog/y'], 'y': ['puppylog/r']}),
-    #         ],
-    #         'loopblock': {
-    #             'block': TEMVBlock2,
-    #             'params': {
-    #                 'id': 'temv',
-    #                 'blocksize': numsteps,
-    #                 'debug': True,
-    #                 'inputs': {'x': ['puppyslice/x_gyr'], 'y': ['puppylog/y']},
-    #                 # 'shift': (-120, 8),
-    #                 'shift': (scanstart, scanstop), # len 21
-    #                 # 'outputs': {'mi': [((ydim + xdim)**2, 1)]}
-    #                 'outputs': {'temv': [(1, 1)]}
-    #             }
-    #         },
-    #     }
-    # }),
+    # multivariate mutual information analysis of data I(X^n ; Y^m)
+    ('temv', {
+        'block': LoopBlock2,
+        'params': {
+            'id': 'temv',
+            'loop': [('inputs', {'x': ['puppyslice/x_gyr'], 'y': ['puppylog/y']}),
+                     # ('inputs', {'x': ['puppylog/x'], 'y': ['puppylog/r']}),
+                     # ('inputs', {'x': ['puppylog/y'], 'y': ['puppylog/r']}),
+            ],
+            'loopblock': {
+                'block': TEMVBlock2,
+                'params': {
+                    'id': 'temv',
+                    'blocksize': numsteps,
+                    'debug': True,
+                    'inputs': {'x': ['puppyslice/x_gyr'], 'y': ['puppylog/y']},
+                    # 'shift': (-120, 8),
+                    'shift': (scanstart, scanstop), # len 21
+                    # 'outputs': {'mi': [((ydim + xdim)**2, 1)]}
+                    'outputs': {'temv': [(1, 1)]}
+                }
+            },
+        }
+    }),
     
     # # mutual information analysis of data
     # ('infodist', {
@@ -254,28 +230,53 @@ graph = OrderedDict([
     #     }
     # }),
     
-    # # mutual information analysis of data
-    # ('te', {
-    #     'block': LoopBlock2,
-    #     'params': {
-    #         'id': 'te',
-    #         'loop': [('inputs', {'x': ['gyrodel/dy'], 'y': ['puppylog/y']}),
-    #                  # ('inputs', {'x': ['puppylog/x'], 'y': ['puppylog/r']}),
-    #                  # ('inputs', {'x': ['puppylog/y'], 'y': ['puppylog/r']}),
-    #         ],
-    #         'loopblock': {
-    #             'block': TEBlock2,
-    #             'params': {
-    #                 'id': 'te',
-    #                 'blocksize': numsteps,
-    #                 'debug': True,
-    #                 'inputs': {'x': ['gyrodel/dy'], 'y': ['puppylog/y']},
-    #                 'shift': (-10, 11),
-    #                 'outputs': {'te': [(scanlen * ydim * (xdim - 3), 1)]}
-    #             }
-    #         },
-    #     }
-    # }),
+    # mutual information analysis of data
+    ('mi', {
+        'block': LoopBlock2,
+        'params': {
+            'id': 'mi',
+            'loop': [('inputs', {'x': ['puppyslice/x_gyr'], 'y': ['puppylog/y']}),
+                     # ('inputs', {'x': ['puppylog/x'], 'y': ['puppylog/r']}),
+                     # ('inputs', {'x': ['puppylog/y'], 'y': ['puppylog/r']}),
+            ],
+            'loopblock': {
+                'block': MIBlock2,
+                'params': {
+                    'id': 'mi',
+                    'blocksize': numsteps,
+                    'debug': True,
+                    'inputs': {'x': ['puppyslice/x_gyr'], 'y': ['puppylog/y']},
+                    # 'shift': (-120, 8),
+                    'shift': (scanstart, scanstop),
+                    # 'outputs': {'mi': [((ydim + xdim)**2, 1)]}
+                    'outputs': {'mi': [(scanlen * ydim * (xdim - 3), 1)]}
+                }
+            },
+        }
+    }),
+    
+    # mutual information analysis of data
+    ('te', {
+        'block': LoopBlock2,
+        'params': {
+            'id': 'te',
+            'loop': [('inputs', {'x': ['puppyslice/x_gyr'], 'y': ['puppylog/y']}),
+                     # ('inputs', {'x': ['puppylog/x'], 'y': ['puppylog/r']}),
+                     # ('inputs', {'x': ['puppylog/y'], 'y': ['puppylog/r']}),
+            ],
+            'loopblock': {
+                'block': TEBlock2,
+                'params': {
+                    'id': 'te',
+                    'blocksize': numsteps,
+                    'debug': True,
+                    'inputs': {'x': ['gyrodel/dy'], 'y': ['puppylog/y']},
+                    'shift': (scanstart, scanstop),
+                    'outputs': {'te': [(scanlen * ydim * (xdim - 3), 1)]}
+                }
+            },
+        }
+    }),
     
     # # mutual information analysis of data
     # ('cte', {
@@ -324,19 +325,6 @@ graph = OrderedDict([
     #         'leak': 0.01,
     #         },
     #     }),
-    
-    # puppy process data block: integrate acc, diff motors
-    ('motordiff', {
-        'block': dBlock2,
-        'params': {
-            'id': 'motordiff',
-            'blocksize': numsteps,
-            'inputs': {'y': ['puppylog/y']},
-            'outputs': {},
-            'd': 0.1,
-            'leak': 0.01,
-            },
-        }),
     
     # puppy process data block: delay motors by lag to align with their sensory effects
     ('motordel', {
@@ -463,82 +451,83 @@ graph = OrderedDict([
         },
     }),
     
-    # # plot multivariate (global) mutual information over timeshifts
-    # ('plotmimv', {
-    #     'block': PlotBlock2,
-    #     'params': {
-    #         'id': 'plotmimv',
-    #         'logging': False,
-    #         'debug': False,
-    #         'blocksize': numsteps,
-    #         'inputs': {'d1': ['mimv_1/mimv'], 'd2': ['temv_1/temv'], 't': [np.linspace(scanstart, scanstop-1, scanlen)],
-    #                    'd3': ['jh/jh']},
-    #         'outputs': {}, #'x': [(3, 1)]},
-    #         'subplots': [
-    #             [
-    #                 {'input': 'd3', 'xslice': (0, scanlen), 'xaxis': 't',
-    #                  'plot': partial(timeseries, linestyle="none", marker="o"),
-    #                 'title': 'Joint entropy H(X_1,...,X_n,Y_1,...,Y_n) for time shifts [0, ..., 20]'}
-    #             ],
-    #             [
-    #                 {'input': 'd1', 'xslice': (0, scanlen), 'xaxis': 't',
-    #                  'plot': partial(timeseries, linestyle="none", marker="o"),
-    #                 'title': 'Multivariate mutual information I(X;Y) for time shifts [0, ..., 20]'}
-    #             ],
-    #             [
-    #                 {'input': 'd2', 'xslice': (0, scanlen), 'xaxis': 't',
-    #                  'plot': partial(timeseries, linestyle="none", marker="o"),
-    #                 'title': 'Multivariate transfer entropy TE(Y;X;X^-) for time shifts [0, ..., 20]'}
-    #             ],
-    #         ]
-    #     },
-    # }),
+    # plot multivariate (global) mutual information over timeshifts
+    ('plotmimv', {
+        'block': ImgPlotBlock2,
+        'params': {
+            'id': 'plotmimv',
+            'logging': False,
+            'debug': False,
+            'blocksize': numsteps,
+            'inputs': {'d1': ['mimv_1/mimv'], 'd2': ['temv_1/temv'], 't': [np.linspace(scanstart, scanstop-1, scanlen)],
+                       'd3': ['jh/jh']},
+            'outputs': {}, #'x': [(3, 1)]},
+            'subplots': [
+                [
+                    {'input': 'd3', 'xslice': (0, scanlen), 'xaxis': 't',
+                     'plot': partial(timeseries, linestyle="none", marker="o"),
+                    'title': 'Joint entropy H(X_1,...,X_n,Y_1,...,Y_n) for time shifts [0, ..., 20]',
+                    'shape': (1, scanlen)},
+                    {'input': 'd1', 'xslice': (0, scanlen), 'xaxis': 't',
+                     'plot': partial(timeseries, linestyle="none", marker="o"),
+                    'title': 'Multivariate mutual information I(X;Y) for time shifts [0, ..., 20]',
+                    'shape': (1, scanlen)},
+                    {'input': 'd2', 'xslice': (0, scanlen), 'xaxis': 't',
+                     'plot': partial(timeseries, linestyle="none", marker="o"),
+                    'title': 'Multivariate transfer entropy TE(Y;X;X^-) for time shifts [0, ..., 20]',
+                    'shape': (1, scanlen)}
+                ],
+            ]
+        },
+    }),
     
-    # # plot mi matrix as image
-    # ('plotim', {
-    #     'block': ImgPlotBlock2,
-    #     'params': {
-    #         'id': 'plotim',
-    #         'logging': False,
-    #         'debug': False,
-    #         'wspace': 0.1,
-    #         'hsapce': 0.1,
-    #         'blocksize': numsteps,
-    #         # 'inputs': {'d1': ['mi_1/mi'], 'd2': ['infodist_1/infodist']},
-    #         'inputs': {'d1': ['mi_1/mi'], 'd2': ['te_1/te'], 'd3': ['cte_1/cte']},
-    #         'outputs': {}, #'x': [(3, 1)]},
-    #         # 'subplots': [
-    #         #     [
-    #         #         {'input': 'd1', 'xslice': (0, (xdim + ydim)**2),
-    #         #              'shape': (xdim+ydim, xdim+ydim), 'plot': 'bla'},
-    #         #         {'input': 'd2', 'xslice': (0, (xdim + ydim)**2),
-    #         #              'shape': (xdim+ydim, xdim+ydim), 'plot': 'bla'},
-    #         #     ],
-    #         # ],
-    #         # 'subplots': [
-    #         #     [
-    #         #         {'input': 'd1', 'xslice': (0, xdim * ydim),
-    #         #              'shape': (ydim, xdim), 'plot': 'bla'},
-    #         #         {'input': 'd2', 'xslice': (0, xdim * ydim),
-    #         #              'shape': (ydim, xdim), 'plot': 'bla'},
-    #         #     ],
-    #         # ],
-    #         'subplots': [
-    #             [
-    #                 {'input': 'd1', 'xslice': (i * (xdim - 3) * ydim, (i+1) * (xdim - 3) * ydim),
-    #                      'shape': (ydim, (xdim - 3)), 'plot': 'bla'} for i in range(scanlen)
-    #             ],
-    #             [
-    #                 {'input': 'd2', 'xslice': (i * (xdim - 3) * ydim, (i+1) * (xdim - 3) * ydim),
-    #                      'shape': (ydim, (xdim - 3)), 'plot': 'bla'} for i in range(scanlen)
-    #             ],
-    #             # [
-    #             #     {'input': 'd3', 'xslice': (i * (xdim - 3) * ydim, (i+1) * (xdim - 3) * ydim),
-    #             #          'shape': (ydim, (xdim - 3)), 'plot': 'bla'} for i in range(scanlen)
-    #             # ]
-    #         ],
-    #     },
-    # }),
+    # plot mi matrix as image
+    ('plotim', {
+        'block': ImgPlotBlock2,
+        'params': {
+            'id': 'plotim',
+            'logging': False,
+            'debug': False,
+            'wspace': 0.1,
+            'hsapce': 0.1,
+            'blocksize': numsteps,
+            # 'inputs': {'d1': ['mi_1/mi'], 'd2': ['infodist_1/infodist']},
+            'inputs': {'d1': ['mi_1/mi'], 'd2': ['te_1/te']}, #, 'd3': ['cte_1/cte']},
+            'outputs': {}, #'x': [(3, 1)]},
+            # 'subplots': [
+            #     [
+            #         {'input': 'd1', 'xslice': (0, (xdim + ydim)**2),
+            #              'shape': (xdim+ydim, xdim+ydim), 'plot': 'bla'},
+            #         {'input': 'd2', 'xslice': (0, (xdim + ydim)**2),
+            #              'shape': (xdim+ydim, xdim+ydim), 'plot': 'bla'},
+            #     ],
+            # ],
+            # 'subplots': [
+            #     [
+            #         {'input': 'd1', 'xslice': (0, xdim * ydim),
+            #              'shape': (ydim, xdim), 'plot': 'bla'},
+            #         {'input': 'd2', 'xslice': (0, xdim * ydim),
+            #              'shape': (ydim, xdim), 'plot': 'bla'},
+            #     ],
+            # ],
+            'subplots': [
+                [
+                    {'input': 'd1',
+                     'xslice': (i * (xdim - 3) * ydim, (i+1) * (xdim - 3) * ydim),
+                     'shape': (ydim, (xdim - 3)),
+                     'plot': 'bla'} for i in range(scanlen)
+                ],
+                [
+                    {'input': 'd2', 'xslice': (i * (xdim - 3) * ydim, (i+1) * (xdim - 3) * ydim),
+                         'shape': (ydim, (xdim - 3)), 'plot': 'bla'} for i in range(scanlen)
+                ],
+                # [
+                #     {'input': 'd3', 'xslice': (i * (xdim - 3) * ydim, (i+1) * (xdim - 3) * ydim),
+                #          'shape': (ydim, (xdim - 3)), 'plot': 'bla'} for i in range(scanlen)
+                # ]
+            ],
+        },
+    }),
     
     # # sns matrix plot
     # ('plot2', {

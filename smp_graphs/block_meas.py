@@ -61,10 +61,10 @@ def f1(d, j, k, shift = (-10, 11)):
     # don't do that
     x = d['x'].T[:,j]
     y = d['y'].T[:,k]
-    scov = np.std(x) * np.std(y)
-    x -= np.mean(x)
+    scov = np.std(x, axis = 0) * np.std(y, axis = 0)
+    x = x - np.mean(x, axis=0)
     x /= scov
-    y -= np.mean(y)
+    y -= np.mean(y, axis = 0)
     y /= scov
     corr = np.array([
         np.correlate(np.roll(x, shift = i), y) for i in range(shift[0], shift[1])

@@ -169,7 +169,8 @@ class PlotBlock2(FigPlotBlock2):
                         # this is the plotfunction from the config
                         subplotconf['plot'](
                             self.fig.axes[idx],
-                            data = inv, ordinate = t, label = "%s" % ink, title = title)
+                            data = inv, ordinate = t, label = "%s" % ink,
+                            title = title)
                         # labels.append("%s" % ink)
                         # metadata
                     # self.fig.axes[idx].legend()
@@ -286,7 +287,8 @@ class ImgPlotBlock2(FigPlotBlock2):
                     # plotdata_cand = self.inputs[subplotconf['input']][0][:,0]
                     # plotdata_cand = self.inputs[subplotconf['input']][0][xslice,0]
                     plotdata_cand = self.inputs[subplotconf['input']][0][:,xslice]
-                    print "plotdata_cand.shape", plotdata_cand.shape
+                    print "%s[%d]-%s.step plotdata_cand.shape" % (self.cname, self.cnt, self.id), plotdata_cand.shape, subplotconf['shape'], xslice
+                    print "plotdata_cand", plotdata_cand
                     
                     plotdata = {}
                     plotdata['i_%d_%d' % (i, j)] = plotdata_cand.reshape(subplotconf['shape'])
@@ -308,7 +310,12 @@ class ImgPlotBlock2(FigPlotBlock2):
                         # mpl = ax.imshow(inv, interpolation = "none")
                         # Linv = np.log(inv + 1)
                         Linv = inv
-                        mpl = ax.pcolormesh(Linv, vmin = vmins[j], vmax = vmaxs[j], cmap = cmap)
+                        mpl = ax.pcolorfast(Linv, vmin = vmins[j], vmax = vmaxs[j], cmap = cmap)
+                        # mpl = ax.pcolorfast(Linv, vmin = -2, vmax = 2, cmap = cmap)
+                        # mpl = ax.pcolorfast(Linv, cmap = cmap)
+                        # mpl = ax.pcolor(Linv)
+                        # mpl = ax.pcolorfast(Linv)
+                        # mpl = ax.imshow(Linv, interpolation = "none")
                         ax.grid()
                         # Linv = inv
                         # mpl = ax.pcolormesh(
@@ -316,7 +323,7 @@ class ImgPlotBlock2(FigPlotBlock2):
                         #     norm = colors.LogNorm(vmin=Linv.min(), vmax=Linv.max()))
                         # ax.grid()
                         # plt.colorbar(mappable = mpl, ax = ax)
-                    # ax.set_aspect(1)
+                    # ax.set_aspect(10)
                     # plt.colorbar(mappable = mpl, ax = ax, orientation = "horizontal")
                     # ax.set_title("%s of %s" % ('matrix', plotvar, ), fontsize=8)
                     ax.set_xlabel("")
