@@ -280,7 +280,8 @@ class Block2(object):
         self.graph = self.conf['params']['graph']
         # pass 1 init
         for k, v in self.graph.items():
-            self.debug_print("__init__: pass 1\nk = %s,\nv = %s", (k, print_dict(v)))
+            # self.debug_print("__init__: pass 1\nk = %s,\nv = %s", (k, print_dict(v)))
+            print "%s.init pass 1 k = %s, v = %s" % (self.__class__.__name__, k, v['block'].__name__)
             self.graph[k]['block'] = self.graph[k]['block'](conf = v, paren = self, top = self.top)
             # print "%s self.graph[k]['block'] = %s" % (self.graph[k]['block'].__class__.__name__, self.graph[k]['block'].bus)
         # done pass 1 init
@@ -289,6 +290,7 @@ class Block2(object):
         # pass 2 init
         for k, v in self.graph.items():
             self.debug_print("__init__: pass 2\nk = %s,\nv = %s", (k, print_dict(v)))
+            print "%s.init pass 2 k = %s, v = %s" % (self.__class__.__name__, k, v['block'].cname)
             # self.graph[k]['block'].init_pass_2()
             v['block'].init_pass_2()
 
@@ -363,7 +365,7 @@ class Block2(object):
                     tmp[2] = v[0]
                     # assign tuple
                     self.inputs[k] = tmp # 
-                    print "%s.init_pass_2: %s, bus[%s] = %s, input = %s" % (self.cname, self.id, v[0], self.bus[v[0]].shape, self.inputs[k][0].shape)
+                    self.debug_print("%s.init_pass_2: %s, bus[%s] = %s, input = %s", (self.cname, self.id, v[0], self.bus[v[0]].shape, self.inputs[k][0].shape))
                 # elif type(v[0]) is str:
                 #     # it's a string but no valid buskey, init zeros(1,1)?
                 #     if v[0].endswith('.h5'):
@@ -383,7 +385,7 @@ class Block2(object):
                 # add input buffer
                 # stack??
                 # self.inputs[k][0] = np.hstack((np.zeros((self.inputs[k][1][0], self.ibuf-1)), self.inputs[k][0]))
-                print "%s.init k = %s, v = %s" % (self.cname, k, v)
+                self.debug_print("%s.init k = %s, v = %s", (self.cname, k, v))
                 self.debug_print("init_pass_2 %s in_k.shape = %s", (self.id, self.inputs[k][0].shape))
             
     def debug_print(self, fmtstring, data):
@@ -726,7 +728,7 @@ params: inputs, outputs, leakrate
             outk = "I%s" % ink
             # input integral / cumsum
             Iin = np.cumsum(self.inputs[ink][0], axis = 1) * self.d
-            print getattr(self, outk)[:,[-1]].shape, self.inputs[ink][0].shape, Iin.shape
+            # print getattr(self, outk)[:,[-1]].shape, self.inputs[ink][0].shape, Iin.shape
             setattr(self, outk, getattr(self, outk)[:,[-1]] + Iin)
             # setattr(self, outk, getattr(self, outk) + (self.inputs[ink][0] * 1.0))
             # print getattr(self, outk).shape
@@ -767,7 +769,7 @@ params: inputs, outputs, leakrate / smoothrate?
             din = np.diff(tmp_[:,tmp_sl], axis = 1) # * self.d
             # which should be same shape is input
             assert din.shape == self.inputs[ink][0].shape
-            print getattr(self, outk)[:,[-1]].shape, self.inputs[ink][0].shape, din.shape
+            # print getattr(self, outk)[:,[-1]].shape, self.inputs[ink][0].shape, din.shape
             setattr(self, outk, din)
             # store current input
             setattr(self, ink_, self.inputs[ink][0].copy())
@@ -861,7 +863,7 @@ class StackBlock2(PrimBlock2):
     @decStep()
     def step(self, x = None):
         st = [inv[0] for ink, inv in self.inputs.items()]
-        print "Stack st = %s" % ( len(st))
+        # print "Stack st = %s" % ( len(st))
         self.y = np.vstack(st)
                     
 class ConstBlock2(PrimBlock2):

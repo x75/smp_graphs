@@ -21,16 +21,19 @@ class FileBlock2(Block2):
         # if self.odim == 'auto':
         # print conf
         lfile = conf['params']['file'][0]
+
+        print "%s.init Loading %s-type data from %s" % (self.__class__.__name__, conf['params']['type'], conf['params']['file'][0])
+        
         ############################################################
         # puppy homeokinesis (andi)
         if conf['params']['type'] == 'puppy':
             del conf['params']['outputs']['log']
             (self.data, self.rate, self.offset) = read_puppy_hk_pickles(lfile)
+            # setattr(self, 'x', self.data['x'])
             # print "self.data", self.data.keys()
             # for k,v in self.data.items():
             #     if type(v) is np.ndarray:
             #         print "puppylog", k, lfile, v.shape, np.mean(v), np.var(v), v
-            # setattr(self, 'x', self.data['x'])
             # setattr(self, 'x', self.data['x'])
             # conf['params']['outputs'][k_] = [v.shape]
             # conf['params']['blocksize'] = v.shape[0]
@@ -96,13 +99,15 @@ class FileBlock2(Block2):
                 k_ = k.lstrip("/")
                 if not k_.startswith('conf'):
                     k_ = "/".join(k_.split("/")[1:])
-                print "%s" % self.__class__.__name__, k, self.store[k].shape
+                print "%s.init store_key = %s, shape = %s" % (self.__class__.__name__, k, self.store[k].shape)
                 conf['params']['outputs'][k_] = [self.store[k].T.shape]
                 conf['params']['blocksize'] = self.store[k].shape[0]
                 # map output key to log table key
                 conf['params']['storekeys'][k_] = k
             self.step = self.step_selflog
 
+        # FIXME: perform quick check of data
+            
         # init states
         for k, v in conf['params']['outputs'].items(): # ['x', 'y']:
             # print "key", self.data[key]

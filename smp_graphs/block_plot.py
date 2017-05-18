@@ -62,7 +62,7 @@ params
             plots = self.plot_subplots()
             
             # set figure title and show the fig
-            self.fig.suptitle("%s" % (self.top.id, ))
+            self.fig.suptitle("%s: %s-%s" % (self.top.id, self.cname, self.id))
             self.fig.show()
 
             if self.saveplot:
@@ -78,10 +78,14 @@ params
     def save(plotinst):
         """save the figure using configuration options"""
         subplotstr = "_".join(np.array([["r%d_c%d_%s" % (r, c, "_".join(subplot_input_fix(sbc['input'])),) for c,sbc in enumerate(sbr)] for r, sbr in enumerate(plotinst.subplots)]).flatten())
-        filename = "data/%s_%s_%s_%s.%s" % (plotinst.top.id, plotinst.id, "_".join(plotinst.inputs.keys()), subplotstr, plotinst.savetype)
+        # filename = "data/%s_%s_%s_%s.%s" % (plotinst.top.id, plotinst.id, "_".join(plotinst.inputs.keys()), subplotstr, plotinst.savetype)
+        filename = "data/%s_%s_%s.%s" % (plotinst.top.id, plotinst.id, "_".join(plotinst.inputs.keys()), plotinst.savetype)
         print "%s.save filename = %s, subplotstr = %s" % (plotinst.cname, filename, subplotstr)
         plotinst.fig.set_size_inches((plotinst.fig_cols * 2 * 2.5, plotinst.fig_rows * 1.2 * 2.5))
-        plotinst.fig.savefig(filename, dpi=300, bbox_inches="tight")
+        try:
+            plotinst.fig.savefig(filename, dpi=300, bbox_inches="tight")
+        except Exception, e:
+            print "%s error %s" % ('FigPlotBlock2', e)
 
 class PlotBlock2(FigPlotBlock2):
     def __init__(self, conf = {}, paren = None, top = None):
@@ -177,10 +181,168 @@ class PlotBlock2(FigPlotBlock2):
                     # self.fig.axes[idx].set_title("%s of %s" % (plottype, plotvar, ), fontsize=8)
                     # [subplotconf['slice'][0]:subplotconf['slice'][1]].T)
 
+# plot a matrix via imshow/pcolor
+class ImgPlotBlock2(FigPlotBlock2):
+    def __init__(self, conf = {}, paren = None, top = None):
+        FigPlotBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
+    def plot_subplots(self):
+        numrows = len(self.subplots)
+        numcols = len(self.subplots[0])
+
+        extrema = np.zeros((2, numrows, numcols))
+        
+        vmins_sb = [[] for i in range(numcols)]
+        vmaxs_sb = [[] for i in range(numcols)]
+
+        vmins = [None for i in range(numcols)]
+        vmaxs = [None for i in range(numcols)]
+        vmins_r = [None for i in range(numrows)]
+        vmaxs_r = [None for i in range(numrows)]
+        
+        for i, subplot in enumerate(self.subplots): # rows
+            for j, subplotconf in enumerate(subplot): # cols
+                vmins_sb[j].append(np.min(self.inputs[subplotconf['input']][0]))
+                vmaxs_sb[j].append(np.max(self.inputs[subplotconf['input']][0]))
+                extrema[0,i,j] = np.min(self.inputs[subplotconf['input']][0])
+                extrema[1,i,j] = np.max(self.inputs[subplotconf['input']][0])
+                # print "i", i, "j", j, vmins_sb, vmaxs_sb
+        print "mins", self.id, extrema[0]
+        print "maxs", extrema[1]
+        vmins_sb = np.array(vmins_sb)
+        vmaxs_sb = np.array(vmaxs_sb)
+        # print "vmins_sb, vmaxs_sb", i, j, vmins_sb.shape, vmaxs_sb.shape
+
+        for i in range(numcols):
+            vmins[i] = np.min(vmins_sb[i])
+            # vmins[1] = np.min(vmins_sb[1])
+            vmaxs[i] = np.max(vmaxs_sb[i])
+            # vmaxs[1] = np.max(vmaxs_sb[1])
+
+        # for i in range(numrows):
+        #     vmins_r[i] = np.min(vmins_sb[i])
+        #     # vmins[1] = np.min(vmins_sb[1])
+        #     vmaxs_r[i] = np.max(vmaxs_sb[i])
+        #     # vmaxs[1] = np.max(vmaxs_sb[1])
+            
+        rowmins = np.min(extrema[0], axis = 0) 
+        rowmaxs = np.max(extrema[1], axis = 0) 
+        colmins = np.min(extrema[0], axis = 1) 
+        colmaxs = np.max(extrema[1], axis = 1)
+        
+        if True:
+            for i, subplot in enumerate(self.subplots): # rows
+                for j, subplotconf in enumerate(subplot): # cols
+                    assert subplotconf.has_key('shape'), "image plot needs shape spec"
+
+                    # map loop indices to gridspec linear index
+                    idx = (i*self.fig_cols)+j
+                    # print "self.inputs[subplotconf['input']][0].shape", self.inputs[subplotconf['input']][0].shape
+
+                    xslice = slice(None)
+                    yslice = slice(None)
+                    
+                    # check for slice specs
+                    if subplotconf.has_key('xslice'):
+                        xslice = slice(subplotconf['xslice'][0], subplotconf['xslice'][1])
+                        # print "xslice", xslice, self.inputs[subplotconf['input']][0].shape
+
+                    if subplotconf.has_key('yslice'):
+                        yslice = slice(subplotconf['yslice'][0], subplotconf['yslice'][1])
+                        # print "yslice", yslice, self.inputs[subplotconf['input']][0].shape
+
+                    # min, max values for colormap
+                    axis = 0
+                    aidx = j
+                    if subplotconf.has_key('vaxis'):
+                        if subplotconf['vaxis'] == 'rows':
+                            axis = 1
+                            aidx = i
+                            
+                    vmin = np.min(extrema[0], axis = axis)[aidx]
+                    vmax = np.max(extrema[1], axis = axis)[aidx]
+                    # print "vmins, vmaxs", i, vmins, vmaxs
+                    # vmin = vmins[sbidx]
+                    # vmax = vmaxs[sbidx]
+                    # vmin = extrema[0]
+
+                    # print "vmin", vmin, "vmax", vmax
+                    if subplotconf.has_key('vmin'):
+                        vmin = subplotconf['vmin']
+                    if subplotconf.has_key('vmax'):
+                        vmax = subplotconf['vmax']
+                        
+                    # plotdata_cand = self.inputs[subplotconf['input']][0][:,0]
+                    # plotdata_cand = self.inputs[subplotconf['input']][0][xslice,0]
+                    # plotdata_cand = self.inputs[subplotconf['input']][0][:,xslice]
+                    
+                    plotdata_cand = self.inputs[subplotconf['input']][0][yslice,xslice]
+                    # print "%s[%d]-%s.step, inputs = %s, %s " % (self.cname, self.cnt, self.id, self.inputs[subplotconf['input']][0].shape,
+                    #                                         self.inputs[subplotconf['input']][0])
+                    # print "%s[%d]-%s.step plotdata_cand.shape" % (self.cname, self.cnt, self.id), plotdata_cand.shape, subplotconf['shape'], xslice, yslice
+                    # print "plotdata_cand", plotdata_cand
+                    
+                    plotdata = {}
+                    plotdata['i_%d_%d' % (i, j)] = plotdata_cand.reshape(subplotconf['shape'])
+                    plotvar = self.inputs[subplotconf['input']][2]
+
+                    title = "img plot"
+                    if subplotconf.has_key('title'): title = subplotconf['title']
+                    # for k, ink in enumerate(subplotconf['input']):
+                    #     plotdata[ink] = self.inputs[ink][0].T[xslice]
+                    #     # fix nans
+                    #     plotdata[ink][np.isnan(plotdata[ink])] = -1.0
+                    #     plotvar += "%s, " % (self.inputs[ink][2],)
+                    # title += plotvar
+
+                    # colormap
+                    if not subplotconf.has_key('cmap'):
+                        subplotconf['cmap'] = 'gray'
+                    cmap = plt.get_cmap(subplotconf['cmap'])
+                                                                
+                    # plot the plotdata
+                    for ink, inv in plotdata.items():
+                        # print "%s.plot_subplots: ink = %s, plotvar = %s, inv.sh = %s" % (self.cname, ink, plotvar, inv.shape)
+                        # subplotconf['plot'](
+                        #     self.fig.axes[idx],
+                        #     data = inv, ordinate = t)
+                        # metadata
+                        ax = self.fig.axes[idx]
+                        # mormalize to [0, 1]
+                        # mpl = ax.imshow(inv, interpolation = "none")
+                        # Linv = np.log(inv + 1)
+                        Linv = inv
+                        # print "Linv", Linv
+                        mpl = ax.pcolorfast(Linv, vmin = vmin, vmax = vmax, cmap = cmap)
+                        # mpl = ax.pcolorfast(Linv, vmin = vmins[j], vmax = vmaxs[j], cmap = cmap)
+                        # mpl = ax.pcolorfast(Linv, vmin = -2, vmax = 2, cmap = cmap)
+                        # mpl = ax.pcolormesh(Linv, cmap = cmap)
+                        # mpl = ax.pcolor(Linv)
+                        # mpl = ax.pcolorfast(Linv)
+                        # mpl = ax.imshow(Linv, interpolation = "none")
+                        ax.grid()
+                        # Linv = inv
+                        # mpl = ax.pcolormesh(
+                        #     Linv,
+                        #     norm = colors.LogNorm(vmin=Linv.min(), vmax=Linv.max()))
+                        # ax.grid()
+                        # plt.colorbar(mappable = mpl, ax = ax)
+                    # ax.set_aspect(10)
+                    # plt.colorbar(mappable = mpl, ax = ax, orientation = "horizontal")
+                    # ax.set_title("%s of %s" % ('matrix', plotvar, ), fontsize=8)
+                    ax.set_title(title, fontsize=8)
+                    ax.set_xlabel("")
+                    ax.set_ylabel("")
+                    ax.set_xticks([])
+                    ax.set_yticks([])
+
+################################################################################
+# non FigPlot plot blocks
 class SnsMatrixPlotBlock2(PrimBlock2):
     """!@brief Plotting block doing seaborn pairwaise matrix plots: e.g. scatter, hexbin, ...
 
+Seaborne manages figures itself, so it can't be a FigPlotBlock2
+    
 params
  - blocksize: usually numsteps (meaning plot all data created by that episode/experiment)
  - f_plot_diag: diagonal cells
@@ -240,93 +402,4 @@ params
 
         # plt.show()
         
-
-class ImgPlotBlock2(FigPlotBlock2):
-    def __init__(self, conf = {}, paren = None, top = None):
-        FigPlotBlock2.__init__(self, conf = conf, paren = paren, top = top)
-
-    def plot_subplots(self):
-        numrows = len(self.subplots)
-        numcols = len(self.subplots[0])
-        
-        vmins_sb = [[] for i in range(numcols)]
-        vmaxs_sb = [[] for i in range(numcols)]
-
-        vmins = [None for i in range(numcols)]
-        vmaxs = [None for i in range(numcols)]
-        
-        for i, subplot in enumerate(self.subplots): # rows
-            for j, subplotconf in enumerate(subplot): # cols
-                vmins_sb[j].append(np.min(self.inputs[subplotconf['input']][0]))
-                vmaxs_sb[j].append(np.max(self.inputs[subplotconf['input']][0]))
-                # print "i", i, "j", j, vmins_sb, vmaxs_sb
-        vmins_sb = np.array(vmins_sb)
-        vmaxs_sb = np.array(vmaxs_sb)
-        print "vmins_sb, vmaxs_sb", i, j, vmins_sb.shape, vmaxs_sb.shape
-
-        for i in range(numcols):
-            vmins[i] = np.min(vmins_sb[i])
-            # vmins[1] = np.min(vmins_sb[1])
-            vmaxs[i] = np.max(vmaxs_sb[i])
-            # vmaxs[1] = np.max(vmaxs_sb[1])
-
-        print "vmins, vmaxs", i, vmins, vmaxs
-
-        if True:
-            for i, subplot in enumerate(self.subplots):
-                for j, subplotconf in enumerate(subplot):
-                    assert subplotconf.has_key('shape'), "image plot needs shape spec"
-                    assert subplotconf.has_key('xslice'), "image plot needs shape spec"
-                    # ink = subplot
-                    idx = (i*self.fig_cols)+j
-                    print "self.inputs[subplotconf['input']][0].shape", self.inputs[subplotconf['input']][0].shape
-
-                    xslice = slice(subplotconf['xslice'][0], subplotconf['xslice'][1])
-                    print "xslice", xslice, self.inputs[subplotconf['input']][0].shape
-
-                    # plotdata_cand = self.inputs[subplotconf['input']][0][:,0]
-                    # plotdata_cand = self.inputs[subplotconf['input']][0][xslice,0]
-                    plotdata_cand = self.inputs[subplotconf['input']][0][:,xslice]
-                    print "%s[%d]-%s.step plotdata_cand.shape" % (self.cname, self.cnt, self.id), plotdata_cand.shape, subplotconf['shape'], xslice
-                    print "plotdata_cand", plotdata_cand
                     
-                    plotdata = {}
-                    plotdata['i_%d_%d' % (i, j)] = plotdata_cand.reshape(subplotconf['shape'])
-                    plotvar = self.inputs[subplotconf['input']][2]
-
-                    if not subplotconf.has_key('cmap'):
-                        subplotconf['cmap'] = 'gray'
-                    cmap = plt.get_cmap(subplotconf['cmap'])
-                                                                
-                    # plot the plotdata
-                    for ink, inv in plotdata.items():
-                        print "%s.plot_subplots: ink = %s, plotvar = %s, inv.sh = %s" % (self.cname, ink, plotvar, inv.shape)
-                        # subplotconf['plot'](
-                        #     self.fig.axes[idx],
-                        #     data = inv, ordinate = t)
-                        # metadata
-                        ax = self.fig.axes[idx]
-                        # mormalize to [0, 1]
-                        # mpl = ax.imshow(inv, interpolation = "none")
-                        # Linv = np.log(inv + 1)
-                        Linv = inv
-                        mpl = ax.pcolorfast(Linv, vmin = vmins[j], vmax = vmaxs[j], cmap = cmap)
-                        # mpl = ax.pcolorfast(Linv, vmin = -2, vmax = 2, cmap = cmap)
-                        # mpl = ax.pcolorfast(Linv, cmap = cmap)
-                        # mpl = ax.pcolor(Linv)
-                        # mpl = ax.pcolorfast(Linv)
-                        # mpl = ax.imshow(Linv, interpolation = "none")
-                        ax.grid()
-                        # Linv = inv
-                        # mpl = ax.pcolormesh(
-                        #     Linv,
-                        #     norm = colors.LogNorm(vmin=Linv.min(), vmax=Linv.max()))
-                        # ax.grid()
-                        # plt.colorbar(mappable = mpl, ax = ax)
-                    # ax.set_aspect(10)
-                    # plt.colorbar(mappable = mpl, ax = ax, orientation = "horizontal")
-                    # ax.set_title("%s of %s" % ('matrix', plotvar, ), fontsize=8)
-                    ax.set_xlabel("")
-                    ax.set_ylabel("")
-                    ax.set_xticks([])
-                    ax.set_yticks([])
