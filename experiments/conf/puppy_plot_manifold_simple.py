@@ -52,7 +52,7 @@ sphrcnf = {
 testcnf = {
     'numsteps': 1000,
     'xdim': 6,
-    'xdim_eff': 6,
+    'xdim_eff': 3,
     'ydim': 4,
     'logfile': 'data/testlog3.npz',
     'logtype': 'testdata1',
@@ -64,7 +64,7 @@ xdim = cnf['xdim']
 ydim = cnf['ydim']
 xdim_eff = cnf['xdim_eff']
 
-scanstart = -20
+scanstart = -40
 scanstop = 1
 scanlen = scanstop - scanstart
     
@@ -455,7 +455,8 @@ graph = OrderedDict([
             'hspace': 0.5,
             'subplots': [
                 [{'input': 'd3_%d_%d' % (i, j), 'xslice': (0, scanlen), 'yslice': (0, 1),
-                  'shape': (1, scanlen), 'cmap': 'RdGy', 'title': 'xcorrs'} for j in range(xdim)] # 'seismic'
+                  'shape': (1, scanlen), 'cmap': 'RdGy', 'title': 'xcorrs',
+                              'vmin': -1.0, 'vmax': 1.0, 'vaxis': 'cols',} for j in range(xdim)] # 'seismic'
             for i in range(ydim)],
         },
     }),
@@ -528,6 +529,7 @@ graph = OrderedDict([
                      'xslice': (0, 1),
                      'shape': (ydim, xdim_eff),
                      'title': 'mi-matrix', 'cmap': 'Reds',
+                     'vaxis': 'rows',
                      'plot': 'bla'} for i in range(scanlen)
                 ],
                 [
@@ -535,6 +537,7 @@ graph = OrderedDict([
                      'yslice': (i * xdim_eff * ydim, (i+1) * xdim_eff * ydim),
                      'xslice': (0, 1),
                      'title': 'te-matrix', 'cmap': 'Reds',
+                     'vaxis': 'rows',
                      'shape': (ydim, xdim_eff), 'plot': 'bla'} for i in range(scanlen)
                 ],
                 # [

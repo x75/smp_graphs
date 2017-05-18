@@ -79,13 +79,13 @@ params
         """save the figure using configuration options"""
         subplotstr = "_".join(np.array([["r%d_c%d_%s" % (r, c, "_".join(subplot_input_fix(sbc['input'])),) for c,sbc in enumerate(sbr)] for r, sbr in enumerate(plotinst.subplots)]).flatten())
         # filename = "data/%s_%s_%s_%s.%s" % (plotinst.top.id, plotinst.id, "_".join(plotinst.inputs.keys()), subplotstr, plotinst.savetype)
-        filename = "data/%s_%s_%s_%s.%s" % (plotinst.top.id, plotinst.id, "_".join(plotinst.inputs.keys()), plotinst.savetype)
+        filename = "data/%s_%s_%s.%s" % (plotinst.top.id, plotinst.id, "_".join(plotinst.inputs.keys()), plotinst.savetype)
         print "%s.save filename = %s, subplotstr = %s" % (plotinst.cname, filename, subplotstr)
         plotinst.fig.set_size_inches((plotinst.fig_cols * 2 * 2.5, plotinst.fig_rows * 1.2 * 2.5))
         try:
             plotinst.fig.savefig(filename, dpi=300, bbox_inches="tight")
         except Exception, e:
-            print "%s error %s" % (self.__class__.__name__, e)
+            print "%s error %s" % ('FigPlotBlock2', e)
 
 class PlotBlock2(FigPlotBlock2):
     def __init__(self, conf = {}, paren = None, top = None):
@@ -189,21 +189,29 @@ class ImgPlotBlock2(FigPlotBlock2):
     def plot_subplots(self):
         numrows = len(self.subplots)
         numcols = len(self.subplots[0])
+
+        extrema = np.zeros((2, numrows, numcols))
         
         vmins_sb = [[] for i in range(numcols)]
         vmaxs_sb = [[] for i in range(numcols)]
 
         vmins = [None for i in range(numcols)]
         vmaxs = [None for i in range(numcols)]
+        vmins_r = [None for i in range(numrows)]
+        vmaxs_r = [None for i in range(numrows)]
         
         for i, subplot in enumerate(self.subplots): # rows
             for j, subplotconf in enumerate(subplot): # cols
                 vmins_sb[j].append(np.min(self.inputs[subplotconf['input']][0]))
                 vmaxs_sb[j].append(np.max(self.inputs[subplotconf['input']][0]))
+                extrema[0,i,j] = np.min(self.inputs[subplotconf['input']][0])
+                extrema[1,i,j] = np.max(self.inputs[subplotconf['input']][0])
                 # print "i", i, "j", j, vmins_sb, vmaxs_sb
+        print "mins", self.id, extrema[0]
+        print "maxs", extrema[1]
         vmins_sb = np.array(vmins_sb)
         vmaxs_sb = np.array(vmaxs_sb)
-        print "vmins_sb, vmaxs_sb", i, j, vmins_sb.shape, vmaxs_sb.shape
+        # print "vmins_sb, vmaxs_sb", i, j, vmins_sb.shape, vmaxs_sb.shape
 
         for i in range(numcols):
             vmins[i] = np.min(vmins_sb[i])
@@ -211,11 +219,20 @@ class ImgPlotBlock2(FigPlotBlock2):
             vmaxs[i] = np.max(vmaxs_sb[i])
             # vmaxs[1] = np.max(vmaxs_sb[1])
 
-        print "vmins, vmaxs", i, vmins, vmaxs
-
+        # for i in range(numrows):
+        #     vmins_r[i] = np.min(vmins_sb[i])
+        #     # vmins[1] = np.min(vmins_sb[1])
+        #     vmaxs_r[i] = np.max(vmaxs_sb[i])
+        #     # vmaxs[1] = np.max(vmaxs_sb[1])
+            
+        rowmins = np.min(extrema[0], axis = 0) 
+        rowmaxs = np.max(extrema[1], axis = 0) 
+        colmins = np.min(extrema[0], axis = 1) 
+        colmaxs = np.max(extrema[1], axis = 1)
+        
         if True:
-            for i, subplot in enumerate(self.subplots):
-                for j, subplotconf in enumerate(subplot):
+            for i, subplot in enumerate(self.subplots): # rows
+                for j, subplotconf in enumerate(subplot): # cols
                     assert subplotconf.has_key('shape'), "image plot needs shape spec"
 
                     # map loop indices to gridspec linear index
@@ -233,6 +250,27 @@ class ImgPlotBlock2(FigPlotBlock2):
                     if subplotconf.has_key('yslice'):
                         yslice = slice(subplotconf['yslice'][0], subplotconf['yslice'][1])
                         # print "yslice", yslice, self.inputs[subplotconf['input']][0].shape
+
+                    # min, max values for colormap
+                    axis = 0
+                    aidx = j
+                    if subplotconf.has_key('vaxis'):
+                        if subplotconf['vaxis'] == 'rows':
+                            axis = 1
+                            aidx = i
+                            
+                    vmin = np.min(extrema[0], axis = axis)[aidx]
+                    vmax = np.max(extrema[1], axis = axis)[aidx]
+                    # print "vmins, vmaxs", i, vmins, vmaxs
+                    # vmin = vmins[sbidx]
+                    # vmax = vmaxs[sbidx]
+                    # vmin = extrema[0]
+
+                    # print "vmin", vmin, "vmax", vmax
+                    if subplotconf.has_key('vmin'):
+                        vmin = subplotconf['vmin']
+                    if subplotconf.has_key('vmax'):
+                        vmax = subplotconf['vmax']
                         
                     # plotdata_cand = self.inputs[subplotconf['input']][0][:,0]
                     # plotdata_cand = self.inputs[subplotconf['input']][0][xslice,0]
@@ -274,9 +312,11 @@ class ImgPlotBlock2(FigPlotBlock2):
                         # mpl = ax.imshow(inv, interpolation = "none")
                         # Linv = np.log(inv + 1)
                         Linv = inv
-                        mpl = ax.pcolorfast(Linv, vmin = vmins[j], vmax = vmaxs[j], cmap = cmap)
+                        # print "Linv", Linv
+                        mpl = ax.pcolorfast(Linv, vmin = vmin, vmax = vmax, cmap = cmap)
+                        # mpl = ax.pcolorfast(Linv, vmin = vmins[j], vmax = vmaxs[j], cmap = cmap)
                         # mpl = ax.pcolorfast(Linv, vmin = -2, vmax = 2, cmap = cmap)
-                        # mpl = ax.pcolorfast(Linv, cmap = cmap)
+                        # mpl = ax.pcolormesh(Linv, cmap = cmap)
                         # mpl = ax.pcolor(Linv)
                         # mpl = ax.pcolorfast(Linv)
                         # mpl = ax.imshow(Linv, interpolation = "none")

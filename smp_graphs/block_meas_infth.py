@@ -20,22 +20,28 @@ class JHBlock2(PrimBlock2):
     def step(self, x = None):
         jhs = []
         shiftsl = slice(None, (self.shift[1] - self.shift[0]))
-        # for ink, inv in self.inputs.items():
-        #     print "%s.step[%d] ink = %s, inv = %s" % (self.cname, self.cnt, ink, inv)
-        # data = [inv[0] for inv in self.inputs.values()]
-        # data = np.vstack(data)
+        
+        src = self.inputs['x'][0].T
+        dst = self.inputs['y'][0].T
+        st = np.hstack((src, dst))
+        jh0 = compute_mi_multivariate(data = {'X': st, 'Y': st}, delay = 0)
         print "%s.step[%d]-%s self.inputs['x'][0].T.shape = %s, shifting by " % (self.cname, self.cnt, self.id, self.inputs['x'][0].T.shape),
         for i in range(self.shift[0], self.shift[1]):
-            print "%d " % (i, ),
+            print "%d" % (i, ),
             sys.stdout.flush()
-            src = np.roll(self.inputs['x'][0].T, shift = i, axis = 0)
-            dst = self.inputs['y'][0].T
-            st = np.hstack((src, dst))
-            jh = compute_mi_multivariate(data = {'X': st, 'Y': st})
+            
+            # src_ = np.roll(self.inputs['x'][0].T, shift = i, axis = 0)
+            # src_ = np.roll(src, shift = i, axis = 0)
+            # dst = self.inputs['y'][0].T
+            # st = np.hstack((src_, dst))
+            # jh = compute_mi_multivariate(data = {'X': st, 'Y': st})
+
+            # use jidt's delay param
+            jh = compute_mi_multivariate(data = {'X': st, 'Y': st}, delay = -i)
             # print "%s.step[%d] data = %s, jh = %f" % (self.cname, self.cnt, st.shape, jh)
             jhs.append(jh)
         print ""
-        jhs = np.array(jhs)
+        jhs = np.array(jhs) # /jh0
         self.jh[0,shiftsl] = jhs
         
 class MIBlock2(PrimBlock2):
@@ -43,43 +49,60 @@ class MIBlock2(PrimBlock2):
     def __init__(self, conf = {}, paren = None, top = None):
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
-        self.meas = measMI()
-        self.measH = measH()
+        # self.meas = measMI()
+        # self.measH = measH()
 
     @decStep()
     def step(self, x = None):
         # print "%s meas = %s" % (self.cname, self.meas)
         mis = []
-        jhs = []
+        # jhs = []
+        
+        dst = self.inputs['x'][0].T
+        src = self.inputs['y'][0].T
+        st = np.hstack((src, dst))
+
+        # shouldn't change too much under time shift
+        jh = compute_mi_multivariate(data = {'X': st, 'Y': st})
+        
         print "%s.step[%d]-%s self.inputs['x'][0].T.shape = %s, shifting by " % (self.cname, self.cnt, self.id, self.inputs['x'][0].T.shape),
         for i in range(self.shift[0], self.shift[1]):
-            print "%d " % (i, ),
+            print "%d" % (i, ),
             sys.stdout.flush()
-            src = np.roll(self.inputs['x'][0].T, shift = i, axis = 0)
-            dst = self.inputs['y'][0].T
             
-            st = np.hstack((src, dst))
-            jh = self.measH.step(st)
-            # mi = self.meas.step(st, st)
+            # src = np.roll(self.inputs['x'][0].T, shift = i, axis = 0)
+            # dst = self.inputs['y'][0].T
+            # st = np.hstack((src, dst))
+            # jh = self.compute_mutual_information(st, st)
+            # mi = self.compute_mutual_information(src, dst)
+            
+            # jh = self.measH.step(st)
+            # mi = self.meas.step(src, dst)
 
-            mi = self.meas.step(src, dst)
+            mi = compute_mutual_information(src, dst, delay = -i)
+            # print "mi", mi
+            
             mis.append(mi.copy())
-            jhs.append(jh)
+            # jhs.append(jh)
 
-        mis = np.array(mis)
-        jhs = np.array(jhs)
         print ""
+        mis = np.array(mis)
+        print "mis = ", mis.flatten()
+        # jhs = np.array(jhs)
         # print "mis.shape = %s, jhs.shape = %s" % (mis.shape, jhs.shape)
                     
         # mi = self.meas.step(self.inputs['x'][0].T, self.inputs['y'][0].T)
         # np.fill_diagonal(mi, np.min(mi))
         # print "%s.%s mi = %s, jh = %s, normalized mi = mi/jh = %s" % (self.cname, self.id, mi, jh, mi/jh)
 
-        maxjh = np.max(jhs)
+        # maxjh = np.max(jhs)
         # print "mutual info self.mi.shape = %s, mi.shape = %s, maxjh = %s" % (self.mi.shape, mi.shape, maxjh)
         
         # self.mi[:,0] = (mi/jh).flatten()
-        self.mi[:,0] = mis.flatten()/maxjh
+        # self.mi[:,0] = mis.flatten()/maxjh
+        # normalized by joint entropy
+        # self.mi[:,0] = mis.flatten()/jh
+        self.mi[:,0] = mis.flatten()
 
 class InfoDistBlock2(PrimBlock2):
     """Compute cross-correlation functions among all variables in dataset"""
@@ -93,19 +116,21 @@ class InfoDistBlock2(PrimBlock2):
     def step(self, x = None):
         # print "%s meas = %s" % (self.cname, self.meas)
         mis = []
+        src = self.inputs['x'][0].T
+        dst = self.inputs['y'][0].T
         print "%s.step[%d]-%s self.inputs['x'][0].T.shape = %s" % (self.cname, self.cnt, self.id, self.inputs['x'][0].T.shape)
         for i in range(self.shift[0], self.shift[1]):
-            print "%d " % (i, ),
+            print "%d" % (i, ),
             sys.stdout.flush()
-            src = np.roll(self.inputs['x'][0].T, shift = i, axis = 0)
-            dst = self.inputs['y'][0].T
+            # src = np.roll(self.inputs['x'][0].T, shift = i, axis = 0)
+            # dst = self.inputs['y'][0].T
             
-            st = np.hstack((src, dst))
+            # st = np.hstack((src, dst))
             # jh = self.measH.step(st)
             # mi = self.meas.step(st, st)
             # mi = compute_information_distance(st, st)
 
-            mi = compute_information_distance(src, dst)
+            mi = compute_information_distance(src, dst, delay = -i)
             mis.append(mi.copy())
             # mi = self.meas.step(self.inputs['x'][0].T, self.inputs['y'][0].T)
         
@@ -127,17 +152,21 @@ class TEBlock2(PrimBlock2):
     @decStep()
     def step(self, x = None):
         mis = []
+        src = self.inputs['x'][0].T
+        dst = self.inputs['y'][0].T
         # jh = self.measH.step(st)
         print "%s.step[%d]-%s self.inputs['x'][0].T.shape = %s, shifting by " % (self.cname, self.cnt, self.id, self.inputs['x'][0].T.shape),
         for i in range(self.shift[0], self.shift[1]):
-            print "%d " % (i, ),
+            print "%d" % (i, ),
             sys.stdout.flush()
-            src = np.roll(self.inputs['x'][0].T, shift = i, axis = 0)
-            dst = self.inputs['y'][0].T
             
-            st = np.hstack((src, dst))
+            # src = np.roll(self.inputs['x'][0].T, shift = i, axis = 0)
+            # dst = self.inputs['y'][0].T
             
-            mi = compute_transfer_entropy(dst, src)
+            # st = np.hstack((src, dst))
+            
+            # mi = compute_transfer_entropy(dst, src)
+            mi = compute_transfer_entropy(dst, src, delay = -i)
             mis.append(mi)
         print ""
 
@@ -152,17 +181,21 @@ class CTEBlock2(PrimBlock2):
     def step(self, x = None):
         mis = []
         # jh = self.measH.step(st)
+        src  = self.inputs['x'][0].T
+        dst  = self.inputs['y'][0].T
+        cond = self.inputs['cond'][0].T
         print "%s.step[%d]-%s self.inputs['x'][0].T.shape = %s" % (self.cname, self.cnt, self.id, self.inputs['x'][0].T.shape)
         for i in range(self.shift[0], self.shift[1]):
-            print "%d " % (i, ),
+            print "%d" % (i, ),
             sys.stdout.flush()
-            src  = np.roll(self.inputs['x'][0].T, shift = i, axis = 0)
-            dst  = self.inputs['y'][0].T
-            cond = self.inputs['cond'][0].T
+            
+            # src  = np.roll(self.inputs['x'][0].T, shift = i, axis = 0)
+            # dst  = self.inputs['y'][0].T
             
             # st = np.hstack((src, dst))
             
-            mi = compute_conditional_transfer_entropy(dst, src, cond)
+            # mi = compute_conditional_transfer_entropy(dst, src, cond)
+            mi = compute_conditional_transfer_entropy(dst, src, cond, delay = -i)
             mis.append(mi)
         print ""
 
@@ -182,7 +215,7 @@ class MIMVBlock2(PrimBlock2):
     @decStep()
     def step(self, x = None):
         # print "%s meas = %s" % (self.cname, self.meas)
-        print "%s.step[%d]-%s self.inputs['x'][0].T.shape = %s, shifting by" % (self.cname, self.cnt, self.id, self.inputs['x'][0].T.shape)
+        print "%s.step[%d]-%s self.inputs['x'][0].T.shape = %s, shifting by" % (self.cname, self.cnt, self.id, self.inputs['x'][0].T.shape),
         shiftsl = slice(None, (self.shift[1] - self.shift[0]))
         mimvs = []
         jhs = []
@@ -193,13 +226,14 @@ class MIMVBlock2(PrimBlock2):
             print "%d" % (i, ),
             sys.stdout.flush()
             # print "self.inputs['x'][0].T.shape", self.inputs['x'][0].T.shape
-            dst_ = np.roll(dst, shift = i, axis = 0)
+            # dst_ = np.roll(dst, shift = i, axis = 0)
             
             # st = np.hstack((src, dst))
             # jh = self.measH.step(st)
             # mi = self.meas.step(st, st)
 
-            mi = compute_mi_multivariate(data = {'X': src, 'Y': dst_}, estimator = "kraskov2", normalize = True)
+            # mi = compute_mi_multivariate(data = {'X': src, 'Y': dst_}, estimator = "kraskov2", normalize = True)
+            mi = compute_mi_multivariate(data = {'X': src, 'Y': dst}, estimator = "kraskov2", normalize = True, delay = -i)
             # print "mimv = %s" % mi
             mimvs.append(mi)
             # jhs.append(jh)
@@ -229,16 +263,18 @@ class TEMVBlock2(PrimBlock2):
         # jh = self.measH.step(st)
         src = self.inputs['y'][0].T
         dst = self.inputs['x'][0].T
+        print "%s.step[%d]-%s self.inputs['x'][0].T.shape = %s, shifting by" % (self.cname, self.cnt, self.id, self.inputs['x'][0].T.shape),
         for i in range(self.shift[0], self.shift[1]):
-            print "%d " % (i, ),
+            print "%d" % (i, ),
             sys.stdout.flush()
-            dst_ = np.roll(dst, shift = i, axis = 0)
+            
+            # dst_ = np.roll(dst, shift = i, axis = 0)
             
             # st = np.hstack((src, dst))
             
             # mi = compute_transfer_entropy_multivariate(src, dst, delay = -self.shift[0]+i)
-            mi = compute_transfer_entropy_multivariate(src, dst_, delay = 0)
+            mi = compute_transfer_entropy_multivariate(src, dst, delay = -i)
             temvs.append(mi)
-
+        print ""
         temvs = np.array(temvs)
         self.temv[0,shiftsl] = temvs.flatten()

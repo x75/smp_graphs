@@ -280,7 +280,8 @@ class Block2(object):
         self.graph = self.conf['params']['graph']
         # pass 1 init
         for k, v in self.graph.items():
-            self.debug_print("__init__: pass 1\nk = %s,\nv = %s", (k, print_dict(v)))
+            # self.debug_print("__init__: pass 1\nk = %s,\nv = %s", (k, print_dict(v)))
+            print "%s.init pass 1 k = %s, v = %s" % (self.__class__.__name__, k, v['block'].__name__)
             self.graph[k]['block'] = self.graph[k]['block'](conf = v, paren = self, top = self.top)
             # print "%s self.graph[k]['block'] = %s" % (self.graph[k]['block'].__class__.__name__, self.graph[k]['block'].bus)
         # done pass 1 init
@@ -289,6 +290,7 @@ class Block2(object):
         # pass 2 init
         for k, v in self.graph.items():
             self.debug_print("__init__: pass 2\nk = %s,\nv = %s", (k, print_dict(v)))
+            print "%s.init pass 2 k = %s, v = %s" % (self.__class__.__name__, k, v['block'].cname)
             # self.graph[k]['block'].init_pass_2()
             v['block'].init_pass_2()
 
