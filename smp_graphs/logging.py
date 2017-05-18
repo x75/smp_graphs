@@ -106,18 +106,30 @@ Arguments:
     global log_store
     experiment = "%s" % (config['params']['id'])
     log_store = pd.HDFStore("data/%s_pd.h5" % (experiment))
+    # print "logging.log_pd_init log_store.root = %s" % (log_store.root)
 
 def log_pd_store_config_initial(conf):
     # store the initial config for this run via the node attribute hack
-    df_conf = pd.DataFrame([[0]])
-    log_store['conf'] = df_conf
-    log_store.get_storer('conf').attrs.conf = conf
+    # df_conf = pd.DataFrame([[0]])
+    # log_store['conf'] = df_conf
+    # print "logging.log_pd_store_config_initial conf = %s" % conf
+    # log_store.get_storer('conf').attrs.conf = conf
+    # create VLArray for storing the graph configuration
+    h5file = log_store._handle
+    conf_array = h5file.create_vlarray(log_store.root, 'conf', tb.VLStringAtom(),
+                               "Variable Length Config String")
+    conf_array.append(str(conf))
+
 
 def log_pd_store_config_final(conf):
     # store the final config for this run via the node attribute hack
-    df_conf = pd.DataFrame([[0]])
-    log_store['conf_final'] = df_conf
-    log_store.get_storer('conf_final').attrs.conf = "" # (conf)
+    # df_conf = pd.DataFrame([[0]])
+    # log_store['conf_final'] = df_conf
+    # log_store.get_storer('conf_final').attrs.conf = "" # (conf)
+    h5file = log_store._handle
+    conf_array = h5file.create_vlarray(log_store.root, 'conf_final', tb.VLStringAtom(),
+                               "Variable Length Config String")
+    conf_array.append(str(conf))
         
 def log_pd_init_block(tbl_name, tbl_dim, tbl_columns = None, numsteps=100, blocksize = 1):
     """log_pd: log to tables via pandas, local node init

@@ -3,6 +3,7 @@
 doc/html
 doc/latex
 doc/doxygen_sqlite3.db
-data/*.pdf
-data/*.jpg
+experiments/data/*.pdf
+experiments/data/*.jpg
+experiments/data/*.npz
 

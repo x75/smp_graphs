@@ -61,17 +61,22 @@ def f1(d, j, k, shift = (-10, 11)):
     # don't do that
     x = d['x'].T[:,j]
     y = d['y'].T[:,k]
-    scov = np.std(x, axis = 0) * np.std(y, axis = 0)
-    x = x - np.mean(x, axis=0)
-    x /= scov
-    y -= np.mean(y, axis = 0)
-    y /= scov
+    # print "corr f1 shapes", x.shape, y.shape
+    assert len(x.shape) == 1 and len(y.shape) == 1
+    # scov = np.std(x) * np.std(y)
+    # scov_inv = np.sqrt(1.0/scov)
+    len_inv  = 1.0/x.shape[0]
+    x = (x - np.mean(x)) / (np.std(x) * x.shape[0]) # * scov_inv
+    # x /= scov
+    y = (y - np.mean(y)) / np.std(y) #  scov_inv
+    # y /= scov
     corr = np.array([
         np.correlate(np.roll(x, shift = i), y) for i in range(shift[0], shift[1])
-    ])/y.shape[0]
+    ])
+    # corr_normalized = corr * len_inv
     # this is correct if the inputs are the same size
     # print "f1 corr = %s" % (corr,)
-    return corr
+    return corr # _normalized
     
 def f2(d, k, shift = (-10, 11), xdim = 1):
     return np.array([f1(d, j, k, shift = shift) for j in range(xdim)])
