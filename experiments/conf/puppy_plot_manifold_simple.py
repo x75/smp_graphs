@@ -27,6 +27,14 @@ ppycnf = {
     'logtype': 'selflog',
 }
 
+ppycnf2 = {
+    'logfile': 'data/stepPickles/step_period_4_0.pickle',
+    'logtype': 'puppy',
+    'xdim': 6,
+    'ydim': 4,
+    'numsteps': 1000,
+}
+    
 testcnfsin = {
     'numsteps': 1000,
     'xdim': 1,
@@ -52,7 +60,7 @@ testcnf = {
     'logtype': 'testdata1',
 }
 
-cnf = ppycnf
+cnf = ppycnf2
 numsteps = cnf['numsteps']
 xdim = cnf['xdim']
 ydim = cnf['ydim']
@@ -98,7 +106,7 @@ graph = OrderedDict([
                 # 'data/testlog3.npz',
             ],
             'blocksize': numsteps,
-            'outputs': {'log': [None]},
+            'outputs': {'log': [None], 'x': [None], 'y': [None]}, # , 
             }
         }),
 

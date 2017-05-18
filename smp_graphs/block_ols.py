@@ -24,6 +24,7 @@ class FileBlock2(Block2):
         ############################################################
         # puppy homeokinesis (andi)
         if conf['params']['type'] == 'puppy':
+            del conf['params']['outputs']['log']
             (self.data, self.rate, self.offset) = read_puppy_hk_pickles(lfile)
             # print "self.data", self.data.keys()
             # for k,v in self.data.items():
