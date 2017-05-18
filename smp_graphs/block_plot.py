@@ -84,6 +84,8 @@ params
         plotinst.fig.set_size_inches((plotinst.fig_cols * 2 * 2.5, plotinst.fig_rows * 1.2 * 2.5))
         try:
             plotinst.fig.savefig(filename, dpi=300, bbox_inches="tight")
+        except Exception, e:
+            print "%s error %s" % (self.__class__.__name__, e)
 
 class PlotBlock2(FigPlotBlock2):
     def __init__(self, conf = {}, paren = None, top = None):
