@@ -27,7 +27,7 @@ graph = OrderedDict([
                 'hi': {'val': 1, 'shape': (2, 3, 1), 'src': 'const'}
             },
             # recurrent connection
-            # 'inputs': {'lo': ['b2/x'], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+            # 'inputs': {'lo': {'bus': 'b2/x'}, 'hi': {'bus': 'b1/x'}}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
             'outputs': {'x': {'shape': (5, 2, 3,)}},
             # 'outputs': {'x': {'shape': (2, 3,)}},
             # 'outputs': {'x': {'shape': (3,)}},

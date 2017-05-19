@@ -117,10 +117,11 @@ class decStep():
                             blocksize_input = xself.bus[v['bus']].shape[-1]
                             # input block border 
                             if (xself.cnt % blocksize_input) == 0: # (blocksize_input - 1):
-                                # shift by input blocksize
-                                axis = len(xself.bus[v['bus']].shape) - 1
+                                # shift by input blocksize along self.blocksize axis
+                                # axis = len(xself.bus[v['bus']].shape) - 1
+                                axis = len(v['shape']) - 1
                                 v['val'] = np.roll(v['val'], shift = -blocksize_input, axis = axis)
-                                print "decstep v[val]", v['val'].shape, "v.sh", v['shape'], "axis", axis, "v", v['val']
+                                print "%s.decStep v[val]" % (xself.cname), v['val'].shape, "v.sh", v['shape'], "axis", axis, "v", v['val']
                                 
                                 # set inputs [last-inputbs:last] if input blocksize reached
                                 # # debugging in to out copy
@@ -131,10 +132,11 @@ class decStep():
                                 #                                          xself.bus[v[2]])
                                 
                                 sl = slice(-blocksize_input, None)
-                                v['val'][...,sl] = xself.bus[v['bus']].copy() # np.fliplr(xself.bus[v[2]])
+                                print "sl", sl, "bus.shape", xself.bus[v['bus']].shape
+                                v['val'][...,-blocksize_input:] = xself.bus[v['bus']].copy() # np.fliplr(xself.bus[v[2]])
                                 # xself.inputs[k][0][:,-1,np.newaxis] = xself.bus[v[2]]                                
                         else: # ibuf = 1
-                            v['val'][:,[0]] = xself.bus[v['bus']]
+                            v['val'][...,[0]] = xself.bus[v['bus']]
                             
                     # copy input to output if inkey k is in outkeys
                     if k in xself.outputs.keys():
@@ -356,7 +358,7 @@ class Block2(object):
         # new format: outkey = str: outval = {val: value, shape: shape, dst: destination, ...}
         for k, v in self.outputs.items():
             # print "%s.init_outputs: outk = %s, outv = %s" % (self.cname, k, v)
-            
+            assert type(v) is dict, "Old config with type %s?" % (type(v),)
             # create new shape tuple by appending the blocksize to original dimensions
             v['bshape']  = v['shape'] + (self.blocksize,)
             print "v.bshape", v['bshape']
@@ -415,7 +417,7 @@ class Block2(object):
             for k, v in self.inputs.items():
                 self.debug_print("__init__: pass 2\n    in_k = %s,\n    in_v = %s", (k, v))
                 assert len(v) > 0
-                assert type(v) is dict, "input value %s in block %s/%s must be a dict but it is %s" % (k, self.cname, self.id, type(v))
+                assert type(v) is dict, "input value %s in block %s/%s must be a dict but it is a %s, probably old config" % (k, self.cname, self.id, type(v))
 
                 # set input from bus
                 if v.has_key('bus'):
@@ -949,14 +951,15 @@ class ConstBlock2(PrimBlock2):
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
         
         # either column vector to be replicated or blocksize already
-        assert self.x.shape[1] in [1, self.blocksize]
-
+        assert self.x.shape[-1] in [1, self.blocksize]
+        assert self.inputs['c']['val'].shape[:-1] == self.x.shape[:-1], "ConstBlock2 input / output shapes must agree: %s == %s?" % (self.inputs['c']['val'].shape[:-1], self.x.shape[:-1])
+        
         # replicate column vector
         # if self.x.shape[1] == 1: # this was wrong
-        if self.inputs['c'][0].shape[1] == 1:
-            self.x = np.tile(self.inputs['c'][0], self.blocksize) # FIXME as that good? only works for single column vector
+        if self.inputs['c']['val'].shape[1] == 1:
+            self.x = np.tile(self.inputs['c']['val'], self.blocksize) # FIXME as that good? only works for single column vector
         else:
-            self.x = self.inputs['c'][0].copy() # FIXME as that good? only works for single column vector
+            self.x = self.inputs['c']['val'].copy() # FIXME as that good? only works for single column vector
 
 class CountBlock2(PrimBlock2):
     """!@brief Count block: output is just the count
