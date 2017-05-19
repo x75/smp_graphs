@@ -12,6 +12,13 @@ from hyperopt import hp
 from hyperopt import STATUS_OK, STATUS_FAIL
 from hyperopt import fmin, tpe, Trials, rand, anneal
 
+# callable test
+
+class f_(object):
+    def __call__(self, f):
+        # args, kwargs
+        # check if first and store stuff
+        pass
 
 # some minimal functions
 f_sinesquare = lambda args: np.sin(args['x'][0])**2

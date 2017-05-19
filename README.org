@@ -36,11 +36,15 @@ to the bottom as they consolidate, hottest items at the top.
  - graph: execution: sliding window analysis mode with automatic, depends:mdb,ipl
    subplot / dimstack routing, make target frequency sweep during
    force learning and do sliding window analysis on shifted mi/te
+ - graph: input / output specs need to be dicts (positional indexing gets over my head)
+ - graph: lazy init with dirty flag that loops until all dependencies are satisfied
+ - graph: execution: sequencing / timeline / phases
  - models and fitting
  - ros systems
 
  - power blocks, the real stuff
-   - x block_meas: measurement / analysis blocks
+   - y block_meas: measurement / analysis blocks
+   - block_expand: expansion blocks: random non-linear expansion (mdp), reservoir expansion, soft-body expansion
    - block_repr: representation learning, unsupervised learning, input decomposition
    - block_func: function approximation blocks
 

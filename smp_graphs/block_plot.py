@@ -58,7 +58,7 @@ params
         # make sure that data can have been generated
         if self.cnt > 0 and (self.cnt % self.blocksize) == 0: # (self.blocksize - 1):
             for ink, inv in self.inputs.items():
-                self.debug_print("[%s]step in[%s].shape = %s", (self.id, ink, inv[0]))
+                self.debug_print("[%s]step in[%s].shape = %s", (self.id, ink, inv['shape']))
 
             plots = self.plot_subplots()
             
@@ -126,11 +126,12 @@ class PlotBlock2(FigPlotBlock2):
                     title = ""
                     if subplotconf.has_key('title'): title += subplotconf['title']
                     for k, ink in enumerate(subplotconf['input']):
-                        print "k", k, "ink", ink
-                        plotdata[ink] = self.inputs[ink][0].T[xslice]
+                        print "%s.plot_subplots k = %s, ink = %s" % (self.cname, k, ink)
+                        plotdata[ink] = self.inputs[ink]['val'].T[xslice]
+                        print "plotdata", plotdata[ink]
                         # fix nans
                         plotdata[ink][np.isnan(plotdata[ink])] = -1.0
-                        plotvar += "%s, " % (self.inputs[ink][2],)
+                        plotvar += "%s, " % (self.inputs[ink]['bus'],)
                     title += plotvar
                         
                     # different 

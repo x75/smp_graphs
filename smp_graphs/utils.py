@@ -1,5 +1,6 @@
 
 from collections import OrderedDict
+from functools import partial
 
 from numpy import ndarray
 from numpy import float64
@@ -62,3 +63,11 @@ def print_dict(pdict = {}, level = 1, indent = None):
     # if "array" in pstring:
     #     print "array", pstring, level, indent
     return pstring
+
+def xproduct(f, tup):
+    """compute the cartesian product of a variable number of tensor dimensions"""
+    if len(tup) > 1: # still dimensions left
+        return xproduct(partial(f, range(tup[0])), tup[1:]) # call yourself with partial of current dim and remaining dims
+    # until nothings left
+    return [elem for elem in f(range(tup[0]))]
+
