@@ -17,7 +17,7 @@ from hyperopt import STATUS_OK, STATUS_FAIL
 import pandas as pd
 
 import smp_graphs.logging as log
-from smp_graphs.utils import print_dict, xproduct
+from smp_graphs.utils import print_dict, xproduct, myt
 from smp_graphs.common import conf_header, conf_footer
 from smp_graphs.common import get_config_raw, get_config_raw_from_string
 from smp_graphs.common import set_attr_from_dict
@@ -120,7 +120,7 @@ class decStep():
                                 # shift by input blocksize
                                 axis = len(xself.bus[v['bus']].shape) - 1
                                 v['val'] = np.roll(v['val'], shift = -blocksize_input, axis = axis)
-                                print "decstep v[val]", v['val'].shape, "v.sh", v['shape'], "axis", axis
+                                print "decstep v[val]", v['val'].shape, "v.sh", v['shape'], "axis", axis, "v", v['val']
                                 
                                 # set inputs [last-inputbs:last] if input blocksize reached
                                 # # debugging in to out copy
@@ -131,7 +131,7 @@ class decStep():
                                 #                                          xself.bus[v[2]])
                                 
                                 sl = slice(-blocksize_input, None)
-                                v['val'][...,sl] = xself.bus[v['bus']] # np.fliplr(xself.bus[v[2]])
+                                v['val'][...,sl] = xself.bus[v['bus']].copy() # np.fliplr(xself.bus[v[2]])
                                 # xself.inputs[k][0][:,-1,np.newaxis] = xself.bus[v[2]]                                
                         else: # ibuf = 1
                             v['val'][:,[0]] = xself.bus[v['bus']]
@@ -359,6 +359,7 @@ class Block2(object):
             
             # create new shape tuple by appending the blocksize to original dimensions
             v['bshape']  = v['shape'] + (self.blocksize,)
+            print "v.bshape", v['bshape']
 
             # compute buskey from id and variable name
             v['buskey'] = "%s/%s" % (self.id, k)
@@ -423,37 +424,20 @@ class Block2(object):
                     
                     # enforce bus blocksize smaller than local blocksize, tackle later
                     assert self.bus[v['bus']].shape[-1] <= self.blocksize, "input block size needs to be less than or equal self blocksize in %s/%s\ncheck blocksize param" % (self.cname, self.id)
-
+                    # get shortcut
                     inbus = self.bus[v['bus']]
+                    
                     if v.has_key('shape'):
-                        # assert inbus.shape[:-1] == v['shape'][:-1]
-                        # v['val'] = np.zeros((inbus.shape[:-1], self.ibuf)) # ibuf >= blocksize
+                        # init input buffer from configuration shape
                         v['val'] = np.zeros(v['shape'][-1] + (self.ibuf,)) # ibuf >= blocksize
+                        print "v['val'].shape", v['val'].shape
                         v['val'][...,0:inbus.shape[-1]] = inbus
                     else:
-                        v['val'] = inbus.copy()
-                    
-                    # # alloc the inbuf
-                    # tmp[0] = 
-                    # # splice buf into inbuf
-                    # tmp[0][:,0:inbus.shape[1]] = inbus
-                    
+                        # if no shape given, take busdim times input buffer size
+                        v['val'] = np.zeros(inbus.shape[:-1] + (self.ibuf,)) # ibuf >= blocksize inbus.copy()
+                                        
                     v['shape'] = v['val'].shape # self.bus[v['bus']].shape
                     
-                    # # create input tuple
-                    # tmp = [None for i in range(3)]
-                    # # get the bus
-                    # inbus = self.bus[v[0]]
-                    # # alloc the inbuf
-                    # tmp[0] = np.zeros((inbus.shape[0], self.ibuf)) # ibuf >= blocksize
-                    # # splice buf into inbuf
-                    # tmp[0][:,0:inbus.shape[1]] = inbus
-                    # # store shape fwiw
-                    # tmp[1] = tmp[0].shape
-                    # # store buskey
-                    # tmp[2] = v[0]
-                    # # assign tuple
-                    # self.inputs[k] = tmp #
                     self.debug_print("%s.init_pass_2: %s, bus[%s] = %s, input = %s", (self.cname, self.id, v['bus'], self.bus[v['bus']].shape, v['val'].shape))
                 # elif type(v[0]) is str:
                 #     # it's a string but no valid buskey, init zeros(1,1)?

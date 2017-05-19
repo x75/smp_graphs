@@ -7,6 +7,7 @@ import seaborn as sns
 
 from smp_graphs.block import decStep, decInit
 from smp_graphs.block import PrimBlock2
+from smp_graphs.utils import myt
 
 from smp_base.plot import makefig, timeseries, histogram
 
@@ -108,7 +109,7 @@ class PlotBlock2(FigPlotBlock2):
                     if subplotconf.has_key('xslice'):
                         xslice = slice(subplotconf['xslice'][0], subplotconf['xslice'][1])
                     else:
-                        xslice = slice(None)
+                        xslice = slice(0, self.blocksize)
                         
                     # configure x axis
                     if subplotconf.has_key('xaxis'):
@@ -127,7 +128,8 @@ class PlotBlock2(FigPlotBlock2):
                     if subplotconf.has_key('title'): title += subplotconf['title']
                     for k, ink in enumerate(subplotconf['input']):
                         print "%s.plot_subplots k = %s, ink = %s" % (self.cname, k, ink)
-                        plotdata[ink] = self.inputs[ink]['val'].T[xslice]
+                        # plotdata[ink] = self.inputs[ink]['val'].T[xslice]
+                        plotdata[ink] = myt(self.inputs[ink]['val'])[xslice].reshape((self.blocksize, -1))
                         print "plotdata", plotdata[ink]
                         # fix nans
                         plotdata[ink][np.isnan(plotdata[ink])] = -1.0
@@ -136,9 +138,10 @@ class PlotBlock2(FigPlotBlock2):
                         
                     # different 
                     if subplotconf.has_key('mode'):
-                        ivecs = tuple(self.inputs[ink][0].T[xslice] for k, ink in enumerate(subplotconf['input']))
-                        # for item in ivecs:
-                        #     print "ivec.shape", item.shape
+                        # ivecs = tuple(self.inputs[ink][0].T[xslice] for k, ink in enumerate(subplotconf['input']))
+                        ivecs = tuple(self.inputs[ink][0].myt()[xslice] for k, ink in enumerate(subplotconf['input']))
+                        for item in ivecs:
+                            print "ivec.shape", item.shape
                         plotdata = {}
                         if subplotconf['mode'] in ['stack', 'combine', 'concat']:
                             plotdata['all'] = np.hstack(ivecs)
@@ -174,6 +177,7 @@ class PlotBlock2(FigPlotBlock2):
                     labels = []
                     for ink, inv in plotdata.items():
                         print "%s.plot_subplots: ink = %s, plotvar = %s, inv.sh = %s, t.sh = %s" % (self.cname, ink, plotvar, inv.shape, t.shape)
+                        print "v", inv
                         # this is the plotfunction from the config
                         subplotconf['plot'](
                             self.fig.axes[idx],
