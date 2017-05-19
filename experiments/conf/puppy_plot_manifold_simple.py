@@ -31,9 +31,14 @@ ppycnf = {
 }
 
 ppycnf2 = {
-    'logfile': 'data/stepPickles/step_period_4_0.pickle',
+    # 'logfile': 'data/stepPickles/step_period_4_0.pickle',
+    # 'logfile': 'data/stepPickles/step_period_10_0.pickle',
+    # 'logfile': 'data/stepPickles/step_period_12_0.pickle',
+    # 'logfile': 'data/stepPickles/step_period_76_0.pickle',
+    'logfile': 'data/stepPickles/step_period_26_0.pickle',
     'logtype': 'puppy',
     'xdim': 6,
+    'xdim_eff': 3,
     'ydim': 4,
     'numsteps': 1000,
 }
@@ -310,7 +315,7 @@ graph = OrderedDict([
     #                 'debug': False,
     #                 'inputs': {'x': ['puppylog/x'], 'y': ['puppylog/y'], 'cond': ['puppylog/y']},
     #                 'shift': (-10, 11),
-    #                 'outputs': {'cte': [(scanlen * ydim * xdim, 1)]}
+    #                 'outputs': {'cte': [(scanlen * ydim * xdim_eff, 1)]}
     #             }
     #         },
     #     }
@@ -477,6 +482,8 @@ graph = OrderedDict([
             'logging': False,
             'saveplot': True,
             'debug': False,
+            'wspace': 0.5,
+            'hspace': 0.5,
             'blocksize': numsteps,
             'inputs': {'d1': ['mimv_1/mimv'], 'd2': ['temv_1/temv'], 't': [np.linspace(scanstart, scanstop-1, scanlen)],
                        'd3': ['jh/jh']},
