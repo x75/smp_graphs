@@ -23,8 +23,27 @@ it's outputs to the bus.
 This is a dynamic list, items already implemented should trickle down
 to the bottom as they consolidate, hottest items at the top.
 
--   profiling: logging: make logging internal blocksize
--   kinesis rate param for blocks = blocksize?
+-   plotting
+    -   x saveplots
+    -   dimstack plot vs. subplots, depends:mdp
+    -   interactive plotting (ipl)
+-   graph: multi-dimensional busses (mdb)
+-   graph: proper bus structure with change notifications and multidim signalling (tensor foo) depends:mdb
+-   graph: execution: sliding window analysis mode with automatic, depends:mdb,ipl
+    subplot / dimstack routing, make target frequency sweep during
+    force learning and do sliding window analysis on shifted mi/te
+-   models and fitting
+-   ros systems
+
+-   power blocks, the real stuff
+    -   x block\_meas: measurement / analysis blocks
+    -   block\_repr: representation learning, unsupervised learning, input decomposition
+    -   block\_func: function approximation blocks
+
+-   documentation
+    -   doc: all the logic
+    -   doc: inputs spec, outputs spec, slicespec, plotinput spec, mixed blocksizes?
+
 -   experiment: map an sm manifold from logdata via scattermatrix or
     dimstack, sort the axes by pairwise MI/infodist
 -   predictive processing
@@ -70,6 +89,7 @@ to the bottom as they consolidate, hottest items at the top.
 -   / step, blocksize, ibuf
     -   min blocksize after pass 1
     -   how to optimize if min(bs) > 1?
+    -   x kinesis rate param for blocks = blocksize: introduced 'rate' parameter
     -   x make prim blocks blocksize aware
     -   x check if logging still works properly
     -   x basic blocksize handling
@@ -95,6 +115,7 @@ to the bottom as they consolidate, hottest items at the top.
 -   x logging
     -   x std logging OK
     -   x include git revision, initial and final config in log
+    -   x profiling: logging: make logging internal blocksize
 
 -   misc stuff
     -   x separate header/footer for full config file to remove code
