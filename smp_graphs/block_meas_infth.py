@@ -12,7 +12,7 @@ from smp_graphs.block import decInit, decStep, Block2, PrimBlock2
 # block wrappers for smp_base/measures_infth.py, similar to the general smp_base/measures.py pattern
 
 class JHBlock2(PrimBlock2):
-    """Compute joint entropy of multivariate data"""
+    """!@brief Compute scalar joint entropy of multivariate data"""
     def __init__(self, conf = {}, paren = None, top = None):
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
     
@@ -45,16 +45,12 @@ class JHBlock2(PrimBlock2):
         self.jh[0,shiftsl] = jhs
         
 class MIBlock2(PrimBlock2):
-    """Compute elementwise mutual information among all variables in dataset"""
+    """!@brief Compute elementwise mutual information among all variables in dataset"""
     def __init__(self, conf = {}, paren = None, top = None):
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
-        # self.meas = measMI()
-        # self.measH = measH()
-
     @decStep()
     def step(self, x = None):
-        # print "%s meas = %s" % (self.cname, self.meas)
         mis = []
         # jhs = []
         
@@ -87,7 +83,7 @@ class MIBlock2(PrimBlock2):
 
         print ""
         mis = np.array(mis)
-        print "mis = ", mis.flatten()
+        # print "mis = ", mis.flatten()
         # jhs = np.array(jhs)
         # print "mis.shape = %s, jhs.shape = %s" % (mis.shape, jhs.shape)
                     
@@ -105,7 +101,9 @@ class MIBlock2(PrimBlock2):
         self.mi[:,0] = mis.flatten()
 
 class InfoDistBlock2(PrimBlock2):
-    """Compute cross-correlation functions among all variables in dataset"""
+    """!@brief Compute elementwise information distance among all variables in dataset. This is
+    obtained via the MI by interpreting the MI as proximity and inverting it. It's normalized by
+    the joint entropy."""
     def __init__(self, conf = {}, paren = None, top = None):
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
@@ -146,6 +144,7 @@ class InfoDistBlock2(PrimBlock2):
         self.infodist[:,0] = mis.flatten()
         
 class TEBlock2(PrimBlock2):
+    """!@brief Compute elementwise transfer entropy from src to dst variables in dataset"""
     def __init__(self, conf = {}, paren = None, top = None):
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
@@ -174,6 +173,8 @@ class TEBlock2(PrimBlock2):
         self.te[:,0] = mis.flatten()
 
 class CTEBlock2(PrimBlock2):
+    """!@brief Compute elementwise conditional transfer entropy from src to dst variables conditioned
+    on cond variables in dataset"""
     def __init__(self, conf = {}, paren = None, top = None):
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
@@ -181,8 +182,8 @@ class CTEBlock2(PrimBlock2):
     def step(self, x = None):
         mis = []
         # jh = self.measH.step(st)
-        src  = self.inputs['x'][0].T
-        dst  = self.inputs['y'][0].T
+        dst  = self.inputs['x'][0].T
+        src  = self.inputs['y'][0].T
         cond = self.inputs['cond'][0].T
         print "%s.step[%d]-%s self.inputs['x'][0].T.shape = %s" % (self.cname, self.cnt, self.id, self.inputs['x'][0].T.shape)
         for i in range(self.shift[0], self.shift[1]):
@@ -195,7 +196,7 @@ class CTEBlock2(PrimBlock2):
             # st = np.hstack((src, dst))
             
             # mi = compute_conditional_transfer_entropy(dst, src, cond)
-            mi = compute_conditional_transfer_entropy(dst, src, cond, delay = -i)
+            mi = compute_conditional_transfer_entropy(src, dst, cond, delay = -i, xcond = self.xcond)
             mis.append(mi)
         print ""
 
@@ -205,7 +206,7 @@ class CTEBlock2(PrimBlock2):
 ################################################################################
 # multivariate versions
 class MIMVBlock2(PrimBlock2):
-    """Compute cross-correlation functions among all variables in dataset"""
+    """!@brief Compute the multivariate mutual information between X and Y, aka the total MI"""
     def __init__(self, conf = {}, paren = None, top = None):
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
@@ -253,6 +254,7 @@ class MIMVBlock2(PrimBlock2):
         self.mimv[0,shiftsl] = mimvs.flatten() # /maxjh
 
 class TEMVBlock2(PrimBlock2):
+    """!@brief Compute the multivariate transfer entropy from X to Y, aka the total TE"""
     def __init__(self, conf = {}, paren = None, top = None):
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
@@ -278,3 +280,9 @@ class TEMVBlock2(PrimBlock2):
         print ""
         temvs = np.array(temvs)
         self.temv[0,shiftsl] = temvs.flatten()
+
+class CTEMVBlock2(PrimBlock2):
+    """!@brief Compute the multivariate conditional transfer entropy from X to Y, conditioned on C, aka the total CTE (doesn't exist yet)"""
+    def __init__(self, conf = {}, paren = None, top = None):
+        PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
+        

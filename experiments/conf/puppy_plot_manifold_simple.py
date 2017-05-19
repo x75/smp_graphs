@@ -14,14 +14,14 @@ from smp_graphs.block_meas_infth import JHBlock2, MIBlock2, InfoDistBlock2, TEBl
 randseed = 12345
 
 ppycnf = {
-    'numsteps': 27000,
-    'logfile': 'data/experiment_20170518_161544_puppy_process_logfiles_pd.h5',
+    # 'numsteps': 27000,
+    # 'logfile': 'data/experiment_20170518_161544_puppy_process_logfiles_pd.h5',
     # 'numsteps': 147000,
     # 'logfile': 'data/experiment_20170510_155432_puppy_process_logfiles_pd.h5', # 147K
     # 'numsteps': 29000,
     # 'logfile': 'data/experiment_20170517_160523_puppy_process_logfiles_pd.h5', 29K
-    # 'numsteps': 10000,
-    # 'logfile': 'data/experiment_20170511_145725_puppy_process_logfiles_pd.h5', # 10K
+    'numsteps': 10000,
+    'logfile': 'data/experiment_20170511_145725_puppy_process_logfiles_pd.h5', # 10K
     # 'numsteps': 2000,
     # 'logfile': 'data/experiment_20170510_173800_puppy_process_logfiles_pd.h5', # 2K
     'xdim': 6,
@@ -71,13 +71,13 @@ testcnf = {
     'logtype': 'testdata1',
 }
 
-cnf = ppycnf2
+cnf = ppycnf
 numsteps = cnf['numsteps']
 xdim = cnf['xdim']
 ydim = cnf['ydim']
 xdim_eff = cnf['xdim_eff']
 
-scanstart = -40
+scanstart = -20
 scanstop = 1
 scanlen = scanstop - scanstart
     
@@ -298,40 +298,29 @@ graph = OrderedDict([
         }
     }),
     
-    # # mutual information analysis of data
-    # ('cte', {
-    #     'block': LoopBlock2,
-    #     'params': {
-    #         'id': 'cte',
-    #         'loop': [('inputs', {'x': ['puppylog/x'], 'y': ['puppylog/y'], 'cond': ['puppylog/y']}),
-    #                  # ('inputs', {'x': ['puppylog/x'], 'y': ['puppylog/r']}),
-    #                  # ('inputs', {'x': ['puppylog/y'], 'y': ['puppylog/r']}),
-    #         ],
-    #         'loopblock': {
-    #             'block': CTEBlock2,
-    #             'params': {
-    #                 'id': 'cte',
-    #                 'blocksize': numsteps,
-    #                 'debug': False,
-    #                 'inputs': {'x': ['puppylog/x'], 'y': ['puppylog/y'], 'cond': ['puppylog/y']},
-    #                 'shift': (-10, 11),
-    #                 'outputs': {'cte': [(scanlen * ydim * xdim_eff, 1)]}
-    #             }
-    #         },
-    #     }
-    # }),
-    
-    # # mutual information analysis of data
-    # ('mi2', {
-    #     'block': MIBlock2,
-    #     'params': {
-    #         'id': 'mi2',
-    #         'blocksize': numsteps,
-    #         'inputs': {'x': ['puppylog/x'], 'y': ['puppylog/r']},
-    #         'shift': (scanstart, scanstop),
-    #         'outputs': {'mi': [(ydim, xdim_eff, scanlen)]}
-    #         }
-    #     }),
+    # mutual information analysis of data
+    ('cte', {
+        'block': LoopBlock2,
+        'params': {
+            'id': 'cte',
+            'loop': [('inputs', {'x': ['puppyslice/x_gyr'], 'y': ['puppylog/y'], 'cond': ['puppylog/y']}),
+                     # ('inputs', {'x': ['puppylog/x'], 'y': ['puppylog/r']}),
+                     # ('inputs', {'x': ['puppylog/y'], 'y': ['puppylog/r']}),
+            ],
+            'loopblock': {
+                'block': CTEBlock2,
+                'params': {
+                    'id': 'cte',
+                    'blocksize': numsteps,
+                    'debug': False,
+                    'xcond': True,
+                    'inputs': {'x': ['puppyslice/x_gyr'], 'y': ['puppylog/y'], 'cond': ['puppylog/y']},
+                    'shift': (scanstart, scanstop),
+                    'outputs': {'cte': [(scanlen * ydim * xdim_eff, 1)]}
+                }
+            },
+        }
+    }),
     
     # # puppy process data block: integrate acc, diff motors
     # ('accint', {
@@ -435,44 +424,44 @@ graph = OrderedDict([
     #     },
     # }),
     
-    # plot cross-correlation matrix
-    ('plot_xcor_line', {
-        'block': PlotBlock2,
-        'params': {
-            'id': 'plot_xcor_line',
-            'logging': False,
-            'debug': False,
-            'saveplot': True,
-            'blocksize': numsteps,
-            'inputs': make_input_matrix(xdim = xdim, ydim = ydim, with_t = True),
-            'outputs': {}, #'x': [(3, 1)]},
-            'subplots': [
-                [{'input': 'd3_%d_%d' % (i, j), 'xslice': (0, scanlen), 'xaxis': 't',
-                  'plot': partial(timeseries, linestyle="none", marker=".")} for j in range(xdim)]
-            for i in range(ydim)],
-        },
-    }),
+    # # plot cross-correlation matrix
+    # ('plot_xcor_line', {
+    #     'block': PlotBlock2,
+    #     'params': {
+    #         'id': 'plot_xcor_line',
+    #         'logging': False,
+    #         'debug': False,
+    #         'saveplot': True,
+    #         'blocksize': numsteps,
+    #         'inputs': make_input_matrix(xdim = xdim, ydim = ydim, with_t = True),
+    #         'outputs': {}, #'x': [(3, 1)]},
+    #         'subplots': [
+    #             [{'input': 'd3_%d_%d' % (i, j), 'xslice': (0, scanlen), 'xaxis': 't',
+    #               'plot': partial(timeseries, linestyle="none", marker=".")} for j in range(xdim)]
+    #         for i in range(ydim)],
+    #     },
+    # }),
 
-    # plot cross-correlation matrix
-    ('plot_xcor_img', {
-        'block': ImgPlotBlock2,
-        'params': {
-            'id': 'plot_xcor_img',
-            'logging': False,
-            'saveplot': True,
-            'debug': False,
-            'blocksize': numsteps,
-            'inputs': make_input_matrix(xdim = xdim, ydim = ydim, with_t = True),
-            'outputs': {}, #'x': [(3, 1)]},
-            'wspace': 0.5,
-            'hspace': 0.5,
-            'subplots': [
-                [{'input': 'd3_%d_%d' % (i, j), 'xslice': (0, scanlen), 'yslice': (0, 1),
-                  'shape': (1, scanlen), 'cmap': 'RdGy', 'title': 'xcorrs',
-                              'vmin': -1.0, 'vmax': 1.0, 'vaxis': 'cols',} for j in range(xdim)] # 'seismic'
-            for i in range(ydim)],
-        },
-    }),
+    # # plot cross-correlation matrix
+    # ('plot_xcor_img', {
+    #     'block': ImgPlotBlock2,
+    #     'params': {
+    #         'id': 'plot_xcor_img',
+    #         'logging': False,
+    #         'saveplot': True,
+    #         'debug': False,
+    #         'blocksize': numsteps,
+    #         'inputs': make_input_matrix(xdim = xdim, ydim = ydim, with_t = True),
+    #         'outputs': {}, #'x': [(3, 1)]},
+    #         'wspace': 0.5,
+    #         'hspace': 0.5,
+    #         'subplots': [
+    #             [{'input': 'd3_%d_%d' % (i, j), 'xslice': (0, scanlen), 'yslice': (0, 1),
+    #               'shape': (1, scanlen), 'cmap': 'RdGy', 'title': 'xcorrs',
+    #                           'vmin': -1.0, 'vmax': 1.0, 'vaxis': 'cols',} for j in range(xdim)] # 'seismic'
+    #         for i in range(ydim)],
+    #     },
+    # }),
     
     # plot multivariate (global) mutual information over timeshifts
     ('plot_jh_mimv_temv', {
@@ -519,7 +508,7 @@ graph = OrderedDict([
             'hsapce': 0.1,
             'blocksize': numsteps,
             # 'inputs': {'d1': ['mi_1/mi'], 'd2': ['infodist_1/infodist']},
-            'inputs': {'d1': ['mi_1/mi'], 'd2': ['te_1/te']}, #, 'd3': ['cte_1/cte']},
+            'inputs': {'d1': ['mi_1/mi'], 'd2': ['te_1/te'], 'd3': ['cte_1/cte']},
             'outputs': {}, #'x': [(3, 1)]},
             # 'subplots': [
             #     [
@@ -555,10 +544,14 @@ graph = OrderedDict([
                      'vaxis': 'rows',
                      'shape': (ydim, xdim_eff), 'plot': 'bla'} for i in range(scanlen)
                 ],
-                # [
-                #     {'input': 'd3', 'xslice': (i * xdim_eff * ydim, (i+1) * xdim_eff * ydim),
-                #          'shape': (ydim, xdim_eff), 'plot': 'bla'} for i in range(scanlen)
-                # ]
+                [
+                    {'input': 'd3',
+                     'yslice': (i * xdim_eff * ydim, (i+1) * xdim_eff * ydim),
+                     'xslice': (0, 1),
+                     'title': 'cte-matrix', 'cmap': 'Reds',
+                     'vaxis': 'rows',
+                     'shape': (ydim, xdim_eff), 'plot': 'bla'} for i in range(scanlen)
+                ],
             ],
         },
     }),
