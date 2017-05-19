@@ -6,7 +6,7 @@ the config is python, so we
 """
 
 # reuse
-numsteps = 500
+numsteps = 10
 debug = True
 
 # graph
@@ -23,7 +23,8 @@ graph = OrderedDict([
             'type': 'selflog',
             # this is looping demand
             'file': [
-                'data/experiment_20170510_124440_puppy_rp_pd.h5',
+                'data/experiment_20170519_123619_default2_multi_dim_bus_pd.h5',
+                # 'data/experiment_20170510_124440_puppy_rp_pd.h5',
                 # 'data/experiment_20170510_123450_puppy_rp_pd.h5',
                 # 'data/experiment_20170510_121248_puppy_rp_pd.h5',
                 # 'data/experiment_20170509_131125_puppy_rp_blocksize_pd.h5',
@@ -52,29 +53,29 @@ graph = OrderedDict([
             'debug': False,
             'blocksize': numsteps,
             'inputs': {
-                'd1': ['selflog//b1/x'],
-                'd2': ['selflog//b2/x'],
+                # 'd1': ['selflog//b1/x'],
+                # 'd2': ['selflog//b2/x'],
                 'd3': ['selflog/x'],
-                'd4': ['selflog/y'],
+                # 'd4': ['selflog/y'],
             },
             'outputs': {},#'x': [(3, 1)]},
             'subplots': [
-                [
-                    {'input': 'd1', 'slice': (0, 3), 'plot': timeseries},
-                    # {'input': 'd1', 'slice': (0, 3), 'plot': histogram},
-                ],
-                [
-                    {'input': 'd2', 'slice': (3, 6), 'plot': timeseries},
-                    # {'input': 'd2', 'slice': (3, 6), 'plot': histogram},
-                ],
+                # [
+                #     {'input': 'd1', 'slice': (0, 3), 'plot': timeseries},
+                #     # {'input': 'd1', 'slice': (0, 3), 'plot': histogram},
+                # ],
+                # [
+                #     {'input': 'd2', 'slice': (3, 6), 'plot': timeseries},
+                #     # {'input': 'd2', 'slice': (3, 6), 'plot': histogram},
+                # ],
                 [
                     {'input': 'd3', 'slice': (3, 6), 'plot': timeseries},
                     # {'input': 'd3', 'slice': (3, 6), 'plot': histogram},
                 ],
-                [
-                    {'input': 'd4', 'slice': (3, 6), 'plot': timeseries},
-                    # {'input': 'd4', 'slice': (3, 6), 'plot': histogram},
-                ],
+                # [
+                #     {'input': 'd4', 'slice': (3, 6), 'plot': timeseries},
+                #     # {'input': 'd4', 'slice': (3, 6), 'plot': histogram},
+                # ],
             ]
         },
     }),

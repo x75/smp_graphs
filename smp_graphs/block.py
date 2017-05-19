@@ -5,7 +5,7 @@ block: basic block of computation
 2017 Oswald Berthold
 """
 
-import uuid, sys
+import uuid, sys, time
 from collections import OrderedDict
 
 import numpy as np
@@ -54,8 +54,8 @@ def ordereddict_insert(ordereddict = None, insertionpoint = None, itemstoadd = [
 class decInit():
     """!@brief Block.init wrapper"""
     def __call__(self, f):
-        def wrap(exec_self, *args, **kwargs):
-            f(exec_self, *args, **kwargs)
+        def wrap(xself, *args, **kwargs):
+            f(xself, *args, **kwargs)
         return wrap
 
 ################################################################################
@@ -63,25 +63,25 @@ class decInit():
 class decStep():
     """!@brief Block.step wrapper"""
     def __call__(self, f):
-        def wrap(exec_self, *args, **kwargs):
+        def wrap(xself, *args, **kwargs):
             if True:
                 sname  = self.__class__.__name__
-                esname = exec_self.cname
-                esid   = exec_self.id
-                escnt  = exec_self.cnt
+                esname = xself.cname
+                esid   = xself.id
+                escnt  = xself.cnt
                 # loop over block's inputs
-                for k, v in exec_self.inputs.items():
+                for k, v in xself.inputs.items():
                     # copy bus inputs to input buffer
                     if v[2] is not None: # input item has a bus associated in v[2]
                         # if extended input buffer, rotate the data with each step
-                        if exec_self.ibuf > 1:
+                        if xself.ibuf > 1:
                             # input blocksize
-                            blocksize_input = exec_self.bus[v[2]].shape[1]
+                            blocksize_input = xself.bus[v[2]].shape[1]
                             # input block border 
-                            if (exec_self.cnt % blocksize_input) == 0: # (blocksize_input - 1):
+                            if (xself.cnt % blocksize_input) == 0: # (blocksize_input - 1):
                                 # shift by input blocksize
-                                exec_self.inputs[k][0] = np.roll(exec_self.inputs[k][0], shift = -blocksize_input, axis = 1)
-                                # print "decinit", exec_self.inputs[k][0].shape
+                                xself.inputs[k][0] = np.roll(xself.inputs[k][0], shift = -blocksize_input, axis = 1)
+                                # print "decinit", xself.inputs[k][0].shape
                                 
                                 # set inputs [last-inputbs:last] if input blocksize reached
                                 # # debugging in to out copy
@@ -89,46 +89,46 @@ class decStep():
                                 #                                          sname,
                                 #                                          escnt,
                                 #                                          v[2],
-                                #                                          exec_self.bus[v[2]])
+                                #                                          xself.bus[v[2]])
                                 
                                 sl = slice(-blocksize_input, None)
-                                exec_self.inputs[k][0][:,sl] = exec_self.bus[v[2]] # np.fliplr(exec_self.bus[v[2]])
-                                # exec_self.inputs[k][0][:,-1,np.newaxis] = exec_self.bus[v[2]]                                
+                                xself.inputs[k][0][:,sl] = xself.bus[v[2]] # np.fliplr(xself.bus[v[2]])
+                                # xself.inputs[k][0][:,-1,np.newaxis] = xself.bus[v[2]]                                
                         else: # ibuf = 1
-                            exec_self.inputs[k][0][:,[0]] = exec_self.bus[v[2]]
+                            xself.inputs[k][0][:,[0]] = xself.bus[v[2]]
                             
                     # copy input to output if inkey k is in outkeys
-                    if k in exec_self.outputs.keys():
+                    if k in xself.outputs.keys():
                         # outvar = v[2].split("/")[-1]
-                        # print "%s.stepwrap split %s from %s" % (exec_self.cname, outvar, v[2])
-                        setattr(exec_self, k, v[0])
-                        esk = getattr(exec_self, k)
+                        # print "%s.stepwrap split %s from %s" % (xself.cname, outvar, v[2])
+                        setattr(xself, k, v[0])
+                        esk = getattr(xself, k)
                         
                         # # debug in to out copy
                         # print "%s.%s[%d]  self.%s = %s" % (esname, sname, escnt, k, esk)
-                        # print "%s.%s[%d] outkeys = %s" % (esname, sname, escnt, exec_self.outputs.keys())
-                        # if k in exec_self.outputs.keys():
+                        # print "%s.%s[%d] outkeys = %s" % (esname, sname, escnt, xself.outputs.keys())
+                        # if k in xself.outputs.keys():
                         #     print "%s.%s[%d]:   outk = %s" % (esname, sname, escnt, k)
                         #     print "%s.%s[%d]:    ink = %s" % (esname, sname, escnt, k)
-                        #     # exec_self.outputs[k] = exec_self.inputs[k][0]
+                        #     # xself.outputs[k] = xself.inputs[k][0]
 
             # call the function on blocksize boundaries
             # FIXME: might not be the best idea to control that on the wrapper level as some
             #        blocks might need to be called every step nonetheless?
-            if (exec_self.cnt % exec_self.blocksize) == 0:
-                f_out = f(exec_self, None)
+            if (xself.cnt % xself.blocksize) == 0:
+                f_out = f(xself, None)
 
                 # copy output to bus
-                for k, v in exec_self.outputs.items():
-                    buskey = "%s/%s" % (exec_self.id, k)
-                    # print "copy %s.outputs[%s] = %s to bus[%s], bs = %d" % (exec_self.id, k, getattr(exec_self, k), buskey, exec_self.blocksize)
-                    exec_self.bus[buskey] = getattr(exec_self, k)
+                for k, v in xself.outputs.items():
+                    buskey = "%s/%s" % (xself.id, k)
+                    # print "copy %s.outputs[%s] = %s to bus[%s], bs = %d" % (xself.id, k, getattr(xself, k), buskey, xself.blocksize)
+                    xself.bus[buskey] = getattr(xself, k)
             else:
                 f_out = None
             
             # count calls
-            exec_self.cnt += 1 # should be min_blocksize
-            # exec_self.ibufidx = exec_self.cnt % exec_self.ibufsize
+            xself.cnt += 1 # should be min_blocksize
+            # xself.ibufidx = xself.cnt % xself.ibufsize
             
             return f_out
         # return the new func
@@ -172,7 +172,7 @@ class Block2(object):
         set_attr_from_dict(self, self.defaults)
                     
         # fetch existing configuration arguments
-        if type(self.conf) == dict:
+        if type(self.conf) == dict and self.conf.has_key('params'):
             set_attr_from_dict(self, self.conf['params'])
         else:
             print "What could it be? Look at %s" % (self.conf)
@@ -185,7 +185,7 @@ class Block2(object):
             self.ibuf = self.blocksize
 
         """pass 1: complete config with runtime info"""
-        if hasattr(self, 'graph') or hasattr(self, 'subgraph'):
+        if hasattr(self, 'graph') or hasattr(self, 'subgraph'): # composite block made up of other blocks
             # the topblock, there can only be one
             if self.topblock:
                 # fix the random seed
@@ -264,7 +264,7 @@ class Block2(object):
                 ordereddict_insert(ordereddict = self.top.graph, insertionpoint = '%s' % self.id, itemstoadd = self.graph)
                 # print "topgraph", print_dict(self.top.graph)
                     
-        # primitive block
+        # primitive or other block
         else:
             """pass 1: complete config with runtime info"""
             # get bus
@@ -281,8 +281,17 @@ class Block2(object):
         # pass 1 init
         for k, v in self.graph.items():
             # self.debug_print("__init__: pass 1\nk = %s,\nv = %s", (k, print_dict(v)))
-            print "%s.init pass 1 k = %s, v = %s" % (self.__class__.__name__, k, v['block'].__name__)
+
+            # debug timing
+            print "{0}.init pass 1 k = {1: >5}, v = {2: >20}".format(self.__class__.__name__, k, v['block'].__name__),
+            then = time.time()
+
+            # actual instantiation
             self.graph[k]['block'] = self.graph[k]['block'](conf = v, paren = self, top = self.top)
+
+            # complete time measurement
+            print "took %f s" % (time.time() - then)
+            
             # print "%s self.graph[k]['block'] = %s" % (self.graph[k]['block'].__class__.__name__, self.graph[k]['block'].bus)
         # done pass 1 init
 
@@ -290,9 +299,12 @@ class Block2(object):
         # pass 2 init
         for k, v in self.graph.items():
             self.debug_print("__init__: pass 2\nk = %s,\nv = %s", (k, print_dict(v)))
-            print "%s.init pass 2 k = %s, v = %s" % (self.__class__.__name__, k, v['block'].cname)
+            # print "%s.init pass 2 k = %s, v = %s" % (self.__class__.__name__, k, v['block'].cname)
+            print "{0}.init pass 2 k = {1: >5}, v = {2: >20}".format(self.__class__.__name__, k, v['block'].cname),
+            then = time.time()
             # self.graph[k]['block'].init_pass_2()
             v['block'].init_pass_2()
+            print "took %f s" % (time.time() - then)
 
         # for k, v in self.graph.items():
         #     v['block'].step()
@@ -301,6 +313,7 @@ class Block2(object):
         # print "%s.init_outputs: inputs = %s" % (self.cname, self.inputs)
         # create outputs
         # format: variable: [shape]
+        # new format: outkey = str: outval = {val: value, shape: shape, dst: destination, ...}
         for k, v in self.outputs.items():
             # print "%s.init_outputs: outk = %s, outv = %s" % (self.cname, k, v)
             # if self.inputs.has_key(k):
@@ -927,7 +940,9 @@ class UniformRandomBlock2(PrimBlock2):
         if self.cnt % self.rate == 0:
             # FIXME: take care of rate/blocksize issue
             for k, v in self.outputs.items():
-                x = np.random.uniform(self.inputs['lo'][0][:,[-1]], self.inputs['hi'][0][:,[-1]], (self.outputs[k][0]))
+                # x = np.random.uniform(self.inputs['lo'][0][:,[-1]], self.inputs['hi'][0][:,[-1]], (self.outputs[k][0]))
+                print 'lo', self.inputs['lo'][0], '\nhi', self.inputs['hi'][0], '\noutput', self.outputs[k][0]
+                x = np.random.uniform(self.inputs['lo'][0], self.inputs['hi'][0], size=self.outputs[k][0])
                 setattr(self, k, x.copy())
             # print "self.x", self.x
         

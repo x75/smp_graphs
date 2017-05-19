@@ -44,6 +44,7 @@ params
         # configure figure and plot axes
         self.fig_rows = len(self.subplots)
         self.fig_cols = len(self.subplots[0])
+        
         # create figure
         self.fig = makefig(rows = self.fig_rows, cols = self.fig_cols, wspace = self.wspace, hspace = self.hspace)
         # self.fig.tight_layout(pad = 1.0)
@@ -125,6 +126,7 @@ class PlotBlock2(FigPlotBlock2):
                     title = ""
                     if subplotconf.has_key('title'): title += subplotconf['title']
                     for k, ink in enumerate(subplotconf['input']):
+                        print "k", k, "ink", ink
                         plotdata[ink] = self.inputs[ink][0].T[xslice]
                         # fix nans
                         plotdata[ink][np.isnan(plotdata[ink])] = -1.0
@@ -170,7 +172,7 @@ class PlotBlock2(FigPlotBlock2):
                     # plot the plotdata
                     labels = []
                     for ink, inv in plotdata.items():
-                        # print "%s.plot_subplots: ink = %s, plotvar = %s, inv.sh = %s, t.sh = %s" % (self.cname, ink, plotvar, inv.shape, t.shape)
+                        print "%s.plot_subplots: ink = %s, plotvar = %s, inv.sh = %s, t.sh = %s" % (self.cname, ink, plotvar, inv.shape, t.shape)
                         # this is the plotfunction from the config
                         subplotconf['plot'](
                             self.fig.axes[idx],

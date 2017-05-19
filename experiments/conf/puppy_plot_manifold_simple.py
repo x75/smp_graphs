@@ -1,4 +1,4 @@
-"""smp_graphs
+"""smp_graphs config
 
 plot the sensorimotor manifold / pointcloud, example data from andi gerken's puppy
 """

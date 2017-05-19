@@ -101,12 +101,14 @@ class FileBlock2(Block2):
                     k_ = "/".join(k_.split("/")[1:])
                 print "%s.init store_key = %s, shape = %s" % (self.__class__.__name__, k, self.store[k].shape)
                 conf['params']['outputs'][k_] = [self.store[k].T.shape]
+                assert conf['params']['blocksize'] == self.store[k].shape[0], "numsteps (%d) needs to be set to numsteps (%d) in the file %s" % (conf['params']['blocksize'], self.store[k].shape[0], lfile)
                 conf['params']['blocksize'] = self.store[k].shape[0]
                 # map output key to log table key
                 conf['params']['storekeys'][k_] = k
             self.step = self.step_selflog
 
         # FIXME: perform quick check of data
+        
             
         # init states
         for k, v in conf['params']['outputs'].items(): # ['x', 'y']:

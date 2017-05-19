@@ -100,7 +100,7 @@ Load a config from the file in args.conf
         # print "print_dict\n", print_dict(self.conf)
     
     def run(self):
-        print "%s.run: conf['numsteps'] = %d" % (self.__class__.__name__, self.params['numsteps'])
+        print "{0}.run: numsteps = {1}".format(self.__class__.__name__, self.params['numsteps'])
         
         # topblock_x = self.topblock.step(x = None)
         for i in xrange(self.params['numsteps']):
