@@ -15,8 +15,10 @@ graph = OrderedDict([
         'block': ConstBlock2,
         'params': {
             'id': 'b1',
-            'inputs': {'c': [np.random.uniform(-1, 1, (3, 1))]},
-            'outputs': {'x': [(3,1)]},
+            # 'inputs': {'c': [np.random.uniform(-1, 1, (3, 1))]},
+            # 'outputs': {'x': [(3,1)]},
+            'inputs': {'c': {'val': np.random.uniform(-1, 1, (3, 1)), 'shape': (3,)}},
+            'outputs': {'x': {'shape': (3,)}},
             'debug': False,
             'blocksize': 1,
         },
@@ -30,9 +32,9 @@ graph = OrderedDict([
             'odim': 3,
             # 'lo': 0,
             # 'hi': 1,
-            'outputs': {'x': [(3, 1)]},
+            'outputs': {'x': {'shape': (3, )}},
             'debug': False,
-            'inputs': {'lo': [0, (3, 1)], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+            'inputs': {'lo': {'val': 0, 'shape': (3,)}, 'hi': {'bus': 'b1/x'}}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
             'blocksize': 1,
         },
     }),
@@ -41,14 +43,14 @@ graph = OrderedDict([
         'block': LoopBlock2,
         'params': {
             'id': 'b3',
-            'loop': [('inputs', {'c': [np.random.uniform(-i, i, (3, 1))]}) for i in range(1, 4)],
+            'loop': [('inputs', {'c': {'val': np.random.uniform(-i, i, (3, 1)), 'shape': (3,)}}) for i in range(1, 4)],
             # 'loopmode': 'parallel',
             'loopblock': {
                 'block': ConstBlock2,
                 'params': {
                     'id': 'b3',
-                    'inputs': {'c': [np.random.uniform(-1, 1, (3, 1))]},
-                    'outputs': {'x': [(3,1)]},
+                    'inputs': {'c': {'val': np.random.uniform(-1, 1, (3, 1))}},
+                    'outputs': {'x': {'shape': (3,)}},
                     'debug': False,
                 },
             },
@@ -64,8 +66,8 @@ graph = OrderedDict([
             'idim': 6,
             'odim': 3,
             'debug': False,
-            'inputs': {'d1': ['b1/x'], 'd2': ['b2/x'], 'd3': ['b3_1/x'], 'd4': ['b3_2/x'], 'd5': ['b3_3/x']},
-            'outputs': {'x': [(3, 1)]},
+            'inputs': {'d1': {'bus': 'b1/x'}, 'd2': {'bus': 'b2/x'}, 'd3': {'bus': 'b3_1/x'}, 'd4': {'bus': 'b3_2/x'}, 'd5': {'bus': 'b3_3/x'}},
+            'outputs': {'x': {'shape': (3, )}},
             'subplots': [
                 [
                     {'input': 'd1', 'slice': (0, 3), 'plot': timeseries},

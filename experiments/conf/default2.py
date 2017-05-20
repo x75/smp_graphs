@@ -26,11 +26,10 @@ graph = OrderedDict([
         'params': {
             'id': 'b2',
             'outputs': {'x': {'shape': (3, 2)}},
-            'debug': True,
-            # 'inputs': {'lo': {'val': np.zeros((3, 2, 1))}, 'hi': {'bus': 'b1/x'}}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+            'debug': False,
+            'inputs': {'lo': {'val': np.zeros((3, 2, 1))}, 'hi': {'bus': 'b1/x'}}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
             # recurrent connection
-            # 'inputs': {'lo': ['b2/x'], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
-            'inputs': {'lo': {'bus': 'b2/x'}, 'hi': {'bus': 'b1/x'}}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+            # 'inputs': {'lo': {'bus': 'b2/x'}, 'hi': {'bus': 'b1/x'}}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
         },
     }),
     

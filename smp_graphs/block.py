@@ -121,7 +121,7 @@ class decStep():
                                 # axis = len(xself.bus[v['bus']].shape) - 1
                                 axis = len(v['shape']) - 1
                                 v['val'] = np.roll(v['val'], shift = -blocksize_input, axis = axis)
-                                print "%s.decStep v[val]" % (xself.cname), v['val'].shape, "v.sh", v['shape'], "axis", axis, "v", v['val']
+                                # print "%s.decStep v[val]" % (xself.cname), v['val'].shape, "v.sh", v['shape'], "axis", axis, "v", v['val']
                                 
                                 # set inputs [last-inputbs:last] if input blocksize reached
                                 # # debugging in to out copy
@@ -132,7 +132,7 @@ class decStep():
                                 #                                          xself.bus[v[2]])
                                 
                                 sl = slice(-blocksize_input, None)
-                                print "sl", sl, "bus.shape", xself.bus[v['bus']].shape
+                                # print "sl", sl, "bus.shape", xself.bus[v['bus']].shape
                                 v['val'][...,-blocksize_input:] = xself.bus[v['bus']].copy() # np.fliplr(xself.bus[v[2]])
                                 # xself.inputs[k][0][:,-1,np.newaxis] = xself.bus[v[2]]                                
                         else: # ibuf = 1
@@ -361,7 +361,7 @@ class Block2(object):
             assert type(v) is dict, "Old config with type %s?" % (type(v),)
             # create new shape tuple by appending the blocksize to original dimensions
             v['bshape']  = v['shape'] + (self.blocksize,)
-            print "v.bshape", v['bshape']
+            # print "v.bshape", v['bshape']
 
             # compute buskey from id and variable name
             v['buskey'] = "%s/%s" % (self.id, k)
@@ -456,7 +456,7 @@ class Block2(object):
                         # create ones multiplied by constant
                         v['val'] = np.ones(v['shape']) * v['val']
                     else:
-                        print "isarray", v['val']
+                        # print "isarray", v['val']
                         # write array shape back into config
                         v['shape'] = v['val'].shape
                     # self.inputs[k].append(None)
@@ -694,7 +694,7 @@ class SeqLoopBlock2(Block2):
             # print "f_obj_hpo: params", params
             x = np.array([params]).T
             # XXX
-            lparams = ('inputs', {'x': [x]}) # , x.shape, self.outputs['x']
+            lparams = ('inputs', {'x': {'val': x}}) # , x.shape, self.outputs['x']
             # print "%s.step.f_obj_hpo lparams = {%s}" % (self.cname, lparams)
             f_obj(lparams)
 
@@ -728,10 +728,12 @@ class SeqLoopBlock2(Block2):
             f_obj_ = f_obj
         else:
             f_obj_ = f_obj_hpo
-            
+
+        then = time.time()
         # loop the loop
         for i in range(self.numsteps/self.loopblocksize):
             print "%s iter# %d" % (self.cname, i)
+            then = time.time()
             # dynblock = obj()
             # func: need input function from config
             results = self.f_loop(i, f_obj_)#_hpo)
@@ -973,7 +975,7 @@ class CountBlock2(PrimBlock2):
         # single output key
         self.outk = self.outputs.keys()[0]
         # init cnt_ of blocksize
-        self.cnt_ = np.zeros((self.outputs[self.outk][0][0], self.blocksize))
+        self.cnt_ = np.zeros(self.outputs[self.outk]['shape'] + (self.blocksize,))
         # print self.inputs
         # FIXME: modulo / cout range with reset/overflow
         
@@ -985,7 +987,7 @@ class CountBlock2(PrimBlock2):
         else:
             self.cnt_[:,0] = self.cnt
         # FIXME: make that a for output items loop
-        setattr(self, self.outputs.keys()[0], (self.cnt_ * self.scale) + self.offset)
+        setattr(self, self.outk, (self.cnt_ * self.scale) + self.offset)
 
 class UniformRandomBlock2(PrimBlock2):
     """!@brief Uniform random numbers: output is uniform random vector
@@ -1007,7 +1009,7 @@ class UniformRandomBlock2(PrimBlock2):
             # FIXME: take care of rate/blocksize issue
             for k, v in self.outputs.items():
                 # x = np.random.uniform(self.inputs['lo'][0][:,[-1]], self.inputs['hi'][0][:,[-1]], (self.outputs[k][0]))
-                print 'lo', self.inputs['lo']['val'], '\nhi', self.inputs['hi']['val'], '\noutput', v['bshape']
+                # print 'lo', self.inputs['lo']['val'], '\nhi', self.inputs['hi']['val'], '\noutput', v['bshape']
                 x = np.random.uniform(self.inputs['lo']['val'], self.inputs['hi']['val'], size = v['bshape'])
                 setattr(self, k, x.copy())
             # print "self.x", self.x

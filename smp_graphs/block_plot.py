@@ -113,7 +113,7 @@ class PlotBlock2(FigPlotBlock2):
                         
                     # configure x axis
                     if subplotconf.has_key('xaxis'):
-                        t = self.inputs[subplotconf['xaxis']][0].T[xslice]
+                        t = self.inputs[subplotconf['xaxis']]['val'].T[xslice]
                     else:
                         t = np.linspace(0, self.blocksize-1, self.blocksize)[xslice]
 
@@ -127,10 +127,10 @@ class PlotBlock2(FigPlotBlock2):
                     title = ""
                     if subplotconf.has_key('title'): title += subplotconf['title']
                     for k, ink in enumerate(subplotconf['input']):
-                        print "%s.plot_subplots k = %s, ink = %s" % (self.cname, k, ink)
+                        # print "%s.plot_subplots k = %s, ink = %s" % (self.cname, k, ink)
                         # plotdata[ink] = self.inputs[ink]['val'].T[xslice]
                         plotdata[ink] = myt(self.inputs[ink]['val'])[xslice].reshape((self.blocksize, -1))
-                        print "plotdata", plotdata[ink]
+                        # print "plotdata", plotdata[ink]
                         # fix nans
                         plotdata[ink][np.isnan(plotdata[ink])] = -1.0
                         plotvar += "%s, " % (self.inputs[ink]['bus'],)
@@ -140,8 +140,8 @@ class PlotBlock2(FigPlotBlock2):
                     if subplotconf.has_key('mode'):
                         # ivecs = tuple(self.inputs[ink][0].T[xslice] for k, ink in enumerate(subplotconf['input']))
                         ivecs = tuple(self.inputs[ink][0].myt()[xslice] for k, ink in enumerate(subplotconf['input']))
-                        for item in ivecs:
-                            print "ivec.shape", item.shape
+                        # for item in ivecs:
+                        #     print "ivec.shape", item.shape
                         plotdata = {}
                         if subplotconf['mode'] in ['stack', 'combine', 'concat']:
                             plotdata['all'] = np.hstack(ivecs)
@@ -161,7 +161,11 @@ class PlotBlock2(FigPlotBlock2):
 
                     # if type(subplotconf['input']) is list:
                     if subplotconf.has_key('xaxis'):
-                        plotvar += " over %s" % (self.inputs[subplotconf['xaxis']][2], )
+                        inv = self.inputs[subplotconf['xaxis']]
+                        if inv.has_key('bus'):
+                            plotvar += " over %s" % (inv['bus'], )
+                        else:
+                            plotvar += " over %s" % (inv['val'], )
                         # plotvar = ""
                         # # FIXME: if len == 2 it is x over y, if len > 2 concatenation
                         # for k, inputvar in enumerate(subplotconf['input']):
@@ -176,8 +180,8 @@ class PlotBlock2(FigPlotBlock2):
                     # plot the plotdata
                     labels = []
                     for ink, inv in plotdata.items():
-                        print "%s.plot_subplots: ink = %s, plotvar = %s, inv.sh = %s, t.sh = %s" % (self.cname, ink, plotvar, inv.shape, t.shape)
-                        print "v", inv
+                        # print "%s.plot_subplots: ink = %s, plotvar = %s, inv.sh = %s, t.sh = %s" % (self.cname, ink, plotvar, inv.shape, t.shape)
+                        # print "v", inv
                         # this is the plotfunction from the config
                         subplotconf['plot'](
                             self.fig.axes[idx],

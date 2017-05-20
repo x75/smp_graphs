@@ -25,10 +25,10 @@ loopblock1 = {
     'params': {
         'id': 'b3',
         'inputs': {
-            'lo': [np.random.uniform(-1, 0, (3, 1))],
-            'hi': [np.random.uniform(0.1, 1, (3, 1))],
+            'lo': {'val': np.random.uniform(-1, 0, (3, 1)), 'shape': (3, )},
+            'hi': {'val': np.random.uniform(0.1, 1, (3, 1)), 'shape': (3, )},
         },
-        'outputs': {'y': [(3,1)]},
+        'outputs': {'y': {'shape': (3,)}},
         'debug': False,
         'blocksize': 1,
     },
@@ -38,8 +38,8 @@ loopblock = {
     'block': FuncBlock2,
     'params': {
         'id': 'f3',
-        'inputs': {'x': [np.random.uniform(-1, 1, (3, 1))]},
-        'outputs': {'x': [(3, 1)], 'y': [(1, 1)]},
+        'inputs': {'x': {'val': np.random.uniform(-1, 1, (3, 1)), 'shape': (3, )}},
+        'outputs': {'x': {'shape': (3, )}, 'y': {'shape': (1, )}},
         'func': f_sinesquare4,
         'blocksize': loopblocksize,
         'debug': False,
@@ -55,7 +55,7 @@ graph = OrderedDict([
         'params': {
             'id': 'b1',
             'inputs': {},
-            'outputs': {'x': [(1,1)]},
+            'outputs': {'x': {'shape': (1,)}},
             'scale': np.pi/float(numsteps),
             'offset': np.pi/2,
             'blocksize': 1,
@@ -68,8 +68,8 @@ graph = OrderedDict([
         'block': FuncBlock2,
         'params': {
             'id': 'f1',
-            'inputs': {'x': ['b1/x']},
-            'outputs': {'x': [(1,1)], 'y': [(1,1)]},
+            'inputs': {'x': {'bus': 'b1/x'}},
+            'outputs': {'x': {'shape': (1,)}, 'y': {'shape': (1,)}},
             'func': f_sinesquare2,
             'blocksize': 1,
             'debug': False,
@@ -81,8 +81,8 @@ graph = OrderedDict([
         'block': FuncBlock2,
         'params': {
             'id': 'f2',
-            'inputs': {'x': ['b1/x']},
-            'outputs': {'x': [(1,1)], 'y': [(1,1)]},
+            'inputs': {'x': {'bus': 'b1/x'}},
+            'outputs': {'x': {'shape': (1,)}, 'y': {'shape': (1,)}},
             'func': f_sinesquare4,
             'blocksize': 1,
             'debug': False,
@@ -101,11 +101,11 @@ graph = OrderedDict([
             'numsteps':  numsteps,
             'loopblocksize': loopblocksize,
             # can't do this dynamically yet without changing init passes
-            'outputs': {'x': [(3, 1)], 'y': [(1, 1)]},
+            'outputs': {'x': {'shape': (3, )}, 'y': {'shape': (1, )}},
             # 'loop': [('inputs', {
-            #     'lo': [np.random.uniform(-i, 0, (3, 1))], 'hi': [np.random.uniform(0.1, i, (3, 1))]}) for i in range(1, 11)],
+            #     'lo': {'val': np.random.uniform(-i, 0, (3, 1)), 'shape': (3, )}, 'hi': {'val': np.random.uniform(0.1, i, (3, 1)), 'shape': (3, )}}) for i in range(1, 11)],
             # 'loop': lambda ref, i: ('inputs', {'lo': [10 * i], 'hi': [20*i]}),
-            # 'loop': [('inputs', {'x': [np.random.uniform(np.pi/2, 3*np.pi/2, (3,1))]}) for i in range(1, numsteps+1)],
+            # 'loop': [('inputs', {'x': {'val': np.random.uniform(np.pi/2, 3*np.pi/2, (3,1))]}) for i in range(1, numsteps+1)],
             'loop': partial(f_loop_hpo, space = f_loop_hpo_space_f3(pdim = 3)),
             'loopmode': 'sequential',
             'loopblock': loopblock,
@@ -122,9 +122,9 @@ graph = OrderedDict([
             'idim': 6,
             'odim': 3,
             'debug': True,
-            'inputs': {'d1': ['b1/x'], 'd2': ['f1/y'], 'd3': ['hpo/y'],
-                           'd4': ['f2/y'], 'd5': ['hpo/x']},
-            'outputs': {}, # 'x': [(1, 1)]
+            'inputs': {'d1': {'bus': 'b1/x'}, 'd2': {'bus': 'f1/y'}, 'd3': {'bus': 'hpo/y'},
+                           'd4': {'bus': 'f2/y'}, 'd5': {'bus': 'hpo/x'}},
+            'outputs': {}, # 'x': {'shape': (1, )}
             'subplots': [
                 # [
                 #     {'input': 'd1', 'slice': (0, 3),
@@ -137,11 +137,11 @@ graph = OrderedDict([
                 #     {'input': 'd2', 'slice': (3, 6), 'plot': histogram},
                 # ],
                 # [
-                #     {'input': ['d2'], 'xaxis': 'd1', 'slice': (3, 6), 'plot': timeseries},
+                #     {'input': {'bus': 'd2'}, 'xaxis': 'd1', 'slice': (3, 6), 'plot': timeseries},
                 #     {'input': 'd2', 'slice': (3, 6), 'plot': histogram},
                 # ],
                 # [
-                #     {'input': ['d4'], 'xaxis': 'd1', 'slice': (3, 6), 'plot': timeseries},
+                #     {'input': {'bus': 'd4'}, 'xaxis': 'd1', 'slice': (3, 6), 'plot': timeseries},
                 #     {'input': 'd4', 'slice': (3, 6), 'plot': histogram},
                 # ],
                 [

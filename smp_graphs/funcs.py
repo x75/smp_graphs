@@ -28,8 +28,8 @@ def f_motivation(args):
     for k in ['x_', 'x']:
         assert args.has_key(k), "f_sin needs param '%s'" % (k,)
 
-    x = args['x'][0]
-    x_ = args['x_'][0]
+    x = args['x']['val']
+    x_ = args['x_']['val']
     d = x_ - x
     return {'y': d, 'y1': -d}
 
@@ -38,8 +38,8 @@ def f_motivation_bin(args):
     for k in ['x_', 'x']:
         assert args.has_key(k), "f_sin needs param '%s'" % (k,)
 
-    x = args['x'][0]
-    x_ = args['x_'][0]
+    x = args['x']['val']
+    x_ = args['x_']['val']
     d = x_ - x
     d_ = np.ones_like(d) * 0.03 # thresh
     # if np.linalg.norm(d) < 0.1:
@@ -64,8 +64,8 @@ def f_sin(args):
         assert args.has_key(k), "f_sin needs param '%s'" % (k,)
         
     try:
-        x = args['x'][0]
-        f = args['f'][0]
+        x = args['x']['val']
+        f = args['f']['val']
         return np.sin(x * f)
     except KeyError, e:
         print "KeyError", e, args
@@ -75,11 +75,11 @@ def f_sin_noise(args):
     for k in ['x','f','sigma']:
         assert args.has_key(k), "f_sin_noise needs param '%s'" % (k,)
     x = f_sin(args)
-    # print "x", x, args['sigma'][0]
-    return np.random.normal(x, args['sigma'][0])
+    # print "x", x, args['sigma']['val']
+    return np.random.normal(x, args['sigma']['val'])
         
 def f_sinesquare2(args):
-    x = args['x'][0]
+    x = args['x']['val']
     scaler = np.arange(1, x.shape[0] + 1).reshape(x.shape) * 0.3 + 1.0
     # offser = np.array([[0.1, -0.05, 0.3]]).T
     # offser = np.random.uniform(-0.3, 0.3, x.shape)
