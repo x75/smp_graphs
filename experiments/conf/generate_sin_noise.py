@@ -20,7 +20,7 @@ graph = OrderedDict([
         'params': {
             'id': 'cnt',
             'inputs': {},
-            'outputs': {'x': [(1,1)]},
+            'outputs': {'x': {'shape': (1,)}},
             'debug': False,
         },
     }),
@@ -29,13 +29,13 @@ graph = OrderedDict([
         'block': FuncBlock2,
         'params': {
             'id': 'sin',
-            'outputs': {'y': [(1, 1)]},
-            'debug': False,
+            'outputs': {'y': {'shape': (1, )}},
+            'debug': True,
             # 'inputs': {'lo': [0, (3, 1)], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
             # recurrent connection
-            'inputs': {'x': ['cnt/x'],
-                       'f': [np.array([[0.003]])],
-                       'sigma': [0.3]}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+            'inputs': {'x': {'bus': 'cnt/x'},
+                       'f': {'val': np.array([[0.003]])},
+                       'sigma': {'val': np.array([[0.3,]])}}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
             'func': f_sin_noise,
         },
     }),
@@ -45,12 +45,12 @@ graph = OrderedDict([
         'block': UniformRandomBlock2,
         'params': {
             'id': 'noise',
-            'outputs': {'r': [(1, 1)]},
+            'outputs': {'r': {'shape': (1, )}},
             'debug': False,
             # 'inputs': {'lo': [0, (3, 1)], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
             # recurrent connection
-            'inputs': {'lo': [np.array([[-0.1]])],
-                       'hi': [np.array([[ 0.1]])],
+            'inputs': {'lo': {'val': np.array([[-0.1]])},
+                       'hi': {'val': np.array([[ 0.1]])},
             },
         },
     }),
@@ -63,7 +63,7 @@ graph = OrderedDict([
             'id': 'bplot',
             'blocksize': numsteps,
             'debug': False,
-            'inputs': {'d1': ['cnt/x'], 'd2': ['sin/y'], 'd3': ['noise/r']},
+            'inputs': {'d1': {'bus': 'cnt/x'}, 'd2': {'bus': 'sin/y'}, 'd3': {'bus': 'noise/r'}},
             'outputs': {},
             'subplots': [
                 [
@@ -89,9 +89,9 @@ graph = OrderedDict([
             'debug': False,
             'blocksize': numsteps,
             'inputs': {
-                'd1': ['cnt/x'],
-                'd2': ['sin/y'],
-                'd3': ['noise/r'],
+                'd1': {'bus': 'cnt/x'},
+                'd2': {'bus': 'sin/y'},
+                'd3': {'bus': 'noise/r'},
             },
             'outputs': {},#'x': [(3, 1)]},
             'subplots': [

@@ -375,7 +375,7 @@ params
         
         # different 
         if subplotconf.has_key('mode'):
-            ivecs = tuple(self.inputs[ink][0].T for k, ink in enumerate(subplotconf['input']))
+            ivecs = tuple(self.inputs[ink]['val'].T for k, ink in enumerate(subplotconf['input']))
             for ivec in ivecs:
                 print "ivec.shape", ivec.shape
             plotdata = {}

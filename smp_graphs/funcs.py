@@ -75,8 +75,10 @@ def f_sin_noise(args):
     for k in ['x','f','sigma']:
         assert args.has_key(k), "f_sin_noise needs param '%s'" % (k,)
     x = f_sin(args)
-    # print "x", x, args['sigma']['val']
-    return np.random.normal(x, args['sigma']['val'])
+    print "f_sin_noise: x", x, args['sigma']['val']
+    xn = np.random.normal(x, args['sigma']['val'], size=x.shape)
+    print "xn.shape", xn.shape
+    return xn
         
 def f_sinesquare2(args):
     x = args['x']['val']

@@ -31,7 +31,7 @@ def ordereddict_insert(ordereddict = None, insertionpoint = None, itemstoadd = [
     from http://stackoverflow.com/questions/29250479/insert-into-ordereddict-behind-key-foo-inplace
     """
     assert ordereddict is not None
-    assert insertionpoint in ordereddict.keys()
+    assert insertionpoint in ordereddict.keys(), "insp = %s, keys = %s, itemstoadd = %s" % (insertionpoint, ordereddict.keys(), itemstoadd)
     new_ordered_dict = ordereddict.__class__()
     for key, value in ordereddict.items():
         new_ordered_dict[key] = value
@@ -303,6 +303,7 @@ class Block2(object):
                 self.init_graph_pass_1()
                 # print "self.graph", self.id, print_dict(self.graph)
                 # insert self.graph into top.graph
+                print "swong", self.top.graph.keys(), self.graph.keys()
                 ordereddict_insert(ordereddict = self.top.graph, insertionpoint = '%s' % self.id, itemstoadd = self.graph)
                 # print "topgraph", print_dict(self.top.graph)
                     
@@ -358,7 +359,7 @@ class Block2(object):
         # new format: outkey = str: outval = {val: value, shape: shape, dst: destination, ...}
         for k, v in self.outputs.items():
             # print "%s.init_outputs: outk = %s, outv = %s" % (self.cname, k, v)
-            assert type(v) is dict, "Old config with type %s?" % (type(v),)
+            assert type(v) is dict, "Old config of %s output %s with type %s, %s" % (self.id, k, type(v), v)
             # create new shape tuple by appending the blocksize to original dimensions
             v['bshape']  = v['shape'] + (self.blocksize,)
             # print "v.bshape", v['bshape']
@@ -622,6 +623,7 @@ class LoopBlock2(Block2):
         # FIXME: this good?
         # insert dynamic blocks into existing ordered dict
         # print "topgraph", print_dict(self.top.graph)
+        print "swong", self.top.graph.keys() # , self.graph.keys()
         ordereddict_insert(ordereddict = self.top.graph, insertionpoint = '%s' % self.id, itemstoadd = loopblocks)
 
         # print "top graph", print_dict(self.top.graph)
