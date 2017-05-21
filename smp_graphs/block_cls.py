@@ -36,7 +36,7 @@ class PointmassBlock2(SysBlock2):
     @decStep()
     def step(self, x = None):
         for i in range(self.blocksize):
-            self.u = self.inputs['u'][0][:,[i]]
+            self.u = self.inputs['u']['val'][:,[i]]
             self.x = self.system.step(self.u)
             # real output variables defined by config
             # for k in ['s_proprio', 's_extero', 's_all']:

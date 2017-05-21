@@ -109,6 +109,8 @@ class decStep():
                 escnt  = xself.cnt
                 # loop over block's inputs
                 for k, v in xself.inputs.items():
+                    # check sanity
+                    assert v['val'].shape == v['shape'], "real and desired input shapes need to agree %s != %s" % (v['val'].shape, v['shape'])
                     # copy bus inputs to input buffer
                     if v.has_key('bus'): # input item has a bus associated in v['bus']
                         # if extended input buffer, rotate the data with each step
@@ -161,9 +163,10 @@ class decStep():
 
                 # copy output to bus
                 for k, v in xself.outputs.items():
-                    buskey = "%s/%s" % (xself.id, k)
+                    # buskey = "%s/%s" % (xself.id, k)
                     # print "copy %s.outputs[%s] = %s to bus[%s], bs = %d" % (xself.id, k, getattr(xself, k), buskey, xself.blocksize)
-                    xself.bus[buskey] = getattr(xself, k)
+                    assert xself.bus[v['buskey']].shape == v['bshape'], "real and desired output shapes need to agree, %s != %s" % (xself.bus[v['buskey']].shape, v['shape'])
+                    xself.bus[v['buskey']] = getattr(xself, k)
             else:
                 f_out = None
             
@@ -227,6 +230,24 @@ class Block2(object):
 
         """pass 1: complete config with runtime info"""
         if hasattr(self, 'graph') or hasattr(self, 'subgraph'): # composite block made up of other blocks
+            
+            # set top to self for topblock
+            if self.topblock:
+                self.top = self
+                
+            # debugging info
+            if hasattr(self, 'graph'):
+                gkeys = "graph = %s" % (self.graph.keys(), )
+            else:
+                self.init_subgraph()
+                self.graph = self.conf['params']['graph']
+
+                ordereddict_insert(ordereddict = self.top.graph, insertionpoint = '%s' % self.id, itemstoadd = self.graph)
+                print "topblock post init_subgraph %s"  % (self.graph.keys())
+                gkeys = "subgraph = %s" % (self.graph.keys(),)
+
+            print "%s-%s.init composite graph in global %s with graph/subgraph and keys = %s" % (self.cname, self.id, self.top.graph.keys(), gkeys)
+            
             # the topblock, there can only be one
             if self.topblock:
                 # fix the random seed
@@ -274,13 +295,11 @@ class Block2(object):
                 # hierarchical block with config from a file
                 if hasattr(self, 'subgraph'):
                     # FIXME: call that graph
-                    subconf = get_config_raw(self.subgraph, 'conf') # 'graph')
-                    assert subconf is not None
-                    # make sure subordinate number of steps is less than top level numsteps
-                    assert subconf['params']['numsteps'] <= self.top.numsteps, "enclosed numsteps = %d greater than top level numsteps = %d" % (subconf['params']['numsteps'], self.top.numsteps)
 
-                    self.conf['params']['graph'] = subconf['params']['graph']
+                    self.init_subgraph()
                     self.graph = self.conf['params']['graph']
+                    print "post init_subgraph %s"  % (self.graph.keys())
+                    
                     # print "subgraph %s" % (self.id), self.conf['params']['graph']
                                         
                     # # pass 1
@@ -293,7 +312,7 @@ class Block2(object):
                     if not hasattr(self, 'numsteps'):
                         self.numsteps = self.top.numsteps
                     # subconf = get_config_raw_from_string(self.subgraph, 'conf')
-                    # print "graph", self.graph, self.conf['params']['graph']
+                    print "graph", self.graph, self.conf['params']['graph']
                     # print "graph same", self.graph is self.conf['params']['graph']
                     # self.init_graph_pass_1()
                     # self.init_graph_pass_2()
@@ -303,7 +322,7 @@ class Block2(object):
                 self.init_graph_pass_1()
                 # print "self.graph", self.id, print_dict(self.graph)
                 # insert self.graph into top.graph
-                print "swong", self.top.graph.keys(), self.graph.keys()
+                print "%s-%s swong topgraph = %s, graph = %s" % (self.cname, self.id, self.top.graph.keys(), self.graph.keys())
                 ordereddict_insert(ordereddict = self.top.graph, insertionpoint = '%s' % self.id, itemstoadd = self.graph)
                 # print "topgraph", print_dict(self.top.graph)
                     
@@ -318,9 +337,21 @@ class Block2(object):
             # TODO: init logging
             self.init_logging()
 
+    def init_subgraph(self):
+        subconf = get_config_raw(self.subgraph, 'conf') # 'graph')
+        assert subconf is not None
+        # make sure subordinate number of steps is less than top level numsteps
+        assert subconf['params']['numsteps'] <= self.top.numsteps, "enclosed numsteps = %d greater than top level numsteps = %d" % (subconf['params']['numsteps'], self.top.numsteps)
+
+        self.conf['params']['graph'] = subconf['params']['graph']
+                    
     def init_graph_pass_1(self):
         """!@brief initialize this block's graph by instantiating all graph nodes"""
-        self.graph = self.conf['params']['graph']
+        # if we're coming from non topblock init
+        # self.graph = self.conf['params']['graph']
+
+        print "aaahhh", self.graph.keys()
+        
         # pass 1 init
         for k, v in self.graph.items():
             # self.debug_print("__init__: pass 1\nk = %s,\nv = %s", (k, print_dict(v)))
@@ -339,6 +370,7 @@ class Block2(object):
         # done pass 1 init
 
     def init_graph_pass_2(self):
+        print "bbbhhh", self.graph.keys()
         # pass 2 init
         for k, v in self.graph.items():
             self.debug_print("__init__: pass 2\nk = %s,\nv = %s", (k, print_dict(v)))
@@ -623,7 +655,7 @@ class LoopBlock2(Block2):
         # FIXME: this good?
         # insert dynamic blocks into existing ordered dict
         # print "topgraph", print_dict(self.top.graph)
-        print "swong", self.top.graph.keys() # , self.graph.keys()
+        print "%s-%s.init swong topgrah = %s" % (self.cname, self.id, self.top.graph.keys()) # , self.graph.keys()
         ordereddict_insert(ordereddict = self.top.graph, insertionpoint = '%s' % self.id, itemstoadd = loopblocks)
 
         # print "top graph", print_dict(self.top.graph)
