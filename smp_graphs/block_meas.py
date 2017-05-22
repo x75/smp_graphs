@@ -6,22 +6,24 @@ class XCorrBlock2(PrimBlock2):
     """Compute cross-correlation functions among all variables in dataset"""
     def __init__(self, conf = {}, paren = None, top = None):
         params = conf['params']
-        for i in range(params['outputs']['xcorr'][0][0]):
-            # self.params['outputs'][]
-            for j in range(params['outputs']['xcorr'][0][1]):
-                params['outputs']['xcorr_%d_%d' % (i, j)] = [(1, params['blocksize'])]
+        
+        # for i in range(params['outputs']['xcorr'][0][0]):
+        #     # self.params['outputs'][]
+        #     for j in range(params['outputs']['xcorr'][0][1]):
+        #         params['outputs']['xcorr_%d_%d' % (i, j)] = [(1, params['blocksize'])]
         
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
         
-        self.xdim = self.bus[self.inputs['x'][0]].shape[0]
-        self.ydim = self.bus[self.inputs['y'][0]].shape[0]
+        self.xdim = self.bus[self.inputs['x']['bus']].shape[0]
+        self.ydim = self.bus[self.inputs['y']['bus']].shape[0]
         # print "xcorrblock", self.xdim, self.ydim
 
     @decStep()
     def step(self, x = None):
         d = {}
+        # predefined cross correlation inputs
         for k in ['x', 'y']:
-            d[k] = self.inputs[k][0]
+            d[k] = self.inputs[k]['val']
             # print "%s.step d[%s] = %s / %s" % (self.cname, k, d[k].shape, self.inputs[k][0])
 
         arraytosumraw = np.array([f2(d, k, shift = self.shift, xdim = self.xdim) for k in range(self.ydim)]).reshape((self.ydim, self.xdim, self.shift[1] - self.shift[0]))
@@ -32,18 +34,23 @@ class XCorrBlock2(PrimBlock2):
         # thesum = np.sum(arraytosum, axis=0)
         # plotdata = np.log(thesum)
 
-        # fig = makefig(self.xdim, self.ydim)
-        for i in range(self.ydim):
-            for j in range(self.xdim):
-                outk  = 'xcorr_%d_%d' % (i, j)
-                outsh = arraytosumraw[i,[j]].shape
-                # print "outk = %s, outsh = %s" % (outk, outsh,)
-                # self.outputs[outk][0] = arraytosumraw[i,[j]]
-                outv = getattr(self, outk)
-                outsl = slice(0, self.shift[1] - self.shift[0])
-                outv[:,outsl] = arraytosumraw[i,[j]]
-                # setattr(self, outk, arraytosumraw[i,[j]])
-                # print "self.%s = %s" % (outk, getattr(self, outk))
+        # print "arraytosum.sh", arraytosumraw.shape
+        print "xcorr.shape", self.xcorr.shape
+        self.xcorr = arraytosumraw.reshape(self.outputs['xcorr']['shape'] + (1,))
+        print "xcorr.shape", self.xcorr.shape
+        
+        # # fig = makefig(self.xdim, self.ydim)
+        # for i in range(self.ydim):
+        #     for j in range(self.xdim):
+        #         outk  = 'xcorr_%d_%d' % (i, j)
+        #         outsh = arraytosumraw[i,[j]].shape
+        #         # print "outk = %s, outsh = %s" % (outk, outsh,)
+        #         # self.outputs[outk][0] = arraytosumraw[i,[j]]
+        #         outv = getattr(self, outk)
+        #         outsl = slice(0, self.shift[1] - self.shift[0])
+        #         outv[:,outsl] = arraytosumraw[i,[j]]
+        #         # setattr(self, outk, arraytosumraw[i,[j]])
+        #         # print "self.%s = %s" % (outk, getattr(self, outk))
 
         #         plotdata = arraytosumraw[i,j]
         #         ax = fig.axes[j+(i*self.xdim)]

@@ -110,7 +110,7 @@ class PlotBlock2(FigPlotBlock2):
                         xslice = slice(subplotconf['xslice'][0], subplotconf['xslice'][1])
                     else:
                         xslice = slice(0, self.blocksize)
-                        
+
                     # configure x axis
                     if subplotconf.has_key('xaxis'):
                         t = self.inputs[subplotconf['xaxis']]['val'].T[xslice]
@@ -118,7 +118,7 @@ class PlotBlock2(FigPlotBlock2):
                         t = np.linspace(0, self.blocksize-1, self.blocksize)[xslice]
 
                     subplotconf['input'] = subplot_input_fix(subplotconf['input'])
-                        
+
                     # plotdata = self.inputs[subplotconf['input']][0].T
                     # elif type(subplotconf['input']) is list:
                     # plotdata = self.inputs[subplotconf['input'][1]][0].T
@@ -129,7 +129,11 @@ class PlotBlock2(FigPlotBlock2):
                     for k, ink in enumerate(subplotconf['input']):
                         # print "%s.plot_subplots k = %s, ink = %s" % (self.cname, k, ink)
                         # plotdata[ink] = self.inputs[ink]['val'].T[xslice]
-                        plotdata[ink] = myt(self.inputs[ink]['val'])[xslice].reshape((self.blocksize, -1))
+                        print "plotblock2", self.inputs[ink]['val'].shape
+                        if subplotconf.has_key('ndslice'):
+                            plotdata[ink] = myt(self.inputs[ink]['val'])[-1,subplotconf['ndslice'][0],subplotconf['ndslice'][1],:] # .reshape((21, -1))
+                        else:
+                            plotdata[ink] = myt(self.inputs[ink]['val'])[xslice].reshape((self.blocksize, -1))
                         # print "plotdata", plotdata[ink]
                         # fix nans
                         plotdata[ink][np.isnan(plotdata[ink])] = -1.0
@@ -214,10 +218,10 @@ class ImgPlotBlock2(FigPlotBlock2):
         
         for i, subplot in enumerate(self.subplots): # rows
             for j, subplotconf in enumerate(subplot): # cols
-                vmins_sb[j].append(np.min(self.inputs[subplotconf['input']][0]))
-                vmaxs_sb[j].append(np.max(self.inputs[subplotconf['input']][0]))
-                extrema[0,i,j] = np.min(self.inputs[subplotconf['input']][0])
-                extrema[1,i,j] = np.max(self.inputs[subplotconf['input']][0])
+                vmins_sb[j].append(np.min(self.inputs[subplotconf['input'][0]]['val']))
+                vmaxs_sb[j].append(np.max(self.inputs[subplotconf['input'][0]]['val']))
+                extrema[0,i,j] = np.min(self.inputs[subplotconf['input'][0]]['val'])
+                extrema[1,i,j] = np.max(self.inputs[subplotconf['input'][0]]['val'])
                 # print "i", i, "j", j, vmins_sb, vmaxs_sb
         print "mins", self.id, extrema[0]
         print "maxs", extrema[1]
@@ -288,7 +292,12 @@ class ImgPlotBlock2(FigPlotBlock2):
                     # plotdata_cand = self.inputs[subplotconf['input']][0][xslice,0]
                     # plotdata_cand = self.inputs[subplotconf['input']][0][:,xslice]
                     
-                    plotdata_cand = self.inputs[subplotconf['input']][0][yslice,xslice]
+                    print "%s plot_subplots self.inputs[subplotconf['input'][0]]['val'].shape = %s" % (self.cname, self.inputs[subplotconf['input'][0]]['val'].shape)
+                    # old version
+                    # plotdata_cand = self.inputs[subplotconf['input'][0]]['val'][yslice,xslice]
+                    di = subplotconf['ndslice'][0]
+                    dj = subplotconf['ndslice'][1]
+                    plotdata_cand = self.inputs[subplotconf['input'][0]]['val'][di, dj, :, -1]
                     # print "%s[%d]-%s.step, inputs = %s, %s " % (self.cname, self.cnt, self.id, self.inputs[subplotconf['input']][0].shape,
                     #                                         self.inputs[subplotconf['input']][0])
                     # print "%s[%d]-%s.step plotdata_cand.shape" % (self.cname, self.cnt, self.id), plotdata_cand.shape, subplotconf['shape'], xslice, yslice
@@ -296,7 +305,7 @@ class ImgPlotBlock2(FigPlotBlock2):
                     
                     plotdata = {}
                     plotdata['i_%d_%d' % (i, j)] = plotdata_cand.reshape(subplotconf['shape'])
-                    plotvar = self.inputs[subplotconf['input']][2]
+                    plotvar = self.inputs[subplotconf['input'][0]]['bus']
 
                     title = "img plot"
                     if subplotconf.has_key('title'): title = subplotconf['title']
@@ -324,7 +333,7 @@ class ImgPlotBlock2(FigPlotBlock2):
                         # mpl = ax.imshow(inv, interpolation = "none")
                         # Linv = np.log(inv + 1)
                         Linv = inv
-                        # print "Linv", Linv
+                        print "Linv", Linv.shape, Linv
                         mpl = ax.pcolorfast(Linv, vmin = vmin, vmax = vmax, cmap = cmap)
                         # mpl = ax.pcolorfast(Linv, vmin = vmins[j], vmax = vmaxs[j], cmap = cmap)
                         # mpl = ax.pcolorfast(Linv, vmin = -2, vmax = 2, cmap = cmap)

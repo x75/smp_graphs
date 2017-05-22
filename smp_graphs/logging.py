@@ -208,7 +208,9 @@ Arguments:
     # if cloc == 1 and blocksize > 1:
     #     log_logarray[tbl_name][:,sl] = data[:,1:].copy()
     # else:
+    print "log_pd data.shape", data.shape
     tmplogdata = data.copy().reshape((-1, blocksize))
+    print "tmplogdata.sh", tmplogdata.shape
     log_logarray[tbl_name][:,sl] = tmplogdata # to copy or not to copy?
 
     # if logging blocksize aligns with count

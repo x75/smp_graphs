@@ -90,6 +90,17 @@ def make_input_matrix(id = 'xcorr', base = 'xcorr', xdim = 1, ydim = 1, with_t =
     # print d
     return d
 
+def make_input_matrix_ndim(id = 'xcorr', base = 'xcorr', xdim = 1, ydim = 1, with_t = False):
+    import numpy as np
+    global scanstart, scanstop, scanlen
+    # d = {'d3_%d_%d' % (i, j): {'bus': '%s/%s_%d_%d' % (id, base, i, j)} for j in range(xdim) for i in range(ydim)}
+    d = {}
+    d['d3'] = {'bus': "%s/%s" % (id, base)}
+    if with_t:
+        d['t'] = {'val': np.linspace(scanstart, scanstop-1, scanlen)}
+    # print d
+    return d
+
 graph = OrderedDict([
     # get the data from logfile
     ('puppylog', {
@@ -159,7 +170,7 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'inputs': {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/y'}},
             'shift': (scanstart, scanstop),
-            'outputs': {'xcorr': [(ydim, xdim, scanlen)]}
+            'outputs': {'xcorr': {'shape': (ydim, xdim, scanlen, )}},
             }
         }),
 
@@ -426,44 +437,56 @@ graph = OrderedDict([
     # #     },
     # # }),
     
-    # # # plot cross-correlation matrix
-    # # ('plot_xcor_line', {
-    # #     'block': PlotBlock2,
-    # #     'params': {
-    # #         'id': 'plot_xcor_line',
-    # #         'logging': False,
-    # #         'debug': False,
-    # #         'saveplot': True,
-    # #         'blocksize': numsteps,
-    # #         'inputs': make_input_matrix(xdim = xdim, ydim = ydim, with_t = True),
-    # #         'outputs': {}, #'x': [(3, 1)]},
-    # #         'subplots': [
-    # #             [{'input': 'd3_%d_%d' % (i, j), 'xslice': (0, scanlen), 'xaxis': 't',
-    # #               'plot': partial(timeseries, linestyle="none", marker=".")} for j in range(xdim)]
-    # #         for i in range(ydim)],
-    # #     },
-    # # }),
+    # plot cross-correlation matrix
+    ('plot_xcor_line', {
+        'block': PlotBlock2,
+        'params': {
+            'id': 'plot_xcor_line',
+            'logging': False,
+            'debug': False,
+            'saveplot': True,
+            'blocksize': numsteps,
+            'inputs': make_input_matrix_ndim(xdim = xdim, ydim = ydim, with_t = True),
+            'outputs': {}, #'x': [(3, 1)]},
+            'subplots': [
+                [{'input': ['d3'], 'ndslice': (i, j, ), 'xslice': (0, scanlen), 'xaxis': 't',
+                  'plot': partial(timeseries, linestyle="none", marker=".")} for j in range(xdim)]
+                for i in range(ydim)],
+            #     [{'input': 'd3_%d_%d' % (i, j), 'xslice': (0, scanlen), 'xaxis': 't',
+            #       'plot': partial(timeseries, linestyle="none", marker=".")} for j in range(xdim)]
+            # for i in range(ydim)],
+                # [{'input': 'd3', 'xslice': (0, scanlen), 'xaxis': 't',
+                #   'plot': partial(timeseries, linestyle="none", marker="."),
+                #   'shape': (ydim, xdim, scanlen, )}
+                # ]
+            # ],
+        },
+    }),
 
-    # # # plot cross-correlation matrix
-    # # ('plot_xcor_img', {
-    # #     'block': ImgPlotBlock2,
-    # #     'params': {
-    # #         'id': 'plot_xcor_img',
-    # #         'logging': False,
-    # #         'saveplot': True,
-    # #         'debug': False,
-    # #         'blocksize': numsteps,
-    # #         'inputs': make_input_matrix(xdim = xdim, ydim = ydim, with_t = True),
-    # #         'outputs': {}, #'x': [(3, 1)]},
-    # #         'wspace': 0.5,
-    # #         'hspace': 0.5,
-    # #         'subplots': [
-    # #             [{'input': 'd3_%d_%d' % (i, j), 'xslice': (0, scanlen), 'yslice': (0, 1),
-    # #               'shape': (1, scanlen), 'cmap': 'RdGy', 'title': 'xcorrs',
-    # #                           'vmin': -1.0, 'vmax': 1.0, 'vaxis': 'cols',} for j in range(xdim)] # 'seismic'
-    # #         for i in range(ydim)],
-    # #     },
-    # # }),
+    # plot cross-correlation matrix
+    ('plot_xcor_img', {
+        'block': ImgPlotBlock2,
+        'params': {
+            'id': 'plot_xcor_img',
+            'logging': False,
+            'saveplot': True,
+            'debug': False,
+            'blocksize': numsteps,
+            # 'inputs': make_input_matrix(xdim = xdim, ydim = ydim, with_t = True),
+            'inputs': make_input_matrix_ndim(xdim = xdim, ydim = ydim, with_t = True),
+            'outputs': {}, #'x': [(3, 1)]},
+            'wspace': 0.5,
+            'hspace': 0.5,
+            'subplots': [
+                # [{'input': ['d3'], 'ndslice': (i, j, ), 'xslice': (0, scanlen), 'xaxis': 't',
+                #   'plot': partial(timeseries, linestyle="none", marker=".")} for j in range(xdim)]
+                # for i in range(ydim)],
+                [{'input': ['d3'], 'ndslice': (i, j, ), 'xslice': (0, scanlen), 'yslice': (0, 1),
+                  'shape': (1, scanlen), 'cmap': 'RdGy', 'title': 'xcorrs',
+                              'vmin': -1.0, 'vmax': 1.0, 'vaxis': 'cols',} for j in range(xdim)] # 'seismic'
+            for i in range(ydim)],
+        },
+    }),
     
     # # plot multivariate (global) mutual information over timeshifts
     # ('plot_jh_mimv_temv', {

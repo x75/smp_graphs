@@ -532,6 +532,7 @@ class Block2(object):
                 # do logging for all of the node's output variables
                 for k_o, v_o in v['block'].outputs.items():
                     buskey = "%s/%s" % (v['block'].id, k_o)
+                    print "%s step outk = %s, outv = %s, bus.sh = %s" % (self.cname, k_o, v_o, self.bus[buskey].shape)
                     log.log_pd(tbl_name = buskey, data = self.bus[buskey])
 
         if self.topblock:
