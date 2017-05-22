@@ -20,6 +20,8 @@ import numpy as np
 # for config reading
 from numpy import array
 
+from smp_base.plot import set_interactive
+
 from smp_graphs.block import Block2
 from smp_graphs.utils import print_dict
 from smp_graphs.common import conf_header, conf_footer
@@ -110,10 +112,12 @@ Load a config from the file in args.conf
         print "final return value topblock.x = %s" % (topblock_x)
 
         if self.conf['params']['showplot']:
+            set_interactive(False)
             plt.show()
 
 import networkx as nx
 import re
+
 class Graphviz(object):
     """!@brief Special experiment: Load runtime config into a networkx graph and plot it"""
     def __init__(self, args):
@@ -172,10 +176,12 @@ class Graphviz(object):
             # input edges
             if not v['params'].has_key('inputs'): continue
             for inputkey, inputval in v['params']['inputs'].items():
-                # print inputkey
-                # print inputval
-                if inputval[2] not in ['None']:
-                    k_from, v_to = inputval[2].split('/')
+                print "ink", inputkey
+                print "inv", inputval
+                if not inputval.has_key('bus'): continue
+                # get the buskey for that input
+                if inputval['bus'] not in ['None']:
+                    k_from, v_to = inputval['bus'].split('/')
                     G.add_edge(k_from, k)
 
         # FIXME: add _loop_ and _containment_ edges with different color

@@ -87,7 +87,7 @@ def get_config_raw_from_string(conf, confvar = 'conf'):
     return local_vars[confvar]
 
 def set_attr_from_dict(obj, dictionary):
-    """set attributes of an object with names from the dictionary's keys and their values from the dictionary's values"""
+    """set object attribute k = v from a dictionary's k, v for all dict items"""
     for k,v in dictionary.items():
         setattr(obj, k, v)
 

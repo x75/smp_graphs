@@ -16,11 +16,32 @@ from hyperopt import STATUS_OK, STATUS_FAIL
 
 import pandas as pd
 
+import matplotlib.pyplot as plt
+from smp_base.plot import makefig, set_interactive
+
 import smp_graphs.logging as log
 from smp_graphs.utils import print_dict, xproduct, myt
 from smp_graphs.common import conf_header, conf_footer
 from smp_graphs.common import get_config_raw, get_config_raw_from_string
 from smp_graphs.common import set_attr_from_dict
+
+# from smp_graphs.experiment import nxgraph_from_smp_graphs
+import networkx as nx
+def nxgraph_from_smp_graphs(conf):
+    """construct an nx.graph from smp_graphs dictionary"""
+    # print "nxgraph_from_smp_graphs conf.keys = %s" % (conf['params']['graph'].keys(),)
+    g = nx.MultiDiGraph()
+    nc = 0
+    # node order?
+    for k, v in conf['params']['graph'].items():
+        v['params']['id'] = k
+        # print "v", v
+        g.add_node(nc, v)
+        nc += 1
+    # attributes?
+    # edges / bus?
+    # visualization
+    return g
 
 BLOCKSIZE_MAX = 10000
 
@@ -50,6 +71,9 @@ def ordereddict_insert(ordereddict = None, insertionpoint = None, itemstoadd = [
     ordereddict.clear()
     ordereddict.update(new_ordered_dict)
     return ordereddict
+
+################################################################################
+# smp_graphs types: create some types for use in configurations like const, bus, generator, func, ...
 
 ################################################################################
 # bus class
@@ -87,6 +111,18 @@ class Bus(MutableMapping):
     def setval(self, k, v):
         self.store[k] = v
 
+    def plot(self, ax = None):
+        assert ax is not None
+        ax.text(10, 0, "Bus (%s)" % ("topblock"))
+        ax.grid(0)
+        ax.set_xlim((0, 100))
+        ax.set_ylim((-100, 0))
+        # ax.plot(np.random.uniform(-5, 5, 100), "ko", alpha = 0.1)
+        for k, v in self.store.items():
+            print "k = %s, v = %s" % (k, v)
+        plt.draw()
+        plt.pause(1e-6)
+        
 ################################################################################
 # Block decorator init
 class decInit():
@@ -187,32 +223,25 @@ class Block2(object):
         'id': None,
         'debug': False,
         'topblock': False,
-        'ibuf': 1,
+        'ibuf': 1, # input  buffer size
+        'obuf': 1, # output buffer size
         'cnt': 1,
-        'blocksize': 1,
+        'blocksize': 1, # this is gonna be phased out
         'inputs': {}, # internal port, scalar / vector/ bus key, [slice]
         'outputs': {}, # name, dim
         'logging': True, # normal logging
         'rate': 1, # execution rate rel. to cnt
-        # 'idim': None,
-        # 'odim': None,
-        # # 'obufsize': 1,
-        # # 'savedata': True,
-        # 'ros': False,
+        'ros': False, # no ROS yet
     }
 
-    def load_defaults(self):
-        for k,v in self.defaults.items():
-            self.__dict__[k] = v
-                
-    def __init__(self, conf = {}, paren = None, top = None):
+    def __init__(self, conf = {}, paren = None, top = None, blockid = None):
+        # general stuff
         self.conf = conf
         self.paren = paren
         self.top = top
         self.cname = self.__class__.__name__
         
         # load defaults
-        # self.load_defaults()
         set_attr_from_dict(self, self.defaults)
                     
         # fetch existing configuration arguments
@@ -221,121 +250,166 @@ class Block2(object):
         else:
             print "What could it be? Look at %s" % (self.conf)
 
-        # check
+        # check id
         assert hasattr(self, 'id')
+        # if id not is None:
+        #     self.id = blockid
 
         # input buffer vs. blocksize: input buffer is sliding, blocksize is jumping
         if self.blocksize > self.ibuf:
             self.ibuf = self.blocksize
 
-        """pass 1: complete config with runtime info"""
-        if hasattr(self, 'graph') or hasattr(self, 'subgraph'): # composite block made up of other blocks
-            
-            # set top to self for topblock
-            if self.topblock:
-                self.top = self
+        ################################################################################
+        # 1 general top block stuff: init bus, set top to self, init logging
+        #   all the rest should be the same as for hier from file, hier from dict, loop, loop_seq
+        if self.topblock:
+            # fix the random seed
+            np.random.seed(self.randseed)
                 
-            # debugging info
-            if hasattr(self, 'graph'):
-                gkeys = "graph = %s" % (self.graph.keys(), )
-            else:
-                self.init_subgraph()
-                self.graph = self.conf['params']['graph']
+            self.top = self
+            self.bus = Bus()
+            # initialize pandas based hdf5 logging
+            log.log_pd_init(self.conf)
 
-                # ordereddict_insert(ordereddict = self.top.graph, insertionpoint = '%s' % self.id, itemstoadd = self.graph)
-                print "topblock post init_subgraph %s"  % (self.graph.keys())
-                gkeys = "subgraph = %s" % (self.graph.keys(),)
+            # write initial configuration to dummy table attribute in hdf5
+            log.log_pd_store_config_initial(print_dict(self.conf))
 
-            print "%s-%s.init composite graph in global %s with graph/subgraph and keys = %s" % (self.cname, self.id, self.top.graph.keys(), gkeys)
-            
-            # the topblock, there can only be one
-            if self.topblock:
-                # fix the random seed
-                np.random.seed(self.randseed)
+            # # dump the execution graph configuration to a file
+            # finalconf = self.dump_final_config()
+            # # this needs more work
+            # log.log_pd_store_config_final(finalconf)
                 
-                # initialize the global messaging bus
-                # self.bus = {}
-                self.bus = Bus()
-
-                # set the top reference
-                self.top = self
-
-                # initialize pandas based hdf5 logging
-                log.log_pd_init(self.conf)
-
-                # write initial configuration to dummy table attribute in hdf5
-                log.log_pd_store_config_initial(print_dict(self.conf))
-
-                # init pass 1: construct the exec graph by expanding dynamic variables
-                # and initializing the outputs to get the bus definitions
-                self.init_graph_pass_1()
-
-                # debug bus init
-                # self.debug_print("init_1: buskeys = %s", (self.bus.keys(),)) # (print_dict(self.bus),))
-                # for k,v in self.bus.items():
-                #     self.debug_print("init_1: self.bus[%s].shape = %s", (k, v.shape)) # (print_dict(self.bus),))
-
-                # debug bus init
-                # for k,v in self.bus.items():
-                #     self.debug_print("init_2: self.bus[%s].shape = %s", (k, v.shape)) # (print_dict(self.bus),))
-
-                # dump the exec graph configuration to a file
-                # init pass 2: only from topblock on the flattened graph
-                self.init_graph_pass_2()
-
-                finalconf = self.dump_final_config()
-                # this needs more work
-                log.log_pd_store_config_final(finalconf)
-                
-                # print "init top graph", print_dict(self.top.graph)
-                
-            # non topblock configuration driven blocks
-            else:
-                self.bus = self.top.bus
-                # hierarchical block with config from a file
-                if hasattr(self, 'subgraph'):
-                    # FIXME: call that graph
-
-                    self.init_subgraph()
-                    self.graph = self.conf['params']['graph']
-                    print "post init_subgraph %s"  % (self.graph.keys())
-                    
-                    # print "subgraph %s" % (self.id), self.conf['params']['graph']
-                                        
-                    # # pass 1
-                    # self.init_graph_pass_1()
-                    # # pass 2
-                    # self.init_graph_pass_2()
-
-                # hierarchical block with config right inside block: what does it buy you if you ditch hierarchy during exe graph init?
-                elif hasattr(self, 'graph'):
-                    if not hasattr(self, 'numsteps'):
-                        self.numsteps = self.top.numsteps
-                    # subconf = get_config_raw_from_string(self.subgraph, 'conf')
-                    print "graph", self.graph, self.conf['params']['graph']
-                    # print "graph same", self.graph is self.conf['params']['graph']
-                    # self.init_graph_pass_1()
-                    # self.init_graph_pass_2()
-
-                # print "self.graph", self.id, print_dict(self.graph)
-                # init self.graph
-                self.init_graph_pass_1()
-                # print "self.graph", self.id, print_dict(self.graph)
-                # insert self.graph into top.graph
-                print "%s-%s swong topgraph = %s, graph = %s" % (self.cname, self.id, self.top.graph.keys(), self.graph.keys())
-                ordereddict_insert(ordereddict = self.top.graph, insertionpoint = '%s' % self.id, itemstoadd = self.graph)
-                # print "topgraph", print_dict(self.top.graph)
-                    
-        # primitive or other block
+            # print "init top graph", print_dict(self.top.graph)
         else:
-            """pass 1: complete config with runtime info"""
-            # get bus
+            # get bus from topblock
             self.bus = self.top.bus
-
-            self.init_outputs()
             
-            # TODO: init logging
-            self.init_logging()
+        ################################################################################
+        # 2 copy the config dict to exec graph if hierarchical
+        if hasattr(self, 'graph') or hasattr(self, 'subgraph'): # composite block made up of other blocks FIXME: loop, loop_seq
+
+            self.nxgraph = nxgraph_from_smp_graphs(self.conf)
+        
+            # 2.1 init_pass_1: instantiate blocks and init outputs, descending into hierarchy
+            self.init_graph_pass_1()
+                                        
+            # 2.2 init_pass_2: init inputs, again descending into hierarchy
+            self.init_graph_pass_2()
+        
+            # # debugging info
+            # if hasattr(self, 'graph'):
+            #     gkeys = "graph = %s" % (self.graph.keys(), )
+            # else:
+            #     self.init_subgraph()
+            #     self.graph = self.conf['params']['graph']
+
+            #     # ordereddict_insert(ordereddict = self.top.graph, insertionpoint = '%s' % self.id, itemstoadd = self.graph)
+            #     print "topblock post init_subgraph %s"  % (self.graph.keys())
+            #     gkeys = "subgraph = %s" % (self.graph.keys(),)
+
+            # print "%s-%s.init composite graph in global %s with graph/subgraph and keys = %s" % (self.cname, self.id, self.top.graph.keys(), gkeys)
+            
+            # # the topblock, there can only be one
+            # if self.topblock:
+            #     set_interactive(True)
+            #     self.graph_fig = makefig(rows = 1, cols = 2, wspace = 0.1, hspace = 0.0)
+                
+            #     # initialize the global messaging bus
+            #     # self.bus = {}
+            #     self.bus = Bus()
+            #     self.bus.plot(self.graph_fig.axes[1])
+                
+            #     # set the top reference
+            #     self.top = self
+
+            #     # initialize pandas based hdf5 logging
+            #     log.log_pd_init(self.conf)
+
+            #     # write initial configuration to dummy table attribute in hdf5
+            #     log.log_pd_store_config_initial(print_dict(self.conf))
+
+            #     # debugging checks
+            #     print "tobblock", self.graph.keys(), self.conf['params']['graph'].keys()
+            #     print self.graph is self.conf['params']['graph']
+                
+            #     self.nxgraph = nxgraph_from_smp_graphs(self.conf)
+                
+            #     # print "dict_of_dicts", nx.to_dict_of_dicts(self.nxgraph)
+            #     # for n in self.nxgraph.nodes_iter():
+            #     #     print "node n", type(n)
+
+            #     # print self.nxgraph.node[0]['block']
+            #     # print nx.get_node_attributes(self.nxgraph, 'block')
+            #     # print nx.get_node_attributes(self.nxgraph, 'params')
+                                                    
+            #     # init pass 1: construct the execution graph by expanding dynamic variables
+            #     #               and initializing the outputs to get the bus definitions
+            #     self.init_graph_pass_1()
+
+            #     # debug bus init
+            #     # self.debug_print("init_1: buskeys = %s", (self.bus.keys(),)) # (print_dict(self.bus),))
+            #     # for k,v in self.bus.items():
+            #     #     self.debug_print("init_1: self.bus[%s].shape = %s", (k, v.shape)) # (print_dict(self.bus),))
+
+            #     # debug bus init
+            #     # for k,v in self.bus.items():
+            #     #     self.debug_print("init_2: self.bus[%s].shape = %s", (k, v.shape)) # (print_dict(self.bus),))
+
+            #     # init pass 2: only from topblock on the flattened graph initialize all inputs from
+            #     #              the bus
+            #     self.init_graph_pass_2()
+                
+                
+            # # non topblock configuration driven blocks
+            # else:
+            #     self.bus = self.top.bus
+            #     # hierarchical block with config from a file
+            #     if hasattr(self, 'subgraph'):
+            #         # FIXME: call that graph
+
+            #         self.init_subgraph()
+            #         self.graph = self.conf['params']['graph']
+            #         print "post init_subgraph %s"  % (self.graph.keys())
+                    
+            #         # print "subgraph %s" % (self.id), self.conf['params']['graph']
+                                        
+            #         # # pass 1
+            #         # self.init_graph_pass_1()
+            #         # # pass 2
+            #         # self.init_graph_pass_2()
+
+            #     # hierarchical block with config right inside block: what does it buy you if you ditch hierarchy during exe graph init?
+            #     elif hasattr(self, 'graph'):
+            #         if not hasattr(self, 'numsteps'):
+            #             self.numsteps = self.top.numsteps
+            #         # subconf = get_config_raw_from_string(self.subgraph, 'conf')
+            #         print "graph", self.graph, self.conf['params']['graph']
+            #         # print "graph same", self.graph is self.conf['params']['graph']
+            #         # self.init_graph_pass_1()
+            #         # self.init_graph_pass_2()
+
+            #     # print "self.graph", self.id, print_dict(self.graph)
+            #     # init self.graph
+            #     self.init_graph_pass_1()
+            #     # print "self.graph", self.id, print_dict(self.graph)
+            #     # insert self.graph into top.graph
+            #     print "%s-%s swong topgraph = %s, graph = %s" % (self.cname, self.id, self.top.graph.keys(), self.graph.keys())
+            #     ordereddict_insert(ordereddict = self.top.graph, insertionpoint = '%s' % self.id, itemstoadd = self.graph)
+            #     # print "topgraph", print_dict(self.top.graph)
+                    
+        ################################################################################
+        # 3 initialize a primitive block
+        else:
+            self.init_primitive()
+            
+    def init_primitive(self):
+        """initialize primitive block"""
+        # initialize block output
+        self.init_outputs()
+            
+        # initialize block logging
+        self.init_logging()
+            
 
     def init_subgraph(self):
         subconf = get_config_raw(self.subgraph, 'conf') # 'graph')
@@ -350,37 +424,50 @@ class Block2(object):
         # if we're coming from non topblock init
         # self.graph = self.conf['params']['graph']
 
-        print "aaahhh", self.graph.keys()
+        print "%s.init_graph_pass_1 graph.keys = %s" % (self.cname, self.graph.keys())
         
         # pass 1 init
-        for k, v in self.graph.items():
+        # for k, v in self.graph.items():
+        # for n in self.nxgraph.nodes_iter():
+        for i in range(self.nxgraph.number_of_nodes()):
+            v = self.nxgraph.node[i]
+            # print "n", n
+            k = v['params']['id']
+            # v = n['params']
             # self.debug_print("__init__: pass 1\nk = %s,\nv = %s", (k, print_dict(v)))
 
             # debug timing
             print "{0}.init pass 1 k = {1: >5}, v = {2: >20}".format(self.__class__.__name__, k, v['block'].__name__)
             then = time.time()
 
+            # print v['block_']
+            
             # actual instantiation
-            self.graph[k]['block'] = self.graph[k]['block'](conf = v, paren = self, top = self.top)
+            # self.graph[k]['block'] = self.graph[k]['block'](conf = v, paren = self, top = self.top)
+            v['block_'] = v['block'](conf = v, paren = self, top = self.top)
 
-            print "%s init self.top.graph = %s" % (self.cname, self.top.graph.keys())
+            # print "%s init self.top.graph = %s" % (self.cname, self.top.graph.keys())
             
             # complete time measurement
-            print "{0}.init pass 1 k = {1: >5}, v = {2: >20}".format(self.__class__.__name__, k, v['block'].cname), "took %f s" % (time.time() - then)
+            print "{0}.init pass 1 k = {1: >5}, v = {2: >20}".format(self.__class__.__name__, k, v['block_'].cname), "took %f s" % (time.time() - then)
             
             # print "%s self.graph[k]['block'] = %s" % (self.graph[k]['block'].__class__.__name__, self.graph[k]['block'].bus)
         # done pass 1 init
 
     def init_graph_pass_2(self):
-        print "bbbhhh", self.graph.keys()
+        # print "bbbhhh", self.graph.keys()
         # pass 2 init
-        for k, v in self.graph.items():
+        # for k, v in self.graph.items():
+        for i in range(self.nxgraph.number_of_nodes()):
+            v = self.nxgraph.node[i]
+            k = v['params']['id']
+            
             self.debug_print("__init__: pass 2\nk = %s,\nv = %s", (k, print_dict(v)))
             # print "%s.init pass 2 k = %s, v = %s" % (self.__class__.__name__, k, v['block'].cname)
-            print "{0}.init pass 2 k = {1: >5}, v = {2: >20}".format(self.__class__.__name__, k, v['block'].cname),
+            print "{0}.init pass 2 k = {1: >5}, v = {2: >20}".format(self.__class__.__name__, k, v['block_'].cname),
             then = time.time()
             # self.graph[k]['block'].init_pass_2()
-            v['block'].init_pass_2()
+            v['block_'].init_pass_2()
             print "took %f s" % (time.time() - then)
 
         # for k, v in self.graph.items():
@@ -518,29 +605,37 @@ class Block2(object):
         # if hasattr(self, 'graph') or hasattr(self, 'subgraph'):
         # mode 1 for handling hierarchical blocks: graph is flattened during init, only topblock iterates nodes
         if self.topblock:
-            for k, v in self.graph.items():
-                v['block'].step()
+            # first step all
+            for i in range(self.nxgraph.number_of_nodes()):
+                v = self.nxgraph.node[i]
+                k = v['params']['id']
+            
+                # for k, v in self.graph.items():
+                v['block_'].step()
 
-            # do logging for all nodes, was bus items
-            for k, v in self.graph.items(): # self.bus.items():
+            # then log all
+            # for k, v in self.graph.items(): # self.bus.items():
+            for i in range(self.nxgraph.number_of_nodes()):
+                v = self.nxgraph.node[i]
+                k = v['params']['id']
                 # return if block doesn't want logging
-                if not v['block'].logging: continue
+                if not v['block_'].logging: continue
                 # if (self.cnt % v['block'].blocksize) != (v['block'].blocksize - 1): continue
-                if (self.cnt % v['block'].blocksize) > 0: continue
+                if (self.cnt % v['block_'].blocksize) > 0: continue
                 # print debug foo
                 self.debug_print("step: node k = %s, v = %s", (k, v))
                 # do logging for all of the node's output variables
-                for k_o, v_o in v['block'].outputs.items():
-                    buskey = "%s/%s" % (v['block'].id, k_o)
-                    print "%s step outk = %s, outv = %s, bus.sh = %s" % (self.cname, k_o, v_o, self.bus[buskey].shape)
+                for k_o, v_o in v['block_'].outputs.items():
+                    buskey = "%s/%s" % (v['block_'].id, k_o)
+                    # print "%s step outk = %s, outv = %s, bus.sh = %s" % (self.cname, k_o, v_o, self.bus[buskey].shape)
                     log.log_pd(tbl_name = buskey, data = self.bus[buskey])
 
-        if self.topblock:
             # store log
             if (self.cnt) % 500 == 0 or self.cnt == (self.numsteps - 1):
                 print "storing log @iter %04d" % (self.cnt)
                 log.log_pd_store()
-
+                
+        # need to to count ourselves
         self.cnt += 1
 
     def get_config(self):
