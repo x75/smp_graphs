@@ -88,6 +88,7 @@ class FileBlock2(Block2):
         ############################################################
         # selflog
         elif conf['params']['type'] == 'selflog':
+            print "FileBlock2 selflog", conf['params']['blocksize']
             assert os.path.exists(lfile), "logfile %s not found" % (lfile, )
             self.store = pd.HDFStore(lfile)
             # clean up dummy entry
@@ -96,13 +97,15 @@ class FileBlock2(Block2):
             conf['params']['storekeys'] = {}
             for k in self.store.keys():
                 # process key from selflog format: remove the block id in the beginning of the key
+                print "FileBlock2 selflog", conf['params']['blocksize']
                 k_ = k.lstrip("/")
                 if not k_.startswith('conf'):
                     k_ = "/".join(k_.split("/")[1:])
-                print "%s.init store_key = %s, shape = %s" % (self.__class__.__name__, k, self.store[k].shape)
-                conf['params']['outputs'][k_] = [self.store[k].T.shape]
-                assert conf['params']['blocksize'] == self.store[k].shape[0], "numsteps (%d) needs to be set to numsteps (%d) in the file %s" % (conf['params']['blocksize'], self.store[k].shape[0], lfile)
-                conf['params']['blocksize'] = self.store[k].shape[0]
+                    assert conf['params']['blocksize'] == self.store[k].shape[0], "numsteps (%d) needs to be set to numsteps (%s) in the file %s" % (conf['params']['blocksize'], self.store[k].shape, lfile)
+                    
+                    print "%s.init store_key = %s, shape = %s" % (self.__class__.__name__, k, self.store[k].shape)
+                    conf['params']['outputs'][k_] = {'shape': self.store[k].T.shape[:-1]}
+                # conf['params']['blocksize'] = self.store[k].shape[0]
                 # map output key to log table key
                 conf['params']['storekeys'][k_] = k
             self.step = self.step_selflog
@@ -112,15 +115,15 @@ class FileBlock2(Block2):
             
         # init states
         for k, v in conf['params']['outputs'].items(): # ['x', 'y']:
-            # print "key", self.data[key]
+            # print "key", self.data[k]
             # setattr(self, k, np.zeros((self.data[k].shape[1], 1)))
-            # print "v[0]", v[0]
-            if v[0] is None:
+            # print "v", v
+            if v['shape'] is None:
                 # self.outputs[k][0] = (self.data[k].shape[1], 1)
                 # print "data", self.data[k].shape[1]
                 # print "out dim", conf['params']['outputs'][k]
-                conf['params']['outputs'][k][0] = (self.data[k].shape[1], conf['params']['blocksize'])
-                # print "out dim", conf['params']['outputs'][k]
+                conf['params']['outputs'][k]['shape'] = (self.data[k].shape[1], conf['params']['blocksize'])
+                print "out dim", conf['params']['outputs'][k]
             # self.x = np.zeros((self.odim, 1))
         
         Block2.__init__(self, conf = conf, paren = paren, top = top)

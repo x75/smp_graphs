@@ -51,7 +51,7 @@ graph = OrderedDict([
                     'id': 'b3',
                     'inputs': {'c': {'val': np.random.uniform(-1, 1, (3, 1))}},
                     'outputs': {'x': {'shape': (3,)}},
-                    'debug': False,
+                    'debug': True,
                 },
             },
         },

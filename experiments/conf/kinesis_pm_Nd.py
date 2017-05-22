@@ -32,7 +32,7 @@ debug = False
 motors = 3
 dt = 0.1
 showplot = True
-randseed = 123
+randseed = 124
 
 # graph
 graph = OrderedDict([
@@ -84,8 +84,8 @@ graph = OrderedDict([
                         # 'inputs': {'x': {'bus': 'robot1/s_extero'}, 'x_': {'val': np.random.uniform(-0.05, 0.05, (3,1))}},
                         'inputs': {'x': {'bus': 'robot1/s_extero'}, 'x_': {'bus': 'mot0/x'}},
                         'outputs': {'y': {'shape': (3,)}, 'y1': {'shape': (3,)}, 'x_': {'shape': (3,)}},
-                        'func': f_motivation_bin,
-                        # 'func': f_motivation,
+                        # 'func': f_motivation_bin,
+                        'func': f_motivation,
                         'debug': False,
                     },
                 }),
@@ -126,7 +126,10 @@ graph = OrderedDict([
             'x0': np.random.uniform(-0.3, 0.3, (motors * 3, 1)),
             # 'inputs': {'u': {'val': np.random.uniform(-1, 1, (3, numsteps))}},
             'inputs': {'u': {'bus': 'search/x'}},
-            'outputs': {'s_proprio': {'shape': (3,)}, 's_extero': {'shape': (3,)}}, # , 's_all': [(9, 1)]},
+            'outputs': {
+                's_proprio': {'shape': (3,)},
+                's_extero': {'shape': (3,)}
+            }, # , 's_all': [(9, 1)]},
             # "class": PointmassRobot2, # SimpleRandomRobot,
             # "type": "explauto",
             # "name": make_robot_name(expr_id, "pm", 0),

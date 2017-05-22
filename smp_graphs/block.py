@@ -242,7 +242,7 @@ class Block2(object):
                 self.init_subgraph()
                 self.graph = self.conf['params']['graph']
 
-                ordereddict_insert(ordereddict = self.top.graph, insertionpoint = '%s' % self.id, itemstoadd = self.graph)
+                # ordereddict_insert(ordereddict = self.top.graph, insertionpoint = '%s' % self.id, itemstoadd = self.graph)
                 print "topblock post init_subgraph %s"  % (self.graph.keys())
                 gkeys = "subgraph = %s" % (self.graph.keys(),)
 
@@ -363,6 +363,8 @@ class Block2(object):
             # actual instantiation
             self.graph[k]['block'] = self.graph[k]['block'](conf = v, paren = self, top = self.top)
 
+            print "%s init self.top.graph = %s" % (self.cname, self.top.graph.keys())
+            
             # complete time measurement
             print "{0}.init pass 1 k = {1: >5}, v = {2: >20}".format(self.__class__.__name__, k, v['block'].cname), "took %f s" % (time.time() - then)
             
@@ -620,13 +622,14 @@ class LoopBlock2(Block2):
         loopblocks = []
         # loop the loop
         for i, lparams in enumerate(self.loop):
-            # print "lparams", lparams, "self.loopblock['params']", self.loopblock['params']
+            print "lparams", lparams, "self.loopblock['params']", self.loopblock['params']
             
             # copy params
             loopblock_params = {}
             for k, v in self.loopblock['params'].items():
                 if k == 'id':
                     loopblock_params[k] = "%s_%d" % (self.id, i+1)
+                # FIXME: only works for first item
                 elif k == lparams[0]:
                     loopblock_params[k] = lparams[1]
                 else:
@@ -637,6 +640,7 @@ class LoopBlock2(Block2):
             # instantiate block
             dynblock = self.loopblock['block'](conf = loopblock_conf,
                                                paren = self.paren, top = self.top)
+            # print "loopblock dynblock = %s" % (dynblock.cname, )
 
             # get config and store it
             dynblockconf = dynblock.get_config()
@@ -657,6 +661,9 @@ class LoopBlock2(Block2):
         # print "topgraph", print_dict(self.top.graph)
         print "%s-%s.init swong topgrah = %s" % (self.cname, self.id, self.top.graph.keys()) # , self.graph.keys()
         ordereddict_insert(ordereddict = self.top.graph, insertionpoint = '%s' % self.id, itemstoadd = loopblocks)
+        print "%s-%s.init swong topgrah = %s" % (self.cname, self.id, self.top.graph.keys()) # , self.graph.keys()
+        for k, v in self.top.graph.items():
+            print "k", k, "v", v['block']
 
         # print "top graph", print_dict(self.top.graph)
         # print "top graph", self.top.graph.keys()
@@ -857,11 +864,13 @@ params: inputs, outputs, leakrate / smoothrate?
         """dBlock2 init"""
         for ink in conf['params']['inputs'].keys():
             # get input shape
-            inshape = top.bus[conf['params']['inputs'][ink][0]].shape
+            inshape = top.bus[conf['params']['inputs'][ink]['bus']].shape
+            # inshape = conf['params']['inputs'][ink]['shape']
+            print "inshape", inshape
             # alloc copy of previous input block 
             setattr(self, "%s_" % ink, np.zeros(inshape))
             # set output members
-            conf['params']['outputs']["d%s" % ink] = [inshape]
+            conf['params']['outputs']["d%s" % ink] = {'shape': inshape[:-1]}
             
         # base block init
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
@@ -876,17 +885,17 @@ params: inputs, outputs, leakrate / smoothrate?
             ink_ = "%s_" % ink
             inv_ = getattr(self, ink_)
             # stack last and current block input
-            tmp_   = np.hstack((inv_, self.inputs[ink][0]))
+            tmp_   = np.hstack((inv_, self.inputs[ink]['val']))
             # slice -(blocksize + 1) until now
             tmp_sl = slice(self.blocksize - 1, self.blocksize * 2)
             # compute the diff in the input
             din = np.diff(tmp_[:,tmp_sl], axis = 1) # * self.d
             # which should be same shape is input
-            assert din.shape == self.inputs[ink][0].shape
+            assert din.shape == self.inputs[ink]['val'].shape
             # print getattr(self, outk)[:,[-1]].shape, self.inputs[ink][0].shape, din.shape
             setattr(self, outk, din)
             # store current input
-            setattr(self, ink_, self.inputs[ink][0].copy())
+            setattr(self, ink_, self.inputs[ink]['val'].copy())
 
 class DelayBlock2(PrimBlock2):
     """!@brief Delay block: delay shift input by n steps
@@ -952,11 +961,11 @@ class SliceBlock2(PrimBlock2):
                 # print "%s.init inkeys %s" % (self.__class__.__name__, k)
                 outk = "%s_%s" % (k, slk)
                 if type(slv) is slice:
-                    params['outputs'][outk] = [(slv.stop - slv.start, 1)] # top.bus[params['inputs'][k][0]].shape
+                    params['outputs'][outk] = {'shape': (slv.stop - slv.start, 1)} # top.bus[params['inputs'][k][0]].shape
                 elif type(slv) is list:
-                    params['outputs'][outk] = [(len(slv), 1)] # top.bus[params['inputs'][k][0]].shape
+                    params['outputs'][outk] = {'shape': (len(slv), 1)} # top.bus[params['inputs'][k][0]].shape
                 elif type(slv) is tuple:
-                    params['outputs'][outk] = [(slv[1] - slv[0], 1)] # top.bus[params['inputs'][k][0]].shape
+                    params['outputs'][outk] = {'shape': (slv[1] - slv[0], 1)} # top.bus[params['inputs'][k][0]].shape
             
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
@@ -966,7 +975,7 @@ class SliceBlock2(PrimBlock2):
             slicespec = self.slices[ink]
             for slk, slv in slicespec.items():
                 outk = "%s_%s" % (ink, slk)
-                setattr(self, outk, self.inputs[ink][0][slv])
+                setattr(self, outk, self.inputs[ink]['val'][slv])
 
 class StackBlock2(PrimBlock2):
     """!@brief Stack block can combine input slices into a single output item
