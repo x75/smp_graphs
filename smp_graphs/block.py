@@ -5,7 +5,7 @@ block: basic block of computation
 2017 Oswald Berthold
 """
 
-import uuid, sys, time
+import uuid, sys, time, copy
 from collections import OrderedDict, MutableMapping
 import itertools
 from functools import partial
@@ -40,17 +40,61 @@ def nxgraph_from_smp_graphs(conf):
             # print "v", v
             g.add_node(nc, v)
             nc += 1
-    elif conf['params'].has_key('loopblock'):
-        for i, item in enumerate(conf['params']['loop']):
-            # print "i, item", i, item
-            # for k, v in conf['params']['loopblock'].items():
-            v = conf['params']['loopblock']
-            v['params']['id'] = "%s_%d" % (conf['params']['id'], i)
-            v['params'][item[0]] = item[1]
-            print "v", v
+    elif conf['params'].has_key('subgraph'):
+        for k, v in conf['params']['graph'].items():
+            v['params']['id'] = k
+            # print "v", v
             g.add_node(nc, v)
             nc += 1
         
+    elif conf['params'].has_key('loopblock') and type(conf['params']['loop']) is list:
+        blockparams = []
+        print type(conf)
+        for i, item in enumerate(conf['params']['loop']):
+            lpconf = dict()
+            # print "nxgraph_from_smp_graphs i, item", i, item
+            # for k, v in conf['params']['loopblock'].items():
+            # lpconf = conf['params']['loopblock'].copy()
+            # lpconf.update(conf['params']['loopblock'])
+            # print "v/conf same?", v is conf['params']['loopblock']
+            # v = dict()
+            for k_, v_ in conf['params']['loopblock'].items():
+                if type(v_) is dict:
+                    lpconf[k_] = v_.copy()
+                else:
+                    lpconf[k_] = v_
+
+            lpconf = copy.deepcopy(conf['params']['loopblock'])
+                                    
+            lpconf['params']['id'] = "%s_%d" % (conf['params']['id'], i)
+            # FIXME: loop over param items
+            lpconf['params'][item[0]] = item[1].copy()
+            print "nxgraph_from_smp_graphs nc = %d, i = %d, v = %s" % (nc, i, lpconf)
+            # print "samesame?", v is v.copy()
+            blockparams.append(lpconf.copy())
+            del lpconf
+
+        print "blockparams", blockparams
+            
+        for i, bp in enumerate(blockparams):
+            print "bp", bp
+            g.add_node(nc)
+            print "g numnodes", g.number_of_nodes()
+            # print "lpconf", lpconf
+            # blub = lpconf.copy()
+            g.node[nc] = bp.copy()
+            print "node", g.node[nc]
+
+            nc += 1
+
+    print "nodes", g.nodes()
+    gnode_ = 0
+    for n in g.nodes():
+        gnode = g.node[n]
+        print "node same?", gnode is gnode_
+        # print "nxgraph_from_smp_graphs g.node[%s] = %s" % (n, g.node[n])
+        gnode_ = gnode
+            
     # attributes?
     # edges / bus?
     # visualization
@@ -212,10 +256,11 @@ class decStep():
 
                 # copy output to bus
                 for k, v in xself.outputs.items():
-                    # buskey = "%s/%s" % (xself.id, k)
-                    # print "copy %s.outputs[%s] = %s to bus[%s], bs = %d" % (xself.id, k, getattr(xself, k), buskey, xself.blocksize)
+                    buskey = "%s/%s" % (xself.id, k)
+                    print "copy %s.outputs[%s] = %s to bus[%s], bs = %d" % (xself.id, k, getattr(xself, k), buskey, xself.blocksize)
                     assert xself.bus[v['buskey']].shape == v['bshape'], "real and desired output shapes need to agree, %s != %s" % (xself.bus[v['buskey']].shape, v['shape'])
                     xself.bus[v['buskey']] = getattr(xself, k)
+                    print "xself.bus[v['buskey'] = %s]" % (v['buskey'], ) , xself.bus[v['buskey']]
             else:
                 f_out = None
             
@@ -300,11 +345,20 @@ class Block2(object):
         ################################################################################
         # 2 copy the config dict to exec graph if hierarchical
         if hasattr(self, 'graph') or hasattr(self, 'subgraph') \
-          or hasattr(self, 'loopblock'): # composite block made up of other blocks FIXME: loop, loop_seq
+          or (hasattr(self, 'loopblock') and len(self.loopblock) != 0): # composite block made up of other blocks FIXME: loop, loop_seq
 
-            print "has all these attrs %s-%s" % (self.cname, self.id)
+            # print "has all these attrs %s-%s" % (self.cname, self.id)
+            # for k,v in self.__dict__.items():
+            #     print "%s-%s k = %s, v = %s" % (self.cname, self.id, k, v)
 
+            # subgraph prepare
+            if hasattr(self, 'subgraph'):
+                self.init_subgraph()
+            
             self.nxgraph = nxgraph_from_smp_graphs(self.conf)
+            
+            for n in self.nxgraph.nodes():
+                print "%s-%s g.node[%s] = %s" % (self.cname, self.id, n, self.nxgraph.node[n])
         
             # 2.1 init_pass_1: instantiate blocks and init outputs, descending into hierarchy
             self.init_graph_pass_1()
@@ -447,7 +501,7 @@ class Block2(object):
         # for n in self.nxgraph.nodes_iter():
         for i in range(self.nxgraph.number_of_nodes()):
             v = self.nxgraph.node[i]
-            # print "n", n
+            # print "%s.init_graph_pass_1 node = %s" % (self.cname, v)
             k = v['params']['id']
             # v = n['params']
             # self.debug_print("__init__: pass 1\nk = %s,\nv = %s", (k, print_dict(v)))
@@ -511,7 +565,7 @@ class Block2(object):
             # set self attribute to that shape
             setattr(self, k, np.zeros(v['bshape']))
             
-            # print "%s.init_outputs: %s.bus[%s] = %s" % (self.cname, self.id, buskey, getattr(self, k).shape)
+            print "%s.init_outputs: %s.bus[%s] = %s" % (self.cname, self.id, v['buskey'], getattr(self, k).shape)
             self.bus[v['buskey']] = getattr(self, k)
             # self.bus.setval(v['buskey'], getattr(self, k))
 
@@ -620,15 +674,15 @@ class Block2(object):
         # if self.topblock or hasattr(self, 'subgraph'):
         # if hasattr(self, 'graph') or hasattr(self, 'subgraph'):
         # mode 1 for handling hierarchical blocks: graph is flattened during init, only topblock iterates nodes
-        if self.topblock:
-            # first step all
-            for i in range(self.nxgraph.number_of_nodes()):
-                v = self.nxgraph.node[i]
-                k = v['params']['id']
+        # first step all
+        for i in range(self.nxgraph.number_of_nodes()):
+            v = self.nxgraph.node[i]
+            k = v['params']['id']
             
-                # for k, v in self.graph.items():
-                v['block_'].step()
+            # for k, v in self.graph.items():
+            v['block_'].step()
 
+        if self.topblock:
             # then log all
             # for k, v in self.graph.items(): # self.bus.items():
             for i in range(self.nxgraph.number_of_nodes()):
@@ -782,13 +836,27 @@ class LoopBlock2(Block2):
         # print "top graph", print_dict(self.top.graph[self.top.graph.keys()[0]])
 
         # replace loopblock block entry in original config, propagated back to the top / global namespace
-        self.loopblock['block'] = Block2.__class__.__name__
+        # self.loopblock['block'] = Block2.__class__.__name__
                    
     def step(self, x = None):
         """loop block does nothing for now"""
         # pass
         for i in range(self.nxgraph.number_of_nodes()):
-            print "node %d" % (i,)
+            # print "node %d" % (i,)
+            v = self.nxgraph.node[i]
+            k = v['params']['id']
+
+            # print "k, v", k, v
+            
+            # for k, v in self.graph.items():
+            v['block_'].step()
+
+            buskey = "%s/x" % v['block_'].id
+            buskey2 = v['block_'].outputs['x']['buskey']
+            print "constblock", k, buskey, buskey2, v['block_'].x.flatten()
+            print self.bus[buskey], self.bus.keys()
+            print self.top.bus[buskey], self.top.bus.keys()
+            # print self.bus[v['params']]
 
 class SeqLoopBlock2(Block2):
     """!@brief Sequential loop block"""
@@ -798,6 +866,8 @@ class SeqLoopBlock2(Block2):
         self.defaults['loopblock'] = {}
         Block2.__init__(self, conf = conf, paren = paren, top = top)
 
+        self.init_primitive()
+        
         # check 'loop' parameter type and set the loop function
         if type(self.loop) is list: # it's a list
             self.f_loop = self.f_loop_list

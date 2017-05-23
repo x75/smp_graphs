@@ -6,7 +6,7 @@ the config is python, so we
 """
 
 # reuse
-numsteps = 1000
+numsteps = 100
 
 # graph
 graph = OrderedDict([
@@ -43,6 +43,7 @@ graph = OrderedDict([
         'block': LoopBlock2,
         'params': {
             'id': 'b3',
+            'logging': False,
             'loop': [('inputs', {'c': {'val': np.random.uniform(-i, i, (3, 1)), 'shape': (3,)}}) for i in range(1, 4)],
             # 'loopmode': 'parallel',
             'loopblock': {
@@ -51,7 +52,7 @@ graph = OrderedDict([
                     'id': 'b3',
                     'inputs': {'c': {'val': np.random.uniform(-1, 1, (3, 1))}},
                     'outputs': {'x': {'shape': (3,)}},
-                    'debug': True,
+                    'debug': False,
                 },
             },
             'outputs': {'x': {'shape': (3,)}},
@@ -67,7 +68,7 @@ graph = OrderedDict([
             'idim': 6,
             'odim': 3,
             'debug': False,
-            'inputs': {'d1': {'bus': 'b1/x'}, 'd2': {'bus': 'b2/x'}, 'd3': {'bus': 'b3_1/x'}, 'd4': {'bus': 'b3_2/x'}, 'd5': {'bus': 'b3_3/x'}},
+            'inputs': {'d1': {'bus': 'b1/x'}, 'd2': {'bus': 'b2/x'}, 'd3': {'bus': 'b3_0/x'}, 'd4': {'bus': 'b3_1/x'}, 'd5': {'bus': 'b3_2/x'}},
             'outputs': {'x': {'shape': (3, )}},
             'subplots': [
                 [

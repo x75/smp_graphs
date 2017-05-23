@@ -27,7 +27,7 @@ from smp_graphs.block import FuncBlock2
 from smp_graphs.funcs import f_sin, f_motivation, f_motivation_bin
 
 # reuse
-numsteps = 10000
+numsteps = 1000
 debug = False
 motors = 3
 dt = 0.1
@@ -36,6 +36,38 @@ randseed = 124
 
 # graph
 graph = OrderedDict([
+    # a robot
+    ('robot1', {
+        'block': PointmassBlock2,
+        'params': {
+            'id': 'robot1',
+            'blocksize': 1, # FIXME: make pm blocksize aware!
+            'sysdim': motors,
+            # initial state
+            'x0': np.random.uniform(-0.3, 0.3, (motors * 3, 1)),
+            # 'inputs': {'u': {'val': np.random.uniform(-1, 1, (3, numsteps))}},
+            'inputs': {'u': {'bus': 'search/x'}},
+            'outputs': {
+                's_proprio': {'shape': (3,)},
+                's_extero': {'shape': (3,)}
+            }, # , 's_all': [(9, 1)]},
+            # "class": PointmassRobot2, # SimpleRandomRobot,
+            # "type": "explauto",
+            # "name": make_robot_name(expr_id, "pm", 0),
+            # "numsteps": numsteps,
+            # "control": "force",
+            # "ros": False,
+            "statedim": motors * 3,
+            "dt": dt,
+            "mass": 1.0,
+            "force_max":  1.0,
+            "force_min": -1.0,
+            "friction": 0.001,
+            "sysnoise": 1e-3,
+            'debug': False,
+        }
+    }),
+
     # brain first
     # brain a) write down into graph directly
     ('braina', {
@@ -114,38 +146,7 @@ graph = OrderedDict([
             
     #         },
     # }),
-    
-    # a robot
-    ('robot1', {
-        'block': PointmassBlock2,
-        'params': {
-            'id': 'robot1',
-            'blocksize': 1, # FIXME: make pm blocksize aware!
-            'sysdim': motors,
-            # initial state
-            'x0': np.random.uniform(-0.3, 0.3, (motors * 3, 1)),
-            # 'inputs': {'u': {'val': np.random.uniform(-1, 1, (3, numsteps))}},
-            'inputs': {'u': {'bus': 'search/x'}},
-            'outputs': {
-                's_proprio': {'shape': (3,)},
-                's_extero': {'shape': (3,)}
-            }, # , 's_all': [(9, 1)]},
-            # "class": PointmassRobot2, # SimpleRandomRobot,
-            # "type": "explauto",
-            # "name": make_robot_name(expr_id, "pm", 0),
-            # "numsteps": numsteps,
-            # "control": "force",
-            # "ros": False,
-            "statedim": motors * 3,
-            "dt": dt,
-            "mass": 1.0,
-            "force_max":  1.0,
-            "force_min": -1.0,
-            "friction": 0.001,
-            "sysnoise": 1e-3,
-            'debug': False,
-        }
-    }),
+        
     # plotting
     ('plot', {
         'block': PlotBlock2,
