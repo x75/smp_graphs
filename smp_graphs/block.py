@@ -10,6 +10,8 @@ from collections import OrderedDict, MutableMapping
 import itertools
 from functools import partial
 
+import networkx as nx
+
 import numpy as np
 
 from hyperopt import STATUS_OK, STATUS_FAIL
@@ -17,6 +19,7 @@ from hyperopt import STATUS_OK, STATUS_FAIL
 import pandas as pd
 
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 from smp_base.plot import makefig, set_interactive
 
 import smp_graphs.logging as log
@@ -25,37 +28,7 @@ from smp_graphs.common import conf_header, conf_footer
 from smp_graphs.common import get_config_raw, get_config_raw_from_string
 from smp_graphs.common import set_attr_from_dict
 
-# from smp_graphs.experiment import nxgraph_from_smp_graphs
-import networkx as nx
-def nxgraph_from_smp_graphs(conf):
-    """construct an nx.graph from smp_graphs dictionary"""
-    # new empty graph
-    g = nx.MultiDiGraph()
-    # node count
-    nc = 0
-    
-    # node order: fixed with numeric keys, alternative: key array
-    # slightly different types: graph, subgraph, loopblock
-    if conf['params'].has_key('graph') or conf['params'].has_key('subgraph'):
-        for k, v in conf['params']['graph'].items():
-            v['params']['id'] = k
-            # print "v", v
-            g.add_node(nc, v)
-            nc += 1
-            
-    elif conf['params'].has_key('loopblock') and type(conf['params']['loop']) is list:
-        for i, item in enumerate(conf['params']['loop']):
-            lpconf = copy.deepcopy(conf['params']['loopblock'])
-            lpconf['params']['id'] = "%s_%d" % (conf['params']['id'], i)
-            # FIXME: loop over param items
-            lpconf['params'][item[0]] = item[1].copy()
-            g.add_node(nc, lpconf)
-            nc += 1
-            
-    # attributes?
-    # edges / bus?
-    # visualization
-    return g
+from smp_graphs.graph import nxgraph_from_smp_graph
 
 BLOCKSIZE_MAX = 10000
 
@@ -127,13 +100,45 @@ class Bus(MutableMapping):
 
     def plot(self, ax = None):
         assert ax is not None
+        xspacing = 10
+        yspacing = 10
+        yscaling = 0.66
         ax.text(10, 0, "Bus (%s)" % ("topblock"))
         ax.grid(0)
         ax.set_xlim((0, 100))
         ax.set_ylim((-100, 0))
         # ax.plot(np.random.uniform(-5, 5, 100), "ko", alpha = 0.1)
+        i = 0
         for k, v in self.store.items():
-            print "k = %s, v = %s" % (k, v)
+            # print "k = %s, v = %s" % (k, v)
+            ypos = -10 # -(i+1)*yspacing
+            xpos = (i+1)*xspacing
+            ax.text(xpos, ypos, "{0: <8}\n{1: <12}".format(k, v.shape), family = 'monospace')
+            # elem shape
+            ax.add_patch(
+                patches.Rectangle(
+                    # (30, ypos - (v.shape[0]/2.0) - (yspacing / 3.0)),   # (x,y)
+                    (xpos+2, ypos-2),   # (x,y)
+                    v.shape[0],          # width
+                    -1 * yscaling,          # height
+                    fill = False,
+                    # hatch = "|",
+                    hatch = "-",
+                )
+            )
+            # blockshape
+            ax.add_patch(
+                patches.Rectangle(
+                    # (30, ypos - (v.shape[0]/2.0) - (yspacing / 3.0)),   # (x,y)
+                    (xpos+2, ypos-8),   # (x,y)
+                    v.shape[0],          # width
+                    -v.shape[1] * yscaling,          # height
+                    fill = False,
+                    # hatch = "|",
+                    hatch = "-",
+                )
+            )
+            i+=1
         plt.draw()
         plt.pause(1e-6)
         
@@ -312,7 +317,7 @@ class Block2(object):
             if hasattr(self, 'subgraph'):
                 self.init_subgraph()
             
-            self.nxgraph = nxgraph_from_smp_graphs(self.conf)
+            self.nxgraph = nxgraph_from_smp_graph(self.conf)
             
             # for n in self.nxgraph.nodes():
             #     print "%s-%s g.node[%s] = %s" % (self.cname, self.id, n, self.nxgraph.node[n])

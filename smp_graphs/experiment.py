@@ -26,6 +26,7 @@ from smp_graphs.block import Block2
 from smp_graphs.utils import print_dict
 from smp_graphs.common import conf_header, conf_footer
 from smp_graphs.common import get_config_raw
+from smp_graphs.graph import nxgraph_plot, recursive_draw, nxgraph_flatten, nxgraph_add_edges
 
 ################################################################################
 # utils, TODO: move to utils.py
@@ -99,6 +100,15 @@ Load a config from the file in args.conf
 
         set_interactive(True)
         graph_fig = makefig(rows = 1, cols = 2, wspace = 0.1, hspace = 0.0)
+        # nxgraph_plot(self.topblock.nxgraph, ax = graph_fig.axes[0])
+        G = nxgraph_flatten(self.topblock.nxgraph)
+        # for node,noded in G.nodes_iter(data=True):
+        #     print "node", node, G.node[node], noded
+        G = nxgraph_add_edges(G)
+        for edge in G.edges_iter():
+            print "edge", edge
+        nxgraph_plot(G, ax = graph_fig.axes[0], layout_type = "spring", node_size = 300)
+        # recursive_draw(self.topblock.nxgraph, ax = graph_fig.axes[0], node_size = 300, currentscalefactor = 0.1)
         self.topblock.bus.plot(graph_fig.axes[1])
         # print self.conf['params']
         
@@ -192,49 +202,28 @@ class Graphviz(object):
 
         # pass 3: create the layout
 
-        if self.layout == "spring":
-            # spring
-            layout = nx.spring_layout(G)
-        elif self.layout == "shell":
-            # shell, needs add. computation
-            s1 = []
-            s2 = []
-            for node in G.nodes_iter():
-                # shells =
-                # print node
-                if re.search("/", node) or re.search("_", node):
-                    s2.append(node)
-                else:
-                    s1.append(node)
-                
-            print "s1", s1, "s2", s2
-            layout = nx.shell_layout(G, [s1, s2])
-        elif self.layout == "pygraphviz":
-            # pygraphviz
-            import pygraphviz
-            A = nx.nx_agraph.to_agraph(G)
-            layout = nx.nx_agraph.graphviz_layout(G)
-        elif self.layout == "random":
-            layout = nx.random_layout(G)
-            
-        print G.nodes(data = True)
-        labels = {'%s' % node[0]: '%s' % node[1]['block'] for node in G.nodes(data = True)}
-        print "labels = %s" % labels
-        # nx.draw(G)
-        # nx.draw_networkx_labels(G)
-        # nx.draw_networkx(G, pos = layout, node_color = 'g', node_shape = '8')
-        nx.draw_networkx_nodes(G, pos = layout, node_color = 'g', node_shape = '8')
-        nx.draw_networkx_labels(G, pos = layout, labels = labels, font_color = 'r', font_size = 8, )
-        # print G.nodes()
-        e1 = [] # std edges
-        e2 = [] # loop edges
-        for edge in G.edges():
-            # print edge
-            if re.search("[_/]", edge[1]):
-                e2.append(edge)
-            else:
-                e1.append(edge)
+        nxgraph_plot(G, layout_type = self.layout)
+        
+        # layout = nxgraph_get_layout(G, self.layout)
+                    
+        # print G.nodes(data = True)
+        # labels = {'%s' % node[0]: '%s' % node[1]['block'] for node in G.nodes(data = True)}
+        # print "labels = %s" % labels
+        # # nx.draw(G)
+        # # nx.draw_networkx_labels(G)
+        # # nx.draw_networkx(G, pos = layout, node_color = 'g', node_shape = '8')
+        # nx.draw_networkx_nodes(G, pos = layout, node_color = 'g', node_shape = '8')
+        # nx.draw_networkx_labels(G, pos = layout, labels = labels, font_color = 'r', font_size = 8, )
+        # # print G.nodes()
+        # e1 = [] # std edges
+        # e2 = [] # loop edges
+        # for edge in G.edges():
+        #     # print edge
+        #     if re.search("[_/]", edge[1]):
+        #         e2.append(edge)
+        #     else:
+        #         e1.append(edge)
 
-        nx.draw_networkx_edges(G, pos = layout, edgelist = e1, edge_color = "g", width = 2)
-        nx.draw_networkx_edges(G, pos = layout, edgelist = e2, edge_color = "k")
+        # nx.draw_networkx_edges(G, pos = layout, edgelist = e1, edge_color = "g", width = 2)
+        # nx.draw_networkx_edges(G, pos = layout, edgelist = e2, edge_color = "k")
         plt.show()
