@@ -35,6 +35,10 @@ class FileBlock2(Block2):
             #     if type(v) is np.ndarray:
             #         print "puppylog", k, lfile, v.shape, np.mean(v), np.var(v), v
             # setattr(self, 'x', self.data['x'])
+            print "data.keys()", self.data.keys()
+            conf['params']['outputs']['x'] = {'shape': self.data['x'].T.shape[:-1]}
+            conf['params']['outputs']['y'] = {'shape': self.data['y'].T.shape[:-1]}
+            
             # conf['params']['outputs'][k_] = [v.shape]
             # conf['params']['blocksize'] = v.shape[0]
             # assert filedata eq blocksize

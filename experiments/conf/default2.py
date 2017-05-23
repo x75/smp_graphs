@@ -17,7 +17,7 @@ graph = OrderedDict([
             'id': 'b1',
             'inputs': {'c': {'val': np.random.uniform(-1, 1, (3, 2, 1))}},
             'outputs': {'x': {'shape': (3,2)}},
-            'debug': True,
+            'debug': False,
         },
     }),
     # a random number generator, mapping const input to hi

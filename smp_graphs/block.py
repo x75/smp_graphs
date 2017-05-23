@@ -48,7 +48,7 @@ def nxgraph_from_smp_graphs(conf):
             nc += 1
         
     elif conf['params'].has_key('loopblock') and type(conf['params']['loop']) is list:
-        blockparams = []
+        # blockparams = []
         print type(conf)
         for i, item in enumerate(conf['params']['loop']):
             lpconf = dict()
@@ -69,31 +69,24 @@ def nxgraph_from_smp_graphs(conf):
             lpconf['params']['id'] = "%s_%d" % (conf['params']['id'], i)
             # FIXME: loop over param items
             lpconf['params'][item[0]] = item[1].copy()
-            print "nxgraph_from_smp_graphs nc = %d, i = %d, v = %s" % (nc, i, lpconf)
+            # print "nxgraph_from_smp_graphs nc = %d, i = %d, v = %s" % (nc, i, lpconf)
             # print "samesame?", v is v.copy()
-            blockparams.append(lpconf.copy())
-            del lpconf
-
-        print "blockparams", blockparams
-            
-        for i, bp in enumerate(blockparams):
-            print "bp", bp
-            g.add_node(nc)
-            print "g numnodes", g.number_of_nodes()
-            # print "lpconf", lpconf
-            # blub = lpconf.copy()
-            g.node[nc] = bp.copy()
-            print "node", g.node[nc]
-
+            # blockparams.append(lpconf.copy())
+            # del lpconf
+            g.add_node(nc, lpconf)
             nc += 1
 
-    print "nodes", g.nodes()
-    gnode_ = 0
-    for n in g.nodes():
-        gnode = g.node[n]
-        print "node same?", gnode is gnode_
-        # print "nxgraph_from_smp_graphs g.node[%s] = %s" % (n, g.node[n])
-        gnode_ = gnode
+            # print "blockparams", blockparams
+            
+            # for i, bp in enumerate(blockparams):
+            #     print "bp", bp
+            #     g.add_node(nc)
+            #     print "g numnodes", g.number_of_nodes()
+            #     # print "lpconf", lpconf
+            #     # blub = lpconf.copy()
+            #     g.node[nc] = bp.copy()
+            #     print "node", g.node[nc]
+
             
     # attributes?
     # edges / bus?
@@ -227,7 +220,7 @@ class decStep():
                                 #                                          xself.bus[v[2]])
                                 
                                 sl = slice(-blocksize_input, None)
-                                # print "sl", sl, "bus.shape", xself.bus[v['bus']].shape
+                                # print xself.cname, "sl", sl, "bus.shape", xself.bus[v['bus']].shape, v['val'].shape
                                 v['val'][...,-blocksize_input:] = xself.bus[v['bus']].copy() # np.fliplr(xself.bus[v[2]])
                                 # xself.inputs[k][0][:,-1,np.newaxis] = xself.bus[v[2]]                                
                         else: # ibuf = 1
@@ -257,10 +250,10 @@ class decStep():
                 # copy output to bus
                 for k, v in xself.outputs.items():
                     buskey = "%s/%s" % (xself.id, k)
-                    print "copy %s.outputs[%s] = %s to bus[%s], bs = %d" % (xself.id, k, getattr(xself, k), buskey, xself.blocksize)
+                    # print "copy %s.outputs[%s] = %s to bus[%s], bs = %d" % (xself.id, k, getattr(xself, k), buskey, xself.blocksize)
                     assert xself.bus[v['buskey']].shape == v['bshape'], "real and desired output shapes need to agree, %s != %s" % (xself.bus[v['buskey']].shape, v['shape'])
                     xself.bus[v['buskey']] = getattr(xself, k)
-                    print "xself.bus[v['buskey'] = %s]" % (v['buskey'], ) , xself.bus[v['buskey']]
+                    # print "xself.bus[v['buskey'] = %s]" % (v['buskey'], ) , xself.bus[v['buskey']]
             else:
                 f_out = None
             
@@ -357,8 +350,8 @@ class Block2(object):
             
             self.nxgraph = nxgraph_from_smp_graphs(self.conf)
             
-            for n in self.nxgraph.nodes():
-                print "%s-%s g.node[%s] = %s" % (self.cname, self.id, n, self.nxgraph.node[n])
+            # for n in self.nxgraph.nodes():
+            #     print "%s-%s g.node[%s] = %s" % (self.cname, self.id, n, self.nxgraph.node[n])
         
             # 2.1 init_pass_1: instantiate blocks and init outputs, descending into hierarchy
             self.init_graph_pass_1()
@@ -565,7 +558,7 @@ class Block2(object):
             # set self attribute to that shape
             setattr(self, k, np.zeros(v['bshape']))
             
-            print "%s.init_outputs: %s.bus[%s] = %s" % (self.cname, self.id, v['buskey'], getattr(self, k).shape)
+            # print "%s.init_outputs: %s.bus[%s] = %s" % (self.cname, self.id, v['buskey'], getattr(self, k).shape)
             self.bus[v['buskey']] = getattr(self, k)
             # self.bus.setval(v['buskey'], getattr(self, k))
 
@@ -620,10 +613,14 @@ class Block2(object):
                             vshape = (v['shape'][0], self.ibuf,)
                         else:
                             vshape = v['shape'][:-1] + (self.ibuf,)
-                        v['val'] = np.zeros(vshape) # ibuf >= blocksize
-                        self.bus[v['bus']] = v['val']
-                        inbus = self.bus[v['bus']] # 
-                        v['val'][...,0:inbus.shape[-1]] = inbus
+                        if not self.bus.has_key(v['bus']):
+                            v['val'] = np.zeros(vshape) # ibuf >= blocksize
+                            self.bus[v['bus']] = v['val']
+                            inbus = self.bus[v['bus']]
+                        else:
+                            inbus = self.bus[v['bus']]
+                            v['val'] = inbus
+                            # v['val'][...,0:inbus.shape[-1]] = inbus
                         print "v['val'].shape", v['val'].shape
                         
                     elif not v.has_key('shape'):
@@ -634,7 +631,7 @@ class Block2(object):
                         assert self.bus[v['bus']].shape[-1] <= self.blocksize, "input block size needs to be less than or equal self blocksize in %s/%s\ncheck blocksize param" % (self.cname, self.id)
                         # get shortcut
                         inbus = self.bus[v['bus']]
-
+                        print "init_pass_2 inbus.sh = %s" % (inbus.shape,)
                         # if no shape given, take busdim times input buffer size
                         v['val'] = np.zeros(inbus.shape[:-1] + (self.ibuf,)) # ibuf >= blocksize inbus.copy()
                                         
@@ -847,7 +844,7 @@ class LoopBlock2(Block2):
         # self.loopblock['block'] = Block2.__class__.__name__
                    
     def step(self, x = None):
-        """loop block does nothing for now"""
+        """loopblock2.step: loop over self.nxgraph items and step them"""
         # pass
         for i in range(self.nxgraph.number_of_nodes()):
             # print "node %d" % (i,)
@@ -859,11 +856,11 @@ class LoopBlock2(Block2):
             # for k, v in self.graph.items():
             v['block_'].step()
 
-            buskey = "%s/x" % v['block_'].id
-            buskey2 = v['block_'].outputs['x']['buskey']
-            print "constblock", k, buskey, buskey2, v['block_'].x.flatten()
-            print self.bus[buskey], self.bus.keys()
-            print self.top.bus[buskey], self.top.bus.keys()
+            # buskey = "%s/x" % v['block_'].id
+            # buskey2 = v['block_'].outputs['x']['buskey']
+            # print "constblock", k, buskey, buskey2, v['block_'].x.flatten()
+            # print self.bus[buskey], self.bus.keys()
+            # print self.top.bus[buskey], self.top.bus.keys()
             # print self.bus[v['params']]
 
 class SeqLoopBlock2(Block2):
@@ -964,8 +961,10 @@ class SeqLoopBlock2(Block2):
 
         then = time.time()
         # loop the loop
+        print "%s iter#" % (self.cname,),
         for i in range(self.numsteps/self.loopblocksize):
-            print "%s iter# %d" % (self.cname, i)
+            print "%d" % (i,),
+            sys.stdout.flush()
             then = time.time()
             # dynblock = obj()
             # func: need input function from config
@@ -992,6 +991,7 @@ class SeqLoopBlock2(Block2):
                 # print "%s.step self.%s = %s, outslice = %s" % (self.cname, outk, self.__dict__[outk].shape, outslice, )
                 # self.__dict__[outk][:,[i]] = getattr(self.dynblock, outk)
                 self.__dict__[outk][:,outslice] = getattr(self.dynblock, outk)
+        sys.stdout.write('\n')
 
         # # hack for checking hpo minimum
         # if hasattr(self, 'hp_bests'):
@@ -1103,12 +1103,13 @@ params: inputs, delay in steps / shift
             
         for ink in params['inputs'].keys():
             # get input shape
-            inshape = top.bus[params['inputs'][ink][0]].shape
+            inshape = top.bus[params['inputs'][ink]['bus']].shape
+            # print "DelayBlock2 inshape", inshape
             # alloc delay block
             # print ink, params['delays'][ink]
             setattr(self, "%s_" % ink, np.zeros((inshape[0], inshape[1] + params['delays'][ink])))
             # set output members
-            params['outputs']["d%s" % ink] = [inshape]
+            params['outputs']["d%s" % ink] = {'shape': inshape[:-1]}
             
         # base block init
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
@@ -1127,7 +1128,7 @@ params: inputs, delay in steps / shift
             inv_ = getattr(self, ink_)
             sl = slice(self.delays[ink], self.delays[ink]+self.blocksize)
             # print "sl", sl
-            inv_[:,sl] = self.inputs[ink][0].copy()
+            inv_[:,sl] = self.inputs[ink]['val'].copy()
             
             # compute the diff in the input
             # din = np.diff(tmp_[:,tmp_sl], axis = 1) # * self.d
@@ -1153,11 +1154,11 @@ class SliceBlock2(PrimBlock2):
                 # print "%s.init inkeys %s" % (self.__class__.__name__, k)
                 outk = "%s_%s" % (k, slk)
                 if type(slv) is slice:
-                    params['outputs'][outk] = {'shape': (slv.stop - slv.start, 1)} # top.bus[params['inputs'][k][0]].shape
+                    params['outputs'][outk] = {'shape': (slv.stop - slv.start, )} # top.bus[params['inputs'][k][0]].shape
                 elif type(slv) is list:
-                    params['outputs'][outk] = {'shape': (len(slv), 1)} # top.bus[params['inputs'][k][0]].shape
+                    params['outputs'][outk] = {'shape': (len(slv), )} # top.bus[params['inputs'][k][0]].shape
                 elif type(slv) is tuple:
-                    params['outputs'][outk] = {'shape': (slv[1] - slv[0], 1)} # top.bus[params['inputs'][k][0]].shape
+                    params['outputs'][outk] = {'shape': (slv[1] - slv[0], )} # top.bus[params['inputs'][k][0]].shape
             
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
 

@@ -58,8 +58,8 @@ params
 
         # make sure that data can have been generated
         if self.cnt > 0 and (self.cnt % self.blocksize) == 0: # (self.blocksize - 1):
-            for ink, inv in self.inputs.items():
-                self.debug_print("[%s]step in[%s].shape = %s", (self.id, ink, inv['shape']))
+            # for ink, inv in self.inputs.items():
+            #     self.debug_print("[%s]step in[%s].shape = %s", (self.id, ink, inv['shape']))
 
             plots = self.plot_subplots()
             
@@ -83,7 +83,8 @@ params
         # filename = "data/%s_%s_%s_%s.%s" % (plotinst.top.id, plotinst.id, "_".join(plotinst.inputs.keys()), subplotstr, plotinst.savetype)
         # filename = "data/%s_%s_%s.%s" % (plotinst.top.id, plotinst.id, "_".join(plotinst.inputs.keys()), plotinst.savetype)
         filename = "data/%s_%s.%s" % (plotinst.top.id, plotinst.id, plotinst.savetype)
-        print "%s.save filename = %s, subplotstr = %s" % (plotinst.cname, filename, subplotstr)
+        # print "%s.save filename = %s, subplotstr = %s" % (plotinst.cname, filename, subplotstr)
+        print "%s.save filename = %s" % (plotinst.cname, filename)
         plotinst.fig.set_size_inches((min(plotinst.fig_cols * 2 * 2.5, 20), min(plotinst.fig_rows * 1.2 * 2.5, 12)))
         try:
             plotinst.fig.savefig(filename, dpi=300, bbox_inches="tight")
@@ -129,7 +130,7 @@ class PlotBlock2(FigPlotBlock2):
                     for k, ink in enumerate(subplotconf['input']):
                         # print "%s.plot_subplots k = %s, ink = %s" % (self.cname, k, ink)
                         # plotdata[ink] = self.inputs[ink]['val'].T[xslice]
-                        print "plotblock2", self.inputs[ink]['val'].shape
+                        # print "plotblock2", self.inputs[ink]['val'].shape
                         if subplotconf.has_key('ndslice'):
                             plotdata[ink] = myt(self.inputs[ink]['val'])[-1,subplotconf['ndslice'][0],subplotconf['ndslice'][1],:] # .reshape((21, -1))
                         else:
@@ -215,9 +216,10 @@ class ImgPlotBlock2(FigPlotBlock2):
         vmaxs = [None for i in range(numcols)]
         vmins_r = [None for i in range(numrows)]
         vmaxs_r = [None for i in range(numrows)]
-        
+                
         for i, subplot in enumerate(self.subplots): # rows
             for j, subplotconf in enumerate(subplot): # cols
+                subplotconf['input'] = subplot_input_fix(subplotconf['input'])
                 vmins_sb[j].append(np.min(self.inputs[subplotconf['input'][0]]['val']))
                 vmaxs_sb[j].append(np.max(self.inputs[subplotconf['input'][0]]['val']))
                 extrema[0,i,j] = np.min(self.inputs[subplotconf['input'][0]]['val'])
@@ -292,12 +294,18 @@ class ImgPlotBlock2(FigPlotBlock2):
                     # plotdata_cand = self.inputs[subplotconf['input']][0][xslice,0]
                     # plotdata_cand = self.inputs[subplotconf['input']][0][:,xslice]
                     
-                    print "%s plot_subplots self.inputs[subplotconf['input'][0]]['val'].shape = %s" % (self.cname, self.inputs[subplotconf['input'][0]]['val'].shape)
+                    # print "%s plot_subplots self.inputs[subplotconf['input'][0]]['val'].shape = %s" % (self.cname, self.inputs[subplotconf['input'][0]]['val'].shape)
                     # old version
                     # plotdata_cand = self.inputs[subplotconf['input'][0]]['val'][yslice,xslice]
-                    di = subplotconf['ndslice'][0]
-                    dj = subplotconf['ndslice'][1]
-                    plotdata_cand = self.inputs[subplotconf['input'][0]]['val'][di, dj, :, -1]
+
+                    # potential FIXME re completeness
+                    # if input is ndim
+                    if subplotconf.has_key('ndslice'):
+                        di = subplotconf['ndslice'][0]
+                        dj = subplotconf['ndslice'][1]
+                        plotdata_cand = self.inputs[subplotconf['input'][0]]['val'][di, dj, :, -1]
+                    else:
+                        plotdata_cand = self.inputs[subplotconf['input'][0]]['val'][yslice,xslice]
                     # print "%s[%d]-%s.step, inputs = %s, %s " % (self.cname, self.cnt, self.id, self.inputs[subplotconf['input']][0].shape,
                     #                                         self.inputs[subplotconf['input']][0])
                     # print "%s[%d]-%s.step plotdata_cand.shape" % (self.cname, self.cnt, self.id), plotdata_cand.shape, subplotconf['shape'], xslice, yslice
@@ -333,7 +341,7 @@ class ImgPlotBlock2(FigPlotBlock2):
                         # mpl = ax.imshow(inv, interpolation = "none")
                         # Linv = np.log(inv + 1)
                         Linv = inv
-                        print "Linv", Linv.shape, Linv
+                        # print "Linv", Linv.shape, Linv
                         mpl = ax.pcolorfast(Linv, vmin = vmin, vmax = vmax, cmap = cmap)
                         # mpl = ax.pcolorfast(Linv, vmin = vmins[j], vmax = vmaxs[j], cmap = cmap)
                         # mpl = ax.pcolorfast(Linv, vmin = -2, vmax = 2, cmap = cmap)
@@ -378,22 +386,22 @@ params
 
     @decStep()
     def step(self, x = None):
-        print "%s.step inputs: %s"  % (self.cname, self.inputs.keys())
+        # print "%s.step inputs: %s"  % (self.cname, self.inputs.keys())
 
         subplotconf = self.subplots[0][0]
         
         # different 
         if subplotconf.has_key('mode'):
             ivecs = tuple(self.inputs[ink]['val'].T for k, ink in enumerate(subplotconf['input']))
-            for ivec in ivecs:
-                print "ivec.shape", ivec.shape
+            # for ivec in ivecs:
+            #     print "ivec.shape", ivec.shape
             plotdata = {}
             if subplotconf['mode'] in ['stack', 'combine', 'concat']:
                 plotdata['all'] = np.hstack(ivecs)
 
         data = plotdata['all']
 
-        print "SnsPlotBlock2:", data.shape
+        # print "SnsPlotBlock2:", data.shape
         scatter_data_raw  = data
         scatter_data_cols = ["x_%d" % (i,) for i in range(data.shape[1])]
 

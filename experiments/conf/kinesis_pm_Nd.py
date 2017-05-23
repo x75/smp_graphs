@@ -27,7 +27,7 @@ from smp_graphs.block import FuncBlock2
 from smp_graphs.funcs import f_sin, f_motivation, f_motivation_bin
 
 # reuse
-numsteps = 1000
+numsteps = 10000
 debug = False
 motors = 3
 dt = 0.1

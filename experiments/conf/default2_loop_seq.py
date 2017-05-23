@@ -121,7 +121,7 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'idim': 6,
             'odim': 3,
-            'debug': True,
+            'debug': False,
             'inputs': {'d1': {'bus': 'b1/x'}, 'd2': {'bus': 'f1/y'}, 'd3': {'bus': 'hpo/y'},
                            'd4': {'bus': 'f2/y'}, 'd5': {'bus': 'hpo/x'}},
             'outputs': {}, # 'x': {'shape': (1, )}

@@ -30,7 +30,7 @@ graph = OrderedDict([
         'params': {
             'id': 'sin',
             'outputs': {'y': {'shape': (1, )}},
-            'debug': True,
+            'debug': False,
             # 'inputs': {'lo': [0, (3, 1)], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
             # recurrent connection
             'inputs': {'x': {'bus': 'cnt/x'},

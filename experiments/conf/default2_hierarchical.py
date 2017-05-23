@@ -2,7 +2,8 @@
 """
 
 # reused variables
-graphconf = 'conf/default2_loop.py'; numsteps = 1000
+# the outer numsteps need to match the inner numsteps (FIXME), otherwise broadcasting takes place
+graphconf = 'conf/default2_loop.py'; numsteps = 100
 # graphconf = 'conf/default2.py' ; numsteps = 100
 debug = False
 # graph

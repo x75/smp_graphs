@@ -21,18 +21,18 @@ class JHBlock2(PrimBlock2):
         jhs = []
         shiftsl = slice(None, (self.shift[1] - self.shift[0]))
         
-        src = self.inputs['x'][0].T
-        dst = self.inputs['y'][0].T
+        src = self.inputs['x']['val'].T
+        dst = self.inputs['y']['val'].T
         st = np.hstack((src, dst))
         jh0 = compute_mi_multivariate(data = {'X': st, 'Y': st}, delay = 0)
-        print "%s.step[%d]-%s self.inputs['x'][0].T.shape = %s, shifting by " % (self.cname, self.cnt, self.id, self.inputs['x'][0].T.shape),
+        print "%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by " % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape),
         for i in range(self.shift[0], self.shift[1]):
             print "%d" % (i, ),
             sys.stdout.flush()
             
-            # src_ = np.roll(self.inputs['x'][0].T, shift = i, axis = 0)
+            # src_ = np.roll(self.inputs['x']['val'].T, shift = i, axis = 0)
             # src_ = np.roll(src, shift = i, axis = 0)
-            # dst = self.inputs['y'][0].T
+            # dst = self.inputs['y']['val'].T
             # st = np.hstack((src_, dst))
             # jh = compute_mi_multivariate(data = {'X': st, 'Y': st})
 
@@ -42,6 +42,7 @@ class JHBlock2(PrimBlock2):
             jhs.append(jh)
         print ""
         jhs = np.array(jhs) # /jh0
+        # print "jhs.shape", jhs.shape
         self.jh[0,shiftsl] = jhs
         
 class MIBlock2(PrimBlock2):
@@ -54,20 +55,20 @@ class MIBlock2(PrimBlock2):
         mis = []
         # jhs = []
         
-        dst = self.inputs['x'][0].T
-        src = self.inputs['y'][0].T
+        dst = self.inputs['x']['val'].T
+        src = self.inputs['y']['val'].T
         st = np.hstack((src, dst))
 
         # shouldn't change too much under time shift
         jh = compute_mi_multivariate(data = {'X': st, 'Y': st})
         
-        print "%s.step[%d]-%s self.inputs['x'][0].T.shape = %s, shifting by " % (self.cname, self.cnt, self.id, self.inputs['x'][0].T.shape),
+        print "%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by " % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape),
         for i in range(self.shift[0], self.shift[1]):
             print "%d" % (i, ),
             sys.stdout.flush()
             
-            # src = np.roll(self.inputs['x'][0].T, shift = i, axis = 0)
-            # dst = self.inputs['y'][0].T
+            # src = np.roll(self.inputs['x']['val'].T, shift = i, axis = 0)
+            # dst = self.inputs['y']['val'].T
             # st = np.hstack((src, dst))
             # jh = self.compute_mutual_information(st, st)
             # mi = self.compute_mutual_information(src, dst)
@@ -87,7 +88,7 @@ class MIBlock2(PrimBlock2):
         # jhs = np.array(jhs)
         # print "mis.shape = %s, jhs.shape = %s" % (mis.shape, jhs.shape)
                     
-        # mi = self.meas.step(self.inputs['x'][0].T, self.inputs['y'][0].T)
+        # mi = self.meas.step(self.inputs['x']['val'].T, self.inputs['y']['val'].T)
         # np.fill_diagonal(mi, np.min(mi))
         # print "%s.%s mi = %s, jh = %s, normalized mi = mi/jh = %s" % (self.cname, self.id, mi, jh, mi/jh)
 
@@ -114,14 +115,14 @@ class InfoDistBlock2(PrimBlock2):
     def step(self, x = None):
         # print "%s meas = %s" % (self.cname, self.meas)
         mis = []
-        src = self.inputs['x'][0].T
-        dst = self.inputs['y'][0].T
-        print "%s.step[%d]-%s self.inputs['x'][0].T.shape = %s" % (self.cname, self.cnt, self.id, self.inputs['x'][0].T.shape)
+        src = self.inputs['x']['val'].T
+        dst = self.inputs['y']['val'].T
+        print "%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s" % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape)
         for i in range(self.shift[0], self.shift[1]):
             print "%d" % (i, ),
             sys.stdout.flush()
-            # src = np.roll(self.inputs['x'][0].T, shift = i, axis = 0)
-            # dst = self.inputs['y'][0].T
+            # src = np.roll(self.inputs['x']['val'].T, shift = i, axis = 0)
+            # dst = self.inputs['y']['val'].T
             
             # st = np.hstack((src, dst))
             # jh = self.measH.step(st)
@@ -130,7 +131,7 @@ class InfoDistBlock2(PrimBlock2):
 
             mi = compute_information_distance(src, dst, delay = -i)
             mis.append(mi.copy())
-            # mi = self.meas.step(self.inputs['x'][0].T, self.inputs['y'][0].T)
+            # mi = self.meas.step(self.inputs['x']['val'].T, self.inputs['y']['val'].T)
         
             # if src eq dst 
             # blank out the diagonal since it's always one
@@ -151,16 +152,16 @@ class TEBlock2(PrimBlock2):
     @decStep()
     def step(self, x = None):
         mis = []
-        src = self.inputs['x'][0].T
-        dst = self.inputs['y'][0].T
+        src = self.inputs['x']['val'].T
+        dst = self.inputs['y']['val'].T
         # jh = self.measH.step(st)
-        print "%s.step[%d]-%s self.inputs['x'][0].T.shape = %s, shifting by " % (self.cname, self.cnt, self.id, self.inputs['x'][0].T.shape),
+        print "%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by " % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape),
         for i in range(self.shift[0], self.shift[1]):
             print "%d" % (i, ),
             sys.stdout.flush()
             
-            # src = np.roll(self.inputs['x'][0].T, shift = i, axis = 0)
-            # dst = self.inputs['y'][0].T
+            # src = np.roll(self.inputs['x']['val'].T, shift = i, axis = 0)
+            # dst = self.inputs['y']['val'].T
             
             # st = np.hstack((src, dst))
             
@@ -182,16 +183,16 @@ class CTEBlock2(PrimBlock2):
     def step(self, x = None):
         mis = []
         # jh = self.measH.step(st)
-        dst  = self.inputs['x'][0].T
-        src  = self.inputs['y'][0].T
-        cond = self.inputs['cond'][0].T
-        print "%s.step[%d]-%s self.inputs['x'][0].T.shape = %s" % (self.cname, self.cnt, self.id, self.inputs['x'][0].T.shape)
+        dst  = self.inputs['x']['val'].T
+        src  = self.inputs['y']['val'].T
+        cond = self.inputs['cond']['val'].T
+        print "%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s" % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape)
         for i in range(self.shift[0], self.shift[1]):
             print "%d" % (i, ),
             sys.stdout.flush()
             
-            # src  = np.roll(self.inputs['x'][0].T, shift = i, axis = 0)
-            # dst  = self.inputs['y'][0].T
+            # src  = np.roll(self.inputs['x']['val'].T, shift = i, axis = 0)
+            # dst  = self.inputs['y']['val'].T
             
             # st = np.hstack((src, dst))
             
@@ -216,17 +217,17 @@ class MIMVBlock2(PrimBlock2):
     @decStep()
     def step(self, x = None):
         # print "%s meas = %s" % (self.cname, self.meas)
-        print "%s.step[%d]-%s self.inputs['x'][0].T.shape = %s, shifting by" % (self.cname, self.cnt, self.id, self.inputs['x'][0].T.shape),
+        print "%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by" % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape),
         shiftsl = slice(None, (self.shift[1] - self.shift[0]))
         mimvs = []
         jhs = []
-        src = self.inputs['y'][0].T
-        dst = self.inputs['x'][0].T
+        src = self.inputs['y']['val'].T
+        dst = self.inputs['x']['val'].T
         
         for i in range(self.shift[0], self.shift[1]):
             print "%d" % (i, ),
             sys.stdout.flush()
-            # print "self.inputs['x'][0].T.shape", self.inputs['x'][0].T.shape
+            # print "self.inputs['x']['val'].T.shape", self.inputs['x']['val'].T.shape
             # dst_ = np.roll(dst, shift = i, axis = 0)
             
             # st = np.hstack((src, dst))
@@ -243,7 +244,7 @@ class MIMVBlock2(PrimBlock2):
         # jhs = np.array(jhs)
         # print "mimvs.shape = %s" % (mimvs.shape, )
                     
-        # mi = self.meas.step(self.inputs['x'][0].T, self.inputs['y'][0].T)
+        # mi = self.meas.step(self.inputs['x']['val'].T, self.inputs['y']['val'].T)
         # np.fill_diagonal(mi, np.min(mi))
         # print "%s.%s mi = %s, jh = %s, normalized mi = mi/jh = %s" % (self.cname, self.id, mi, jh, mi/jh)
 
@@ -263,9 +264,9 @@ class TEMVBlock2(PrimBlock2):
         temvs = []
         shiftsl = slice(None, (self.shift[1] - self.shift[0]))
         # jh = self.measH.step(st)
-        src = self.inputs['y'][0].T
-        dst = self.inputs['x'][0].T
-        print "%s.step[%d]-%s self.inputs['x'][0].T.shape = %s, shifting by" % (self.cname, self.cnt, self.id, self.inputs['x'][0].T.shape),
+        src = self.inputs['y']['val'].T
+        dst = self.inputs['x']['val'].T
+        print "%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by" % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape),
         for i in range(self.shift[0], self.shift[1]):
             print "%d" % (i, ),
             sys.stdout.flush()
