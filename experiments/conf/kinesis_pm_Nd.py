@@ -36,39 +36,7 @@ randseed = 124
 
 # graph
 graph = OrderedDict([
-    # a robot
-    ('robot1', {
-        'block': PointmassBlock2,
-        'params': {
-            'id': 'robot1',
-            'blocksize': 1, # FIXME: make pm blocksize aware!
-            'sysdim': motors,
-            # initial state
-            'x0': np.random.uniform(-0.3, 0.3, (motors * 3, 1)),
-            # 'inputs': {'u': {'val': np.random.uniform(-1, 1, (3, numsteps))}},
-            'inputs': {'u': {'bus': 'search/x'}},
-            'outputs': {
-                's_proprio': {'shape': (3,)},
-                's_extero': {'shape': (3,)}
-            }, # , 's_all': [(9, 1)]},
-            # "class": PointmassRobot2, # SimpleRandomRobot,
-            # "type": "explauto",
-            # "name": make_robot_name(expr_id, "pm", 0),
-            # "numsteps": numsteps,
-            # "control": "force",
-            # "ros": False,
-            "statedim": motors * 3,
-            "dt": dt,
-            "mass": 1.0,
-            "force_max":  1.0,
-            "force_min": -1.0,
-            "friction": 0.001,
-            "sysnoise": 1e-3,
-            'debug': False,
-        }
-    }),
-
-    # brain first
+    # brains first
     # brain a) write down into graph directly
     ('braina', {
         'block': Block2,
@@ -114,7 +82,7 @@ graph = OrderedDict([
                     'params': {
                         'id': 'motivation',
                         # 'inputs': {'x': {'bus': 'robot1/s_extero'}, 'x_': {'val': np.random.uniform(-0.05, 0.05, (3,1))}},
-                        'inputs': {'x': {'bus': 'robot1/s_extero'}, 'x_': {'bus': 'mot0/x'}},
+                        'inputs': {'x': {'bus': 'robot1/s_extero', 'shape': (3, )}, 'x_': {'bus': 'mot0/x'}},
                         'outputs': {'y': {'shape': (3,)}, 'y1': {'shape': (3,)}, 'x_': {'shape': (3,)}},
                         # 'func': f_motivation_bin,
                         'func': f_motivation,
@@ -147,6 +115,38 @@ graph = OrderedDict([
     #         },
     # }),
         
+    # a robot
+    ('robot1', {
+        'block': PointmassBlock2,
+        'params': {
+            'id': 'robot1',
+            'blocksize': 1, # FIXME: make pm blocksize aware!
+            'sysdim': motors,
+            # initial state
+            'x0': np.random.uniform(-0.3, 0.3, (motors * 3, 1)),
+            # 'inputs': {'u': {'val': np.random.uniform(-1, 1, (3, numsteps))}},
+            'inputs': {'u': {'bus': 'search/x'}},
+            'outputs': {
+                's_proprio': {'shape': (3,)},
+                's_extero': {'shape': (3,)}
+            }, # , 's_all': [(9, 1)]},
+            # "class": PointmassRobot2, # SimpleRandomRobot,
+            # "type": "explauto",
+            # "name": make_robot_name(expr_id, "pm", 0),
+            # "numsteps": numsteps,
+            # "control": "force",
+            # "ros": False,
+            "statedim": motors * 3,
+            "dt": dt,
+            "mass": 1.0,
+            "force_max":  1.0,
+            "force_min": -1.0,
+            "friction": 0.001,
+            "sysnoise": 1e-3,
+            'debug': False,
+        }
+    }),
+    
     # plotting
     ('plot', {
         'block': PlotBlock2,

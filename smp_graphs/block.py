@@ -613,20 +613,28 @@ class Block2(object):
 
                 # set input from bus
                 if v.has_key('bus'):
-                    # check if key exists or not. if it doesn't, that means this is a block inside dynamical graph construction
-                    assert self.bus.has_key(v['bus']), "Requested bus item %s is not in buskeys %s" % (v['bus'], self.bus.keys())
-                    
-                    # enforce bus blocksize smaller than local blocksize, tackle later
-                    assert self.bus[v['bus']].shape[-1] <= self.blocksize, "input block size needs to be less than or equal self blocksize in %s/%s\ncheck blocksize param" % (self.cname, self.id)
-                    # get shortcut
-                    inbus = self.bus[v['bus']]
-                    
                     if v.has_key('shape'):
                         # init input buffer from configuration shape
-                        v['val'] = np.zeros(v['shape'][-1] + (self.ibuf,)) # ibuf >= blocksize
-                        print "v['val'].shape", v['val'].shape
+                        # print "input config shape = %s" % (v['shape'][:-1],)
+                        if len(v['shape']) == 1:
+                            vshape = (v['shape'][0], self.ibuf,)
+                        else:
+                            vshape = v['shape'][:-1] + (self.ibuf,)
+                        v['val'] = np.zeros(vshape) # ibuf >= blocksize
+                        self.bus[v['bus']] = v['val']
+                        inbus = self.bus[v['bus']] # 
                         v['val'][...,0:inbus.shape[-1]] = inbus
-                    else:
+                        print "v['val'].shape", v['val'].shape
+                        
+                    elif not v.has_key('shape'):
+                        # check if key exists or not. if it doesn't, that means this is a block inside dynamical graph construction
+                        assert self.bus.has_key(v['bus']), "Requested bus item %s is not in buskeys %s" % (v['bus'], self.bus.keys())
+                    
+                        # enforce bus blocksize smaller than local blocksize, tackle later
+                        assert self.bus[v['bus']].shape[-1] <= self.blocksize, "input block size needs to be less than or equal self blocksize in %s/%s\ncheck blocksize param" % (self.cname, self.id)
+                        # get shortcut
+                        inbus = self.bus[v['bus']]
+
                         # if no shape given, take busdim times input buffer size
                         v['val'] = np.zeros(inbus.shape[:-1] + (self.ibuf,)) # ibuf >= blocksize inbus.copy()
                                         
