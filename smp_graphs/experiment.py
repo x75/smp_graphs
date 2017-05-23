@@ -111,6 +111,8 @@ Load a config from the file in args.conf
 
         print "final return value topblock.x = %s" % (topblock_x)
 
+        
+        
         if self.conf['params']['showplot']:
             set_interactive(False)
             plt.show()

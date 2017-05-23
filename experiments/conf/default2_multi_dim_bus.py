@@ -40,6 +40,7 @@ graph = OrderedDict([
             'id': 'src2',
             'blocksize': 1,
             'debug': False,
+            'rate': 2,
             # recurrent connection
             'inputs': {'lo': {'bus': 'src2/x'}, 'hi': {'bus': 'src1/x'}}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
             'outputs': {'x': {'shape': (5, 2, 3,)}},

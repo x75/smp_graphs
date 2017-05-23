@@ -54,6 +54,7 @@ graph = OrderedDict([
                     'debug': True,
                 },
             },
+            'outputs': {'x': {'shape': (3,)}},
         },
     }),
     # plot module with blocksize = episode, fetching input from busses

@@ -32,12 +32,25 @@ def nxgraph_from_smp_graphs(conf):
     # print "nxgraph_from_smp_graphs conf.keys = %s" % (conf['params']['graph'].keys(),)
     g = nx.MultiDiGraph()
     nc = 0
-    # node order?
-    for k, v in conf['params']['graph'].items():
-        v['params']['id'] = k
-        # print "v", v
-        g.add_node(nc, v)
-        nc += 1
+    # node order: fixed with numeric keys
+    # different types: graph, subgraph, loopblock
+    if conf['params'].has_key('graph'):
+        for k, v in conf['params']['graph'].items():
+            v['params']['id'] = k
+            # print "v", v
+            g.add_node(nc, v)
+            nc += 1
+    elif conf['params'].has_key('loopblock'):
+        for i, item in enumerate(conf['params']['loop']):
+            # print "i, item", i, item
+            # for k, v in conf['params']['loopblock'].items():
+            v = conf['params']['loopblock']
+            v['params']['id'] = "%s_%d" % (conf['params']['id'], i)
+            v['params'][item[0]] = item[1]
+            print "v", v
+            g.add_node(nc, v)
+            nc += 1
+        
     # attributes?
     # edges / bus?
     # visualization
@@ -286,7 +299,10 @@ class Block2(object):
             
         ################################################################################
         # 2 copy the config dict to exec graph if hierarchical
-        if hasattr(self, 'graph') or hasattr(self, 'subgraph'): # composite block made up of other blocks FIXME: loop, loop_seq
+        if hasattr(self, 'graph') or hasattr(self, 'subgraph') \
+          or hasattr(self, 'loopblock'): # composite block made up of other blocks FIXME: loop, loop_seq
+
+            print "has all these attrs %s-%s" % (self.cname, self.id)
 
             self.nxgraph = nxgraph_from_smp_graphs(self.conf)
         
@@ -424,7 +440,7 @@ class Block2(object):
         # if we're coming from non topblock init
         # self.graph = self.conf['params']['graph']
 
-        print "%s.init_graph_pass_1 graph.keys = %s" % (self.cname, self.graph.keys())
+        print "%s.init_graph_pass_1 graph.keys = %s" % (self.cname, self.nxgraph.nodes())
         
         # pass 1 init
         # for k, v in self.graph.items():
@@ -715,51 +731,51 @@ class LoopBlock2(Block2):
         self.defaults['loopblock'] = {}
         Block2.__init__(self, conf = conf, paren = paren, top = top)
 
-        loopblocks = []
-        # loop the loop
-        for i, lparams in enumerate(self.loop):
-            print "lparams", lparams, "self.loopblock['params']", self.loopblock['params']
+        # loopblocks = []
+        # # loop the loop
+        # for i, lparams in enumerate(self.loop):
+        #     print "lparams", lparams, "self.loopblock['params']", self.loopblock['params']
             
-            # copy params
-            loopblock_params = {}
-            for k, v in self.loopblock['params'].items():
-                if k == 'id':
-                    loopblock_params[k] = "%s_%d" % (self.id, i+1)
-                # FIXME: only works for first item
-                elif k == lparams[0]:
-                    loopblock_params[k] = lparams[1]
-                else:
-                    loopblock_params[k] = v
+        #     # copy params
+        #     loopblock_params = {}
+        #     for k, v in self.loopblock['params'].items():
+        #         if k == 'id':
+        #             loopblock_params[k] = "%s_%d" % (self.id, i+1)
+        #         # FIXME: only works for first item
+        #         elif k == lparams[0]:
+        #             loopblock_params[k] = lparams[1]
+        #         else:
+        #             loopblock_params[k] = v
 
-            # create dynamic conf
-            loopblock_conf = {'block': self.loopblock['block'], 'params': loopblock_params}
-            # instantiate block
-            dynblock = self.loopblock['block'](conf = loopblock_conf,
-                                               paren = self.paren, top = self.top)
-            # print "loopblock dynblock = %s" % (dynblock.cname, )
+        #     # create dynamic conf
+        #     loopblock_conf = {'block': self.loopblock['block'], 'params': loopblock_params}
+        #     # instantiate block
+        #     dynblock = self.loopblock['block'](conf = loopblock_conf,
+        #                                        paren = self.paren, top = self.top)
+        #     # print "loopblock dynblock = %s" % (dynblock.cname, )
 
-            # get config and store it
-            dynblockconf = dynblock.get_config()
-            dynblockconf[1]['block'] = dynblock
+        #     # get config and store it
+        #     dynblockconf = dynblock.get_config()
+        #     dynblockconf[1]['block'] = dynblock
 
-            # append to list of dynamic blocks
-            loopblocks.append(dynblockconf)
-            # print print_dict(self.top.graph)
+        #     # append to list of dynamic blocks
+        #     loopblocks.append(dynblockconf)
+        #     # print print_dict(self.top.graph)
 
-        # # debug loopblocks in LoopBlock2 init
-        # for item in loopblocks:
-        #     print "%s.__init__ loopblocks = %s: %s" % (self.__class__.__name__, item[0], print_dict(item[1]))
+        # # # debug loopblocks in LoopBlock2 init
+        # # for item in loopblocks:
+        # #     print "%s.__init__ loopblocks = %s: %s" % (self.__class__.__name__, item[0], print_dict(item[1]))
 
-        # print "loopblocks", self.id, loopblocks
+        # # print "loopblocks", self.id, loopblocks
                 
-        # FIXME: this good?
-        # insert dynamic blocks into existing ordered dict
-        # print "topgraph", print_dict(self.top.graph)
-        print "%s-%s.init swong topgrah = %s" % (self.cname, self.id, self.top.graph.keys()) # , self.graph.keys()
-        ordereddict_insert(ordereddict = self.top.graph, insertionpoint = '%s' % self.id, itemstoadd = loopblocks)
-        print "%s-%s.init swong topgrah = %s" % (self.cname, self.id, self.top.graph.keys()) # , self.graph.keys()
-        for k, v in self.top.graph.items():
-            print "k", k, "v", v['block']
+        # # FIXME: this good?
+        # # insert dynamic blocks into existing ordered dict
+        # # print "topgraph", print_dict(self.top.graph)
+        # print "%s-%s.init swong topgrah = %s" % (self.cname, self.id, self.top.graph.keys()) # , self.graph.keys()
+        # ordereddict_insert(ordereddict = self.top.graph, insertionpoint = '%s' % self.id, itemstoadd = loopblocks)
+        # print "%s-%s.init swong topgrah = %s" % (self.cname, self.id, self.top.graph.keys()) # , self.graph.keys()
+        # for k, v in self.top.graph.items():
+        #     print "k", k, "v", v['block']
 
         # print "top graph", print_dict(self.top.graph)
         # print "top graph", self.top.graph.keys()
@@ -770,7 +786,9 @@ class LoopBlock2(Block2):
                    
     def step(self, x = None):
         """loop block does nothing for now"""
-        pass
+        # pass
+        for i in range(self.nxgraph.number_of_nodes()):
+            print "node %d" % (i,)
 
 class SeqLoopBlock2(Block2):
     """!@brief Sequential loop block"""
