@@ -20,7 +20,7 @@ import numpy as np
 # for config reading
 from numpy import array
 
-from smp_base.plot import set_interactive
+from smp_base.plot import set_interactive, makefig
 
 from smp_graphs.block import Block2
 from smp_graphs.utils import print_dict
@@ -97,6 +97,9 @@ Load a config from the file in args.conf
         
         self.topblock = Block2(conf = self.conf)
 
+        set_interactive(True)
+        graph_fig = makefig(rows = 1, cols = 2, wspace = 0.1, hspace = 0.0)
+        self.topblock.bus.plot(graph_fig.axes[1])
         # print self.conf['params']
         
         # print "print_dict\n", print_dict(self.conf)
@@ -107,12 +110,10 @@ Load a config from the file in args.conf
         # topblock_x = self.topblock.step(x = None)
         for i in xrange(self.params['numsteps']):
             topblock_x = self.topblock.step(x = None)
-            # FIXME: progress bar / display
-
+            # FIXME: progress bar / display        
+            
         print "final return value topblock.x = %s" % (topblock_x)
 
-        
-        
         if self.conf['params']['showplot']:
             set_interactive(False)
             plt.show()
