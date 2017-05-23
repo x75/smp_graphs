@@ -100,6 +100,7 @@ class PlotBlock2(FigPlotBlock2):
         if True:
             for i, subplot in enumerate(self.subplots):
                 for j, subplotconf in enumerate(subplot):
+                    assert subplotconf.has_key('plot'), "PlotBlock2 needs 'plot' key in the plot spec = %s" % (subplotconf,)
                     idx = (i*self.fig_cols)+j
                     # self.debug_print("[%s]step idx = %d, conf = %s, data = %s/%s", (
                     #     self.id, idx,
@@ -313,6 +314,12 @@ class ImgPlotBlock2(FigPlotBlock2):
                     
                     plotdata = {}
                     plotdata['i_%d_%d' % (i, j)] = plotdata_cand.reshape(subplotconf['shape'])
+                    if subplotconf.has_key('ylog'):
+                        # plotdata['i_%d_%d' % (i, j)] = np.log(plotdata['i_%d_%d' % (i, j)] + 1.0)
+                        # print plotdata['i_%d_%d' % (i, j)]
+                        yscale = 'log'
+                    else:
+                        yscale = 'linear'
                     plotvar = self.inputs[subplotconf['input'][0]]['bus']
 
                     title = "img plot"

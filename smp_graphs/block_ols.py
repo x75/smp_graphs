@@ -14,15 +14,19 @@ class FileBlock2(Block2):
     def __init__(self, conf = {}, paren = None, top = None):
         # ad hoc default
         # if not conf['params'].has_key('type'): conf['params']['type'] = 'puppy'
-        assert conf['params'].has_key('type'), "Type required for FileBlock2"
+        assert conf['params'].has_key('file') and len(conf['params']['file']) > 0, "FileBlock2 requires a 'file' parameter"
+        assert conf['params'].has_key('type'), "FileBlock2 requires a file 'type' parameter"
         # multiple files: concat? block manipulation blocks?
         self.file = []
         # auto odim
         # if self.odim == 'auto':
         # print conf
-        lfile = conf['params']['file'][0]
+        if type(conf['params']['file']) is dict:
+            lfile = conf['params']['file']['filename']
+        else:
+            lfile = conf['params']['file'][0]
 
-        print "%s.init Loading %s-type data from %s" % (self.__class__.__name__, conf['params']['type'], conf['params']['file'][0])
+        print "%s.init Loading %s-type data from %s" % (self.__class__.__name__, conf['params']['type'], lfile)
         
         ############################################################
         # puppy homeokinesis (andi)
@@ -113,6 +117,15 @@ class FileBlock2(Block2):
                 # map output key to log table key
                 conf['params']['storekeys'][k_] = k
             self.step = self.step_selflog
+        ############################################################
+        # wav file
+        elif conf['params']['type'] == 'wav':
+            import scipy.io.wavfile as wavfile
+            rate, data = wavfile.read(lfile)
+            sl = slice(conf['params']['file']['offset'], conf['params']['file']['offset'] + conf['params']['file']['length'])
+            self.data = {'x': data[sl]}
+            # print "data", self.data['x'].shape
+            self.step = self.step_wav
 
         # FIXME: perform quick check of data
         
@@ -122,6 +135,8 @@ class FileBlock2(Block2):
             # print "key", self.data[k]
             # setattr(self, k, np.zeros((self.data[k].shape[1], 1)))
             # print "v", v
+            assert type(v) is dict, "FileBlock2 outputs need a configuration dictionary, not %s" % (type(v),)
+            assert v.has_key('shape'), "FileBlock2 outputs need a 'shape' key"
             if v['shape'] is None:
                 # self.outputs[k][0] = (self.data[k].shape[1], 1)
                 # print "data", self.data[k].shape[1]
@@ -138,7 +153,16 @@ class FileBlock2(Block2):
     @decStep()
     def step(self, x = None):
         pass
-    
+
+    @decStep()
+    def step_wav(self, x = None):
+        if (self.cnt % self.blocksize) == 0: # (self.blocksize - 1):
+            for k, v in self.outputs.items():                
+                sl = slice(self.cnt-self.blocksize, self.cnt)
+                # print "wav step [%d]" % (self.cnt), self.data[k][sl].T
+                setattr(self, k, self.data[k][sl].T)
+                # setattr(self, k, self.data[k][[self.cnt]].T)
+        
     @decStep()
     def step_puppy(self, x = None):
         self.debug_print("%s.step: x = %s, bus = %s", (self.__class__.__name__, self.x, self.bus))

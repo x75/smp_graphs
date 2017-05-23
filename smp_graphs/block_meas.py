@@ -1,6 +1,40 @@
 
 import numpy as np
+
+
 from smp_graphs.block import decInit, decStep, Block2, PrimBlock2
+
+
+def f1(d, j, k, shift = (-10, 11)):
+    # # this makes an implicit diff on the y signal
+    # return np.array([
+    #     np.correlate(
+    #         np.roll(d['x'].T[1:,j], shift = i),
+    #         np.diff(d['y'].T[:,k], axis = 0)) for i in range(shift[0], shift[1])
+    #     ])
+    # don't do that
+    x = d['x'].T[:,j]
+    y = d['y'].T[:,k]
+    # print "corr f1 shapes", x.shape, y.shape
+    assert len(x.shape) == 1 and len(y.shape) == 1
+    # scov = np.std(x) * np.std(y)
+    # scov_inv = np.sqrt(1.0/scov)
+    len_inv  = 1.0/x.shape[0]
+    x = (x - np.mean(x)) / (np.std(x) * x.shape[0]) # * scov_inv
+    # x /= scov
+    y = (y - np.mean(y)) / np.std(y) #  scov_inv
+    # y /= scov
+    corr = np.array([
+        np.correlate(np.roll(x, shift = i), y) for i in range(shift[0], shift[1])
+    ])
+    # corr_normalized = corr * len_inv
+    # this is correct if the inputs are the same size
+    # print "f1 corr = %s" % (corr,)
+    return corr # _normalized
+    
+def f2(d, k, shift = (-10, 11), xdim = 1):
+    return np.array([f1(d, j, k, shift = shift) for j in range(xdim)])
+
 
 class XCorrBlock2(PrimBlock2):
     """Compute cross-correlation functions among all variables in dataset"""
@@ -58,32 +92,27 @@ class XCorrBlock2(PrimBlock2):
         #         ax.legend()
         # plt.show()
 
-def f1(d, j, k, shift = (-10, 11)):
-    # # this makes an implicit diff on the y signal
-    # return np.array([
-    #     np.correlate(
-    #         np.roll(d['x'].T[1:,j], shift = i),
-    #         np.diff(d['y'].T[:,k], axis = 0)) for i in range(shift[0], shift[1])
-    #     ])
-    # don't do that
-    x = d['x'].T[:,j]
-    y = d['y'].T[:,k]
-    # print "corr f1 shapes", x.shape, y.shape
-    assert len(x.shape) == 1 and len(y.shape) == 1
-    # scov = np.std(x) * np.std(y)
-    # scov_inv = np.sqrt(1.0/scov)
-    len_inv  = 1.0/x.shape[0]
-    x = (x - np.mean(x)) / (np.std(x) * x.shape[0]) # * scov_inv
-    # x /= scov
-    y = (y - np.mean(y)) / np.std(y) #  scov_inv
-    # y /= scov
-    corr = np.array([
-        np.correlate(np.roll(x, shift = i), y) for i in range(shift[0], shift[1])
-    ])
-    # corr_normalized = corr * len_inv
-    # this is correct if the inputs are the same size
-    # print "f1 corr = %s" % (corr,)
-    return corr # _normalized
+
+
+class WindowedBlock2(PrimBlock2):
     
-def f2(d, k, shift = (-10, 11), xdim = 1):
-    return np.array([f1(d, j, k, shift = shift) for j in range(xdim)])
+    """!@brief Uniform random numbers: output is uniform random vector
+    """
+    @decInit()
+    def __init__(self, conf = {}, paren = None, top = None):
+        PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
+
+    @decStep()
+    def step(self, x = None):
+        for k, v in self.inputs.items():
+            print "%s.step k = %s, v = %s, bus = %s" % (self.cname, k, v['shape'], self.bus[v['bus']].shape)
+            setattr(self, k, np.abs(TFBlock2.step_fft({k: v['val']})[k.upper()]) / float(self.blocksize))
+            print "step_fft", getattr(self, k).shape
+        
+class TFBlock2(PrimBlock2):
+    @staticmethod
+    def step_fft(data = {}):
+        DATA = {}
+        for k, v in data.items():
+            DATA[k.upper()] = np.fft.fft(a = v)
+        return DATA
