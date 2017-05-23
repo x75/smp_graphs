@@ -213,7 +213,7 @@ class decStep():
             # call the function on blocksize boundaries
             # FIXME: might not be the best idea to control that on the wrapper level as some
             #        blocks might need to be called every step nonetheless?
-            if (xself.cnt % xself.blocksize) == 0 or (xself.cnt % xself.rate) == 0:
+            if (xself.cnt % xself.blocksize) == 0: # or (xself.cnt % xself.rate) == 0:
                 f_out = f(xself, None)
 
                 # copy output to bus
