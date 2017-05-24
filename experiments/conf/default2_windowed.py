@@ -5,7 +5,6 @@ from smp_graphs.block_plot import ImgPlotBlock2
 
 numsteps = 256*40
 
-
 graph = OrderedDict([
     # file source
     ('wav', {

@@ -84,6 +84,10 @@ to the bottom as they consolidate, hottest items at the top.
  - read/write: integrate input from and output to ROS, OSC, ...
 
  - sync / async block execution
+   - execution timing:
+     - blocksize = rate, at which point during counting should the block be executed
+     - input shape: input buffer expected by the block, step wrapper takes care of collecting incoming data which is faster than the block's rate
+     - output shape: output buffer at every execution step: arbitrary but fixed
    - spawn/fork threads as worker cloud, can be sequential loop or
      custom parallel version
    - ros style callback inputs as usual simple buffer to local var copy
