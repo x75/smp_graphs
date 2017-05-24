@@ -4,7 +4,7 @@ from functools import partial
 
 from numpy import ndarray
 from numpy import float64
-from numpy import transpose, roll, arange
+from numpy import transpose, roll, arange, array
 
 def print_dict(pdict = {}, level = 1, indent = None):
     """pretty print a dictionary for debugging by recursive construction of print string
@@ -67,13 +67,18 @@ def print_dict(pdict = {}, level = 1, indent = None):
 
 def xproduct(f, tup):
     """compute the cartesian product of a variable number of tensor dimensions"""
+    assert len(tup) > 0
     if len(tup) > 1: # still dimensions left
         return xproduct(partial(f, range(tup[0])), tup[1:]) # call yourself with partial of current dim and remaining dims
     # until nothings left
     return [elem for elem in f(range(tup[0]))]
 
+def mytupleroll(tup, direction = 1):
+    return tuple(roll(array(tup), shift = direction))
+
+def mytuple(tup, direction = 1):
+    return tuple(roll(arange(len(tup)), shift = direction))
 
 def myt(a, direction = 1):
     """my transpose (transpose 'time' axis first to last)"""
-    return a.transpose(tuple(roll(arange(len(a.shape)), shift = direction)))
-
+    return a.transpose(mytuple(a.shape, direction))

@@ -105,9 +105,9 @@ class WindowedBlock2(PrimBlock2):
     @decStep()
     def step(self, x = None):
         for k, v in self.inputs.items():
-            print "%s.step k = %s, v = %s, bus = %s" % (self.cname, k, v['shape'], self.bus[v['bus']].shape)
+            print "%s.step[%d] k = %s, v = %s/%s, bus = %s" % (self.cname, self.cnt, k, v['val'].shape, v['shape'], self.bus[v['bus']].shape)
             setattr(self, k, np.abs(TFBlock2.step_fft({k: v['val']})[k.upper()]) / float(self.blocksize))
-            print "step_fft", getattr(self, k).shape
+            # print "step_fft", getattr(self, k).shape
         
 class TFBlock2(PrimBlock2):
     @staticmethod

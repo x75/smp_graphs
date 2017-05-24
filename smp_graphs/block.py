@@ -28,7 +28,7 @@ from smp_graphs.common import conf_header, conf_footer
 from smp_graphs.common import get_config_raw, get_config_raw_from_string
 from smp_graphs.common import set_attr_from_dict
 
-from smp_graphs.graph import nxgraph_from_smp_graph
+from smp_graphs.graph import nxgraph_from_smp_graph, nxgraph_node_by_id
 
 BLOCKSIZE_MAX = 10000
 
@@ -103,7 +103,7 @@ class Bus(MutableMapping):
         xspacing = 10
         yspacing = 10
         yscaling = 0.66
-        ax.text(10, 0, "Bus (%s)" % ("topblock"))
+        ax.text(10, 0, "Bus (%s)" % ("topblock"), fontsize = 8)
         ax.grid(0)
         ax.set_xlim((0, 100))
         ax.set_ylim((-100, 0))
@@ -113,7 +113,7 @@ class Bus(MutableMapping):
             # print "k = %s, v = %s" % (k, v)
             ypos = -10 # -(i+1)*yspacing
             xpos = (i+1)*xspacing
-            ax.text(xpos, ypos, "{0: <8}\n{1: <12}".format(k, v.shape), family = 'monospace')
+            ax.text(xpos, ypos, "{0: <8}\n{1: <12}".format(k, v.shape), family = 'monospace', fontsize = 8)
             # elem shape
             ax.add_patch(
                 patches.Rectangle(
@@ -141,7 +141,17 @@ class Bus(MutableMapping):
             i+=1
         plt.draw()
         plt.pause(1e-6)
-        
+
+def get_blocksize_input(G, buskey):
+    # print "G", G.nodes(), "buskey", buskey
+    (srcid, srcvar) = buskey.split("/") # [-1]
+    # print "G.nodes()", G.nodes()
+    n = nxgraph_node_by_id(G, srcid)
+    if len(n) == 0:
+        return 1
+    return G.node[n[0]]['block_'].blocksize
+    
+                
 ################################################################################
 # Block decorator init
 class decInit():
@@ -171,28 +181,33 @@ class decStep():
                     if v.has_key('bus'): # input item is driven by external signal (bus value)
                         # if extended input buffer, rotate the data with each step
                         if xself.ibuf > 1:
-                            # input blocksize
-                            blocksize_input = xself.bus[v['bus']].shape[-1]
+                            
+                            # exec blocksize of the input's source node
+                            # FIXME: search once and store, recursively over nxgraph and subgraphs
+                            blocksize_input     = get_blocksize_input(xself.top.nxgraph, v['bus'])
+                            # out blocksize if the input's source node
+                            blocksize_input_bus = xself.bus[v['bus']].shape[-1]
+                            
                             # input block border 
                             if (xself.cnt % blocksize_input) == 0: # (blocksize_input - 1):
                                 # shift by input blocksize along self.blocksize axis
                                 # axis = len(xself.bus[v['bus']].shape) - 1
                                 axis = len(v['shape']) - 1
-                                v['val'] = np.roll(v['val'], shift = -blocksize_input, axis = axis)
+                                v['val'] = np.roll(v['val'], shift = -blocksize_input_bus, axis = axis)
                                 # print "%s.decStep v[val]" % (xself.cname), v['val'].shape, "v.sh", v['shape'], "axis", axis, "v", v['val']
                                 
                                 # set inputs [last-inputbs:last] if input blocksize reached                                
-                                sl = slice(-blocksize_input, None)
+                                sl = slice(-blocksize_input_bus, None)
                                 # print xself.cname, "sl", sl, "bus.shape", xself.bus[v['bus']].shape, v['val'].shape
-                                v['val'][...,-blocksize_input:] = xself.bus[v['bus']].copy() # np.fliplr(xself.bus[v[2]])
-                                if k == 'd0':
+                                v['val'][...,-blocksize_input_bus:] = xself.bus[v['bus']].copy() # np.fliplr(xself.bus[v[2]])
+                                if k == 'd2':
                                     # debugging bus to in copy
                                     print "%s-%s.%s[%d]\n  bus[%s] = %s to %s[%s] = %s / %s" % (esname, esid,
                                                                          sname,
                                                                          escnt,
                                                                          v['bus'],
                                                                          xself.bus[v['bus']].shape, k, sl, v['shape'], v['val'].shape)
-                                    print xself.bus[v['bus']]
+                                    # print xself.bus[v['bus']]
                                     print v['val'][...,-1]
                         else: # ibuf = 1
                             v['val'][...,[0]] = xself.bus[v['bus']].copy()
@@ -418,6 +433,7 @@ class Block2(object):
         for k, v in self.outputs.items():
             # print "%s.init_outputs: outk = %s, outv = %s" % (self.cname, k, v)
             assert type(v) is dict, "Old config of %s output %s with type %s, %s" % (self.id, k, type(v), v)
+            assert len(v['shape']) > 1, "Output %s 'shape' tuple is needs at least (dim1 x output blocksize)"
             # # create new shape tuple by appending the blocksize to original dimensions
             # if v['shape'][-1] != self.blocksize: # FIXME: heuristic
             #     v['bshape']  = v['shape'] + (self.blocksize,)
@@ -1074,7 +1090,7 @@ class ConstBlock2(PrimBlock2):
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
         
         # either column vector to be replicated or blocksize already
-        assert self.x.shape[-1] in [1, self.blocksize]
+        # assert self.x.shape[-1] in [1, self.blocksize]
         assert self.inputs['c']['val'].shape[:-1] == self.x.shape[:-1], "ConstBlock2 input / output shapes must agree: %s == %s?" % (self.inputs['c']['val'].shape[:-1], self.x.shape[:-1])
         
         # replicate column vector

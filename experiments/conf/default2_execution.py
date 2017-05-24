@@ -75,9 +75,9 @@ graph = OrderedDict([
                        'd2': {'bus': 'src2/x', 'shape': (5, 2, 3, numsteps)}},
             'subplots': [
                 [
-                    {'input': ['d0'], 'shape': (2, 3, numsteps), 'plot': timeseries, 'xslice': (0, 50), 'ndslice': (slice(50), 0,0,0)},
-                    {'input': ['d1'], 'shape': (2, 3, numsteps), 'plot': timeseries, 'xslice': (0, 80), 'ndslice': (slice(80), 0, slice(None), 0)},
-                    {'input': ['d2'], 'shape': (2, 3, numsteps), 'plot': timeseries},
+                    {'input': ['d0'], 'shape': (3, 50), 'plot': timeseries, 'xslice': (0, 50), 'ndslice': (slice(50), 0,0,None)},
+                    {'input': ['d1'], 'shape': (3, 80), 'plot': timeseries, 'xslice': (0, 80), 'ndslice': (slice(80), 0, None, 0)},
+                    {'input': ['d2'], 'shape': (3, numsteps), 'ndslice': (slice(None), 0, 0, None), 'plot': timeseries},
                 ],
             ]
         },

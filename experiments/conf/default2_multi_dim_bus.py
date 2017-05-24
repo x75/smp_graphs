@@ -28,7 +28,7 @@ graph = OrderedDict([
             },
             # recurrent connection
             # 'inputs': {'lo': {'bus': 'b2/x'}, 'hi': {'bus': 'b1/x'}}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
-            'outputs': {'x': {'shape': (5, 2, 3,)}},
+            'outputs': {'x': {'shape': (5, 2, 3, 1)}},
             # 'outputs': {'x': {'shape': (2, 3,)}},
             # 'outputs': {'x': {'shape': (3,)}},
         },
@@ -43,7 +43,7 @@ graph = OrderedDict([
             'rate': 2,
             # recurrent connection
             'inputs': {'lo': {'bus': 'src2/x'}, 'hi': {'bus': 'src1/x'}}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
-            'outputs': {'x': {'shape': (5, 2, 3,)}},
+            'outputs': {'x': {'shape': (5, 2, 3, 1)}},
             # 'outputs': {'x': {'shape': (2, 3,)}},
             # 'outputs': {'x': {'shape': (3,)}},
         },
@@ -54,11 +54,11 @@ graph = OrderedDict([
             'id': 'plot',
             'blocksize': numsteps,
             'debug': False,
-            'inputs': {'d1': {'bus': 'src1/x'}, 'd2': {'bus': 'src2/x'}},
+            'inputs': {'d1': {'bus': 'src1/x', 'shape': (5, 2, 3, numsteps)}, 'd2': {'bus': 'src2/x', 'shape': (5, 2, 3, numsteps)}},
             'subplots': [
                 [
-                    {'input': ['d1'], 'shape': (2, 3, numsteps), 'plot': timeseries},
-                    {'input': ['d2'], 'shape': (2, 3, numsteps), 'plot': timeseries},
+                    {'input': ['d1' for i in range(2*5)], 'ndslice': [(slice(None), j, i, slice(None)) for i in range(2) for j in range(5)], 'shape': (3, numsteps), 'plot': timeseries},
+                    {'input': ['d2' for i in range(2*5)], 'ndslice': [(slice(None),j, i, slice(None)) for i in range(2) for j in range(5)], 'shape': (3, numsteps), 'plot': timeseries},
                 ],
             ]
         },

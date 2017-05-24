@@ -15,7 +15,7 @@ from functools import partial
 
 # reused variables
 loopblocksize = 1
-loopsteps = 500
+loopsteps = 100
 numsteps = loopsteps * loopblocksize
 # showplot = False
 
@@ -25,10 +25,10 @@ loopblock1 = {
     'params': {
         'id': 'b3',
         'inputs': {
-            'lo': {'val': np.random.uniform(-1, 0, (3, 1)), 'shape': (3, )},
-            'hi': {'val': np.random.uniform(0.1, 1, (3, 1)), 'shape': (3, )},
+            'lo': {'val': np.random.uniform(-1, 0, (3, 1)), 'shape': (3, 1)},
+            'hi': {'val': np.random.uniform(0.1, 1, (3, 1)), 'shape': (3, 1)},
         },
-        'outputs': {'y': {'shape': (3,)}},
+        'outputs': {'y': {'shape': (3, 1)}},
         'debug': False,
         'blocksize': 1,
     },
@@ -38,8 +38,8 @@ loopblock = {
     'block': FuncBlock2,
     'params': {
         'id': 'f3',
-        'inputs': {'x': {'val': np.random.uniform(-1, 1, (3, 1)), 'shape': (3, )}},
-        'outputs': {'x': {'shape': (3, )}, 'y': {'shape': (1, )}},
+        'inputs': {'x': {'val': np.random.uniform(-1, 1, (3, 1)), 'shape': (3, 1)}},
+        'outputs': {'x': {'shape': (3, 1)}, 'y': {'shape': (1, 1)}},
         'func': f_sinesquare4,
         'blocksize': loopblocksize,
         'debug': False,
@@ -55,7 +55,7 @@ graph = OrderedDict([
         'params': {
             'id': 'b1',
             'inputs': {},
-            'outputs': {'x': {'shape': (1,)}},
+            'outputs': {'x': {'shape': (1, 1)}},
             'scale': np.pi/float(numsteps),
             'offset': np.pi/2,
             'blocksize': 1,
@@ -69,7 +69,7 @@ graph = OrderedDict([
         'params': {
             'id': 'f1',
             'inputs': {'x': {'bus': 'b1/x'}},
-            'outputs': {'x': {'shape': (1,)}, 'y': {'shape': (1,)}},
+            'outputs': {'x': {'shape': (1, 1)}, 'y': {'shape': (1, 1)}},
             'func': f_sinesquare2,
             'blocksize': 1,
             'debug': False,
@@ -82,7 +82,7 @@ graph = OrderedDict([
         'params': {
             'id': 'f2',
             'inputs': {'x': {'bus': 'b1/x'}},
-            'outputs': {'x': {'shape': (1,)}, 'y': {'shape': (1,)}},
+            'outputs': {'x': {'shape': (1, 1)}, 'y': {'shape': (1, 1)}},
             'func': f_sinesquare4,
             'blocksize': 1,
             'debug': False,
@@ -101,9 +101,9 @@ graph = OrderedDict([
             'numsteps':  numsteps,
             'loopblocksize': loopblocksize,
             # can't do this dynamically yet without changing init passes
-            'outputs': {'x': {'shape': (3, )}, 'y': {'shape': (1, )}},
+            'outputs': {'x': {'shape': (3, 1)}, 'y': {'shape': (1, 1)}},
             # 'loop': [('inputs', {
-            #     'lo': {'val': np.random.uniform(-i, 0, (3, 1)), 'shape': (3, )}, 'hi': {'val': np.random.uniform(0.1, i, (3, 1)), 'shape': (3, )}}) for i in range(1, 11)],
+            #     'lo': {'val': np.random.uniform(-i, 0, (3, 1)), 'shape': (3, 1)}, 'hi': {'val': np.random.uniform(0.1, i, (3, 1)), 'shape': (3, 1)}}) for i in range(1, 11)],
             # 'loop': lambda ref, i: ('inputs', {'lo': [10 * i], 'hi': [20*i]}),
             # 'loop': [('inputs', {'x': {'val': np.random.uniform(np.pi/2, 3*np.pi/2, (3,1))]}) for i in range(1, numsteps+1)],
             'loop': partial(f_loop_hpo, space = f_loop_hpo_space_f3(pdim = 3)),
@@ -119,12 +119,10 @@ graph = OrderedDict([
         'params': {
             'id': 'bplot',
             'blocksize': numsteps,
-            'idim': 6,
-            'odim': 3,
             'debug': False,
-            'inputs': {'d1': {'bus': 'b1/x'}, 'd2': {'bus': 'f1/y'}, 'd3': {'bus': 'hpo/y'},
-                           'd4': {'bus': 'f2/y'}, 'd5': {'bus': 'hpo/x'}},
-            'outputs': {}, # 'x': {'shape': (1, )}
+            'inputs': {'d1': {'bus': 'b1/x'}, 'd2': {'bus': 'f1/y'}, 'd3': {'bus': 'hpo/y', 'shape': (1, numsteps)},
+                           'd4': {'bus': 'f2/y'}, 'd5': {'bus': 'hpo/x', 'shape': (3, numsteps)}},
+            'outputs': {}, # 'x': {'shape': (1, 1)}
             'subplots': [
                 # [
                 #     {'input': 'd1', 'slice': (0, 3),
@@ -145,16 +143,16 @@ graph = OrderedDict([
                 #     {'input': 'd4', 'slice': (3, 6), 'plot': histogram},
                 # ],
                 [
-                    {'input': ['d3'], 'xaxis': 'd5', 'slice': (3, 6),
+                    {'input': ['d3'], 'xaxis': 'd5', 'shape': (1, numsteps), 
                          'plot': partial(timeseries, marker = 'o',
                                              linestyle = 'None')},
-                    {'input': 'd5', 'slice': (3, 6), 'plot': histogram},
+                    {'input': 'd5', 'shape': (3, numsteps), 'plot': histogram},
                 ],
                 [
-                    {'input': 'd3', 'slice': (3, 6),
+                    {'input': 'd3', 'shape': (1, numsteps),
                          'plot': partial(timeseries, marker = 'o',
                                              linestyle = '-')},
-                    {'input': 'd3', 'slice': (3, 6), 'plot': histogram},
+                    {'input': 'd3', 'shape': (1, numsteps), 'plot': histogram},
                 ],
             ]
         }

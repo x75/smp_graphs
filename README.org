@@ -30,7 +30,7 @@ to the bottom as they consolidate, hottest items at the top.
  - plotting
    - x saveplots
    - dimstack plot vs. subplots, depends:mdp
-   - interactive plotting (ipl)
+   - interactive plotting (ipl): pyqtgraph / in step decorator?
  - graph: multi-dimensional busses (mdb)
  - graph: proper bus structure with change notifications and multidim signalling (tensor foo) depends:mdb
  - graph: execution: sliding window analysis mode with automatic, depends:mdb,ipl

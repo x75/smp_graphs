@@ -89,6 +89,12 @@ def nxgraph_flatten(G):
     qG = nx.compose(rG, G_)
     print "rG", rG.nodes(), "qG", qG.nodes()
     return qG
+
+def nxgraph_node_by_id(G, nid):
+    if nid is None: return
+    gen = (n for n in G if G.node[n]['params']['id'] == nid)
+    tmp = list(gen)
+    return tmp
         
 def nxgraph_add_edges(G):
     # add nxgraph edges

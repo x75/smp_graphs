@@ -7,7 +7,7 @@ import seaborn as sns
 
 from smp_graphs.block import decStep, decInit
 from smp_graphs.block import PrimBlock2
-from smp_graphs.utils import myt
+from smp_graphs.utils import myt, mytupleroll
 
 from smp_base.plot import makefig, timeseries, histogram
 
@@ -19,7 +19,7 @@ from smp_base.plot import makefig, timeseries, histogram
 
 def subplot_input_fix(input_spec):
     # assert input an array 
-    if type(input_spec) is str:
+    if type(input_spec) is str or type(input_spec) is tuple:
         return [input_spec]
     else:
         return input_spec
@@ -100,26 +100,42 @@ class PlotBlock2(FigPlotBlock2):
         if True:
             for i, subplot in enumerate(self.subplots):
                 for j, subplotconf in enumerate(subplot):
+                    assert subplotconf.has_key('input'), "PlotBlock2 needs 'input' key in the plot spec = %s" % (subplotconf,)
                     assert subplotconf.has_key('plot'), "PlotBlock2 needs 'plot' key in the plot spec = %s" % (subplotconf,)
+                    # make it a list if it isn't
+                    for input_spec_key in ['input', 'ndslice', 'shape']:
+                        if subplotconf.has_key(input_spec_key):
+                            subplotconf[input_spec_key] = subplot_input_fix(subplotconf[input_spec_key])
+
+                    # subplot index from rows*cols
                     idx = (i*self.fig_cols)+j
+                        
                     # self.debug_print("[%s]step idx = %d, conf = %s, data = %s/%s", (
                     #     self.id, idx,
                     #     subplotconf, subplotconf['input'], self.inputs[subplotconf['input']]))
                     # self.inputs[subplotconf['input']][0]))
 
+                    plotlen = self.inputs[subplotconf['input'][0]]['shape'][-1]
+                    xslice = slice(0, plotlen)
+                    plotshape = mytupleroll(self.inputs[subplotconf['input'][0]]['shape'])
                     # x axis slice spec
                     if subplotconf.has_key('xslice'):
                         xslice = slice(subplotconf['xslice'][0], subplotconf['xslice'][1])
-                    else:
-                        xslice = slice(0, self.blocksize)
+                        plotlen = xslice.stop - xslice.start
+                        plotshape = (plotlen, ) + tuple((b for b in plotshape[1:]))
+                        
+                    if subplotconf.has_key('shape'):
+                        plotshape = mytupleroll(subplotconf['shape'][0])
+                        plotlen = plotshape[0]
+                        xslice = slice(0, plotlen)
 
+                    print "%s.subplots plotshape = %s" % (self.cname, plotshape)
+                        
                     # configure x axis
                     if subplotconf.has_key('xaxis'):
                         t = self.inputs[subplotconf['xaxis']]['val'].T[xslice]
                     else:
-                        t = np.linspace(0, self.blocksize-1, self.blocksize)[xslice]
-
-                    subplotconf['input'] = subplot_input_fix(subplotconf['input'])
+                        t = np.linspace(xslice.start, xslice.start+plotlen-1, plotlen)[xslice]
 
                     # plotdata = self.inputs[subplotconf['input']][0].T
                     # elif type(subplotconf['input']) is list:
@@ -132,17 +148,24 @@ class PlotBlock2(FigPlotBlock2):
                     for k, ink in enumerate(subplotconf['input']):
                         # print "%s.plot_subplots k = %s, ink = %s" % (self.cname, k, ink)
                         # plotdata[ink] = self.inputs[ink]['val'].T[xslice]
-                        if ink == 'd0':
-                            print "plotblock2", self.inputs[ink]['val'].shape
-                            print "plotblock2", self.inputs[ink]['val'][0,...,:]
+                        # if ink == 'd0':
+                        #     print "plotblock2", self.inputs[ink]['val'].shape
+                        #     print "plotblock2", self.inputs[ink]['val'][0,...,:]
+                        ink_ = "%s_%d" % (ink, k)
                         if subplotconf.has_key('ndslice'):
-                            # plotdata[ink] = myt(self.inputs[ink]['val'])[-1,subplotconf['ndslice'][0],subplotconf['ndslice'][1],:] # .reshape((21, -1))
-                            plotdata[ink] = myt(self.inputs[ink]['val'])[subplotconf['ndslice']] # .reshape((21, -1))
+                            # plotdata[ink_] = myt(self.inputs[ink_]['val'])[-1,subplotconf['ndslice'][0],subplotconf['ndslice'][1],:] # .reshape((21, -1))
+                            plotdata[ink_] = myt(self.inputs[ink]['val'])[subplotconf['ndslice'][k]] # .reshape((21, -1))
                         else:
-                            plotdata[ink] = myt(self.inputs[ink]['val'])[xslice].reshape((xslice.stop - xslice.start, -1))
-                            print "plotdata", plotdata[ink].shape
+                            plotdata[ink_] = myt(self.inputs[ink]['val'])[xslice] # .reshape((xslice.stop - xslice.start, -1))
+
+                        print "plotdata", plotdata[ink_].shape, plotshape
+                        
+                        # plotdata[ink_] = plotdata[ink_].reshape((plotshape[1], plotshape[0])).T
+                        plotdata[ink_] = plotdata[ink_].reshape(plotshape)
+                        
+                        print "plotdata", plotdata[ink_].shape, plotshape
                         # fix nans
-                        plotdata[ink][np.isnan(plotdata[ink])] = -1.0
+                        plotdata[ink_][np.isnan(plotdata[ink_])] = -1.0
                         plotvar += "%s, " % (self.inputs[ink]['bus'],)
                     title += plotvar
                         
@@ -307,7 +330,8 @@ class ImgPlotBlock2(FigPlotBlock2):
                         dj = subplotconf['ndslice'][1]
                         plotdata_cand = self.inputs[subplotconf['input'][0]]['val'][di, dj, :, -1]
                     else:
-                        plotdata_cand = self.inputs[subplotconf['input'][0]]['val'][yslice,xslice]
+                        # plotdata_cand = self.inputs[subplotconf['input'][0]]['val'][yslice,xslice]
+                        plotdata_cand = self.inputs[subplotconf['input'][0]]['val'].T[xslice,yslice]
                     # print "%s[%d]-%s.step, inputs = %s, %s " % (self.cname, self.cnt, self.id, self.inputs[subplotconf['input']][0].shape,
                     #                                         self.inputs[subplotconf['input']][0])
                     # print "%s[%d]-%s.step plotdata_cand.shape" % (self.cname, self.cnt, self.id), plotdata_cand.shape, subplotconf['shape'], xslice, yslice

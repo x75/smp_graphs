@@ -124,7 +124,7 @@ class FileBlock2(Block2):
             rate, data = wavfile.read(lfile)
             sl = slice(conf['params']['file']['offset'], conf['params']['file']['offset'] + conf['params']['file']['length'])
             self.data = {'x': data[sl]}
-            # print "data", self.data['x'].shape
+            print "data", data.shape, self.data['x'].shape
             self.step = self.step_wav
 
         # FIXME: perform quick check of data
