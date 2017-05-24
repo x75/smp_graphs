@@ -1,10 +1,15 @@
 """smp_graphs config
 
-test multi-dimensional bus"""
+test execution timing issues:
+ - blocksize
+ - rate
+ - input shape / ibuf
+ - output shape / obuf
+ - input shape vs. bus/shape"""
 
 randseed = 0
 
-numsteps = 20
+numsteps = 100
 
 # inputs
 # inkey = str: inval = {val: value, shape: shape, src: source, ...}
@@ -16,6 +21,16 @@ numsteps = 20
 # buskey = str: busval = {val: value, shape: shape, src: source, dst: [destinations]}
 
 graph = OrderedDict([
+    ('cnt1', {
+        'block': CountBlock2,
+        'params': {
+            'blocksize': 8,
+            'debug': False,
+            'inputs': {},
+            'outputs': {'x': {'shape': (5, 2, 3, 8)}},
+        },
+    }),
+    
     ('src1', {
         'block': UniformRandomBlock2,
         'params': {
@@ -28,7 +43,7 @@ graph = OrderedDict([
             },
             # recurrent connection
             # 'inputs': {'lo': {'bus': 'b2/x'}, 'hi': {'bus': 'b1/x'}}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
-            'outputs': {'x': {'shape': (5, 2, 3,)}},
+            'outputs': {'x': {'shape': (5, 2, 3, 1)}},
             # 'outputs': {'x': {'shape': (2, 3,)}},
             # 'outputs': {'x': {'shape': (3,)}},
         },
@@ -43,21 +58,25 @@ graph = OrderedDict([
             'rate': 20,
             # recurrent connection
             'inputs': {'lo': {'bus': 'src2/x'}, 'hi': {'bus': 'src1/x'}}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
-            'outputs': {'x': {'shape': (5, 2, 3,)}},
+            'outputs': {'x': {'shape': (5, 2, 3, 10)}},
             # 'outputs': {'x': {'shape': (2, 3,)}},
             # 'outputs': {'x': {'shape': (3,)}},
         },
     }),
+    
     ('plot', {
         'block': PlotBlock2,
         'params': {
             'id': 'plot',
             'blocksize': numsteps,
             'debug': False,
-            'inputs': {'d1': {'bus': 'src1/x'}, 'd2': {'bus': 'src2/x'}},
+            'inputs': {'d0': {'bus': 'cnt1/x', 'shape': (5, 2, 3, numsteps)},
+                       'd1': {'bus': 'src1/x', 'shape': (5, 2, 3, numsteps)},
+                       'd2': {'bus': 'src2/x', 'shape': (5, 2, 3, numsteps)}},
             'subplots': [
                 [
-                    {'input': ['d1'], 'shape': (2, 3, numsteps), 'plot': timeseries},
+                    {'input': ['d0'], 'shape': (2, 3, numsteps), 'plot': timeseries, 'xslice': (0, 50), 'ndslice': (slice(50), 0,0,0)},
+                    {'input': ['d1'], 'shape': (2, 3, numsteps), 'plot': timeseries, 'xslice': (0, 80), 'ndslice': (slice(80), 0, slice(None), 0)},
                     {'input': ['d2'], 'shape': (2, 3, numsteps), 'plot': timeseries},
                 ],
             ]

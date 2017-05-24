@@ -136,20 +136,31 @@ def log_pd_init_block(tbl_name, tbl_dim, tbl_columns = None, numsteps=100, block
 
 Arguments:
     tbl_name: node id storage key
-     tbl_dim: node output dim for preallocation
+     tbl_dim: busitem output shape for preallocation
  tbl_columns: node component labels
     numsteps: experiment number of steps for preallocation
 """
     global log_store, log_lognodes, log_lognodes_idx, log_blocksize, log_lognodes_blockidx
+    # np.prod(tbl_dim[:-1]), # flattened dim without blocksize
+
     # print "logging.log_pd_init_block: adding %s to log_lognodes with columns %s" % (tbl_name, tbl_columns)
     log_lognodes[tbl_name] = pd.DataFrame(columns=tbl_columns, index = range(numsteps), dtype=float)
     # log_logarray[tbl_name] = np.zeros((len(tbl_columns), log_blocksize))
-    log_logarray[tbl_name] = np.zeros((len(tbl_columns), numsteps))
+    # log_logarray[tbl_name] = np.zeros((len(tbl_columns), numsteps))
+    log_logarray[tbl_name] = np.zeros((np.prod(tbl_dim[:-1]), numsteps))
     # print "log_tables.shape", log_lognodes[tbl_name].shape
     log_lognodes_idx[tbl_name] = 0
     log_lognodes_blockidx[tbl_name] = 0
     # logging blocksize, FIXME: enforce max and integer multiple relation
     log_blocksize[tbl_name]    = max(50, blocksize)
+    
+    # store original shape in table attribute
+    # FIXME: doesn't seem to work?
+    log_store[tbl_name] = log_lognodes[tbl_name]
+    log_store.get_storer(tbl_name).attrs.shape = tbl_dim
+    log_store.get_storer(tbl_name).attrs.numsteps = numsteps
+    print "log_pd_init_block: log_store.get_storer(tbl_name).attrs.shape", log_store.get_storer(tbl_name).attrs.shape
+    print "log_pd_init_block: log_store.get_storer(tbl_name).attrs.numsteps", log_store.get_storer(tbl_name).attrs.numsteps
 
 def log_pd_store():
     # store logs, FIXME incrementally

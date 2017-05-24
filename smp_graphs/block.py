@@ -166,8 +166,9 @@ class decStep():
                 for k, v in xself.inputs.items():
                     # check sanity
                     assert v['val'].shape == v['shape'], "real and desired input shapes need to agree %s != %s" % (v['val'].shape, v['shape'])
+                    
                     # copy bus inputs to input buffer
-                    if v.has_key('bus'): # input item has a bus associated in v['bus']
+                    if v.has_key('bus'): # input item is driven by external signal (bus value)
                         # if extended input buffer, rotate the data with each step
                         if xself.ibuf > 1:
                             # input blocksize
@@ -180,20 +181,21 @@ class decStep():
                                 v['val'] = np.roll(v['val'], shift = -blocksize_input, axis = axis)
                                 # print "%s.decStep v[val]" % (xself.cname), v['val'].shape, "v.sh", v['shape'], "axis", axis, "v", v['val']
                                 
-                                # set inputs [last-inputbs:last] if input blocksize reached
-                                # # debugging in to out copy
-                                # print "%s-%s.%s[%d] bus[%s] = %s" % (esname, esid,
-                                #                                          sname,
-                                #                                          escnt,
-                                #                                          v[2],
-                                #                                          xself.bus[v[2]])
-                                
+                                # set inputs [last-inputbs:last] if input blocksize reached                                
                                 sl = slice(-blocksize_input, None)
                                 # print xself.cname, "sl", sl, "bus.shape", xself.bus[v['bus']].shape, v['val'].shape
                                 v['val'][...,-blocksize_input:] = xself.bus[v['bus']].copy() # np.fliplr(xself.bus[v[2]])
-                                # xself.inputs[k][0][:,-1,np.newaxis] = xself.bus[v[2]]                                
+                                if k == 'd0':
+                                    # debugging bus to in copy
+                                    print "%s-%s.%s[%d]\n  bus[%s] = %s to %s[%s] = %s / %s" % (esname, esid,
+                                                                         sname,
+                                                                         escnt,
+                                                                         v['bus'],
+                                                                         xself.bus[v['bus']].shape, k, sl, v['shape'], v['val'].shape)
+                                    print xself.bus[v['bus']]
+                                    print v['val'][...,-1]
                         else: # ibuf = 1
-                            v['val'][...,[0]] = xself.bus[v['bus']]
+                            v['val'][...,[0]] = xself.bus[v['bus']].copy()
                             
                     # copy input to output if inkey k is in outkeys
                     if k in xself.outputs.keys():
@@ -219,9 +221,10 @@ class decStep():
                 # copy output to bus
                 for k, v in xself.outputs.items():
                     buskey = "%s/%s" % (xself.id, k)
-                    # print "copy %s.outputs[%s] = %s to bus[%s], bs = %d" % (xself.id, k, getattr(xself, k), buskey, xself.blocksize)
-                    assert xself.bus[v['buskey']].shape == v['bshape'], "real and desired output shapes need to agree, %s != %s" % (xself.bus[v['buskey']].shape, v['shape'])
-                    xself.bus[v['buskey']] = getattr(xself, k)
+                    # print "copy[%d] %s.outputs[%s] = %s to bus[%s], bs = %d" % (xself.cnt, xself.id, k, getattr(xself, k).shape, buskey, xself.blocksize)
+                    assert xself.bus[v['buskey']].shape == v['shape'], "real and desired output shapes need to agree, %s != %s" % (xself.bus[v['buskey']].shape, v['shape'])
+                    # copy data onto bus
+                    xself.bus[v['buskey']] = getattr(xself, k).copy()
                     # print "xself.bus[v['buskey'] = %s]" % (v['buskey'], ) , xself.bus[v['buskey']]
             else:
                 f_out = None
@@ -272,10 +275,12 @@ class Block2(object):
 
         # check id
         assert hasattr(self, 'id')
+        # FIXME: check unique id, self.id not in self.topblock.ids
         # if id not is None:
         #     self.id = blockid
 
         # input buffer vs. blocksize: input buffer is sliding, blocksize is jumping
+        # FIXME: delete ibuf
         if self.blocksize > self.ibuf:
             self.ibuf = self.blocksize
 
@@ -409,12 +414,16 @@ class Block2(object):
         # create outputs
         # format: variable: [shape]
         # new format: outkey = str: outval = {val: value, shape: shape, dst: destination, ...}
+        self.oblocksize = 0
         for k, v in self.outputs.items():
             # print "%s.init_outputs: outk = %s, outv = %s" % (self.cname, k, v)
             assert type(v) is dict, "Old config of %s output %s with type %s, %s" % (self.id, k, type(v), v)
-            # create new shape tuple by appending the blocksize to original dimensions
-            v['bshape']  = v['shape'] + (self.blocksize,)
-            # print "v.bshape", v['bshape']
+            # # create new shape tuple by appending the blocksize to original dimensions
+            # if v['shape'][-1] != self.blocksize: # FIXME: heuristic
+            #     v['bshape']  = v['shape'] + (self.blocksize,)
+            #     v['shape']   = v['bshape']
+            if v['shape'][-1] > self.oblocksize:
+                self.oblocksize = v['shape'][-1]
 
             # compute buskey from id and variable name
             v['buskey'] = "%s/%s" % (self.id, k)
@@ -424,10 +433,10 @@ class Block2(object):
                 v['logging'] = True
                 
             # set self attribute to that shape
-            setattr(self, k, np.zeros(v['bshape']))
+            setattr(self, k, np.zeros(v['shape']))
             
             # print "%s.init_outputs: %s.bus[%s] = %s" % (self.cname, self.id, v['buskey'], getattr(self, k).shape)
-            self.bus[v['buskey']] = getattr(self, k)
+            self.bus[v['buskey']] = getattr(self, k).copy()
             # self.bus.setval(v['buskey'], getattr(self, k))
 
             # output item initialized
@@ -441,16 +450,16 @@ class Block2(object):
         for k, v in self.outputs.items():
             if (not v.has_key('init')) or (not v['init']) or (not v['logging']): continue
 
-            tbl_columns_dims = "_".join(["%d" for axis in v['shape']])
-            tbl_columns = [tbl_columns_dims % tup for tup in xproduct(itertools.product, v['shape'])]
+            tbl_columns_dims = "_".join(["%d" for axis in v['shape'][:-1]])
+            tbl_columns = [tbl_columns_dims % tup for tup in xproduct(itertools.product, v['shape'][:-1])]
             # print "tbl_columns", tbl_columns
 
             # initialize the log table for this block
             log.log_pd_init_block(
                 tbl_name    = v['buskey'], # "%s/%s" % (self.id, k),
-                tbl_dim     = np.prod(v['shape']), # flattened dim without blocksize
+                tbl_dim     = v['shape'],
                 tbl_columns = tbl_columns,
-                numsteps    = self.top.numsteps,
+                numsteps    = (self.top.numsteps / self.blocksize) * self.oblocksize,
                 blocksize   = self.blocksize,
             )
                 
@@ -471,25 +480,32 @@ class Block2(object):
                 self.debug_print("__init__: pass 2\n    in_k = %s,\n    in_v = %s", (k, v))
                 assert len(v) > 0
                 assert type(v) is dict, "input value %s in block %s/%s must be a dict but it is a %s, probably old config" % (k, self.cname, self.id, type(v))
-
+                
                 # set input from bus
                 if v.has_key('bus'):
                     if v.has_key('shape'):
                         # init input buffer from configuration shape
                         # print "input config shape = %s" % (v['shape'][:-1],)
                         if len(v['shape']) == 1:
-                            vshape = (v['shape'][0], self.ibuf,)
+                            vshape = (v['shape'][0], self.blocksize)
                         else:
-                            vshape = v['shape'][:-1] + (self.ibuf,)
+                            # vshape = v['shape'][:-1] + (self.ibuf,)
+                            vshape = v['shape']
+                            
+                        # initialize input buffer
+                        v['val'] = np.zeros(vshape) # ibuf >= blocksize
+                        
+                        # bus item does not exist yet
                         if not self.bus.has_key(v['bus']):
-                            v['val'] = np.zeros(vshape) # ibuf >= blocksize
-                            self.bus[v['bus']] = v['val']
-                            inbus = self.bus[v['bus']]
+                            # pre-init that bus
+                            self.bus[v['bus']] = v['val'].copy()
                         else:
-                            inbus = self.bus[v['bus']]
-                            v['val'] = inbus
+                            # sl = slice(-blocksize_input, None)
+                            blocksize_input = self.bus[v['bus']].shape[-1]
+                            v['val'][...,-blocksize_input:] = self.bus[v['bus']].copy() # np.fliplr(self.bus[v[2]])
+                            # v['val'] = self.bus[v['bus']].copy() # inbus
                             # v['val'][...,0:inbus.shape[-1]] = inbus
-                        print "v['val'].shape", v['val'].shape
+                        # print "v['val'].shape", v['val'].shape
                         
                     elif not v.has_key('shape'):
                         # check if key exists or not. if it doesn't, that means this is a block inside dynamical graph construction
@@ -501,10 +517,12 @@ class Block2(object):
                         inbus = self.bus[v['bus']]
                         # print "init_pass_2 inbus.sh = %s" % (inbus.shape,)
                         # if no shape given, take busdim times input buffer size
-                        v['val'] = np.zeros(inbus.shape[:-1] + (self.ibuf,)) # ibuf >= blocksize inbus.copy()
+                        # v['val'] = np.zeros(inbus.shape[:-1] + (self.blocksize,)) # ibuf >= blocksize inbus.copy()
+                        v['val'] = np.zeros(inbus.shape)
                                         
                     v['shape'] = v['val'].shape # self.bus[v['bus']].shape
                     
+                    print "\n%s init_pass_2 ink %s shape = %s / %s" % (self.id, k, v['val'].shape, v['shape'])
                     self.debug_print("%s.init_pass_2: %s, bus[%s] = %s, input = %s", (self.cname, self.id, v['bus'], self.bus[v['bus']].shape, v['val'].shape))
                 # elif type(v[0]) is str:
                 #     # it's a string but no valid buskey, init zeros(1,1)?
@@ -514,10 +532,9 @@ class Block2(object):
                     assert v.has_key('val'), "Input spec needs either a 'bus' or 'val' entry in %s" % (v.keys())
                     # expand scalar to vector
                     if np.isscalar(v['val']):
-                        # print "isscalar", v['val']
                         # check for shape info
-                        # if len(v['val']) == 1: # one-element vector
-                        v['shape'] = (1,1)
+                        if not v.has_key('shape'):
+                            v['shape'] = (1,1)
                         # create ones multiplied by constant
                         v['val'] = np.ones(v['shape']) * v['val']
                     else:
@@ -1079,17 +1096,23 @@ class CountBlock2(PrimBlock2):
         # single output key
         self.outk = self.outputs.keys()[0]
         # init cnt_ of blocksize
-        self.cnt_ = np.zeros(self.outputs[self.outk]['shape'] + (self.blocksize,))
+        # self.cnt_ = np.zeros(self.outputs[self.outk]['shape'] + (self.blocksize,))
+        self.cnt_ = np.zeros(self.outputs[self.outk]['shape'])
         # print self.inputs
         # FIXME: modulo / cout range with reset/overflow
         
     @decStep()
     def step(self, x = None):
         """CountBlock step: if blocksize is 1 just copy the counter, if bs > 1 set cnt_ to range"""
-        if self.blocksize > 1:
-            self.cnt_[:,-self.blocksize:] = np.arange(self.cnt - self.blocksize, self.cnt).reshape(self.outputs[self.outk][0])
+        outshape = self.outputs[self.outk]['shape']
+        outshapenum = outshape[-1]
+        # if self.blocksize > 1:
+        if outshapenum > 1:
+            newcnt = np.tile(np.arange(self.cnt - outshapenum, self.cnt), outshape[:-1]).reshape(outshape)
+            # self.cnt_[...,-outshapenum:] = newcnt
+            self.cnt_ = newcnt
         else:
-            self.cnt_[:,0] = self.cnt
+            self.cnt_[...,0] = self.cnt
         # FIXME: make that a for output items loop
         setattr(self, self.outk, (self.cnt_ * self.scale) + self.offset)
 
@@ -1108,14 +1131,16 @@ class UniformRandomBlock2(PrimBlock2):
     def step(self, x = None):
         self.debug_print("%s.step:\n\tx = %s,\n\tbus = %s,\n\tinputs = %s,\n\toutputs = %s",
                          (self.__class__.__name__,self.outputs.keys(), self.bus, self.inputs, self.outputs))
-        # self.hi = x['hi']
+
+        # FIXME: relation rate / blocksize, remember cnt from last step, check difference > rate etc
+        
         if self.cnt % self.rate == 0:
             # FIXME: take care of rate/blocksize issue
             for k, v in self.outputs.items():
                 # x = np.random.uniform(self.inputs['lo'][0][:,[-1]], self.inputs['hi'][0][:,[-1]], (self.outputs[k][0]))
                 # print 'lo', self.inputs['lo']['val'], '\nhi', self.inputs['hi']['val'], '\noutput', v['bshape']
-                x = np.random.uniform(self.inputs['lo']['val'], self.inputs['hi']['val'], size = v['bshape'])
-                setattr(self, k, x.copy())
+                x = np.random.uniform(self.inputs['lo']['val'], self.inputs['hi']['val'], size = v['shape'])
+                setattr(self, k, x)
             # print "self.x", self.x
         
         # # loop over outputs dict and copy them to a slot in the bus

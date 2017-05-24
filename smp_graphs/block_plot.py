@@ -128,15 +128,19 @@ class PlotBlock2(FigPlotBlock2):
                     plotvar = " "
                     title = ""
                     if subplotconf.has_key('title'): title += subplotconf['title']
+                        
                     for k, ink in enumerate(subplotconf['input']):
                         # print "%s.plot_subplots k = %s, ink = %s" % (self.cname, k, ink)
                         # plotdata[ink] = self.inputs[ink]['val'].T[xslice]
-                        # print "plotblock2", self.inputs[ink]['val'].shape
+                        if ink == 'd0':
+                            print "plotblock2", self.inputs[ink]['val'].shape
+                            print "plotblock2", self.inputs[ink]['val'][0,...,:]
                         if subplotconf.has_key('ndslice'):
-                            plotdata[ink] = myt(self.inputs[ink]['val'])[-1,subplotconf['ndslice'][0],subplotconf['ndslice'][1],:] # .reshape((21, -1))
+                            # plotdata[ink] = myt(self.inputs[ink]['val'])[-1,subplotconf['ndslice'][0],subplotconf['ndslice'][1],:] # .reshape((21, -1))
+                            plotdata[ink] = myt(self.inputs[ink]['val'])[subplotconf['ndslice']] # .reshape((21, -1))
                         else:
-                            plotdata[ink] = myt(self.inputs[ink]['val'])[xslice].reshape((self.blocksize, -1))
-                        # print "plotdata", plotdata[ink]
+                            plotdata[ink] = myt(self.inputs[ink]['val'])[xslice].reshape((xslice.stop - xslice.start, -1))
+                            print "plotdata", plotdata[ink].shape
                         # fix nans
                         plotdata[ink][np.isnan(plotdata[ink])] = -1.0
                         plotvar += "%s, " % (self.inputs[ink]['bus'],)
@@ -187,12 +191,9 @@ class PlotBlock2(FigPlotBlock2):
                     labels = []
                     for ink, inv in plotdata.items():
                         # print "%s.plot_subplots: ink = %s, plotvar = %s, inv.sh = %s, t.sh = %s" % (self.cname, ink, plotvar, inv.shape, t.shape)
-                        # print "v", inv
+                        print "v", inv.shape, t.shape
                         # this is the plotfunction from the config
-                        subplotconf['plot'](
-                            self.fig.axes[idx],
-                            data = inv, ordinate = t, label = "%s" % ink,
-                            title = title)
+                        subplotconf['plot'](self.fig.axes[idx], data = inv, ordinate = t, label = "%s" % ink, title = title)
                         # labels.append("%s" % ink)
                         # metadata
                     # self.fig.axes[idx].legend()
