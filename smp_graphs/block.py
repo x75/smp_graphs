@@ -159,7 +159,7 @@ class Bus(MutableMapping):
             
         # ax.set_xlim((0, 100))
         # ax.set_ylim((-100, 0))
-        ax.set_xlim((0, xmax))
+        ax.set_xlim((0, xmax + xspacing))
         ax.set_ylim((-ymax, 0))
         
         plt.draw()
@@ -553,7 +553,7 @@ class Block2(object):
                         assert self.bus.has_key(v['bus']), "Requested bus item %s is not in buskeys %s" % (v['bus'], self.bus.keys())
                     
                         # enforce bus blocksize smaller than local blocksize, tackle later
-                        assert self.bus[v['bus']].shape[-1] <= self.blocksize, "input block size needs to be less than or equal self blocksize in %s/%s\ncheck blocksize param" % (self.cname, self.id)
+                        assert self.bus[v['bus']].shape[-1] <= self.blocksize, "input block size needs to be less than or equal self blocksize in %s/%s, in %s, should %s, has %s\ncheck blocksize param" % (self.cname, self.id, v['bus'], self.bus[v['bus']].shape[-1], self.blocksize)
                         # get shortcut
                         inbus = self.bus[v['bus']]
                         # print "init_pass_2 inbus.sh = %s" % (inbus.shape,)
@@ -714,6 +714,9 @@ class LoopBlock2(Block2):
         self.defaults['loop'] = [1]
         # self.defaults['loopmode'] = 'sequential'
         self.defaults['loopblock'] = {}
+
+        assert conf['params'].has_key('loop'), "Come on, looping without specification is dumb"
+        
         Block2.__init__(self, conf = conf, paren = paren, top = top)
 
         # loopblocks = []

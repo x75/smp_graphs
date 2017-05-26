@@ -22,9 +22,9 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'type': 'selflog',
             # this is looping demand
-            'file': [
+            'file': {'filename':
                 'data/experiment_20170519_123619_default2_multi_dim_bus_pd.h5',
-                # 'data/experiment_20170510_124440_puppy_rp_pd.h5',
+                         # 'data/experiment_20170510_124440_puppy_rp_pd.h5',
                 # 'data/experiment_20170510_123450_puppy_rp_pd.h5',
                 # 'data/experiment_20170510_121248_puppy_rp_pd.h5',
                 # 'data/experiment_20170509_131125_puppy_rp_blocksize_pd.h5',
@@ -40,9 +40,9 @@ graph = OrderedDict([
                 # 'data/experiment_20170504_192821_pd.h5',
                 # 'data/experiment_20170504_202016_pd.h5',
                 # 'data/experiment_20170504_222828_pd.h5',
-                ],
+                },
             # 'outputs': {'conf': [(1,1)], 'conf_final': [(1,1)]},
-            'outputs': {'log': [None]},
+            'outputs': {'log': [None], 'x': {'shape': (3, numsteps)}},
         },
     }),
     ('plotter', {
@@ -55,7 +55,7 @@ graph = OrderedDict([
             'inputs': {
                 # 'd1': ['selflog//b1/x'],
                 # 'd2': ['selflog//b2/x'],
-                'd3': ['selflog/x'],
+                'd3': {'bus': 'selflog/x', 'shape': (3, numsteps)},
                 # 'd4': ['selflog/y'],
             },
             'outputs': {},#'x': [(3, 1)]},

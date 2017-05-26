@@ -31,18 +31,36 @@ class FileBlock2(Block2):
         ############################################################
         # puppy homeokinesis (andi)
         if conf['params']['type'] == 'puppy':
+            offset = 0
             if conf['params']['outputs'].has_key('log'):
                 del conf['params']['outputs']['log']
-            (self.data, self.rate, self.offset) = read_puppy_hk_pickles(lfile)
-            # setattr(self, 'x', self.data['x'])
-            # print "self.data", self.data.keys()
-            # for k,v in self.data.items():
-            #     if type(v) is np.ndarray:
-            #         print "puppylog", k, lfile, v.shape, np.mean(v), np.var(v), v
-            # setattr(self, 'x', self.data['x'])
-            print "data.keys()", self.data.keys()
-            conf['params']['outputs']['x'] = {'shape': self.data['x'].T.shape} # [:-1]
-            conf['params']['outputs']['y'] = {'shape': self.data['y'].T.shape} # [:-1]
+            (self.data, self.rate, self.offset, length) = read_puppy_hk_pickles(lfile)
+            # check offset
+            if conf['params']['file'].has_key('offset'):
+                offset = conf['params']['file']['offset']
+                
+            # check length
+            if conf['params']['file'].has_key('length'):
+                length = conf['params']['file']['length']
+
+            # reslice
+            sl = slice(offset, offset + length)
+            for k in ['x', 'y']:
+                self.data[k] = self.data[k][sl]
+                
+            for k in ['x', 'y']:
+                self.data[k] = self.data[k][sl]
+                # setattr(self, 'x', self.data['x'])
+                # print "self.data", self.data.keys()
+                # for k,v in self.data.items():
+                #     if type(v) is np.ndarray:
+                #         print "puppylog", k, lfile, v.shape, np.mean(v), np.var(v), v
+                # setattr(self, 'x', self.data['x'])
+                # print "fileblock 'puppy' data.keys()", self.data.keys(), conf['params']['blocksize']
+
+                if not conf['params']['outputs'][k].has_key('shape'):
+                    conf['params']['outputs'][k] = {'shape': self.data[k].T.shape} # [:-1]
+                # conf['params']['outputs']['y'] = {'shape': self.data['y'].T.shape} # [:-1]
             
             # conf['params']['outputs'][k_] = [v.shape]
             # conf['params']['blocksize'] = v.shape[0]
@@ -92,6 +110,7 @@ class FileBlock2(Block2):
         ############################################################
         # selflogconfs
         elif conf['params']['type'] == 'selflogconf':
+            assert os.path.exists(lfile), "logfile %s not found" % (lfile, )
             self.store = pd.HDFStore(lfile)
             self.step = self.step_selflogconf
         ############################################################
@@ -226,6 +245,8 @@ class FileBlock2(Block2):
     def step_selflogconf(self, x = None):
         self.debug_print("%s.step: x = %s, bus = %s", (self.__class__.__name__, x, self.bus))
         if (self.cnt % self.blocksize) == 0:
+            print self.store.keys()
             for k, v in self.outputs.items():
+                print "trying k = %s, v = %s" % (k, v)
                 if k.startswith('conf'):
                     print "%s = %s\n" % (k, self.store.get_storer(k).attrs.conf,)

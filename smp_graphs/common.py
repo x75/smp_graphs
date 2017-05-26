@@ -109,4 +109,4 @@ def read_puppy_hk_pickles(lfile, key = None):
     y = d['y']
     data['y'] = y[:,:,0]
     # print "x.shape", data['x'].shape
-    return (data, rate, offset)
+    return (data, rate, offset, d['x'].shape[0])
