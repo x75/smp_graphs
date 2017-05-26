@@ -21,6 +21,7 @@ import numpy as np
 
 debug = False
 showplot = True
+saveplot = False
 randseed = 0
 """
 
@@ -34,6 +35,7 @@ conf = {
         'numsteps': numsteps,
         'graph': graph,
         'showplot': showplot,
+        'saveplot': saveplot,
         'randseed': randseed,
     }
 }

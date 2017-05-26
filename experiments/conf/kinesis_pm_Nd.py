@@ -36,7 +36,7 @@ randseed = 124
 
 # graph
 graph = OrderedDict([
-    # brains first
+    # brainxs first
     # brain a) write down into graph directly
     ('braina', {
         'block': Block2,
@@ -51,7 +51,7 @@ graph = OrderedDict([
                     'params': {
                         'id': 'sin',
                         'inputs': {'x': {'bus': 'sin/cnt'}, 'f': {'val': np.array([[0.1, 0.2, 0.3]]).T}},
-                        'outputs': {'cnt': {'shape': (1,)}, 'y': {'shape': (3,)}},
+                        'outputs': {'cnt': {'shape': (1,1)}, 'y': {'shape': (3,1)}},
                         'func': f_sin,
                         'debug': False,
                     },
@@ -61,7 +61,7 @@ graph = OrderedDict([
                     'params': {
                         'id': 'sin2',
                         'inputs': {'x': {'bus': 'sin2/cnt'}, 'f': {'val': np.array([[0.11, 0.191, 0.313]]).T}},
-                        'outputs': {'cnt': {'shape': (1,)}, 'y': {'shape': (3,)}},
+                        'outputs': {'cnt': {'shape': (1, 1)}, 'y': {'shape': (3, 1)}},
                         'func': f_sin, # f_pulse,
                         'debug': False,
                     },
@@ -72,8 +72,8 @@ graph = OrderedDict([
                     'params': {
                         'id': 'mot0',
                         'rate': 500,
-                        'inputs': {'lo': {'val': -0.2, 'shape': (1,)}, 'hi': {'val': 0.2, 'shape': (1,)}},
-                        'outputs': {'x': {'shape': (3,)}}
+                        'inputs': {'lo': {'val': -0.2, 'shape': (1, 1)}, 'hi': {'val': 0.2, 'shape': (1, 1)}},
+                        'outputs': {'x': {'shape': (3, 1)}}
                         },
                     }),
                 # kinesis, goal detector, output is binary or continuous, on-goal/off-goal, d(goal)
@@ -82,8 +82,8 @@ graph = OrderedDict([
                     'params': {
                         'id': 'motivation',
                         # 'inputs': {'x': {'bus': 'robot1/s_extero'}, 'x_': {'val': np.random.uniform(-0.05, 0.05, (3,1))}},
-                        'inputs': {'x': {'bus': 'robot1/s_extero', 'shape': (3, )}, 'x_': {'bus': 'mot0/x'}},
-                        'outputs': {'y': {'shape': (3,)}, 'y1': {'shape': (3,)}, 'x_': {'shape': (3,)}},
+                        'inputs': {'x': {'bus': 'robot1/s_extero', 'shape': (3, 1)}, 'x_': {'bus': 'mot0/x'}},
+                        'outputs': {'y': {'shape': (3, 1)}, 'y1': {'shape': (3, 1)}, 'x_': {'shape': (3, 1)}},
                         # 'func': f_motivation_bin,
                         'func': f_motivation,
                         'debug': False,
@@ -95,11 +95,11 @@ graph = OrderedDict([
                     'params': {
                         'id': 'search',
                         'inputs': {'lo': {'bus': 'motivation/y1'}, 'hi': {'bus': 'motivation/y'}},
-                        'outputs': {'x': {'shape': (3,)}}
+                        'outputs': {'x': {'shape': (3, 1)}}
                         },
                     }),
             ]),
-            # 'outputs': {'cnt': {'shape': (1,)}, 'y': {'shape': (3,)}}
+            # 'outputs': {'cnt': {'shape': (1, 1)}, 'y': {'shape': (3, 1)}}
         }
     }),
     
@@ -127,8 +127,8 @@ graph = OrderedDict([
             # 'inputs': {'u': {'val': np.random.uniform(-1, 1, (3, numsteps))}},
             'inputs': {'u': {'bus': 'search/x'}},
             'outputs': {
-                's_proprio': {'shape': (3,)},
-                's_extero': {'shape': (3,)}
+                's_proprio': {'shape': (3, 1)},
+                's_extero': {'shape': (3, 1)}
             }, # , 's_all': [(9, 1)]},
             # "class": PointmassRobot2, # SimpleRandomRobot,
             # "type": "explauto",
@@ -153,11 +153,12 @@ graph = OrderedDict([
         'params': {
             'id': 'plot',
             'blocksize': numsteps,
-            'inputs': {'d1': {'bus': 'robot1/s_proprio'}, 'd2': {'bus': 'robot1/s_extero'},
-                    'd3': {'bus': 'motivation/x_'},
-                    'd4': {'bus': 'sin/y'},
-                    'd5': {'bus': 'motivation/y'},
-                    'd6': {'bus': 'mot0/x'}},
+            'inputs': {'d1': {'bus': 'robot1/s_proprio', 'shape': (3, numsteps)},
+                           'd2': {'bus': 'robot1/s_extero', 'shape': (3, numsteps)},
+                    'd3': {'bus': 'motivation/x_', 'shape': (3, numsteps)},
+                    'd4': {'bus': 'sin/y', 'shape': (3, numsteps)},
+                    'd5': {'bus': 'motivation/y', 'shape': (3, numsteps)},
+                    'd6': {'bus': 'mot0/x', 'shape': (3, numsteps)}},
             'subplots': [
                 [
                     {'input': 'd1', 'plot': timeseries},

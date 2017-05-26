@@ -159,8 +159,8 @@ Arguments:
     log_store[tbl_name] = log_lognodes[tbl_name]
     log_store.get_storer(tbl_name).attrs.shape = tbl_dim
     log_store.get_storer(tbl_name).attrs.numsteps = numsteps
-    print "log_pd_init_block: log_store.get_storer(tbl_name).attrs.shape", log_store.get_storer(tbl_name).attrs.shape
-    print "log_pd_init_block: log_store.get_storer(tbl_name).attrs.numsteps", log_store.get_storer(tbl_name).attrs.numsteps
+    # print "log_pd_init_block: log_store.get_storer(tbl_name).attrs.shape", log_store.get_storer(tbl_name).attrs.shape
+    # print "log_pd_init_block: log_store.get_storer(tbl_name).attrs.numsteps", log_store.get_storer(tbl_name).attrs.numsteps
 
 def log_pd_store():
     # store logs, FIXME incrementally

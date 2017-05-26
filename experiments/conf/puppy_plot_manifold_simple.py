@@ -13,15 +13,18 @@ from smp_graphs.block_meas_infth import JHBlock2, MIBlock2, InfoDistBlock2, TEBl
 
 randseed = 12345
 
+saveplot = True
+
 ppycnf = {
-    # 'numsteps': 27000,
+    'numsteps': 27000,
     # 'logfile': 'data/experiment_20170518_161544_puppy_process_logfiles_pd.h5',
+    'logfile': 'data/experiment_20170526_160018_puppy_process_logfiles_pd.h5',
     # 'numsteps': 147000,
     # 'logfile': 'data/experiment_20170510_155432_puppy_process_logfiles_pd.h5', # 147K
     # 'numsteps': 29000,
     # 'logfile': 'data/experiment_20170517_160523_puppy_process_logfiles_pd.h5', 29K
-    'numsteps': 10000,
-    'logfile': 'data/experiment_20170511_145725_puppy_process_logfiles_pd.h5', # 10K
+    # 'numsteps': 10000,
+    # 'logfile': 'data/experiment_20170511_145725_puppy_process_logfiles_pd.h5', # 10K
     # 'numsteps': 2000,
     # 'logfile': 'data/experiment_20170510_173800_puppy_process_logfiles_pd.h5', # 2K
     'xdim': 6,
@@ -58,8 +61,9 @@ sphrcnf = {
     'xdim_eff': 1,
 	'ydim': 1,
     'logtype': 'sphero_res_learner',
-    # 'logfile': '../../smp_infth/sphero_res_learner_1D/log-learner-20150315-223835-eta-0.001000-theta-0.200000-g-0.999000-target-sine.npz',
-    'logfile': '../../smp_infth/sphero_res_learner_1D/log-learner-20150313-224329.npz',
+    'logfile': '../../smp_infth/sphero_res_learner_1D/log-learner-20150315-223835-eta-0.001000-theta-0.200000-g-0.999000-target-sine.npz',
+    # 'logfile': '../../smp_infth/sphero_res_learner_1D/log-learner-20150313-224329.npz',
+    'sys_slicespec': {'x': {'gyr': slice(0, 1)}},
 }
     
 testcnf = {
@@ -76,8 +80,12 @@ numsteps = cnf['numsteps']
 xdim = cnf['xdim']
 ydim = cnf['ydim']
 xdim_eff = cnf['xdim_eff']
+if cnf.has_key('sys_slicespec'):
+    sys_slicespec = cnf['sys_slicespec']
+else:
+    sys_slicespec = {'x': {'acc': slice(0, 3), 'gyr': slice(3, xdim)}}
 
-scanstart = -5
+scanstart = -10
 scanstop = 1
 scanlen = scanstop - scanstart
     
@@ -95,7 +103,7 @@ def make_input_matrix_ndim(id = 'xcorr', base = 'xcorr', xdim = 1, ydim = 1, wit
     global scanstart, scanstop, scanlen
     # d = {'d3_%d_%d' % (i, j): {'bus': '%s/%s_%d_%d' % (id, base, i, j)} for j in range(xdim) for i in range(ydim)}
     d = {}
-    d['d3'] = {'bus': "%s/%s" % (id, base)}
+    d['d3'] = {'bus': "%s/%s" % (id, base), 'shape': (ydim, xdim, scanlen)} # 
     if with_t:
         d['t'] = {'val': np.linspace(scanstart, scanstop-1, scanlen)}
     # print d
@@ -112,6 +120,7 @@ graph = OrderedDict([
             # 'type': 'sphero_res_learner',
             # 'type': 'testdata1',
             'type': cnf['logtype'],
+            'blocksize': numsteps,
             'file': [
                 cnf['logfile'],
                 # all files 147000
@@ -131,9 +140,10 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'outputs': {
                 'log': {'shape': None},
-                'x': {'shape': None}, 'y': {'shape': None}}, # , 
-            }
-        }),
+                'x': {'shape': (xdim, numsteps)}, 'y': {'shape': (ydim, numsteps)}
+            }, # , 
+        }
+    }),
 
     # slice block to split puppy sensors x into gyros x_gyr and accels x_acc
     ('puppyslice', {
@@ -142,9 +152,9 @@ graph = OrderedDict([
             'id': 'puppyslice',
             'blocksize': numsteps,
             # puppy sensors
-            'inputs': {'x': {'bus': 'puppylog/x'}},
-            'slices': {'x': {'acc': slice(0, 3), 'gyr': slice(3, xdim)}},
-            # 'slices': {'x': {'gyr': slice(0, 1)}},
+            'inputs': {'x': {'bus': 'puppylog/x', 'shape': (xdim, numsteps)}},
+            'slices': sys_slicespec,
+            # 'slices': ,
             }
         }),
             
@@ -154,7 +164,7 @@ graph = OrderedDict([
         'params': {
             'id': 'motordiff',
             'blocksize': numsteps,
-            'inputs': {'y': {'bus': 'puppylog/y'}},
+            'inputs': {'y': {'bus': 'puppylog/y', 'shape': (ydim, numsteps)}},
             'outputs': {},
             'd': 0.1,
             'leak': 0.01,
@@ -170,7 +180,7 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'inputs': {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/y'}},
             'shift': (scanstart, scanstop),
-            'outputs': {'xcorr': {'shape': (ydim, xdim, scanlen, )}},
+            'outputs': {'xcorr': {'shape': (ydim, xdim, scanlen)}},
             }
         }),
 
@@ -185,7 +195,7 @@ graph = OrderedDict([
                     # 'shift': (-120, 8),
             'shift': (scanstart, scanstop),
                     # 'outputs': {'mi': [((ydim + xdim)**2, 1)}}
-            'outputs': {'jh': {'shape': (scanlen, )}}
+            'outputs': {'jh': {'shape': (1, scanlen)}}
         }
     }),
         
@@ -208,7 +218,7 @@ graph = OrderedDict([
                     # 'shift': (-120, 8),
                     'shift': (scanstart, scanstop), # len 21
                     # 'outputs': {'mi': {'shape': ((ydim + xdim)**2, 1)}}
-                    'outputs': {'mimv': {'shape': (scanlen, )}}
+                    'outputs': {'mimv': {'shape': (1, scanlen)}}
                 }
             },
         }
@@ -233,7 +243,7 @@ graph = OrderedDict([
                     # 'shift': (-120, 8),
                     'shift': (scanstart, scanstop), # len 21
                     # 'outputs': {'mi': {'shape': ((ydim + xdim)**2, 1)}}
-                    'outputs': {'temv': {'shape': (scanlen, )}}
+                    'outputs': {'temv': {'shape': (1, scanlen)}}
                 }
             },
         }
@@ -282,7 +292,8 @@ graph = OrderedDict([
                     # 'shift': (-120, 8),
                     'shift': (scanstart, scanstop),
                     # 'outputs': {'mi': {'shape': ((ydim + xdim)**2, 1)}}
-                    'outputs': {'mi': {'shape': (scanlen * ydim * xdim_eff, )}}
+                    # 'outputs': {'mi': {'shape': (scanlen * ydim * xdim_eff, 1)}}
+                    'outputs': {'mi': {'shape': (ydim, xdim_eff, scanlen)}}
                 }
             },
         }
@@ -303,9 +314,9 @@ graph = OrderedDict([
                     'id': 'te',
                     'blocksize': numsteps,
                     'debug': False,
-                    'inputs': {'x': {'bus': 'gyrodel/dy'}, 'y': {'bus': 'puppylog/y'}},
+                    'inputs': {'x': {'bus': 'puppyslice/x_gyr'}, 'y': {'bus': 'puppylog/y'}},
                     'shift': (scanstart, scanstop),
-                    'outputs': {'te': {'shape': (scanlen * ydim * xdim_eff, )}}
+                    'outputs': {'te': {'shape': (ydim, xdim_eff, scanlen)}}
                 }
             },
         }
@@ -330,7 +341,8 @@ graph = OrderedDict([
                     'inputs': {'x': {'bus': 'puppyslice/x_gyr'}, 'y': {'bus': 'puppylog/y'}, 'cond': {'bus': 'puppylog/y'}},
                     'shift': (scanstart, scanstop),
                     # change this to ndim data, dimstack
-                    'outputs': {'cte': {'shape': (scanlen * ydim * xdim_eff, )}}
+                    # 'outputs': {'cte': {'shape': (scanlen * ydim * xdim_eff, 1)}}
+                    'outputs': {'cte': {'shape': (ydim, xdim_eff, scanlen)}}
                 }
             },
         }
@@ -399,44 +411,48 @@ graph = OrderedDict([
     # #     }
     # # }),
     
-    # # # plot raw data timeseries and histograms
-    # # ('plot', {
-    # #     'block': PlotBlock2,
-    # #     'params': {
-    # #         'id': 'plot',
-    # #         'logging': False,
-    # #         'debug': False,
-    # #         'blocksize': numsteps,
-    # #         'wspace': 0.5,
-    # #         'hspace': 0.5,
-    # #         'saveplot': True,
-    # #         'inputs': {
-    # #             'd3': {'bus': 'puppyslice/x_gyr'},
-    # #             # 'd4': {'bus': 'accint/Ix_acc'}, # 'puppylog/y'}
-    # #             # 'd3': {'bus': 'puppylog/x'},
-    # #             'd4': {'bus': 'puppylog/y'}, # 'puppylog/y'}
-    # #             'd5': {'bus': 'motordel/dy'}, # 'puppylog/y'}
-    # #             'd6': {'bus': 'puppyslicem/x_y0'}, # /t
-    # #             'd7': {'bus': 'puppyslicemd/x_y0'}, # /t
-    # #         },
-    # #         'outputs': {},#'x': {'shape': (3, 1)}},
-    # #         'subplots': [
-    # #             [
-    # #                 {'input': ['d3'], 'plot': timeseries},
-    # #                 {'input': 'd3', 'plot': histogram, 'title': 'Sensor histogram'},
-    # #             ],
-    # #             [
-    # #                 {'input': ['d5'], 'plot': timeseries},
-    # #                 {'input': 'd5', 'plot': histogram},
-    # #             ],
-    # #             [
-    # #                 # {'input': ['d6', 'd7'], 'plot': partial(timeseries, marker = ".")},
-    # #                 {'input': ['d3', 'd4'], 'plot': partial(timeseries, marker = ".")},
-    # #                 {'input': 'd6', 'plot': timeseries},
-    # #             ],
-    # #         ]
-    # #     },
-    # # }),
+    # plot raw data timeseries and histograms
+    ('plot', {
+        'block': PlotBlock2,
+        'params': {
+            'id': 'plot',
+            'logging': False,
+            'debug': False,
+            'blocksize': numsteps,
+            'wspace': 0.5,
+            'hspace': 0.5,
+            'saveplot': saveplot,
+            'inputs': {
+                'd3': {'bus': 'puppyslice/x_gyr'},
+                # 'd4': {'bus': 'accint/Ix_acc'}, # 'puppylog/y'}
+                # 'd3': {'bus': 'puppylog/x'},
+                'd4': {'bus': 'puppylog/y'}, # 'puppylog/y'}
+                # 'd5': {'bus': 'motordel/dy'}, # 'puppylog/y'}
+                # 'd6': {'bus': 'puppyslicem/x_y0'}, # /t
+                # 'd7': {'bus': 'puppyslicemd/x_y0'}, # /t
+            },
+            'outputs': {},#'x': {'shape': (3, 1)}},
+            'subplots': [
+                [
+                    {'input': ['d3'], 'plot': timeseries},
+                    {'input': 'd3', 'plot': histogram, 'title': 'Sensor histogram'},
+                ],
+                [
+                    {'input': ['d4'], 'plot': timeseries},
+                    {'input': 'd4', 'plot': histogram, 'title': 'Motor histogram'},
+                ],
+                # [
+                #     {'input': ['d5'], 'plot': timeseries},
+                #     {'input': 'd5', 'plot': histogram},
+                # ],
+                # [
+                #     # {'input': ['d6', 'd7'], 'plot': partial(timeseries, marker = ".")},
+                #     {'input': ['d3', 'd4'], 'plot': partial(timeseries, marker = ".")},
+                #     {'input': 'd6', 'plot': timeseries},
+                # ],
+            ]
+        },
+    }),
     
     # plot cross-correlation matrix
     ('plot_xcor_line', {
@@ -445,22 +461,23 @@ graph = OrderedDict([
             'id': 'plot_xcor_line',
             'logging': False,
             'debug': False,
-            'saveplot': True,
+            'saveplot': saveplot,
             'blocksize': numsteps,
             'inputs': make_input_matrix_ndim(xdim = xdim, ydim = ydim, with_t = True),
             'outputs': {}, #'x': {'shape': (3, 1)}},
+            'wspace': 0.5,
+            'hspace': 0.5,
+            # 'xslice': (0, scanlen), 
             'subplots': [
-                [{'input': ['d3'], 'ndslice': (i, j, ), 'xslice': (0, scanlen), 'xaxis': 't',
+                [{'input': ['d3'], 'ndslice': (slice(scanlen), i, j), 'xaxis': 't',
+                      'shape': (1, scanlen),
                   'plot': partial(timeseries, linestyle="none", marker=".")} for j in range(xdim)]
                 for i in range(ydim)],
+                
             #     [{'input': 'd3_%d_%d' % (i, j), 'xslice': (0, scanlen), 'xaxis': 't',
             #       'plot': partial(timeseries, linestyle="none", marker=".")} for j in range(xdim)]
             # for i in range(ydim)],
-                # [{'input': 'd3', 'xslice': (0, scanlen), 'xaxis': 't',
-                #   'plot': partial(timeseries, linestyle="none", marker="."),
-                #   'shape': (ydim, xdim, scanlen, )}
-                # ]
-            # ],
+            
         },
     }),
 
@@ -470,7 +487,7 @@ graph = OrderedDict([
         'params': {
             'id': 'plot_xcor_img',
             'logging': False,
-            'saveplot': True,
+            'saveplot': saveplot,
             'debug': False,
             'blocksize': numsteps,
             # 'inputs': make_input_matrix(xdim = xdim, ydim = ydim, with_t = True),
@@ -482,7 +499,7 @@ graph = OrderedDict([
                 # [{'input': ['d3'], 'ndslice': (i, j, ), 'xslice': (0, scanlen), 'xaxis': 't',
                 #   'plot': partial(timeseries, linestyle="none", marker=".")} for j in range(xdim)]
                 # for i in range(ydim)],
-                [{'input': ['d3'], 'ndslice': (i, j, ), 'xslice': (0, scanlen), 'yslice': (0, 1),
+                [{'input': ['d3'], 'ndslice': (slice(scanlen), i, j),
                   'shape': (1, scanlen), 'cmap': 'RdGy', 'title': 'xcorrs',
                               'vmin': -1.0, 'vmax': 1.0, 'vaxis': 'cols',} for j in range(xdim)] # 'seismic'
             for i in range(ydim)],
@@ -495,7 +512,7 @@ graph = OrderedDict([
         'params': {
             'id': 'plot_jh_mimv_temv',
             'logging': False,
-            'saveplot': True,
+            'saveplot': saveplot,
             'debug': False,
             'wspace': 0.5,
             'hspace': 0.5,
@@ -530,7 +547,7 @@ graph = OrderedDict([
         'params': {
             'id': 'plot_mi_te',
             'logging': False,
-            'saveplot': True,
+            'saveplot': saveplot,
             'debug': False,
             'wspace': 0.1,
             'hsapce': 0.1,
@@ -557,8 +574,9 @@ graph = OrderedDict([
             'subplots': [
                 [
                     {'input': 'd1',
-                     'yslice': (i * xdim_eff * ydim, (i+1) * xdim_eff * ydim),
-                     'xslice': (0, 1),
+                     # 'yslice': (i * xdim_eff * ydim, (i+1) * xdim_eff * ydim),
+                     # 'xslice': (0, 1),
+                     'ndslice': (i, slice(None), slice(None)),
                      'shape': (ydim, xdim_eff),
                      'title': 'mi-matrix', 'cmap': 'Reds',
                      'vaxis': 'rows',
@@ -566,19 +584,23 @@ graph = OrderedDict([
                 ],
                 [
                     {'input': 'd2',
-                     'yslice': (i * xdim_eff * ydim, (i+1) * xdim_eff * ydim),
-                     'xslice': (0, 1),
+                     # 'yslice': (i * xdim_eff * ydim, (i+1) * xdim_eff * ydim),
+                     # 'xslice': (0, 1),
+                     'ndslice': (i, slice(None), slice(None)),
                      'title': 'te-matrix', 'cmap': 'Reds',
                      'vaxis': 'rows',
-                     'shape': (ydim, xdim_eff), 'plot': 'bla'} for i in range(scanlen)
+                     'shape': (ydim, xdim_eff),
+                     'plot': 'bla'} for i in range(scanlen)
                 ],
                 [
                     {'input': 'd3',
-                     'yslice': (i * xdim_eff * ydim, (i+1) * xdim_eff * ydim),
-                     'xslice': (0, 1),
+                     # 'yslice': (i * xdim_eff * ydim, (i+1) * xdim_eff * ydim),
+                     # 'xslice': (0, 1),
+                     'ndslice': (i, slice(None), slice(None)),
                      'title': 'cte-matrix', 'cmap': 'Reds',
                      'vaxis': 'rows',
-                     'shape': (ydim, xdim_eff), 'plot': 'bla'} for i in range(scanlen)
+                     'shape': (ydim, xdim_eff),
+                     'plot': 'bla'} for i in range(scanlen)
                 ],
             ],
         },
@@ -591,6 +613,7 @@ graph = OrderedDict([
             'id': 'plot2',
             'logging': False,
             'debug': False,
+            'saveplot': saveplot,
             'blocksize': numsteps,
             'inputs': {
                 'd3': {'bus': 'puppyslice/x_gyr'},

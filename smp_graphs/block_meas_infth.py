@@ -42,7 +42,8 @@ class JHBlock2(PrimBlock2):
             jhs.append(jh)
         print ""
         jhs = np.array(jhs) # /jh0
-        # print "jhs.shape", jhs.shape
+        print "jhs.shape", jhs.shape
+        # self.jh[0,shiftsl] = jhs
         self.jh[0,shiftsl] = jhs
         
 class MIBlock2(PrimBlock2):
@@ -62,7 +63,10 @@ class MIBlock2(PrimBlock2):
         # shouldn't change too much under time shift
         jh = compute_mi_multivariate(data = {'X': st, 'Y': st})
         
-        print "%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by " % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape),
+        # print "%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by " % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape),
+        # print "%s.step[%d]-%s src.sh = %s, src = %s" % (self.cname, self.cnt, self.id, src.shape, src)
+        # print "%s.step[%d]-%s dst.sh = %s, dst = %s" % (self.cname, self.cnt, self.id, dst.shape, dst)
+        print "%s.step[%d]-%s src.shape = %s, dst.shape = %s" % (self.cname, self.cnt, self.id, src.shape, dst.shape,),
         for i in range(self.shift[0], self.shift[1]):
             print "%d" % (i, ),
             sys.stdout.flush()
@@ -84,6 +88,7 @@ class MIBlock2(PrimBlock2):
 
         print ""
         mis = np.array(mis)
+        # print "%s-%s.step mis.shape = %s / %s" % (self.cname, self.id, mis.shape, mis.T.shape)
         # print "mis = ", mis.flatten()
         # jhs = np.array(jhs)
         # print "mis.shape = %s, jhs.shape = %s" % (mis.shape, jhs.shape)
@@ -99,7 +104,8 @@ class MIBlock2(PrimBlock2):
         # self.mi[:,0] = mis.flatten()/maxjh
         # normalized by joint entropy
         # self.mi[:,0] = mis.flatten()/jh
-        self.mi[:,0] = mis.flatten()
+        # self.mi[:,0] = mis.flatten()
+        self.mi = mis.T.copy()
 
 class InfoDistBlock2(PrimBlock2):
     """!@brief Compute elementwise information distance among all variables in dataset. This is
@@ -117,7 +123,8 @@ class InfoDistBlock2(PrimBlock2):
         mis = []
         src = self.inputs['x']['val'].T
         dst = self.inputs['y']['val'].T
-        print "%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s" % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape)
+        # print "%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s" % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape)
+        print "%s.step[%d]-%s src.shape = %s, dst.shape = %s" % (self.cname, self.cnt, self.id, src.shape, dst.shape,),
         for i in range(self.shift[0], self.shift[1]):
             print "%d" % (i, ),
             sys.stdout.flush()
@@ -136,13 +143,15 @@ class InfoDistBlock2(PrimBlock2):
             # if src eq dst 
             # blank out the diagonal since it's always one
             # np.fill_diagonal(mi, np.max(mi))
-        mis = np.array(mis)
         print ""            
+        mis = np.array(mis)
+        print "%s-%s.step mis.shape = %s / %s" % (self.cname, self.id, mis.shape, mis.T.shape)
         # print "%s.%s infodist = %s" % (self.cname, self.id, mi)
         # print "infodist block", self.infodist.shape, mi.shape
         
         # self.infodist[:,0] = mi.flatten()
-        self.infodist[:,0] = mis.flatten()
+        # self.infodist[:,0] = mis.flatten()
+        self.infodist = mis.T.copy()
         
 class TEBlock2(PrimBlock2):
     """!@brief Compute elementwise transfer entropy from src to dst variables in dataset"""
@@ -151,11 +160,14 @@ class TEBlock2(PrimBlock2):
 
     @decStep()
     def step(self, x = None):
-        mis = []
+        tes = []
         src = self.inputs['x']['val'].T
         dst = self.inputs['y']['val'].T
         # jh = self.measH.step(st)
-        print "%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by " % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape),
+        # print "%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by " % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape),
+        # print "%s.step[%d]-%s src.sh = %s, src = %s" % (self.cname, self.cnt, self.id, src.shape, src)
+        # print "%s.step[%d]-%s dst.sh = %s, dst = %s" % (self.cname, self.cnt, self.id, dst.shape, dst)
+        print "%s.step[%d]-%s src.shape = %s, dst.shape = %s" % (self.cname, self.cnt, self.id, src.shape, dst.shape,),
         for i in range(self.shift[0], self.shift[1]):
             print "%d" % (i, ),
             sys.stdout.flush()
@@ -165,13 +177,15 @@ class TEBlock2(PrimBlock2):
             
             # st = np.hstack((src, dst))
             
-            # mi = compute_transfer_entropy(dst, src)
-            mi = compute_transfer_entropy(dst, src, delay = -i)
-            mis.append(mi)
+            # te = compute_transfer_entropy(dst, src)
+            te = compute_transfer_entropy(dst, src, delay = -i)
+            tes.append(te.copy())
         print ""
 
-        mis = np.array(mis)
-        self.te[:,0] = mis.flatten()
+        tes = np.array(tes)
+        # print "%s-%s.step tes.shape = %s / %s" % (self.cname, self.id, tes.shape, tes.T.shape)
+        # self.te[:,0] = tes.flatten()
+        self.te = tes.T.copy()
 
 class CTEBlock2(PrimBlock2):
     """!@brief Compute elementwise conditional transfer entropy from src to dst variables conditioned
@@ -181,12 +195,15 @@ class CTEBlock2(PrimBlock2):
 
     @decStep()
     def step(self, x = None):
-        mis = []
+        ctes = []
         # jh = self.measH.step(st)
         dst  = self.inputs['x']['val'].T
         src  = self.inputs['y']['val'].T
         cond = self.inputs['cond']['val'].T
-        print "%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s" % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape)
+        # print "%s.step[%d]-%s src.sh = %s, src = %s" % (self.cname, self.cnt, self.id, src.shape, src)
+        # print "%s.step[%d]-%s dst.sh = %s, dst = %s" % (self.cname, self.cnt, self.id, dst.shape, dst)
+        # print "%s.step[%d]-%s cond.sh = %s, cond = %s" % (self.cname, self.cnt, self.id, cond.shape, cond)
+        print "%s.step[%d]-%s src.shape = %s, dst.shape = %s, cond.shape = %s" % (self.cname, self.cnt, self.id, src.shape, dst.shape, cond.shape),
         for i in range(self.shift[0], self.shift[1]):
             print "%d" % (i, ),
             sys.stdout.flush()
@@ -196,13 +213,16 @@ class CTEBlock2(PrimBlock2):
             
             # st = np.hstack((src, dst))
             
-            # mi = compute_conditional_transfer_entropy(dst, src, cond)
-            mi = compute_conditional_transfer_entropy(src, dst, cond, delay = -i, xcond = self.xcond)
-            mis.append(mi)
+            # cte = compute_conditional_transfer_entropy(dst, src, cond)
+            cte = compute_conditional_transfer_entropy(src, dst, cond, delay = -i, xcond = self.xcond)
+            ctes.append(cte.copy())
         print ""
 
-        mis = np.array(mis)
-        self.cte[:,0] = mis.flatten()
+        ctes = np.array(ctes)
+        # print "%s-%s.step ctes.shape = %s / %s" % (self.cname, self.id, ctes.shape, ctes.T.shape)
+        # print "ctes", ctes
+        # self.cte[:,0] = ctes.flatten()
+        self.cte = ctes.T.copy()
 
 ################################################################################
 # multivariate versions
@@ -252,6 +272,7 @@ class MIMVBlock2(PrimBlock2):
         # print "mutual info self.mi.shape = %s, mi.shape = %s, maxjh = %s" % (self.mi.shape, mi.shape, maxjh)
         
         # self.mi[:,0] = (mi/jh).flatten()
+        # self.mimv[0,shiftsl] = mimvs.flatten() # /maxjh
         self.mimv[0,shiftsl] = mimvs.flatten() # /maxjh
 
 class TEMVBlock2(PrimBlock2):
@@ -280,6 +301,7 @@ class TEMVBlock2(PrimBlock2):
             temvs.append(mi)
         print ""
         temvs = np.array(temvs)
+        # self.temv[0,shiftsl] = temvs.flatten()
         self.temv[0,shiftsl] = temvs.flatten()
 
 class CTEMVBlock2(PrimBlock2):

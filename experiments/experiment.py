@@ -2,7 +2,7 @@
 import sys
 from smp_graphs.experiment import get_args
 from smp_graphs.experiment import Experiment, Graphviz
-from pyqtgraph.Qt import QtGui, QtCore
+# from pyqtgraph.Qt import QtGui, QtCore
 
 def main(args):
 

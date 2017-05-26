@@ -14,8 +14,6 @@ import networkx as nx
 
 import numpy as np
 
-from hyperopt import STATUS_OK, STATUS_FAIL
-
 import pandas as pd
 
 import matplotlib.pyplot as plt
@@ -29,6 +27,9 @@ from smp_graphs.common import get_config_raw, get_config_raw_from_string
 from smp_graphs.common import set_attr_from_dict
 
 from smp_graphs.graph import nxgraph_from_smp_graph, nxgraph_node_by_id
+
+# FIXME: make it optional in core
+from hyperopt import STATUS_OK, STATUS_FAIL
 
 BLOCKSIZE_MAX = 10000
 
@@ -101,24 +102,35 @@ class Bus(MutableMapping):
     def plot(self, ax = None):
         assert ax is not None
         xspacing = 10
-        yspacing = 10
+        yspacing = 2
         yscaling = 0.66
-        ax.text(10, 0, "Bus (%s)" % ("topblock"), fontsize = 8)
+        
+        xmax = 0
+        ymax = 0
+
+        ypos = -yspacing
+        xpos = 0
+    
+        ax.text(10, 0, "Bus (%s)" % ("topblock"), fontsize = 10)
         ax.grid(0)
-        ax.set_xlim((0, 100))
-        ax.set_ylim((-100, 0))
         # ax.plot(np.random.uniform(-5, 5, 100), "ko", alpha = 0.1)
         i = 0
         for k, v in self.store.items():
             # print "k = %s, v = %s" % (k, v)
-            ypos = -10 # -(i+1)*yspacing
-            xpos = (i+1)*xspacing
+            # ypos = -10 # -(i+1)*yspacing
+            # xpos = (i+1)*xspacing
+            # ypos += -yspacing
+            xpos +=  xspacing
+            if len(k) > 8:
+                xspacing = len(k) + 2
+            else:
+                xspacing = 10
             ax.text(xpos, ypos, "{0: <8}\n{1: <12}".format(k, v.shape), family = 'monospace', fontsize = 8)
-            # elem shape
+            # elementary shape without buffersize
             ax.add_patch(
                 patches.Rectangle(
                     # (30, ypos - (v.shape[0]/2.0) - (yspacing / 3.0)),   # (x,y)
-                    (xpos+2, ypos-2),   # (x,y)
+                    (xpos+2, ypos-1),   # (x,y)
                     v.shape[0],          # width
                     -1 * yscaling,          # height
                     fill = False,
@@ -126,19 +138,30 @@ class Bus(MutableMapping):
                     hatch = "-",
                 )
             )
-            # blockshape
+            
+            # full blockshape
+            bs_height = -np.log10(v.shape[1] * yscaling)
             ax.add_patch(
                 patches.Rectangle(
                     # (30, ypos - (v.shape[0]/2.0) - (yspacing / 3.0)),   # (x,y)
-                    (xpos+2, ypos-8),   # (x,y)
+                    (xpos+2, ypos-2),   # (x,y)
                     v.shape[0],          # width
-                    -v.shape[1] * yscaling,          # height
+                    bs_height,          # height
                     fill = False,
                     # hatch = "|",
                     hatch = "-",
                 )
             )
+
+            if xpos > xmax: xmax = xpos
+            if -(ypos - 8 - bs_height) > ymax: ymax = -(ypos - 8 - bs_height) + 2
             i+=1
+            
+        # ax.set_xlim((0, 100))
+        # ax.set_ylim((-100, 0))
+        ax.set_xlim((0, xmax))
+        ax.set_ylim((-ymax, 0))
+        
         plt.draw()
         plt.pause(1e-6)
 
@@ -198,17 +221,17 @@ class decStep():
                                 
                                 # set inputs [last-inputbs:last] if input blocksize reached                                
                                 sl = slice(-blocksize_input_bus, None)
-                                # print xself.cname, "sl", sl, "bus.shape", xself.bus[v['bus']].shape, v['val'].shape
+                                # print "%s-%s" % (xself.cname, xself.id), "sl", sl, "bus.shape", xself.bus[v['bus']].shape, "v['val'].shape", v['val'].shape
                                 v['val'][...,-blocksize_input_bus:] = xself.bus[v['bus']].copy() # np.fliplr(xself.bus[v[2]])
-                                if k == 'd2':
-                                    # debugging bus to in copy
-                                    print "%s-%s.%s[%d]\n  bus[%s] = %s to %s[%s] = %s / %s" % (esname, esid,
-                                                                         sname,
-                                                                         escnt,
-                                                                         v['bus'],
-                                                                         xself.bus[v['bus']].shape, k, sl, v['shape'], v['val'].shape)
-                                    # print xself.bus[v['bus']]
-                                    print v['val'][...,-1]
+                                # if k == 'd2':
+                                #     # debugging bus to in copy
+                                #     print "%s-%s.%s[%d]\n  bus[%s] = %s to %s[%s] = %s / %s" % (esname, esid,
+                                #                                          sname,
+                                #                                          escnt,
+                                #                                          v['bus'],
+                                #                                          xself.bus[v['bus']].shape, k, sl, v['shape'], v['val'].shape)
+                                #     # print xself.bus[v['bus']]
+                                #     print v['val'][...,-1]
                         else: # ibuf = 1
                             v['val'][...,[0]] = xself.bus[v['bus']].copy()
                             
@@ -388,7 +411,7 @@ class Block2(object):
             # self.debug_print("__init__: pass 1\nk = %s,\nv = %s", (k, print_dict(v)))
 
             # debug timing
-            print "{0: <20}.init pass 1 k = {1: >5}, v = {2: >20}".format(self.__class__.__name__[:20], k, v['block'].__name__)
+            print "{0: <20}.init pass 1 k = {1: >20}, v = {2: >20}".format(self.__class__.__name__[:20], k[:20], v['block'].__name__)
             then = time.time()
 
             # print v['block_']
@@ -433,7 +456,7 @@ class Block2(object):
         for k, v in self.outputs.items():
             # print "%s.init_outputs: outk = %s, outv = %s" % (self.cname, k, v)
             assert type(v) is dict, "Old config of %s output %s with type %s, %s" % (self.id, k, type(v), v)
-            assert len(v['shape']) > 1, "Output %s 'shape' tuple is needs at least (dim1 x output blocksize)"
+            assert len(v['shape']) > 1, "Block %s, output %s 'shape' tuple is needs at least (dim1 x output blocksize), v = %s" % (self.id, k, v)
             # # create new shape tuple by appending the blocksize to original dimensions
             # if v['shape'][-1] != self.blocksize: # FIXME: heuristic
             #     v['bshape']  = v['shape'] + (self.blocksize,)
@@ -495,7 +518,9 @@ class Block2(object):
             for k, v in self.inputs.items():
                 self.debug_print("__init__: pass 2\n    in_k = %s,\n    in_v = %s", (k, v))
                 assert len(v) > 0
-                assert type(v) is dict, "input value %s in block %s/%s must be a dict but it is a %s, probably old config" % (k, self.cname, self.id, type(v))
+                # FIXME: when is inv not a dict?
+                # assert type(v) is dict, "input value %s in block %s/%s must be a dict but it is a %s, probably old config" % (k, self.cname, self.id, type(v))
+                # assert v.has_key('shape'), "input dict of %s/%s needs 'shape' entry, or do something about it" % (self.id, k)
                 
                 # set input from bus
                 if v.has_key('bus'):
@@ -538,7 +563,7 @@ class Block2(object):
                                         
                     v['shape'] = v['val'].shape # self.bus[v['bus']].shape
                     
-                    print "\n%s init_pass_2 ink %s shape = %s / %s" % (self.id, k, v['val'].shape, v['shape'])
+                    # print "\n%s init_pass_2 ink %s shape = %s / %s" % (self.id, k, v['val'].shape, v['shape'])
                     self.debug_print("%s.init_pass_2: %s, bus[%s] = %s, input = %s", (self.cname, self.id, v['bus'], self.bus[v['bus']].shape, v['val'].shape))
                 # elif type(v[0]) is str:
                 #     # it's a string but no valid buskey, init zeros(1,1)?
@@ -959,11 +984,11 @@ params: inputs, outputs, leakrate / smoothrate?
             # get input shape
             inshape = top.bus[conf['params']['inputs'][ink]['bus']].shape
             # inshape = conf['params']['inputs'][ink]['shape']
-            print "inshape", inshape
+            # print "inshape", inshape
             # alloc copy of previous input block 
             setattr(self, "%s_" % ink, np.zeros(inshape))
             # set output members
-            conf['params']['outputs']["d%s" % ink] = {'shape': inshape[:-1]}
+            conf['params']['outputs']["d%s" % ink] = {'shape': inshape}
             
         # base block init
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
@@ -1010,7 +1035,7 @@ params: inputs, delay in steps / shift
             # print ink, params['delays'][ink]
             setattr(self, "%s_" % ink, np.zeros((inshape[0], inshape[1] + params['delays'][ink])))
             # set output members
-            params['outputs']["d%s" % ink] = {'shape': inshape[:-1]}
+            params['outputs']["d%s" % ink] = {'shape': inshape}
             
         # base block init
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
@@ -1048,18 +1073,19 @@ class SliceBlock2(PrimBlock2):
         if not params.has_key('outputs'):
             params['outputs'] = {}
             
-        for k in params['inputs'].keys():
+        for k, v in params['inputs'].items():
             slicespec = params['slices'][k]
             # print slicespec
             for slk, slv in slicespec.items():
                 # print "%s.init inkeys %s" % (self.__class__.__name__, k)
+                oblocksize = v['shape'][1]
                 outk = "%s_%s" % (k, slk)
                 if type(slv) is slice:
-                    params['outputs'][outk] = {'shape': (slv.stop - slv.start, )} # top.bus[params['inputs'][k][0]].shape
+                    params['outputs'][outk] = {'shape': (slv.stop - slv.start, oblocksize)} # top.bus[params['inputs'][k][0]].shape
                 elif type(slv) is list:
-                    params['outputs'][outk] = {'shape': (len(slv), )} # top.bus[params['inputs'][k][0]].shape
+                    params['outputs'][outk] = {'shape': (len(slv), oblocksize)} # top.bus[params['inputs'][k][0]].shape
                 elif type(slv) is tuple:
-                    params['outputs'][outk] = {'shape': (slv[1] - slv[0], )} # top.bus[params['inputs'][k][0]].shape
+                    params['outputs'][outk] = {'shape': (slv[1] - slv[0], oblocksize)} # top.bus[params['inputs'][k][0]].shape
             
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
 

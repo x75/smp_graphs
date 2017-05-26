@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import numpy as np
 import pandas as pd
+# FIXME: soft import
 import seaborn as sns
 
 from smp_graphs.block import decStep, decInit
@@ -97,6 +98,7 @@ class PlotBlock2(FigPlotBlock2):
 
     def plot_subplots(self):
         """loop over configured subplot and plot the data according to config"""
+        # print "%s plot_subplots self.inputs = %s" % (self.cname, self.inputs)
         if True:
             for i, subplot in enumerate(self.subplots):
                 for j, subplotconf in enumerate(subplot):
@@ -118,18 +120,22 @@ class PlotBlock2(FigPlotBlock2):
                     plotlen = self.inputs[subplotconf['input'][0]]['shape'][-1]
                     xslice = slice(0, plotlen)
                     plotshape = mytupleroll(self.inputs[subplotconf['input'][0]]['shape'])
+                    # print "%s.subplots defaults: plotlen = %d, xslice = %s, plotshape = %s" % (self.cname, plotlen, xslice, plotshape)
+                    
                     # x axis slice spec
                     if subplotconf.has_key('xslice'):
                         xslice = slice(subplotconf['xslice'][0], subplotconf['xslice'][1])
                         plotlen = xslice.stop - xslice.start
                         plotshape = (plotlen, ) + tuple((b for b in plotshape[1:]))
                         
+                    # print "%s.subplots post-xslice: plotlen = %d, xslice = %s, plotshape = %s" % (self.cname, plotlen, xslice, plotshape)
+                        
                     if subplotconf.has_key('shape'):
                         plotshape = mytupleroll(subplotconf['shape'][0])
                         plotlen = plotshape[0]
                         xslice = slice(0, plotlen)
 
-                    print "%s.subplots plotshape = %s" % (self.cname, plotshape)
+                    # print "%s.subplots post-shape: plotlen = %d, xslice = %s, plotshape = %s" % (self.cname, plotlen, xslice, plotshape)
                         
                     # configure x axis
                     if subplotconf.has_key('xaxis'):
@@ -158,12 +164,12 @@ class PlotBlock2(FigPlotBlock2):
                         else:
                             plotdata[ink_] = myt(self.inputs[ink]['val'])[xslice] # .reshape((xslice.stop - xslice.start, -1))
 
-                        print "plotdata", plotdata[ink_].shape, plotshape
+                        # print "plotdata", plotdata[ink_].shape, plotshape
                         
                         # plotdata[ink_] = plotdata[ink_].reshape((plotshape[1], plotshape[0])).T
                         plotdata[ink_] = plotdata[ink_].reshape(plotshape)
                         
-                        print "plotdata", plotdata[ink_].shape, plotshape
+                        # print "plotdata", plotdata[ink_].shape, plotshape
                         # fix nans
                         plotdata[ink_][np.isnan(plotdata[ink_])] = -1.0
                         plotvar += "%s, " % (self.inputs[ink]['bus'],)
@@ -214,14 +220,16 @@ class PlotBlock2(FigPlotBlock2):
                     labels = []
                     for ink, inv in plotdata.items():
                         # print "%s.plot_subplots: ink = %s, plotvar = %s, inv.sh = %s, t.sh = %s" % (self.cname, ink, plotvar, inv.shape, t.shape)
-                        print "v", inv.shape, t.shape
                         # this is the plotfunction from the config
+                        self.fig.axes[idx].clear()
                         subplotconf['plot'](self.fig.axes[idx], data = inv, ordinate = t, label = "%s" % ink, title = title)
                         # labels.append("%s" % ink)
                         # metadata
                     # self.fig.axes[idx].legend()
                     # self.fig.axes[idx].set_title("%s of %s" % (plottype, plotvar, ), fontsize=8)
                     # [subplotconf['slice'][0]:subplotconf['slice'][1]].T)
+        plt.draw()
+        plt.pause(1e-9)
 
 # plot a matrix via imshow/pcolor
 class ImgPlotBlock2(FigPlotBlock2):
@@ -244,11 +252,18 @@ class ImgPlotBlock2(FigPlotBlock2):
                 
         for i, subplot in enumerate(self.subplots): # rows
             for j, subplotconf in enumerate(subplot): # cols
-                subplotconf['input'] = subplot_input_fix(subplotconf['input'])
-                vmins_sb[j].append(np.min(self.inputs[subplotconf['input'][0]]['val']))
-                vmaxs_sb[j].append(np.max(self.inputs[subplotconf['input'][0]]['val']))
-                extrema[0,i,j] = np.min(self.inputs[subplotconf['input'][0]]['val'])
-                extrema[1,i,j] = np.max(self.inputs[subplotconf['input'][0]]['val'])
+                # make it a list if it isn't
+                for input_spec_key in ['input', 'ndslice', 'shape']:
+                    if subplotconf.has_key(input_spec_key):
+                        subplotconf[input_spec_key] = subplot_input_fix(subplotconf[input_spec_key])
+                        
+                # for img plot use only first input item
+                subplotin = self.inputs[subplotconf['input'][0]]
+                # print "subplotin[%d,%d].shape = %s / %s" % (i, j, subplotin['val'].shape, subplotin['shape'])
+                vmins_sb[j].append(np.min(subplotin['val']))
+                vmaxs_sb[j].append(np.max(subplotin['val']))
+                extrema[0,i,j] = np.min(subplotin['val'])
+                extrema[1,i,j] = np.max(subplotin['val'])
                 # print "i", i, "j", j, vmins_sb, vmaxs_sb
         print "mins", self.id, extrema[0]
         print "maxs", extrema[1]
@@ -326,19 +341,22 @@ class ImgPlotBlock2(FigPlotBlock2):
                     # potential FIXME re completeness
                     # if input is ndim
                     if subplotconf.has_key('ndslice'):
-                        di = subplotconf['ndslice'][0]
-                        dj = subplotconf['ndslice'][1]
-                        plotdata_cand = self.inputs[subplotconf['input'][0]]['val'][di, dj, :, -1]
+                        # di = subplotconf['ndslice'][0]
+                        # dj = subplotconf['ndslice'][1]
+                        # plotdata_cand = self.inputs[subplotconf['input'][0]]['val'][di, dj, :, -1]
+                        ink = subplotconf['input'][0]
+                        plotdata_cand = myt(self.inputs[ink]['val'])[subplotconf['ndslice'][0]]
+                        # print "%s[%d]-%s.step plotdata_cand.shape = %s, ndslice = %s, shape = %s, xslice = %s, yslice = %s" % (self.cname, self.cnt, self.id, plotdata_cand.shape, subplotconf['ndslice'], subplotconf['shape'], xslice, yslice)
+                        # print "plotdata_cand", plotdata_cand
                     else:
                         # plotdata_cand = self.inputs[subplotconf['input'][0]]['val'][yslice,xslice]
                         plotdata_cand = self.inputs[subplotconf['input'][0]]['val'].T[xslice,yslice]
                     # print "%s[%d]-%s.step, inputs = %s, %s " % (self.cname, self.cnt, self.id, self.inputs[subplotconf['input']][0].shape,
                     #                                         self.inputs[subplotconf['input']][0])
-                    # print "%s[%d]-%s.step plotdata_cand.shape" % (self.cname, self.cnt, self.id), plotdata_cand.shape, subplotconf['shape'], xslice, yslice
                     # print "plotdata_cand", plotdata_cand
                     
                     plotdata = {}
-                    plotdata['i_%d_%d' % (i, j)] = plotdata_cand.reshape(subplotconf['shape'])
+                    plotdata['i_%d_%d' % (i, j)] = plotdata_cand.reshape(subplotconf['shape'][0])
                     if subplotconf.has_key('ylog'):
                         # plotdata['i_%d_%d' % (i, j)] = np.log(plotdata['i_%d_%d' % (i, j)] + 1.0)
                         # print plotdata['i_%d_%d' % (i, j)]

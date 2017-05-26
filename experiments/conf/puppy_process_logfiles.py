@@ -17,13 +17,16 @@ f = open('data/stepPickles/allpickles.txt')
 filearray = [fname.rstrip() for fname in f.readlines()]
 f.close()
 
+xdim = 6
+ydim = 4
+
 # sys.exit()
 
 # filearray_ = np.random.choice(filearray, size=(10,), replace=False).tolist()
 # print "choice", 
 # print looparray_
 # looparray = looparray_
-looparray = [('file', [fname]) for fname in filearray]
+looparray = [('file', {'filename': fname, 'filetype': 'puppy'}) for fname in filearray]
 print "looparray", looparray
 
 loopblocksize = 1000
@@ -62,7 +65,7 @@ loopblock = {
                 ],
             # 'outputs': {'conf': [(1,1)], 'conf_final': [(1,1)]},
             # 'outputs': {'log': [None]},
-            'outputs': {'x': [None], 'y': [None]},
+            'outputs': {'x': {'shape': (xdim, loopblocksize)}, 'y': {'shape': (ydim, loopblocksize)}},
         },
     }
 
@@ -79,7 +82,8 @@ graph = OrderedDict([
             'numsteps': numsteps, # same as loop length
             'loopblocksize': loopblocksize,
             # can't do this dynamically yet without changing init passes
-            'outputs': {'x': [(6, numsteps * 1000)], 'y': [(4, numsteps * 1000)]},
+            'outputs': {'x': {'shape': (xdim, numsteps)}, 'y': {'shape': (ydim, numsteps)}},
+            # 'outputs': {'x': [(6, numsteps * 1000)], 'y': [(4, numsteps * 1000)]},
             # 'loop': [('inputs', {
             #     'lo': [np.random.uniform(-i, 0, (3, 1))], 'hi': [np.random.uniform(0.1, i, (3, 1))]}) for i in range(1, 11)],
             # 'loop': lambda ref, i: ('inputs', {'lo': [10 * i], 'hi': [20*i]}),
@@ -102,8 +106,8 @@ graph = OrderedDict([
             'inputs': {
                 # 'd1': ['puppylog/b1/x'],
                 # 'd2': ['puppylog/b2/x'],
-                'd3': ['puppylog/x'],
-                'd4': ['puppylog/y'],
+                'd3': {'bus': 'puppylog/x'},
+                'd4': {'bus': 'puppylog/y'},
             },
             'outputs': {},#'x': [(3, 1)]},
             'subplots': [

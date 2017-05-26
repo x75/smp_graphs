@@ -31,7 +31,8 @@ class FileBlock2(Block2):
         ############################################################
         # puppy homeokinesis (andi)
         if conf['params']['type'] == 'puppy':
-            del conf['params']['outputs']['log']
+            if conf['params']['outputs'].has_key('log'):
+                del conf['params']['outputs']['log']
             (self.data, self.rate, self.offset) = read_puppy_hk_pickles(lfile)
             # setattr(self, 'x', self.data['x'])
             # print "self.data", self.data.keys()
@@ -40,8 +41,8 @@ class FileBlock2(Block2):
             #         print "puppylog", k, lfile, v.shape, np.mean(v), np.var(v), v
             # setattr(self, 'x', self.data['x'])
             print "data.keys()", self.data.keys()
-            conf['params']['outputs']['x'] = {'shape': self.data['x'].T.shape[:-1]}
-            conf['params']['outputs']['y'] = {'shape': self.data['y'].T.shape[:-1]}
+            conf['params']['outputs']['x'] = {'shape': self.data['x'].T.shape} # [:-1]
+            conf['params']['outputs']['y'] = {'shape': self.data['y'].T.shape} # [:-1]
             
             # conf['params']['outputs'][k_] = [v.shape]
             # conf['params']['blocksize'] = v.shape[0]
@@ -64,7 +65,7 @@ class FileBlock2(Block2):
                 else:
                     pass
 
-                conf['params']['outputs'][k_] = [self.data[k][:,sl].T.shape]
+                conf['params']['outputs'][k_] = {'shape': self.data[k][:,sl].T.shape}
             self.step = self.step_sphero_res_learner
             print "fileblock sphero_res_learner conf", conf['params']['outputs']
         ############################################################
@@ -96,7 +97,7 @@ class FileBlock2(Block2):
         ############################################################
         # selflog
         elif conf['params']['type'] == 'selflog':
-            print "FileBlock2 selflog", conf['params']['blocksize']
+            # print "FileBlock2 selflog", conf['params']['blocksize']
             assert os.path.exists(lfile), "logfile %s not found" % (lfile, )
             self.store = pd.HDFStore(lfile)
             # clean up dummy entry
@@ -105,14 +106,15 @@ class FileBlock2(Block2):
             conf['params']['storekeys'] = {}
             for k in self.store.keys():
                 # process key from selflog format: remove the block id in the beginning of the key
-                print "FileBlock2 selflog", conf['params']['blocksize']
+                # print "FileBlock2 selflog", conf['params']['blocksize']
                 k_ = k.lstrip("/")
                 if not k_.startswith('conf'):
                     k_ = "/".join(k_.split("/")[1:])
                     assert conf['params']['blocksize'] == self.store[k].shape[0], "numsteps (%d) needs to be set to numsteps (%s) in the file %s" % (conf['params']['blocksize'], self.store[k].shape, lfile)
                     
                     print "%s.init store_key = %s, shape = %s" % (self.__class__.__name__, k, self.store[k].shape)
-                    conf['params']['outputs'][k_] = {'shape': self.store[k].T.shape[:-1]}
+                    # conf['params']['outputs'][k_] = {'shape': self.store[k].T.shape[:-1]}
+                    conf['params']['outputs'][k_] = {'shape': self.store[k].T.shape}
                 # conf['params']['blocksize'] = self.store[k].shape[0]
                 # map output key to log table key
                 conf['params']['storekeys'][k_] = k

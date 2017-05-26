@@ -15,7 +15,7 @@ from functools import partial
 
 # reused variables
 loopblocksize = 1
-loopsteps = 100
+loopsteps = 1000
 numsteps = loopsteps * loopblocksize
 # showplot = False
 
@@ -101,7 +101,7 @@ graph = OrderedDict([
             'numsteps':  numsteps,
             'loopblocksize': loopblocksize,
             # can't do this dynamically yet without changing init passes
-            'outputs': {'x': {'shape': (3, 1)}, 'y': {'shape': (1, 1)}},
+            'outputs': {'x': {'shape': (3, numsteps)}, 'y': {'shape': (1, numsteps)}},
             # 'loop': [('inputs', {
             #     'lo': {'val': np.random.uniform(-i, 0, (3, 1)), 'shape': (3, 1)}, 'hi': {'val': np.random.uniform(0.1, i, (3, 1)), 'shape': (3, 1)}}) for i in range(1, 11)],
             # 'loop': lambda ref, i: ('inputs', {'lo': [10 * i], 'hi': [20*i]}),
