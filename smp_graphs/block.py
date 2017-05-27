@@ -26,7 +26,7 @@ from smp_graphs.common import conf_header, conf_footer
 from smp_graphs.common import get_config_raw, get_config_raw_from_string
 from smp_graphs.common import set_attr_from_dict
 
-from smp_graphs.graph import nxgraph_from_smp_graph, nxgraph_node_by_id
+from smp_graphs.graph import nxgraph_from_smp_graph, nxgraph_node_by_id, nxgraph_node_by_id_recursive
 
 # FIXME: make it optional in core
 from hyperopt import STATUS_OK, STATUS_FAIL
@@ -170,7 +170,9 @@ def get_blocksize_input(G, buskey):
     (srcid, srcvar) = buskey.split("/") # [-1]
     # print "G.nodes()", G.nodes()
     n = nxgraph_node_by_id(G, srcid)
+    #n = nxgraph_node_by_id_recursive(G, srcid)
     if len(n) == 0:
+        # search all subgraphs
         return 1
     return G.node[n[0]]['block_'].blocksize
     
@@ -205,10 +207,10 @@ class decStep():
                         # if extended input buffer, rotate the data with each step
                         if xself.ibuf > 1:
                             
-                            # exec blocksize of the input's source node
+                            # exec   blocksize of the input's source node
                             # FIXME: search once and store, recursively over nxgraph and subgraphs
                             blocksize_input     = get_blocksize_input(xself.top.nxgraph, v['bus'])
-                            # out blocksize if the input's source node
+                            # output blocksize of the input's source node
                             blocksize_input_bus = xself.bus[v['bus']].shape[-1]
                             
                             # input block border 
@@ -224,12 +226,15 @@ class decStep():
                                 # print "%s-%s" % (xself.cname, xself.id), "sl", sl, "bus.shape", xself.bus[v['bus']].shape, "v['val'].shape", v['val'].shape
                                 v['val'][...,-blocksize_input_bus:] = xself.bus[v['bus']].copy() # np.fliplr(xself.bus[v[2]])
                                 # if k == 'd2':
+                                # if xself.id == "plot_infth":
                                 #     # debugging bus to in copy
                                 #     print "%s-%s.%s[%d]\n  bus[%s] = %s to %s[%s] = %s / %s" % (esname, esid,
                                 #                                          sname,
                                 #                                          escnt,
                                 #                                          v['bus'],
                                 #                                          xself.bus[v['bus']].shape, k, sl, v['shape'], v['val'].shape)
+                                #     print "blocksize_input", blocksize_input, "blocksize_input_bus", blocksize_input_bus
+                                
                                 #     # print xself.bus[v['bus']]
                                 #     print v['val'][...,-1]
                         else: # ibuf = 1
@@ -254,6 +259,9 @@ class decStep():
             # FIXME: might not be the best idea to control that on the wrapper level as some
             #        blocks might need to be called every step nonetheless?
             if (xself.cnt % xself.blocksize) == 0: # or (xself.cnt % xself.rate) == 0:
+                # if count aligns with block's execution blocksize
+
+                # compute the block with step()
                 f_out = f(xself, None)
 
                 # copy output to bus
@@ -1070,6 +1078,9 @@ params: inputs, delay in steps / shift
                         
 class SliceBlock2(PrimBlock2):
     """!@brief Slice block can cut slices from the input
+
+FIXME: make slicing a general function of block i/o
+FIXME: generic ndim slicing?
     """
     def __init__(self, conf = {}, paren = None, top = None):
         params = conf['params']
@@ -1081,7 +1092,8 @@ class SliceBlock2(PrimBlock2):
             # print slicespec
             for slk, slv in slicespec.items():
                 # print "%s.init inkeys %s" % (self.__class__.__name__, k)
-                oblocksize = v['shape'][1]
+                # really use the specified output shape, not execution blocksize
+                oblocksize = v['shape'][-1]
                 outk = "%s_%s" % (k, slk)
                 if type(slv) is slice:
                     params['outputs'][outk] = {'shape': (slv.stop - slv.start, oblocksize)} # top.bus[params['inputs'][k][0]].shape
@@ -1099,6 +1111,7 @@ class SliceBlock2(PrimBlock2):
             for slk, slv in slicespec.items():
                 outk = "%s_%s" % (ink, slk)
                 setattr(self, outk, self.inputs[ink]['val'][slv])
+                # print "%s-%s.step[%d] outk = %s, outsh = %s" % (self.cname, self.id, self.cnt, outk, getattr(self, outk).shape)
 
 class StackBlock2(PrimBlock2):
     """!@brief Stack block can combine input slices into a single output item

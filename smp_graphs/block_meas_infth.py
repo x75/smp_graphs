@@ -267,8 +267,8 @@ class MIMVBlock2(PrimBlock2):
         print ""
         mimvs = np.array(mimvs)
         # jhs = np.array(jhs)
-        print "@%d mimvs.shape = %s" % (self.cnt, mimvs.shape, )
-        print "@%d mimvs       = %s" % (self.cnt, mimvs, )
+        # print "@%d mimvs.shape = %s" % (self.cnt, mimvs.shape, )
+        # print "@%d mimvs       = %s" % (self.cnt, mimvs, )
                     
         # mi = self.meas.step(self.inputs['x']['val'].T, self.inputs['y']['val'].T)
         # np.fill_diagonal(mi, np.min(mi))
@@ -280,6 +280,7 @@ class MIMVBlock2(PrimBlock2):
         # self.mi[:,0] = (mi/jh).flatten()
         # self.mimv[0,shiftsl] = mimvs.flatten() # /maxjh
         self.mimv[0,shiftsl] = mimvs.flatten() # /maxjh
+        # print "@%d self.mimv.shape = %s, mimv = %s" % (self.cnt, self.mimv.shape, self.mimv)
 
 class TEMVBlock2(PrimBlock2):
     """!@brief Compute the multivariate transfer entropy from X to Y, aka the total TE"""

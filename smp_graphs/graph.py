@@ -94,8 +94,21 @@ def nxgraph_node_by_id(G, nid):
     if nid is None: return
     gen = (n for n in G if G.node[n]['params']['id'] == nid)
     tmp = list(gen)
+    # print "nid", nid, tmp
     return tmp
         
+def nxgraph_node_by_id_recursive(G, nid):
+    if nid is None: return
+    gen = (n for n in G if G.node[n]['params']['id'] == nid)
+    tmp = list(gen)
+    # print "nid", nid, len(tmp)
+    if len(tmp) == 0:
+        gen2 = (n for n in G if hasattr(G.node[n]['block_'], 'graph'))
+        tmp2 = list(gen2)
+        # print "tmp2", tmp2
+        
+    return tmp
+
 def nxgraph_add_edges(G):
     # add nxgraph edges
     edges = []

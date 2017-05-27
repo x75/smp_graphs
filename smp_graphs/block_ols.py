@@ -237,11 +237,11 @@ class FileBlock2(Block2):
             for k, v in self.outputs.items():
                 # if k.startswith('conf'):
                 storek = self.storekeys[k]
-                print "step: cnt = %d key = %s, log.sh = %s" % (self.cnt, k, self.store[storek].shape)
+                # print "%s-%s.step[%d] key = %s, logdata.sh = %s" % (self.cname, self.id, self.cnt, k, self.store[storek].shape)
                 # print self.store[k].values
                 setattr(self, k, self.store[storek][self.cnt-self.blocksize:self.cnt].values.T)
                 # print self.store[k][self.cnt-self.blocksize:self.cnt].values.T
-                # print k
+                # print "%s-%s.step[%d] self.%s = %s" % (self.cname, self.id, self.cnt, k, getattr(self, k).shape)
         # for k in self.__dict__.keys(): #self.bus.keys():
             # k = k.replace("/", "_")
             # print "k", k
