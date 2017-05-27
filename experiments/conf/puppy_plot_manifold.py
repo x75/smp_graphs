@@ -7,9 +7,13 @@ from smp_base.plot import histogramnd
 from smp_graphs.block_plot import SnsMatrixPlotBlock2, ImgPlotBlock2
 from smp_graphs.block import dBlock2, IBlock2, SliceBlock2, DelayBlock2
 from smp_graphs.block_meas import XCorrBlock2
-from smp_graphs.block_meas_infth import MIBlock2, InfoDistBlock2, TEBlock2, CTEBlock2
+from smp_graphs.block_meas_infth import JHBlock2, MIBlock2, InfoDistBlock2, TEBlock2, CTEBlock2, MIMVBlock2, TEMVBlock2
 
 # showplot = False
+
+randseed = 19482
+
+saveplot = False
 
 # numsteps = 147000
 # numsteps = 10000
@@ -25,11 +29,100 @@ ydim = 4
 # xdim = 2
 # ydim = 1
 
-def make_input_matrix(xdim = 1, ydim = 1):
+
+ppycnf = {
+    # 'numsteps': 27000,
+    # # 'logfile': 'data/experiment_20170518_161544_puppy_process_logfiles_pd.h5',
+    # 'logfile': 'data/experiment_20170526_160018_puppy_process_logfiles_pd.h5',
+    # 'numsteps': 147000,
+    # 'logfile': 'data/experiment_20170510_155432_puppy_process_logfiles_pd.h5', # 147K
+    # 'numsteps': 29000,
+    # 'logfile': 'data/experiment_20170517_160523_puppy_process_logfiles_pd.h5', 29K
+    'numsteps': 10000,
+    'logfile': 'data/experiment_20170511_145725_puppy_process_logfiles_pd.h5', # 10K
+    # 'numsteps': 2000,
+    # 'logfile': 'data/experiment_20170510_173800_puppy_process_logfiles_pd.h5', # 2K
+    'xdim': 6,
+    'xdim_eff': 3,
+    'ydim': 4,
+    'logtype': 'selflog',
+}
+
+ppycnf2 = {
+    # 'logfile': 'data/stepPickles/step_period_4_0.pickle',
+    # 'logfile': 'data/stepPickles/step_period_10_0.pickle',
+    # 'logfile': 'data/stepPickles/step_period_12_0.pickle',
+    # 'logfile': 'data/stepPickles/step_period_76_0.pickle',
+    'logfile': 'data/stepPickles/step_period_26_0.pickle',
+    'logtype': 'puppy',
+    'xdim': 6,
+    'xdim_eff': 3,
+    'ydim': 4,
+    'numsteps': 1000,
+}
+    
+testcnfsin = {
+    'numsteps': 1000,
+    'xdim': 1,
+    'xdim_eff': 1,
+    'ydim': 1,
+    'logfile': 'data/experiment_20170512_171352_generate_sin_noise_pd.h5',
+    'logtype': 'selflog',
+}
+
+sphrcnf = {
+	'numsteps': 5000,
+	'xdim': 2,
+    'xdim_eff': 1,
+	'ydim': 1,
+    'logtype': 'sphero_res_learner',
+    'logfile': '../../smp_infth/sphero_res_learner_1D/log-learner-20150315-223835-eta-0.001000-theta-0.200000-g-0.999000-target-sine.npz',
+    # 'logfile': '../../smp_infth/sphero_res_learner_1D/log-learner-20150313-224329.npz',
+    'sys_slicespec': {'x': {'gyr': slice(0, 1)}},
+}
+    
+testcnf = {
+    'numsteps': 1000,
+    'xdim': 6,
+    'xdim_eff': 3,
+    'ydim': 4,
+    'logfile': 'data/testlog3.npz',
+    'logtype': 'testdata1',
+}
+
+cnf = ppycnf
+numsteps = cnf['numsteps']
+xdim = cnf['xdim']
+ydim = cnf['ydim']
+xdim_eff = cnf['xdim_eff']
+if cnf.has_key('sys_slicespec'):
+    sys_slicespec = cnf['sys_slicespec']
+else:
+    sys_slicespec = {'x': {'acc': slice(0, 3), 'gyr': slice(3, xdim)}}
+
+scanstart = -30
+scanstop = 1
+scanlen = scanstop - scanstart
+
+
+def make_input_matrix(id = 'xcorr', base = 'xcorr', xdim = 1, ydim = 1, with_t = False):
     import numpy as np
-    d = {'d3_%d_%d' % (i, j): ['xcorr/xcorr_%d_%d' % (i, j)] for j in range(xdim) for i in range(ydim)}
-    d['t'] = [np.linspace(-20, 20, 41)]
-    print d
+    global scanstart, scanstop, scanlen
+    d = {'d3_%d_%d' % (i, j): {'bus': '%s/%s_%d_%d' % (id, base, i, j)} for j in range(xdim) for i in range(ydim)}
+    if with_t:
+        d['t'] = {'val': np.linspace(scanstart, scanstop-1, scanlen)}
+    # print d
+    return d
+
+def make_input_matrix_ndim(id = 'xcorr', base = 'xcorr', xdim = 1, ydim = 1, with_t = False):
+    import numpy as np
+    global scanstart, scanstop, scanlen
+    # d = {'d3_%d_%d' % (i, j): {'bus': '%s/%s_%d_%d' % (id, base, i, j)} for j in range(xdim) for i in range(ydim)}
+    d = {}
+    d['d3'] = {'bus': "%s/%s" % (id, base), 'shape': (ydim, xdim, scanlen)} # 
+    if with_t:
+        d['t'] = {'val': np.linspace(scanstart, scanstop-1, scanlen)}
+    # print d
     return d
 
 graph = OrderedDict([
@@ -39,15 +132,15 @@ graph = OrderedDict([
         'params': {
             'id': 'puppylog',
             'inputs': {},
-            'type': 'selflog',
-            # 'type': 'sphero_res_learner',
+            'type': cnf['logtype'],
             'file': [
+                cnf['logfile'],
                 # all files 147000
                 # 'data/experiment_20170510_155432_puppy_process_logfiles_pd.h5',
                 # medium version 10000
                 # 'data/experiment_20170511_145725_puppy_process_logfiles_pd.h5',
                 # short version 2000
-                'data/experiment_20170510_173800_puppy_process_logfiles_pd.h5',
+                # 'data/experiment_20170510_173800_puppy_process_logfiles_pd.h5',
                 # test data
                 # 'data/experiment_20170512_171352_generate_sin_noise_pd.h5',
                 # 'data/experiment_20170512_170835_generate_sin_noise_pd.h5',
@@ -56,31 +149,46 @@ graph = OrderedDict([
                 # '../../smp_infth/sphero_res_learner_1D/log-learner-20150313-224329.npz',
             ],
             'blocksize': numsteps,
-            'outputs': {'log': [None]},
-            }
-        }),
+            'outputs': {
+                'log': {'shape': None},
+                'x': {'shape': (xdim, numsteps)}, 'y': {'shape': (ydim, numsteps)}
+            },
+        }
+    }),
         
-    # cross correlation analysis of data
-    # do this with loopblock :)
+    # puppy process data block: integrate acc, diff motors
+    ('puppylogdiff', {
+        'block': dBlock2,
+        'params': {
+            'id': 'puppylogdiff',
+            'blocksize': numsteps,
+            'inputs': {'y': {'bus': 'puppylog/y'}},
+            'outputs': {},
+            'd': 0.1,
+            'leak': 0.01,
+            },
+        }),
+    
+    # cross correlation analysis of data, FIXME: do this with loopblock :)
     ('xcorr', {
         'block': XCorrBlock2,
         'params': {
             'id': 'xcorr',
             'blocksize': numsteps,
-            'inputs': {'x': ['puppylog/x'], 'y': ['puppylog/y']},
-            'shift': (-20, 21),
-            'outputs': {'xcorr': [(ydim, xdim, 41)]}
-            }
-        }),
+            'inputs': {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylogdiff/dy'}},
+            'shift': (scanstart, scanstop),
+            'outputs': {'xcorr': {'shape': (ydim, xdim, scanlen)}}
+        }
+    }),
         
     # mutual information analysis of data
     ('mi', {
         'block': LoopBlock2,
         'params': {
             'id': 'mi',
-            'loop': [('inputs', {'x': ['puppylog/x'], 'y': ['puppylog/y']}),
-                     # ('inputs', {'x': ['puppylog/x'], 'y': ['puppylog/r']}),
-                     # ('inputs', {'x': ['puppylog/y'], 'y': ['puppylog/r']}),
+            'loop': [('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/y'}}),
+                     # ('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/r'}}),
+                     # ('inputs', {'x': {'bus': 'puppylog/y'}, 'y': {'bus': 'puppylog/r'}}),
             ],
             'loopblock': {
                 'block': MIBlock2,
@@ -88,71 +196,71 @@ graph = OrderedDict([
                     'id': 'mi',
                     'blocksize': numsteps,
                     'debug': True,
-                    'inputs': {'x': ['puppylog/x'], 'y': ['puppylog/y']},
+                    'inputs': {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/y'}},
                     # 'shift': (-120, 8),
-                    'shift': (-10, 11),
-                    # 'outputs': {'mi': [((ydim + xdim)**2, 1)]}
-                    'outputs': {'mi': [(21 * ydim * xdim, 1)]}
+                    'shift': (scanstart, scanstop),
+                    # 'outputs': {'mi': {'shape': ((ydim + xdim)**2, 1)}}
+                    'outputs': {'mi': {'shape': (ydim, xdim, scanlen)}}
                 }
             },
         }
     }),
     
-    # # mutual information analysis of data
-    # ('infodist', {
-    #     'block': LoopBlock2,
-    #     'params': {
-    #         'id': 'infodist',
-    #         'loop': [('inputs', {'x': ['puppylog/x'], 'y': ['puppylog/y']}),
-    #                  # ('inputs', {'x': ['puppylog/x'], 'y': ['puppylog/r']}),
-    #                  # ('inputs', {'x': ['puppylog/y'], 'y': ['puppylog/r']}),
-    #         ],
-    #         'loopblock': {
-    #             'block': InfoDistBlock2,
-    #             'params': {
-    #                 'id': 'infodist',
-    #                 'blocksize': numsteps,
-    #                 'debug': True,
-    #                 'inputs': {'x': ['puppylog/x'], 'y': ['puppylog/y']},
-    #                 'shift': (-3, 4),
-    #                 # 'outputs': {'infodist': [((ydim + xdim)**2, 1)]}
-    #                 'outputs': {'infodist': [(7 * ydim * xdim, 1)]}
-    #             }
-    #         },
-    #     }
-    # }),
+    # mutual information analysis of data
+    ('infodist', {
+        'block': LoopBlock2,
+        'params': {
+            'id': 'infodist',
+            'loop': [('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/y'}}),
+                     # ('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/r'}}),
+                     # ('inputs', {'x': {'bus': 'puppylog/y'}, 'y': {'bus': 'puppylog/r'}}),
+            ],
+            'loopblock': {
+                'block': InfoDistBlock2,
+                'params': {
+                    'id': 'infodist',
+                    'blocksize': numsteps,
+                    'debug': True,
+                    'inputs': {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/y'}},
+                    'shift': (scanstart, scanstop),
+                    # 'outputs': {'infodist': {'shape': ((ydim + xdim)**2, 1)}}
+                    'outputs': {'infodist': {'shape': (ydim, xdim, scanlen)}}
+                }
+            },
+        }
+    }),
 
-    # # mutual information analysis of data
-    # ('te', {
-    #     'block': LoopBlock2,
-    #     'params': {
-    #         'id': 'te',
-    #         'loop': [('inputs', {'x': ['puppylog/x'], 'y': ['puppylog/y']}),
-    #                  # ('inputs', {'x': ['puppylog/x'], 'y': ['puppylog/r']}),
-    #                  # ('inputs', {'x': ['puppylog/y'], 'y': ['puppylog/r']}),
-    #         ],
-    #         'loopblock': {
-    #             'block': TEBlock2,
-    #             'params': {
-    #                 'id': 'te',
-    #                 'blocksize': numsteps,
-    #                 'debug': True,
-    #                 'inputs': {'x': ['puppylog/x'], 'y': ['puppylog/y']},
-    #                 'shift': (-10, 11),
-    #                 'outputs': {'te': [(21 * ydim * xdim, 1)]}
-    #             }
-    #         },
-    #     }
-    # }),
+    # # # mutual information analysis of data
+    # # ('te', {
+    # #     'block': LoopBlock2,
+    # #     'params': {
+    # #         'id': 'te',
+    # #         'loop': [('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/y'}}),
+    # #                  # ('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/r'}}),
+    # #                  # ('inputs', {'x': {'bus': 'puppylog/y'}, 'y': {'bus': 'puppylog/r'}}),
+    # #         ],
+    # #         'loopblock': {
+    # #             'block': TEBlock2,
+    # #             'params': {
+    # #                 'id': 'te',
+    # #                 'blocksize': numsteps,
+    # #                 'debug': True,
+    # #                 'inputs': {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/y'}},
+    # #                 'shift': (scanstart, scanstop),
+    # #                 'outputs': {'te': {'shape': (scanlen * ydim * xdim, 1)}}
+    # #             }
+    # #         },
+    # #     }
+    # # }),
     
     # mutual information analysis of data
     ('te', {
         'block': LoopBlock2,
         'params': {
             'id': 'te',
-            'loop': [('inputs', {'x': ['puppylog/x'], 'y': ['puppylog/y']}),
-                     # ('inputs', {'x': ['puppylog/x'], 'y': ['puppylog/r']}),
-                     # ('inputs', {'x': ['puppylog/y'], 'y': ['puppylog/r']}),
+            'loop': [('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/y'}}),
+                     # ('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/r'}}),
+                     # ('inputs', {'x': {'bus': 'puppylog/y'}, 'y': {'bus': 'puppylog/r'}}),
             ],
             'loopblock': {
                 'block': TEBlock2,
@@ -160,9 +268,9 @@ graph = OrderedDict([
                     'id': 'te',
                     'blocksize': numsteps,
                     'debug': True,
-                    'inputs': {'x': ['puppylog/x'], 'y': ['puppylog/y']},
-                    'shift': (-10, 11),
-                    'outputs': {'te': [(21 * ydim * xdim, 1)]}
+                    'inputs': {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/y'}},
+                    'shift': (scanstart, scanstop),
+                    'outputs': {'te': {'shape': (ydim, xdim, scanlen)}}
                 }
             },
         }
@@ -173,9 +281,9 @@ graph = OrderedDict([
         'block': LoopBlock2,
         'params': {
             'id': 'cte',
-            'loop': [('inputs', {'x': ['puppylog/x'], 'y': ['puppylog/y'], 'cond': ['puppylog/y']}),
-                     # ('inputs', {'x': ['puppylog/x'], 'y': ['puppylog/r']}),
-                     # ('inputs', {'x': ['puppylog/y'], 'y': ['puppylog/r']}),
+            'loop': [('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/y'}, 'cond': {'bus': 'puppylog/y'}}),
+                     # ('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/r'}}),
+                     # ('inputs', {'x': {'bus': 'puppylog/y'}, 'y': {'bus': 'puppylog/r'}}),
             ],
             'loopblock': {
                 'block': CTEBlock2,
@@ -183,73 +291,49 @@ graph = OrderedDict([
                     'id': 'cte',
                     'blocksize': numsteps,
                     'debug': True,
-                    'inputs': {'x': ['puppylog/x'], 'y': ['puppylog/y'], 'cond': ['puppylog/y']},
-                    'shift': (-10, 11),
-                    'outputs': {'cte': [(21 * ydim * xdim, 1)]}
+                    'xcond': True,
+                    'inputs': {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/y'}, 'cond': {'bus': 'puppylog/y'}},
+                    'shift': (scanstart, scanstop),
+                    'outputs': {'cte': {'shape': (ydim, xdim, scanlen)}}
                 }
             },
         }
     }),
+        
+    # # # slice block to split puppy sensors x into gyros x_gyr and accels x_acc
+    # # ('puppyslice', {
+    # #     'block': SliceBlock2,
+    # #     'params': {
+    # #         'id': 'puppyslice',
+    # #         'blocksize': numsteps,
+    # #         # puppy sensors
+    # #         'inputs': {'x': {'bus': 'puppylog/x'}},
+    # #         'slices': {'x': {'acc': slice(0, 3), 'gyr': slice(3, xdim)}},
+    # #         }
+    # #     }),
     
-    # # mutual information analysis of data
-    # ('mi2', {
-    #     'block': MIBlock2,
-    #     'params': {
-    #         'id': 'mi2',
-    #         'blocksize': numsteps,
-    #         'inputs': {'x': ['puppylog/x'], 'y': ['puppylog/r']},
-    #         'shift': (-20, 21),
-    #         'outputs': {'mi': [(ydim, xdim, 41)]}
-    #         }
-    #     }),
-    
-    # # slice block to split puppy sensors x into gyros x_gyr and accels x_acc
-    # ('puppyslice', {
-    #     'block': SliceBlock2,
-    #     'params': {
-    #         'id': 'puppyslice',
-    #         'blocksize': numsteps,
-    #         # puppy sensors
-    #         'inputs': {'x': ['puppylog/x']},
-    #         'slices': {'x': {'acc': slice(0, 3), 'gyr': slice(3, xdim)}},
-    #         }
-    #     }),
-    
-    # # puppy process data block: integrate acc, diff motors
-    # ('accint', {
-    #     'block': IBlock2,
-    #     'params': {
-    #         'id': 'accint',
-    #         'blocksize': numsteps,
-    #         'inputs': {'x_acc': ['puppyslice/x_acc']},
-    #         'outputs': {},
-    #         'd': 0.1,
-    #         'leak': 0.01,
-    #         },
-    #     }),
-    
-    # puppy process data block: integrate acc, diff motors
-    ('motordiff', {
-        'block': dBlock2,
-        'params': {
-            'id': 'motordiff',
-            'blocksize': numsteps,
-            'inputs': {'y': ['puppylog/y']},
-            'outputs': {},
-            'd': 0.1,
-            'leak': 0.01,
-            },
-        }),
-    
+    # # # puppy process data block: integrate acc, diff motors
+    # # ('accint', {
+    # #     'block': IBlock2,
+    # #     'params': {
+    # #         'id': 'accint',
+    # #         'blocksize': numsteps,
+    # #         'inputs': {'x_acc': {'bus': 'puppyslice/x_acc'}},
+    # #         'outputs': {},
+    # #         'd': 0.1,
+    # #         'leak': 0.01,
+    # #         },
+    # #     }),
+        
     # puppy process data block: delay motors by lag to align with their sensory effects
     ('motordel', {
         'block': DelayBlock2,
         'params': {
             'id': 'motordel',
             'blocksize': numsteps,
-            # 'inputs': {'y': ['motordiff/dy']},
-            'inputs': {'y': ['puppylog/y']},
-            'delays': {'y': 4},
+            # 'inputs': {'y': {'bus': 'puppylogdiff/dy'}},
+            'inputs': {'y': {'bus': 'puppylog/y'}},
+            'delays': {'y': 3},
             }
         }),
     
@@ -262,15 +346,15 @@ graph = OrderedDict([
             'debug': False,
             'blocksize': numsteps,
             'inputs': {
-                # 'd3': ['puppyslice/x_gyr'],
-                # 'd4': ['accint/Ix_acc'], # 'puppylog/y']
-                # 'd5': ['motordel/dy'], # 'puppylog/y']
-                'd3': ['puppylog/x'],
-                'd4': ['puppylog/y'], # 'puppylog/y']
-                'd5': ['motordel/dy'], # 'puppylog/y']
-                'd6': ['puppylog/y'], # /t
+                # 'd3': {'bus': 'puppyslice/x_gyr'},
+                # 'd4': {'bus': 'accint/Ix_acc'}, # 'puppylog/y'}
+                # 'd5': {'bus': 'motordel/dy'}, # 'puppylog/y'}
+                'd3': {'bus': 'puppylog/x'},
+                'd4': {'bus': 'puppylog/y'}, # 'puppylog/y'}
+                # 'd5': {'bus': 'motordel/dy'}, # 'puppylog/y'}
+                # 'd6': {'bus': 'puppylog/y'}, # /t
             },
-            'outputs': {},#'x': [(3, 1)]},
+            'outputs': {},#'x': {'shape': (3, 1)}},
             'subplots': [
                 [
                     {'input': 'd3', 'plot': timeseries},
@@ -280,31 +364,62 @@ graph = OrderedDict([
                     {'input': 'd4', 'plot': timeseries},
                     {'input': 'd4', 'plot': histogram},
                 ],
-                [
-                    {'input': ['d3', 'd4', 'd5'], 'plot': partial(timeseries, marker = ".")},
-                    {'input': 'd6', 'plot': timeseries},
-                ],
+                # [
+                #     {'input': ['d3', 'd4', 'd5'], 'plot': partial(timeseries, marker = ".")},
+                #     {'input': 'd6', 'plot': timeseries},
+                # ],
             ]
         },
     }),
     
     # plot xcorr
-    ('plot3', {
+    ('plot_xcor_line', {
         'block': PlotBlock2,
         'params': {
-            'id': 'plot3',
+            'id': 'plot_xcor_line',
             'logging': False,
             'debug': False,
             'blocksize': numsteps,
-            'inputs': make_input_matrix(xdim = xdim, ydim = ydim),
-            'outputs': {}, #'x': [(3, 1)]},
+            'inputs': make_input_matrix_ndim(xdim = xdim, ydim = ydim, with_t = True),
+            'outputs': {}, #'x': {'shape': (3, 1)}},
             'subplots': [
-                [{'input': 'd3_%d_%d' % (i, j), 'xslice': (0, 41), 'xaxis': 't',
-                  'plot': partial(timeseries, linestyle="none", marker=".")} for j in range(xdim)]
+                [{'input': ['d3'], 'ndslice': (slice(scanlen), i, j), 'xaxis': 't',
+                      'shape': (1, scanlen),
+                      'plot': partial(timeseries, linestyle="-", marker=".")} for j in range(xdim)]
             for i in range(ydim)],
         },
     }),
 
+    # plot cross-correlation matrix
+    ('plot_xcor_img', {
+        'block': ImgPlotBlock2,
+        'params': {
+            'id': 'plot_xcor_img',
+            'logging': False,
+            'saveplot': saveplot,
+            'debug': False,
+            'blocksize': numsteps,
+            # 'inputs': make_input_matrix(xdim = xdim, ydim = ydim, with_t = True),
+            'inputs': make_input_matrix_ndim(xdim = xdim, ydim = ydim, with_t = True),
+            'outputs': {}, #'x': {'shape': (3, 1)}},
+            'wspace': 0.5,
+            'hspace': 0.5,
+            # with one subplot and reshape
+            'subplots': [
+                [{'input': ['d3'],
+                      'ndslice': (slice(None), slice(None), slice(None)),
+                      'shape': (scanlen, ydim * xdim), 'cmap': 'RdGy'}],
+
+                [{'input': ['d3'],
+                      'ndslice': (slice(None), slice(None), slice(None)),
+                      'shape': (scanlen, ydim, xdim), 'cmap': 'RdGy',
+                      'dimstack': {'x': [2, 1], 'y': [0]},
+                }
+                ],
+            ],
+        },
+    }),
+    
     # plot mi matrix as image
     ('plotim', {
         'block': ImgPlotBlock2,
@@ -312,10 +427,15 @@ graph = OrderedDict([
             'id': 'plotim',
             'logging': False,
             'debug': False,
+            'wspace': 0.2,
+            'hspace': 0.2,
             'blocksize': numsteps,
-            # 'inputs': {'d1': ['mi_1/mi'], 'd2': ['infodist_1/infodist']},
-            'inputs': {'d1': ['mi_1/mi'], 'd2': ['te_1/te'], 'd3': ['cte_1/cte']},
-            'outputs': {}, #'x': [(3, 1)]},
+            # 'inputs': {'d1': {'bus': 'mi_1/mi'}, 'd2': {'bus': 'infodist_1/infodist'}},
+            'inputs': {'d1': {'bus': 'mi_0/mi', 'shape': (ydim, xdim, scanlen)},
+                           'd11': {'bus': 'infodist_0/infodist', 'shape': (ydim, xdim, scanlen)},
+                           'd2': {'bus': 'te_0/te', 'shape': (ydim, xdim, scanlen)},
+                           'd3': {'bus': 'cte_0/cte', 'shape': (ydim, xdim, scanlen)}},
+            'outputs': {}, #'x': {'shape': (3, 1)}},
             # 'subplots': [
             #     [
             #         {'input': 'd1', 'xslice': (0, (xdim + ydim)**2),
@@ -333,15 +453,31 @@ graph = OrderedDict([
             #     ],
             # ],
             'subplots': [
-                [
-                    {'input': 'd1', 'xslice': (i * xdim * ydim, (i+1) * xdim * ydim),
-                         'shape': (ydim, xdim), 'plot': 'bla'},
-                    {'input': 'd2', 'xslice': (i * xdim * ydim, (i+1) * xdim * ydim),
-                         'shape': (ydim, xdim), 'plot': 'bla'},
-                    {'input': 'd3', 'xslice': (i * xdim * ydim, (i+1) * xdim * ydim),
-                         'shape': (ydim, xdim), 'plot': 'bla'},
-                    
-                ] for i in range(21)
+                [{
+                    'input': ['d1'],
+                    'ndslice': (slice(None), slice(None), slice(None)),
+                    'shape': (scanlen, ydim, xdim),
+                    'dimstack': {'x': [2, 1], 'y': [0]},
+                    'cmap': 'Reds'
+                }, {
+                    'input': ['d11'],
+                    'ndslice': (slice(None), slice(None), slice(None)),
+                    'shape': (scanlen, ydim, xdim),
+                    'dimstack': {'x': [2, 1], 'y': [0]},
+                    'cmap': 'Reds'
+                }, {
+                    'input': 'd2',
+                    'ndslice': (slice(None), slice(None), slice(None)),
+                    'shape': (scanlen, ydim, xdim),
+                    'dimstack': {'x': [2, 1], 'y': [0]},
+                    'cmap': 'Reds'
+                }, {
+                    'input': 'd3',
+                    'ndslice': (slice(None), slice(None), slice(None)),
+                    'dimstack': {'x': [2, 1], 'y': [0]},
+                    'shape': (scanlen, ydim, xdim),
+                    'cmap': 'Reds'},
+                ]
             ],
         },
     }),
@@ -355,13 +491,13 @@ graph = OrderedDict([
             'debug': False,
             'blocksize': numsteps,
             'inputs': {
-                # 'd3': ['puppyslice/x_gyr'],
-                'd3': ['puppylog/x'],
-                # 'd3': ['motordel/dx'],
-                # 'd4': ['puppylog/y'],
-                'd4': ['motordel/dy'],
+                # 'd3': {'bus': 'puppyslice/x_gyr'},
+                'd3': {'bus': 'puppylog/x'},
+                # 'd3': {'bus': 'motordel/dx'},
+                # 'd4': {'bus': 'puppylog/y'},
+                'd4': {'bus': 'motordel/dy'},
             },
-            'outputs': {},#'x': [(3, 1)]},
+            'outputs': {},#'x': {'shape': (3, 1)}},
             'subplots': [
                 [
                     # stack inputs into one vector (stack, combine, concat

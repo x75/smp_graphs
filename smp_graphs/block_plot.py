@@ -10,13 +10,16 @@ from smp_graphs.block import decStep, decInit
 from smp_graphs.block import PrimBlock2
 from smp_graphs.utils import myt, mytupleroll
 
-from smp_base.plot import makefig, timeseries, histogram
+from smp_base.dimstack import dimensional_stacking
+from smp_base.plot     import makefig, timeseries, histogram, plot_img
 
 ################################################################################
 # Plotting blocks
 # pull stuff from
 # smp/im/im_quadrotor_plot
-# 
+# ...
+
+# FIXME: do some clean up here
 
 def subplot_input_fix(input_spec):
     # assert input an array 
@@ -252,6 +255,9 @@ class ImgPlotBlock2(FigPlotBlock2):
                 
         for i, subplot in enumerate(self.subplots): # rows
             for j, subplotconf in enumerate(subplot): # cols
+                # check conditions
+                assert subplotconf.has_key('shape'), "image plot needs shape spec"
+                
                 # make it a list if it isn't
                 for input_spec_key in ['input', 'ndslice', 'shape']:
                     if subplotconf.has_key(input_spec_key):
@@ -291,7 +297,6 @@ class ImgPlotBlock2(FigPlotBlock2):
         if True:
             for i, subplot in enumerate(self.subplots): # rows
                 for j, subplotconf in enumerate(subplot): # cols
-                    assert subplotconf.has_key('shape'), "image plot needs shape spec"
 
                     # map loop indices to gridspec linear index
                     idx = (i*self.fig_cols)+j
@@ -350,13 +355,19 @@ class ImgPlotBlock2(FigPlotBlock2):
                         # print "plotdata_cand", plotdata_cand
                     else:
                         # plotdata_cand = self.inputs[subplotconf['input'][0]]['val'][yslice,xslice]
-                        plotdata_cand = self.inputs[subplotconf['input'][0]]['val'].T[xslice,yslice]
-                    # print "%s[%d]-%s.step, inputs = %s, %s " % (self.cname, self.cnt, self.id, self.inputs[subplotconf['input']][0].shape,
+                        plotdata_cand = myt(self.inputs[subplotconf['input'][0]]['val'])[xslice,yslice]
+                    # print "%s[%d]-%s.step, inputs = %s, %s " % (self.cname, self.cnt, self.id, self.inputs[subplotconf['input']][0].shape)
                     #                                         self.inputs[subplotconf['input']][0])
-                    # print "plotdata_cand", plotdata_cand
+                    print "plotdata_cand", plotdata_cand.shape
                     
                     plotdata = {}
-                    plotdata['i_%d_%d' % (i, j)] = plotdata_cand.reshape(subplotconf['shape'][0])
+
+                    # if we're dimstacking, now is the time
+                    if subplotconf.has_key('dimstack'):
+                        plotdata['i_%d_%d' % (i, j)] = dimensional_stacking(plotdata_cand, subplotconf['dimstack']['x'], subplotconf['dimstack']['y'])
+                        print "plotdata[" + 'i_%d_%d' % (i, j) + "].shape", plotdata['i_%d_%d' % (i, j)].shape
+                    else:
+                        plotdata['i_%d_%d' % (i, j)] = plotdata_cand.reshape(subplotconf['shape'][0])
                     if subplotconf.has_key('ylog'):
                         # plotdata['i_%d_%d' % (i, j)] = np.log(plotdata['i_%d_%d' % (i, j)] + 1.0)
                         # print plotdata['i_%d_%d' % (i, j)]
@@ -381,39 +392,17 @@ class ImgPlotBlock2(FigPlotBlock2):
                                                                 
                     # plot the plotdata
                     for ink, inv in plotdata.items():
-                        # print "%s.plot_subplots: ink = %s, plotvar = %s, inv.sh = %s" % (self.cname, ink, plotvar, inv.shape)
-                        # subplotconf['plot'](
-                        #     self.fig.axes[idx],
-                        #     data = inv, ordinate = t)
-                        # metadata
+                        # FIXME: put the image plotting code into function
                         ax = self.fig.axes[idx]
-                        # mormalize to [0, 1]
-                        # mpl = ax.imshow(inv, interpolation = "none")
+                        
                         # Linv = np.log(inv + 1)
                         Linv = inv
-                        # print "Linv", Linv.shape, Linv
-                        mpl = ax.pcolorfast(Linv, vmin = vmin, vmax = vmax, cmap = cmap)
-                        # mpl = ax.pcolorfast(Linv, vmin = vmins[j], vmax = vmaxs[j], cmap = cmap)
-                        # mpl = ax.pcolorfast(Linv, vmin = -2, vmax = 2, cmap = cmap)
-                        # mpl = ax.pcolormesh(Linv, cmap = cmap)
-                        # mpl = ax.pcolor(Linv)
-                        # mpl = ax.pcolorfast(Linv)
-                        # mpl = ax.imshow(Linv, interpolation = "none")
-                        ax.grid()
-                        # Linv = inv
-                        # mpl = ax.pcolormesh(
-                        #     Linv,
-                        #     norm = colors.LogNorm(vmin=Linv.min(), vmax=Linv.max()))
-                        # ax.grid()
-                        # plt.colorbar(mappable = mpl, ax = ax)
-                    # ax.set_aspect(10)
-                    # plt.colorbar(mappable = mpl, ax = ax, orientation = "horizontal")
-                    # ax.set_title("%s of %s" % ('matrix', plotvar, ), fontsize=8)
-                    ax.set_title(title, fontsize=8)
-                    ax.set_xlabel("")
-                    ax.set_ylabel("")
-                    ax.set_xticks([])
-                    ax.set_yticks([])
+                        print "Linv.shape", Linv.shape
+                        plotfunc = "pcolorfast"
+                        plot_img(ax = ax, data = Linv, plotfunc = plotfunc,
+                                     vmin = vmin, vmax = vmax, cmap = cmap,
+                                     title = title)
+                        
 
 ################################################################################
 # non FigPlot plot blocks

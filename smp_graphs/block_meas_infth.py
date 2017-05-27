@@ -7,7 +7,7 @@ import numpy as np
 from smp_base.measures_infth import measMI, measH, compute_mutual_information, infth_mi_multivariate, compute_information_distance, compute_transfer_entropy, compute_conditional_transfer_entropy, compute_mi_multivariate, compute_transfer_entropy_multivariate
 
 from smp_graphs.block import decInit, decStep, Block2, PrimBlock2
-
+from smp_graphs.utils import myt
 
 # block wrappers for smp_base/measures_infth.py, similar to the general smp_base/measures.py pattern
 
@@ -125,6 +125,9 @@ class InfoDistBlock2(PrimBlock2):
         dst = self.inputs['y']['val'].T
         # print "%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s" % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape)
         print "%s.step[%d]-%s src.shape = %s, dst.shape = %s" % (self.cname, self.cnt, self.id, src.shape, dst.shape,),
+        st = np.hstack((src, dst))
+        jh = compute_mi_multivariate(data = {'X': st, 'Y': st})
+        
         for i in range(self.shift[0], self.shift[1]):
             print "%d" % (i, ),
             sys.stdout.flush()
@@ -136,8 +139,8 @@ class InfoDistBlock2(PrimBlock2):
             # mi = self.meas.step(st, st)
             # mi = compute_information_distance(st, st)
 
-            mi = compute_information_distance(src, dst, delay = -i)
-            mis.append(mi.copy())
+            mi = compute_information_distance(src, dst, delay = -i, normalize = jh)
+            mis.append(mi)
             # mi = self.meas.step(self.inputs['x']['val'].T, self.inputs['y']['val'].T)
         
             # if src eq dst 
@@ -145,13 +148,13 @@ class InfoDistBlock2(PrimBlock2):
             # np.fill_diagonal(mi, np.max(mi))
         print ""            
         mis = np.array(mis)
-        print "%s-%s.step mis.shape = %s / %s" % (self.cname, self.id, mis.shape, mis.T.shape)
+        print "%s-%s.step infodist.shape = %s / %s" % (self.cname, self.id, mis.shape, mis.T.shape)
         # print "%s.%s infodist = %s" % (self.cname, self.id, mi)
-        # print "infodist block", self.infodist.shape, mi.shape
         
         # self.infodist[:,0] = mi.flatten()
         # self.infodist[:,0] = mis.flatten()
-        self.infodist = mis.T.copy()
+        self.infodist = myt(mis/jh, direction = -1).copy()
+        print "infodist block", self.infodist.shape, mi.shape
         
 class TEBlock2(PrimBlock2):
     """!@brief Compute elementwise transfer entropy from src to dst variables in dataset"""
@@ -191,6 +194,8 @@ class CTEBlock2(PrimBlock2):
     """!@brief Compute elementwise conditional transfer entropy from src to dst variables conditioned
     on cond variables in dataset"""
     def __init__(self, conf = {}, paren = None, top = None):
+        # set fedaults
+        self.xcond = False
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
     @decStep()

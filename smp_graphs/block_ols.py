@@ -25,7 +25,9 @@ class FileBlock2(Block2):
             lfile = conf['params']['file']['filename']
         else:
             lfile = conf['params']['file'][0]
-
+            # make it a dict
+            conf['params']['file'] = {'filename': lfile}
+            
         print "%s.init Loading %s-type data from %s" % (self.__class__.__name__, conf['params']['type'], lfile)
         
         ############################################################

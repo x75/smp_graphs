@@ -75,7 +75,7 @@ testcnf = {
     'logtype': 'testdata1',
 }
 
-cnf = ppycnf
+cnf = ppycnf2
 numsteps = cnf['numsteps']
 xdim = cnf['xdim']
 ydim = cnf['ydim']
@@ -121,7 +121,7 @@ graph = OrderedDict([
             # 'type': 'testdata1',
             'type': cnf['logtype'],
             'blocksize': numsteps,
-            'file': [
+            'file': {'filename':
                 cnf['logfile'],
                 # all files 147000
                 # 'data/experiment_20170510_155432_puppy_process_logfiles_pd.h5',
@@ -136,7 +136,7 @@ graph = OrderedDict([
                 # '../../smp_infth/sphero_res_learner_1D/log-learner-20150315-223835-eta-0.001000-theta-0.200000-g-0.999000-target-sine.npz',
                 # '../../smp_infth/sphero_res_learner_1D/log-learner-20150313-224329.npz',
                 # 'data/testlog3.npz',
-            ],
+            },
             'blocksize': numsteps,
             'outputs': {
                 'log': {'shape': None},
@@ -192,9 +192,8 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'debug': False,
             'inputs': {'x': {'bus': 'puppyslice/x_gyr'}, 'y': {'bus': 'puppylog/y'}},
-                    # 'shift': (-120, 8),
             'shift': (scanstart, scanstop),
-                    # 'outputs': {'mi': [((ydim + xdim)**2, 1)}}
+            # 'outputs': {'mi': [((ydim + xdim)**2, 1)}}
             'outputs': {'jh': {'shape': (1, scanlen)}}
         }
     }),
