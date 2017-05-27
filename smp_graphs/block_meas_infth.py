@@ -267,7 +267,8 @@ class MIMVBlock2(PrimBlock2):
         print ""
         mimvs = np.array(mimvs)
         # jhs = np.array(jhs)
-        # print "mimvs.shape = %s" % (mimvs.shape, )
+        print "@%d mimvs.shape = %s" % (self.cnt, mimvs.shape, )
+        print "@%d mimvs       = %s" % (self.cnt, mimvs, )
                     
         # mi = self.meas.step(self.inputs['x']['val'].T, self.inputs['y']['val'].T)
         # np.fill_diagonal(mi, np.min(mi))
