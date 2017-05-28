@@ -1,6 +1,4 @@
-"""smp_graphs basic graph operations
-
-using networkx
+"""smp_graphs basic graph operations for networkx based smp graphs
 """
 
 import networkx as nx
@@ -18,7 +16,7 @@ colors_ = list(six.iteritems(colors.cnames))
 # colors = dict(mcolors.BASE_COLORS)
 
 def nxgraph_from_smp_graph(conf):
-    """construct an nx.graph from smp_graphs dictionary"""
+    """!@brief construct an nx.graph from smp_graph configuration dictionary"""
     # new empty graph
     G = nx.MultiDiGraph()
     # node count
@@ -48,6 +46,7 @@ def nxgraph_from_smp_graph(conf):
     return G
 
 def nxgraph_get_layout(G, layout_type):
+    """!@brief get an nx.graph layout from a config string"""
         if layout_type == "spring":
             # spring
             layout = nx.spring_layout(G)
@@ -75,6 +74,7 @@ def nxgraph_get_layout(G, layout_type):
         return layout
 
 def nxgraph_flatten(G):
+    """!@brief flatten a nested nx.graph to a single level"""
     G_ = nx.MultiDiGraph()
     for node in G.nodes_iter():
         if hasattr(G.node[node]['block_'], 'nxgraph'):
@@ -91,6 +91,7 @@ def nxgraph_flatten(G):
     return qG
 
 def nxgraph_node_by_id(G, nid):
+    """!@brief get a node key from an nx.graph by searching via smp graphs id"""
     if nid is None: return
     gen = (n for n in G if G.node[n]['params']['id'] == nid)
     tmp = list(gen)
@@ -98,6 +99,7 @@ def nxgraph_node_by_id(G, nid):
     return tmp
         
 def nxgraph_node_by_id_recursive(G, nid):
+    """!@brief get a node key from a nested nx.graph by searching via smp graphs id"""
     if nid is None: return
     gen = (n for n in G if G.node[n]['params']['id'] == nid)
     tmp = list(gen)

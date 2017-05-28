@@ -13,7 +13,7 @@ ppycnf = {
     # 'numsteps': 29000,
     # 'logfile': 'data/experiment_20170517_160523_puppy_process_logfiles_pd.h5', 29K
     # 'numsteps': 10000,
-    # 'logfile': 'data/experiment_20170511_145725_puppy_process_logfiles_pd.h5', 10K
+    # 'logfile': 'data/experiment_20170511_145725_puppy_process_logfiles_pd.h5', # 10K
     # 'numsteps': 2000,
     # 'logfile': 'data/experiment_20170510_173800_puppy_process_logfiles_pd.h5', # 2K
     'xdim': 6,
@@ -35,8 +35,11 @@ else:
     sys_slicespec = {'x': {'acc': slice(0, 3), 'gyr': slice(3, xdim)}}
 
 scanstart = -30
-scanstop = 1
+scanstop = 0
 scanlen = scanstop - scanstart
+
+winsize = 2000
+overlap = 200
 
 graph = OrderedDict([
     ('data', {
@@ -44,11 +47,11 @@ graph = OrderedDict([
         'params': {
             'id': 'data',
             'debug': True,
-            'blocksize': 100, # numsteps,
+            'blocksize': overlap, # numsteps,
             'type': cnf['logtype'],
             'file': {'filename': cnf['logfile']},
-            'outputs': {'log': None, 'x': {'shape': (xdim, 100)},
-                            'y': {'shape': (ydim, 100)}},
+            'outputs': {'log': None, 'x': {'shape': (xdim, winsize)},
+                            'y': {'shape': (ydim, winsize)}},
         },
     }),
 
@@ -57,10 +60,10 @@ graph = OrderedDict([
         'block': SliceBlock2,
         'params': {
             'id': 'dataslice',
-            'blocksize': 100,
+            'blocksize': overlap,
             'debug': True,
             # puppy sensors
-            'inputs': {'x': {'bus': 'data/x', 'shape': (xdim, 100)}},
+            'inputs': {'x': {'bus': 'data/x', 'shape': (xdim, winsize)}},
             'slices': sys_slicespec,
             # 'slices': ,
             }
@@ -71,7 +74,7 @@ graph = OrderedDict([
     #     'block': LoopBlock2,
     #     'params': {
     #         'id': 'mimv',
-    #         'blocksize': 100,
+    #         'blocksize': overlap,
     #         'loop': [('inputs', {'x': {'bus': 'dataslice/x_gyr'}, 'y': {'bus': 'data/y'}}),
     #                  # ('inputs', {'x': {'bus': 'data/x'}, 'y': {'bus': 'data/r'}}),
     #                  # ('inputs', {'x': {'bus': 'data/y'}, 'y': {'bus': 'data/r'}}),
@@ -80,7 +83,7 @@ graph = OrderedDict([
     #             'block': MIMVBlock2,
     #             'params': {
     #                 'id': 'mimv',
-    #                 'blocksize': 100,
+    #                 'blocksize': overlap,
     #                 'debug': False,
     #                 'inputs': {'x': {'bus': 'dataslice/x_gyr'}, 'y': {'bus': 'data/y'}},
     #                 # 'shift': (-120, 8),
@@ -96,9 +99,10 @@ graph = OrderedDict([
         'block': MIMVBlock2,
         'params': {
             'id': 'mimv',
-            'blocksize': 100,
+            'blocksize': overlap,
             'debug': False,
-            'inputs': {'x': {'bus': 'dataslice/x_gyr'}, 'y': {'bus': 'data/y'}},
+            'inputs': {'x': {'bus': 'dataslice/x_gyr', 'shape': (xdim_eff, winsize)},
+                           'y': {'bus': 'data/y', 'shape': (ydim, winsize)}},
             # 'shift': (-120, 8),
             'shift': (scanstart, scanstop), # len 21
             # 'outputs': {'mi': {'shape': ((ydim + xdim)**2, 1)}}
@@ -116,8 +120,8 @@ graph = OrderedDict([
             'debug': False,
             'wspace': 0.5,
             'hspace': 0.5,
-            'blocksize': 100, # numsteps,
-            'inputs': {'d1': {'bus': 'mimv/mimv', 'shape': (1, scanlen * numsteps/100)},
+            'blocksize': overlap, # numsteps,
+            'inputs': {'d1': {'bus': 'mimv/mimv', 'shape': (1, scanlen * numsteps/overlap)},
                        't': {'val': np.linspace(scanstart, scanstop-1, scanlen)},},
             'outputs': {}, #'x': {'shape': (3, 1)}},
             'subplots': [
@@ -127,7 +131,7 @@ graph = OrderedDict([
                     'title': 'Multivariate mutual information I(X;Y) for time shifts [0, ..., 20]',
                     'ndslice': (slice(None), slice(None)),
                     # 'dimstack': {'x': [0], 'y': [1]},
-                    'shape': (numsteps/100, scanlen)},
+                    'shape': (numsteps/overlap, scanlen)},
                     # {
                     # 'input': 'd3',
                     # 'ndslice': (slice(None), slice(None), slice(None)),
