@@ -102,6 +102,7 @@ Load a config from the file in args.conf
         set_interactive(True)
         graph_fig = makefig(rows = 1, cols = 3, wspace = 0.1, hspace = 0.0, axesspec = [(0, 0), (0, slice(1, None))])
         # nxgraph_plot(self.topblock.nxgraph, ax = graph_fig.axes[0])
+        # flatten for drawing, quick hack
         G = nxgraph_flatten(self.topblock.nxgraph)
         # for node,noded in G.nodes_iter(data=True):
         #     print "node", node, G.node[node], noded

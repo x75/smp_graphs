@@ -47,32 +47,33 @@ def nxgraph_from_smp_graph(conf):
 
 def nxgraph_get_layout(G, layout_type):
     """!@brief get an nx.graph layout from a config string"""
-        if layout_type == "spring":
-            # spring
-            layout = nx.spring_layout(G)
-        elif layout_type == "shell":
-            # shell, needs add. computation
-            s1 = []
-            s2 = []
-            for node in G.nodes_iter():
-                # shells =
-                # print node
-                if re.search("/", node) or re.search("_", node):
-                    s2.append(node)
-                else:
-                    s1.append(node)
+    if layout_type == "spring":
+        # spring
+        layout = nx.spring_layout(G)
+    elif layout_type == "shell":
+        # shell, needs add. computation
+        s1 = []
+        s2 = []
+        for node in G.nodes_iter():
+            # shells =
+            # print node
+            if re.search("/", node) or re.search("_", node):
+                s2.append(node)
+            else:
+                s1.append(node)
                 
-            print "s1", s1, "s2", s2
-            layout = nx.shell_layout(G, [s1, s2])
-        elif layout_type == "pygraphviz":
-            # pygraphviz
-            import pygraphviz
-            A = nx.nx_agraph.to_agraph(G)
-            layout = nx.nx_agraph.graphviz_layout(G)
-        elif layout_type == "random":
-            layout = nx.random_layout(G)
-        return layout
-
+        print "s1", s1, "s2", s2
+        layout = nx.shell_layout(G, [s1, s2])
+    elif layout_type == "pygraphviz":
+        # pygraphviz
+        import pygraphviz
+        A = nx.nx_agraph.to_agraph(G)
+        layout = nx.nx_agraph.graphviz_layout(G)
+    elif layout_type == "random":
+        layout = nx.random_layout(G)
+    # FIXME: include custom nested layout
+    return layout
+            
 def nxgraph_flatten(G):
     """!@brief flatten a nested nx.graph to a single level"""
     G_ = nx.MultiDiGraph()
@@ -87,11 +88,12 @@ def nxgraph_flatten(G):
     mapping = dict(zip(G.nodes(), ids))
     rG = nx.relabel_nodes(G, mapping)
     qG = nx.compose(rG, G_)
-    print "rG", rG.nodes(), "qG", qG.nodes()
+    print "nxgraph_flatten: relabeled graph", rG.nodes(), "composed graph", qG.nodes()
+    # FIXME: consider edges
     return qG
 
 def nxgraph_node_by_id(G, nid):
-    """!@brief get a node key from an nx.graph by searching via smp graphs id"""
+    """!@brief get a node key from an nx.graph by searching for an smp_graphs id"""
     if nid is None: return
     gen = (n for n in G if G.node[n]['params']['id'] == nid)
     tmp = list(gen)
@@ -99,17 +101,32 @@ def nxgraph_node_by_id(G, nid):
     return tmp
         
 def nxgraph_node_by_id_recursive(G, nid):
-    """!@brief get a node key from a nested nx.graph by searching via smp graphs id"""
+    """!@brief get a node key from a nested nx.graph by searching for an smp_graphs id
+
+    Args:
+        G: nxgraph
+        nid: node params['id'] to search for
+"""
     if nid is None: return
-    gen = (n for n in G if G.node[n]['params']['id'] == nid)
+    gen = ((n, G) for n in G if G.node[n]['params']['id'] == nid)
     tmp = list(gen)
-    # print "nid", nid, len(tmp)
-    if len(tmp) == 0:
-        gen2 = (n for n in G if hasattr(G.node[n]['block_'], 'graph'))
-        tmp2 = list(gen2)
-        # print "tmp2", tmp2
-        
-    return tmp
+    if len(tmp) > 0:
+        return tmp
+    else:
+        for n in G.nodes():
+            # print "nxgraph_node_by_id_recursive: n = %s, node['block_'] = %s" % (n, G.node[n]['block_'])
+            if hasattr(G.node[n]['block_'], 'nxgraph'):
+                # print "nxgraph_node_by_id_recursive: node[%s]['block_'].nxgraph = %s" % (n, G.node[n]['block_'].nxgraph.nodes())
+                tmp = nxgraph_node_by_id_recursive(G.node[n]['block_'].nxgraph, nid)
+                if len(tmp) > 0:
+                    return tmp
+    # # print "nid", nid, len(tmp)
+    # if len(tmp) < 1:
+    #     gen2 = (n for n in G if hasattr(G.node[n]['block_'], 'graph'))
+    #     tmp2 = list(gen2)
+    #     # print "tmp2", tmp2
+    
+    return []
 
 def nxgraph_add_edges(G):
     # add nxgraph edges

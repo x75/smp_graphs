@@ -170,11 +170,16 @@ def get_blocksize_input(G, buskey):
     (srcid, srcvar) = buskey.split("/") # [-1]
     # print "G.nodes()", G.nodes()
     n = nxgraph_node_by_id(G, srcid)
-    #n = nxgraph_node_by_id_recursive(G, srcid)
-    if len(n) == 0:
+
+    
+    n_ = nxgraph_node_by_id_recursive(G, srcid)
+    (n_0, g_0) = n_[0]
+    print "n_0", srcid, n_0, g_0.node[n_0]['block_'].blocksize, g_0.node[n_0]['block_'].id
+    if len(n_) == 0:
         # search all subgraphs
         return 1
-    return G.node[n[0]]['block_'].blocksize
+    # return G.node[n_[0]]['block_'].blocksize
+    return g_0.node[n_0]['block_'].blocksize
     
                 
 ################################################################################

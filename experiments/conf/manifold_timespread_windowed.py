@@ -5,15 +5,15 @@ from smp_graphs.block import SliceBlock2
 from smp_graphs.block_plot import ImgPlotBlock2
 
 ppycnf = {
-    'numsteps': 27000,
-    # 'logfile': 'data/experiment_20170518_161544_puppy_process_logfiles_pd.h5',
-    'logfile': 'data/experiment_20170526_160018_puppy_process_logfiles_pd.h5',
+    # 'numsteps': 27000,
+    # # 'logfile': 'data/experiment_20170518_161544_puppy_process_logfiles_pd.h5',
+    # 'logfile': 'data/experiment_20170526_160018_puppy_process_logfiles_pd.h5',
     # 'numsteps': 147000,
     # 'logfile': 'data/experiment_20170510_155432_puppy_process_logfiles_pd.h5', # 147K
     # 'numsteps': 29000,
     # 'logfile': 'data/experiment_20170517_160523_puppy_process_logfiles_pd.h5', 29K
-    # 'numsteps': 10000,
-    # 'logfile': 'data/experiment_20170511_145725_puppy_process_logfiles_pd.h5', # 10K
+    'numsteps': 10000,
+    'logfile': 'data/experiment_20170511_145725_puppy_process_logfiles_pd.h5', # 10K
     # 'numsteps': 2000,
     # 'logfile': 'data/experiment_20170510_173800_puppy_process_logfiles_pd.h5', # 2K
     'xdim': 6,
@@ -70,30 +70,37 @@ graph = OrderedDict([
         }),
         
     # multivariate mutual information analysis of data I(X^n ; Y^m)
-    # ('mimv', {
-    #     'block': LoopBlock2,
-    #     'params': {
-    #         'id': 'mimv',
-    #         'blocksize': overlap,
-    #         'loop': [('inputs', {'x': {'bus': 'dataslice/x_gyr'}, 'y': {'bus': 'data/y'}}),
-    #                  # ('inputs', {'x': {'bus': 'data/x'}, 'y': {'bus': 'data/r'}}),
-    #                  # ('inputs', {'x': {'bus': 'data/y'}, 'y': {'bus': 'data/r'}}),
-    #         ],
-    #         'loopblock': {
-    #             'block': MIMVBlock2,
-    #             'params': {
-    #                 'id': 'mimv',
-    #                 'blocksize': overlap,
-    #                 'debug': False,
-    #                 'inputs': {'x': {'bus': 'dataslice/x_gyr'}, 'y': {'bus': 'data/y'}},
-    #                 # 'shift': (-120, 8),
-    #                 'shift': (scanstart, scanstop), # len 21
-    #                 # 'outputs': {'mi': {'shape': ((ydim + xdim)**2, 1)}}
-    #                 'outputs': {'mimv': {'shape': (1, scanlen)}}
-    #             }
-    #         },
-    #     }
-    # }),
+    ('mimvl', {
+        'block': LoopBlock2,
+        'params': {
+            'id': 'mimvl',
+            'blocksize': overlap,
+            'loop': [('inputs', {'x': {'bus': 'dataslice/x_acc',
+                                           'shape': (xdim_eff, winsize)},
+                                 'y': {'bus': 'data/y',
+                                           'shape': (ydim, winsize)}}),
+                          # ('inputs', {'x': {'bus': 'dataslice/x_gyr'}, 'y': {'bus': 'data/y'}}),
+                     # ('inputs', {'x': {'bus': 'data/x'}, 'y': {'bus': 'data/r'}}),
+                     # ('inputs', {'x': {'bus': 'data/y'}, 'y': {'bus': 'data/r'}}),
+            ],
+            'loopblock': {
+                'block': MIMVBlock2,
+                'params': {
+                    'id': 'mimv',
+                    'blocksize': overlap,
+                    'debug': False,
+                    'inputs': {'x': {'bus': 'dataslice/x_gyr',
+                                         'shape': (xdim_eff, winsize)},
+                                   'y': {'bus': 'data/y',
+                                             'shape': (ydim, winsize)}},
+                    # 'shift': (-120, 8),
+                    'shift': (scanstart, scanstop), # len 21
+                    # 'outputs': {'mi': {'shape': ((ydim + xdim)**2, 1)}}
+                    'outputs': {'mimv': {'shape': (1, scanlen)}}
+                }
+            },
+        }
+    }),
 
     ('mimv', {
         'block': MIMVBlock2,
@@ -121,13 +128,22 @@ graph = OrderedDict([
             'wspace': 0.5,
             'hspace': 0.5,
             'blocksize': overlap, # numsteps,
-            'inputs': {'d1': {'bus': 'mimv/mimv', 'shape': (1, scanlen * numsteps/overlap)},
-                       't': {'val': np.linspace(scanstart, scanstop-1, scanlen)},},
+            'inputs': {
+                'd1': {'bus': 'mimv/mimv', 'shape': (1, scanlen * numsteps/overlap)},
+                'd2': {'bus': 'mimvl_0/mimv', 'shape': (1, scanlen * numsteps/overlap)},
+                't': {'val': np.linspace(scanstart, scanstop-1, scanlen)},},
             'outputs': {}, #'x': {'shape': (3, 1)}},
             'subplots': [
                 [
                     {'input': 'd1', 
                          'cmap': 'Reds',
+                    'title': 'Multivariate mutual information I(X;Y) for time shifts [0, ..., 20]',
+                    'ndslice': (slice(None), slice(None)),
+                    # 'dimstack': {'x': [0], 'y': [1]},
+                    'shape': (numsteps/overlap, scanlen)},
+                    
+                    {'input': 'd2', 
+                    'cmap': 'Reds',
                     'title': 'Multivariate mutual information I(X;Y) for time shifts [0, ..., 20]',
                     'ndslice': (slice(None), slice(None)),
                     # 'dimstack': {'x': [0], 'y': [1]},
