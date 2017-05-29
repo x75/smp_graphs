@@ -145,6 +145,20 @@ graph = OrderedDict([
         }
     }),
 
+    # ('wav', {
+    #     'block': FileBlock2,
+    #     'params': {
+    #         'blocksize': 1,
+    #         'type': 'wav',
+    #         # 'file': ['data/res_out.wav'],
+    #         'file': {'filename': 'data/res_out.wav', 'filetype': 'wav', 'offset': 100000, 'length': numsteps},
+    #         'file': {'filename': '../../smp/sequence/data/blackbird_XC330200/XC330200-1416_299-01hipan.wav', 'filetype': 'wav', 'offset': 0, 'length': numsteps},
+            
+    #         'outputs': {'x': {'shape': (2, 1)}}
+    #         },
+    #     }),
+    
+
     # slice block to split puppy sensors x into gyros x_gyr and accels x_acc
     ('puppyslice', {
         'block': SliceBlock2,
