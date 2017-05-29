@@ -23,20 +23,9 @@ it's outputs to the bus.
 This is a dynamic list, items already implemented should trickle down
 to the bottom as they consolidate, hottest items at the top.
 
--   plotting
-    -   x saveplots
-    -   dimstack plot vs. subplots, depends:mdp
-    -   interactive plotting (ipl)
--   graph: multi-dimensional busses (mdb)
--   graph: proper bus structure with change notifications and multidim signalling (tensor foo) depends:mdb
--   graph: execution: sliding window analysis mode with automatic, depends:mdb,ipl
-    subplot / dimstack routing, make target frequency sweep during
-    force learning and do sliding window analysis on shifted mi/te
--   models and fitting
--   ros systems
-
 -   power blocks, the real stuff
-    -   x block\_meas: measurement / analysis blocks
+    -   y block\_meas: measurement / analysis blocks
+    -   block\_expand: expansion blocks: random non-linear expansion (mdp), reservoir expansion, soft-body expansion
     -   block\_repr: representation learning, unsupervised learning, input decomposition
     -   block\_func: function approximation blocks
 
@@ -74,8 +63,15 @@ to the bottom as they consolidate, hottest items at the top.
         from dynamic containment
 
 -   read/write: integrate input from and output to ROS, OSC, &#x2026;
+    -   ros systems
 
+-   x dimstack: easy, kinda ;)
 -   sync / async block execution
+    -   execution timing:
+        -   blocksize = rate, at which point during counting should the block be executed
+        -   input shape: input buffer expected by the block, step wrapper takes care of collecting incoming data which is faster than the block's rate
+        -   output shape: output buffer at every execution step: arbitrary but fixed
+    -   async process / worker thread spawning
     -   spawn/fork threads as worker cloud, can be sequential loop or
         custom parallel version
     -   ros style callback inputs as usual simple buffer to local var copy
@@ -84,7 +80,37 @@ to the bottom as they consolidate, hottest items at the top.
     -   grow the acutal execution graph, take care of logging, timebase
         for block step indexing
 
--   graph / subgraph similarity search and reuse
+-   models, learning, fitting, representing, decomposing, expanding
+    -   make learners / models and robots
+    -   think of it as layers: model learners, expansions,
+        representations, predictive residual layer (e.g. mean/var layer)
+
+-   analysis
+    -   check normalization in infth comp and correlation (switching argument)
+    -   x RecurrencePlot: fix rp examples
+    -   x cross-correlation
+    -   x mutual information / information distance
+    -   x transfer entropy / conditional transfer entropy
+    -   x multivariate vs. uni-/bivariate
+
+-   graph issues
+    -   graph: lazy init with dirty flag that loops until all dependencies are satisfied
+    -   graph: execution: sequencing / timeline / phases
+    -   graph: finite episode is the wrong model, switch to infinite
+        realtime process, turn on/off logging etc, only preallocate
+        runtime buffers
+    -   graph: run multiple topblocks and pass around the data
+    -   graph / subgraph similarity search and reuse
+        -   graph: store graph search results to save comp. time
+        -   x graph: fix recursive node search in graph with subgraphs (nxgraph\_node\_by\_id\_&#x2026;)
+    -   / graph: proper bus structure with change notifications and multidim
+        signalling (tensor foo) depends:mdb
+    -   introduced dict based Bus class which can do it in the future
+    -   x graph: multi-dimensional busses (mdb)
+    -   x graph: execution: sliding window analysis mode with automatic, depends:mdb,ipl
+        subplot / dimstack routing,
+    -   x graph: input / output specs need to be dicts (positional indexing gets over my head)
+    -   x two-pass init: complete by putting input init into second pass
 
 -   / step, blocksize, ibuf
     -   min blocksize after pass 1
@@ -95,12 +121,26 @@ to the bottom as they consolidate, hottest items at the top.
     -   x basic blocksize handling
 
 -   / networkx
-    -   put entire runtime graph into nx.graph with proper edges etc
+    -   fix hierarchical graph connection drawing
+    -   / put entire runtime graph into nx.graph with proper edges etc
     -   x standalone networkx graph from final config
     -   x graphviz
     -   x visualization
 
+-   / plotting
+    -   properly label plots
+    -   put fileblock's input file into plot title / better plottitle in
+        general
+    -   proper normalization
+    -   proper ax labels, ticks, and scales
+    -   x saveplots
+    -   x dimstack plot vs. subplots, depends:mdp
+    -   x interactive plotting (ipl): pyqtgraph / in step decorator?
+        -   works out of the box when using small exec blocksize in plot block
+
 -   x hierarchical composition
+    -   x changed that: hierarchical from file, from dict and loopblocks all
+        get their own nxgraph member constructed an loop their children on step()
     -   x two ways of handling subgraphs: 1) insert into flattened
         topgraph, 2) keep hierarchical graph structure: for now going
         with 1)
@@ -118,10 +158,14 @@ to the bottom as they consolidate, hottest items at the top.
     -   x profiling: logging: make logging internal blocksize
 
 -   misc stuff
+    -   fix config dump via nxgraph
+    -   general clean up / function refactoring
+    -   make more documentation for all existing smp\_graphs configs
+    -   fix parameters for infth embeddings and RecurrencePlot embedding
+    -   make recurrenceanalysis separate block, independent of plotting so
+        the image can be analyzed further as an image
     -   x separate header/footer for full config file to remove code
         replication and clutter
-
--   x two-pass init: complete by putting input init into second pass
 
 -   x base block
 
@@ -131,6 +175,11 @@ to the bottom as they consolidate, hottest items at the top.
     -   x basic formatted dict printing. issues: different needs in
         different contexts, runtime version vs. init version. disregard
         runtime version in logging and storage
+
+-   experiments to build
+    -   expr: make full puppy analysis with motordiff
+    -   expr: make target frequency sweep during force learning and do sliding window analysis on shifted mi/te
+    -   x expr: make windowed infth analysis: manifold\_timespread\_windowed.py
 
 
 ## Examples
