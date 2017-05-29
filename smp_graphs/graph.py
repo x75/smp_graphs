@@ -1,4 +1,6 @@
 """smp_graphs basic graph operations for networkx based smp graphs
+
+2017 Oswald Berthold
 """
 
 import networkx as nx
@@ -9,6 +11,7 @@ from numpy import array
 # from matplotlib import colors as mcolors
 from matplotlib import colors
 
+from smp_graphs.utils import print_dict
 
 colors_ = list(six.iteritems(colors.cnames))
 
@@ -91,6 +94,22 @@ def nxgraph_flatten(G):
     print "nxgraph_flatten: relabeled graph", rG.nodes(), "composed graph", qG.nodes()
     # FIXME: consider edges
     return qG
+
+def nxgraph_to_smp_graph(G, level = 0):
+    """Walk the hierarchical graph depth-first and dump a dict"""
+    gstr = str()
+    for n in G.nodes():
+        gn = G.node[n]
+        # print "nxgraph_to_smp_graph: ", type(gn)
+        # gstr += str(gn)
+        gstr += '(\''
+        gstr += gn['block_'].id
+        gstr += '\', ' # {'
+        gstr += print_dict(gn)
+        gstr += '),\n'
+        if hasattr(gn, 'nxgraph'):
+            gstr += nxgraph_to_smp_graph(gn.nxgraph, level = level + 1)
+    return gstr
 
 def nxgraph_node_by_id(G, nid):
     """!@brief get a node key from an nx.graph by searching for an smp_graphs id"""

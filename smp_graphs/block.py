@@ -26,7 +26,8 @@ from smp_graphs.common import conf_header, conf_footer
 from smp_graphs.common import get_config_raw, get_config_raw_from_string
 from smp_graphs.common import set_attr_from_dict
 
-from smp_graphs.graph import nxgraph_from_smp_graph, nxgraph_node_by_id, nxgraph_node_by_id_recursive
+from smp_graphs.graph import nxgraph_from_smp_graph, nxgraph_to_smp_graph
+from smp_graphs.graph import nxgraph_node_by_id, nxgraph_node_by_id_recursive
 
 # FIXME: make it optional in core
 from hyperopt import STATUS_OK, STATUS_FAIL
@@ -172,12 +173,13 @@ def get_blocksize_input(G, buskey):
     n = nxgraph_node_by_id(G, srcid)
 
     
+    # search graph and all subgraphs, greedy + depth first
     n_ = nxgraph_node_by_id_recursive(G, srcid)
     (n_0, g_0) = n_[0]
-    print "n_0", srcid, n_0, g_0.node[n_0]['block_'].blocksize, g_0.node[n_0]['block_'].id
+    # print "n_0", srcid, n_0, g_0.node[n_0]['block_'].blocksize, g_0.node[n_0]['block_'].id
     if len(n_) == 0:
-        # search all subgraphs
-        return 1
+        # didn't find anything, return a default (and possibly wrong) blocksize of 1
+        return None
     # return G.node[n_[0]]['block_'].blocksize
     return g_0.node[n_0]['block_'].blocksize
     
@@ -217,6 +219,10 @@ class decStep():
                             blocksize_input     = get_blocksize_input(xself.top.nxgraph, v['bus'])
                             # output blocksize of the input's source node
                             blocksize_input_bus = xself.bus[v['bus']].shape[-1]
+
+                            # if search didn't find the node (for whatever reason), set a default of the input bus blocksize
+                            if blocksize_input is None:
+                                blocksize_input = blocksize_input_bus
                             
                             # input block border 
                             if (xself.cnt % blocksize_input) == 0: # (blocksize_input - 1):
@@ -350,16 +356,33 @@ class Block2(object):
             # write initial configuration to dummy table attribute in hdf5
             log.log_pd_store_config_initial(print_dict(self.conf))
 
+            # initialize the graph
+            self.init_block()
+
+            
+            # print "init top graph", print_dict(self.top.graph)
             # # dump the execution graph configuration to a file
             # finalconf = self.dump_final_config()
             # # this needs more work
             # log.log_pd_store_config_final(finalconf)
+            # nx.write_yaml(self.nxgraph, 'nxgraph.yaml')
+            try:
+                nx.write_gpickle(self.nxgraph, 'nxgraph.pkl')
+            except Exception, e:
+                print "%s-%s init pickling graph failed on downstream objects, e = %s" % (self.cname, self.id, e)
+                # print "Trying nxgraph_dump"
+
+            log.log_pd_store_config_final(nxgraph_to_smp_graph(self.nxgraph))
                 
-            # print "init top graph", print_dict(self.top.graph)
         else:
             # get bus from topblock
             self.bus = self.top.bus
             
+            self.init_block()
+
+
+    def init_block(self):
+        """Init a graph block: topblock, hierarchical inclusion: file/dict, loop, loop_seq"""
         ################################################################################
         # 2 copy the config dict to exec graph if hierarchical
         if hasattr(self, 'graph') or hasattr(self, 'subgraph') \
@@ -383,7 +406,7 @@ class Block2(object):
                                         
             # 2.2 init_pass_2: init inputs, again descending into hierarchy
             self.init_graph_pass_2()
-                    
+            
         ################################################################################
         # 3 initialize a primitive block
         else:

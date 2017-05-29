@@ -156,9 +156,19 @@ Arguments:
     
     # store original shape in table attribute
     # FIXME: doesn't seem to work?
+    # FIXME: this doesnt work because pandas doesnt propagate the table attributes when it grows the memory?
     log_store[tbl_name] = log_lognodes[tbl_name]
+    
     log_store.get_storer(tbl_name).attrs.shape = tbl_dim
     log_store.get_storer(tbl_name).attrs.numsteps = numsteps
+    h5file = log_store._handle
+    print "listnodes", h5file.list_nodes(log_store.root), tbl_name
+    print "blas", h5file.get_node(log_store.root, tbl_name)
+    node = h5file.get_node(h5file.root, tbl_name)
+    h5file.set_node_attr(node, 'shape', tbl_dim)
+    h5file.set_node_attr(node, 'numsteps', numsteps)
+    h5file.flush()
+
     # print "log_pd_init_block: log_store.get_storer(tbl_name).attrs.shape", log_store.get_storer(tbl_name).attrs.shape
     # print "log_pd_init_block: log_store.get_storer(tbl_name).attrs.numsteps", log_store.get_storer(tbl_name).attrs.numsteps
 
