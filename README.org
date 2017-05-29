@@ -104,6 +104,7 @@ to the bottom as they consolidate, hottest items at the top.
    - graph: finite episode is the wrong model, switch to infinite
      realtime process, turn on/off logging etc, only preallocate
      runtime buffers
+   - graph: "sparse" logging
    - graph: run multiple topblocks and pass around the data
    - graph / subgraph similarity search and reuse
      - graph: store graph search results to save comp. time 
@@ -138,6 +139,7 @@ to the bottom as they consolidate, hottest items at the top.
      general
    - proper normalization
    - proper ax labels, ticks, and scales
+   - x display graph + bus ion
    - x saveplots
    - x dimstack plot vs. subplots, depends:mdp
    - x interactive plotting (ipl): pyqtgraph / in step decorator?
