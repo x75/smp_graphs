@@ -13,7 +13,8 @@ from smp_graphs.block import SeqLoopBlock2
 # ]
 
 # f = open('data/goodPickles/allpickles.txt')
-f = open('data/stepPickles/allpickles.txt')
+# f = open('data/stepPickles/allpickles.txt')
+f = open('data/stepPicklesnewB/allpickles.txt')
 filearray = [fname.rstrip() for fname in f.readlines()]
 f.close()
 

@@ -100,7 +100,7 @@ class Bus(MutableMapping):
     def setval(self, k, v):
         self.store[k] = v
 
-    def plot(self, ax = None):
+    def plot(self, ax = None, blockid = None):
         assert ax is not None
         xspacing = 10
         yspacing = 2
@@ -111,7 +111,10 @@ class Bus(MutableMapping):
 
         ypos = -yspacing
         xpos = 0
-    
+
+        if blockid is None: blockid = "Block2"
+            
+        ax.set_title(blockid + ".bus")
         ax.text(10, 0, "Bus (%s)" % ("topblock"), fontsize = 10)
         ax.grid(0)
         # ax.plot(np.random.uniform(-5, 5, 100), "ko", alpha = 0.1)
@@ -207,7 +210,7 @@ class decStep():
                 # loop over block's inputs
                 for k, v in xself.inputs.items():
                     # check sanity
-                    assert v['val'].shape == v['shape'], "real and desired input shapes need to agree %s != %s" % (v['val'].shape, v['shape'])
+                    assert v['val'].shape == v['shape'], "real and desired input shapes need to agree block %s, ink = %s, %s != %s" % (xself.id, k, v['val'].shape, v['shape'])
                     
                     # copy bus inputs to input buffer
                     if v.has_key('bus'): # input item is driven by external signal (bus value)
@@ -219,23 +222,25 @@ class decStep():
                             blocksize_input     = get_blocksize_input(xself.top.nxgraph, v['bus'])
                             # output blocksize of the input's source node
                             blocksize_input_bus = xself.bus[v['bus']].shape[-1]
-
+                            
                             # if search didn't find the node (for whatever reason), set a default of the input bus blocksize
                             if blocksize_input is None:
                                 blocksize_input = blocksize_input_bus
                             
                             # input block border 
                             if (xself.cnt % blocksize_input) == 0: # (blocksize_input - 1):
+                                # print "%s-%s[%d] decStep copy inputs bs_in, bs_in_bus" % (xself.cname, xself.id, xself.cnt), blocksize_input, blocksize_input_bus
                                 # shift by input blocksize along self.blocksize axis
                                 # axis = len(xself.bus[v['bus']].shape) - 1
                                 axis = len(v['shape']) - 1
+                                # print v['val'][...,-blocksize_input_bus:]
                                 v['val'] = np.roll(v['val'], shift = -blocksize_input_bus, axis = axis)
                                 # print "%s.decStep v[val]" % (xself.cname), v['val'].shape, "v.sh", v['shape'], "axis", axis, "v", v['val']
-                                
                                 # set inputs [last-inputbs:last] if input blocksize reached                                
                                 sl = slice(-blocksize_input_bus, None)
                                 # print "%s-%s" % (xself.cname, xself.id), "sl", sl, "bus.shape", xself.bus[v['bus']].shape, "v['val'].shape", v['val'].shape
                                 v['val'][...,-blocksize_input_bus:] = xself.bus[v['bus']].copy() # np.fliplr(xself.bus[v[2]])
+                                # print v['val'][...,-blocksize_input_bus:]
                                 # if k == 'd2':
                                 # if xself.id == "plot_infth":
                                 #     # debugging bus to in copy
@@ -279,7 +284,7 @@ class decStep():
                 for k, v in xself.outputs.items():
                     buskey = "%s/%s" % (xself.id, k)
                     # print "copy[%d] %s.outputs[%s] = %s to bus[%s], bs = %d" % (xself.cnt, xself.id, k, getattr(xself, k).shape, buskey, xself.blocksize)
-                    assert xself.bus[v['buskey']].shape == v['shape'], "real and desired output shapes need to agree, %s != %s" % (xself.bus[v['buskey']].shape, v['shape'])
+                    assert xself.bus[v['buskey']].shape == v['shape'], "real and desired output shapes need to agree block %s, outk = %s, %s != %s" % (xself.id, k, xself.bus[v['buskey']].shape, v['shape'])
                     # copy data onto bus
                     xself.bus[v['buskey']] = getattr(xself, k).copy()
                     # print "xself.bus[v['buskey'] = %s]" % (v['buskey'], ) , xself.bus[v['buskey']]
@@ -691,6 +696,7 @@ class Block2(object):
         for i in range(self.nxgraph.number_of_nodes()):
             # assume output's initialized
             node = self.nxgraph.node[i]['block_']
+            if not node.logging: continue
 
             # depth first
             if hasattr(node, 'nxgraph'):
@@ -699,7 +705,6 @@ class Block2(object):
 
             # loop output items
             for k,v in node.outputs.items():
-                print k, v
                 if (not v.has_key('init')) or (not v['init']) or (not v['logging']): continue
         
                 tbl_columns_dims = "_".join(["%d" for axis in v['shape'][:-1]])

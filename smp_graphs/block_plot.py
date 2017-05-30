@@ -32,13 +32,13 @@ def subplot_input_fix(input_spec):
 class FigPlotBlock2(PrimBlock2):
     """!@brief Basic plotting block
 
-    matplotlib figure based plot
+    matplotlib figure based plot, creates the figure and a gridspec on init, uses fig.axes in the step function
     
-    Args
+    Arguments:
         - blocksize: usually numsteps (meaning plot all data created by that episode/experiment)
         - subplots: array of arrays, each cell of that matrix hold on subplot configuration dict
         - subplotconf: dict with inputs: list of input keys, plot: plotting function pointer
-"""
+    """
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
         # defaults
@@ -302,7 +302,7 @@ class ImgPlotBlock2(FigPlotBlock2):
 
                     # map loop indices to gridspec linear index
                     idx = (i*self.fig_cols)+j
-                    # print "self.inputs[subplotconf['input']][0].shape", self.inputs[subplotconf['input']][0].shape
+                    # print "self.inputs[subplotconf['input']][0].shape", self.inputs[subplotconf['input'][0]]['val'].shape, self.inputs[subplotconf['input'][0]]['shape']
 
                     xslice = slice(None)
                     yslice = slice(None)
@@ -399,7 +399,7 @@ class ImgPlotBlock2(FigPlotBlock2):
                         
                         # Linv = np.log(inv + 1)
                         Linv = inv
-                        print "Linv.shape", Linv.shape
+                        # print "Linv.shape", Linv.shape
                         plotfunc = "pcolorfast"
                         plot_img(ax = ax, data = Linv, plotfunc = plotfunc,
                                      vmin = vmin, vmax = vmax, cmap = cmap,

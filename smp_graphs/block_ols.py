@@ -60,6 +60,7 @@ class FileBlock2(Block2):
                 # setattr(self, 'x', self.data['x'])
                 # print "fileblock 'puppy' data.keys()", self.data.keys(), conf['params']['blocksize']
 
+                print "bla", conf['params']['outputs']
                 if not conf['params']['outputs'][k].has_key('shape'):
                     conf['params']['outputs'][k] = {'shape': self.data[k].T.shape} # [:-1]
                 # conf['params']['outputs']['y'] = {'shape': self.data['y'].T.shape} # [:-1]
@@ -196,7 +197,10 @@ class FileBlock2(Block2):
         # self.debug_print("self.x = %s", (self.x,))
         if (self.cnt % self.blocksize) == 0: # (self.blocksize - 1):
             for k, v in self.outputs.items():                
-                sl = slice(self.cnt-self.blocksize, self.cnt)
+                # sl = slice(self.cnt-self.blocksize, self.cnt)
+                windowlen = v['shape'][-1]
+                if self.cnt < windowlen: continue
+                sl = slice(self.cnt-windowlen, self.cnt)
                 setattr(self, k, self.data[k][sl].T)
                 # setattr(self, k, self.data[k][[self.cnt]].T)
             

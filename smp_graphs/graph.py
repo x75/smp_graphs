@@ -22,6 +22,7 @@ def nxgraph_from_smp_graph(conf):
     """!@brief construct an nx.graph from smp_graph configuration dictionary"""
     # new empty graph
     G = nx.MultiDiGraph()
+    G.name = conf['params']['id']
     # node count
     nc = 0
     
@@ -82,7 +83,7 @@ def nxgraph_flatten(G):
     G_ = nx.MultiDiGraph()
     for node in G.nodes_iter():
         if hasattr(G.node[node]['block_'], 'nxgraph'):
-            print "nxgraph_flatten: descending + 1"
+            # print "nxgraph_flatten: descending + 1"
             G_ = nx.compose(G_, nxgraph_flatten(G.node[node]['block_'].nxgraph))
 
     # final level
@@ -91,7 +92,7 @@ def nxgraph_flatten(G):
     mapping = dict(zip(G.nodes(), ids))
     rG = nx.relabel_nodes(G, mapping)
     qG = nx.compose(rG, G_)
-    print "nxgraph_flatten: relabeled graph", rG.nodes(), "composed graph", qG.nodes()
+    # print "nxgraph_flatten: relabeled graph", rG.nodes(), "composed graph", qG.nodes()
     # FIXME: consider edges
     return qG
 
@@ -156,25 +157,25 @@ def nxgraph_add_edges(G):
         cnode = G.node[node]['block_']
         gen = (n for n in G if G.node[n]['block_'].id.startswith(node))
         for loopchild in list(gen):
-            print "loopchild", loopchild
+            # print "graph.nxgraph_add_edges: loopchild = %s" %( loopchild,)
             # if v['params'].has_key('loopblock') and len(v['params']['loopblock']) == 0:
             if loopchild != node: # cnode.id:
                 # k_from = node.split("_")[0]
-                print "k_from", node, loopchild
+                # print "k_from", node, loopchild
                 edges.append((node, loopchild))
                 # G.add_edge(k_from, node)
                 
         for k, v in cnode.inputs.items():
             if not v.has_key('bus'): continue
             k_from_str, v_from_str = v['bus'].split('/')
-            print "edge from %s to %s" % (k_from_str, cnode.id)
+            # print "edge from %s to %s" % (k_from_str, cnode.id)
             # print nx.get_node_attributes(self.top.nxgraph, 'params')
             k_from = (n for n in G if G.node[n]['params']['id'] == k_from_str)
             k_to   = (n for n in G if G.node[n]['params']['id'] == cnode.id)
             k_from_l = list(k_from)
             k_to_l = list(k_to)
             if len(k_from_l) > 0 and len(k_to_l) > 0:
-                print "fish from", k_from_l[0], "to", k_to_l[0]
+                # print "fish from", k_from_l[0], "to", k_to_l[0]
                 edges.append((k_from_l[0], k_to_l[0]))
                 # G.add_edge(k_from_l[0], k_to_l[0])
                 
@@ -193,9 +194,9 @@ def nxgraph_plot(G, ax, pos = None, layout_type = "spring", node_color = None, n
         node_color = random.choice(colors_)
 
     # print "G.nodes", G.nodes(data=True)
-    print "layout", layout
+    # print "layout", layout
     labels = {node[0]: '%s\n%s' % (node[1]['block_'].cname, node[1]['block_'].id) for node in G.nodes(data = True)}
-    print "labels = %s" % labels
+    # print "labels = %s" % labels
     nx.draw_networkx_nodes(G, ax = ax, pos = layout, node_color = node_color, node_shape = '8', node_size = node_size)
     # shift(layout, (0, -2 * node_size))
     nx.draw_networkx_labels(G, ax = ax, pos = layout, labels = labels, font_color = 'r', font_size = 8, )
@@ -203,7 +204,7 @@ def nxgraph_plot(G, ax, pos = None, layout_type = "spring", node_color = None, n
     e1 = [] # std edges
     e2 = [] # loop edges
     for edge in G.edges():
-        print "edge", edge
+        # print "edge", edge
         if re.search("[_/]", G.node[edge[1]]['params']['id']):
             e2.append(edge)
         else:
@@ -211,7 +212,9 @@ def nxgraph_plot(G, ax, pos = None, layout_type = "spring", node_color = None, n
 
     nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = e1, edge_color = "g", width = 2)
     nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = e2, edge_color = "k")
-    
+
+    # set title
+    ax.set_title(G.name + " nxgraph")
 
 def scale(pos = {}, sf = 1):
     for k, v in pos.items():

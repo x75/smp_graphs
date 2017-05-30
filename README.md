@@ -1,27 +1,116 @@
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#org7b0776d">1. smp_graphs</a>
+<ul>
+<li><a href="#orgf7722f7">1.1. Installation</a></li>
+<li><a href="#org0409e7c">1.2. Examples</a></li>
+<li><a href="#orge9a297b">1.3. Framework design considerations</a></li>
+<li><a href="#org5a24d02">1.4. Notes</a></li>
+</ul>
+</li>
+<li><a href="#org917680e">2. API documentation</a></li>
+</ul>
+</div>
+</div>
 
+
+<a id="org7b0776d"></a>
 
 # smp\_graphs
 
-Specifiy sensorimotor learning experiments as a graph of nodes and a
-set of signals, corresponding nicely with the tapping approach. The
-basis framework functions are independent of external libs but the
-block implementations make use of other *smp* libs such as
-[smp\_base](https://github.com/x75/smp_base).
+Specify sensorimotor learning experiments as a graph of computation
+nodes (functions) and a set of signals representing the inputs to and
+output from the nodes. The basic framework functions should only
+depend on [smp\_base](https://github.com/x75/smp_base) and otherwise be independent of external
+libs. Specific block implementations make use of other *smp\_\** libs
+such as smp\_sys and of other 3rd party python libs, see dependencies.
 
-The design flow is similar to block based visual programming
-approaches and DSP design techniques found in supercollider, puredata,
-or gnuradio, to name a few. The idea is to use predefined blocks that
-implement a function of the block's inputs. The assignment of values
-to a given input is part of the graph configuration and is either a
-constant computed at configuration time or another block's output
-provided on a globally accessible bus structure. Every block writes
-it's outputs to the bus.
+The design flow is block diagram based. The idea is to use predefined
+blocks that implement a function of the block's inputs. The assignment
+of values to a given input is part of the graph configuration and is
+either a constant computed at configuration time or another block's
+output provided on a globally shared bus structure. Every block
+writes it's outputs to that bus where it can be picked up and used by
+any other block, including the block itself allowing recurrent
+connections.
+
+See also: mdp, Oger; pylearn2, blocks, procgraph, keras;
+supercollider, puredata, gnuradio.
 
 
-## Framework considerations
+<a id="orgf7722f7"></a>
+
+## Installation
+
+Depends on 
+
+-   External: numpy, scipy, networkx, pandas, matplotlib, sklearn, seaborn,
+
+rlspy, jpype/infodynamics.jar, mdp/Oger, ros, pyunicorn, hyperopt, cma
+
+-   smp world: smp\_base
+
+smp stuff is 'installed' via setting the PYTHONPATH to include the
+relevant directories like
+
+    export PYTHONPATH=/path/to/smp_base:/path/to/smp_graphs:$PYTHONPATH
+
+
+<a id="org0409e7c"></a>
+
+## Examples
+
+Go into smp\_graphs/experiments directory where experiments are run from
+
+    cd smp_graph/experiments
+
+Run some example configurations like
+
+    # default2.py, test most basic functionality with const and random blocks
+    python experiment.py --conf conf/default2.py
+
+    # default2_loop.py, test the graph modifying loop block
+    python experiment.py --conf conf/default2_loop.py
+
+    # default2_hierarchical.py, test hierarchical composition loading a subblock from
+    #                             an existing configuration
+    python experiment.py --conf conf/default2_hierarchical.py
+
+    # default2_loop_seq.py, test dynamic loop instantiating the loopblock
+    #                         for every loop iteration
+    python experiment.py --conf conf/default2_loop_seq.py
+
+and so on. Other configurations are puppy\_rp.py and
+puppy\_rp\_blocksize.py which load a logfile and do analysis on that
+data.
+
+Two utilities for inspecting logged configurations and data are
+provided in util\_logdump.py and util\_logplot.py
+
+
+<a id="orge9a297b"></a>
+
+## Framework design considerations
 
 This is a dynamic list, items already implemented should trickle down
 to the bottom as they consolidate, hottest items at the top.
+
+-   misc stuff: immediate or small
+    -   expansion: mean/var coding, log coding, res expansion, mdp nonlin expansion (mdp block containing entire flow?)
+    -   systems: add real systems with async exec foo: stdr, puppy, sphero
+    -   fix infth, xcorr, RecurrencePlot normalization via parameter switch
+    -   fix parameters for infth embeddings and RecurrencePlot embedding
+        the image can be analyzed further as an image
+    -   make recurrenceanalysis separate block, independent of plotting so
+    -   general clean up / function refactoring
+    -   x fix table attribute storage: pandas silently replaces the table object on reallocation, metadata does not propagate. store attributes at the end of experiment
+    -   x dump exec configuration
+    -   x dump plain config: as file, as log table vlarray string
+    -   x fix config dump via nxgraph
+    -   x separate header/footer for full config file to remove code
+        replication and clutter
 
 -   power blocks, the real stuff
     -   y block\_meas: measurement / analysis blocks
@@ -30,10 +119,10 @@ to the bottom as they consolidate, hottest items at the top.
     -   block\_func: function approximation blocks
 
 -   documentation
+    -   make more documentation for all existing smp\_graphs configs
     -   do the documentation
     -   doc: all the logic
     -   doc: inputs spec, outputs spec, slicespec, plotinput spec, mixed blocksizes?
-
 -   experiment: map an sm manifold from logdata via scattermatrix or
     dimstack, sort the axes by pairwise MI/infodist
 -   predictive processing
@@ -43,6 +132,7 @@ to the bottom as they consolidate, hottest items at the top.
     -   make pp mapping explicit: single sm-interface struct with 3
         layers [raw input, error, prediction], see
         <doc/img/agent-world-interface-sm.pdf>
+
 -   scheduling / phases
     -   be able to prescribe definite or variable-dependent sequences of
         development
@@ -102,6 +192,7 @@ to the bottom as they consolidate, hottest items at the top.
     -   x multivariate vs. uni-/bivariate
 
 -   graph issues
+    -   flat execution graph for running + plotting vs. structured configuration graph for readability and preservation of groupings
     -   graph: lazy init with dirty flag that loops until all dependencies are satisfied
     -   graph: execution: sequencing / timeline / phases
     -   graph: finite episode is the wrong model, switch to infinite
@@ -170,16 +261,6 @@ to the bottom as they consolidate, hottest items at the top.
     -   x include git revision, initial and final config in log
     -   x profiling: logging: make logging internal blocksize
 
--   misc stuff
-    -   fix config dump via nxgraph
-    -   general clean up / function refactoring
-    -   make more documentation for all existing smp\_graphs configs
-    -   fix parameters for infth embeddings and RecurrencePlot embedding
-    -   make recurrenceanalysis separate block, independent of plotting so
-        the image can be analyzed further as an image
-    -   x separate header/footer for full config file to remove code
-        replication and clutter
-
 -   x base block
 
 -   dict printing for dynamic reconf inspection
@@ -199,62 +280,29 @@ to the bottom as they consolidate, hottest items at the top.
     -   x expr: make windowed infth analysis: manifold\_timespread\_windowed.py
 
 
-## Examples
+<a id="org5a24d02"></a>
 
-Currently depends on the following python libs
+## Notes
 
--   External: numpy, matplotlib, pandas, networkx, hyperopt
--   smp world: smp\_base
+This is approximately my 5th attempt at defining a framework for
+computational sensorimotor learning experiments. Earlier attempts
+include
 
-smp stuff is 'installed' via setting the PYTHONPATH to include the
-relevant directories like
-
-    export PYTHONPATH=/path/to/smp_base:/path/to/smp_graphs:$PYTHONPATH
-
-then go into smp\_graphs/experiments directory where experiments are
-run from
-
-    cd smp_graph/experiments
-
-Example configurations are 
-
-    # default2.py, test most basic functionality with const and random blocks
-    python experiment.py --conf conf/default2.py
-
-    # default2_loop.py, test the graph modifying loop block
-    python experiment.py --conf conf/default2_loop.py
-
-    # default2_hierarchical.py, test hierarchical composition loading a subblock from
-    #                             an existing configuration
-    python experiment.py --conf conf/default2_hierarchical.py
-
-    # default2_loop_seq.py, test dynamic loop instantiating the loopblock
-    #                         for every loop iteration
-    python experiment.py --conf conf/default2_loop_seq.py
-
-and so on. Other configurations are puppy\_rp.py and
-puppy\_rp\_blocksize.py which load a logfile and do analysis on that
-data.
-
-Two utilities for inspecting logged configurations and data are
-provided in util\_logdump.py and util\_logplot.py
-
-
-# Notes
-
-This is my 5th attempt at designing a framework for computational
-sensorimotor learning experiments. Earlier attempts include
-
--   **smp\_experiments**: defined config as name value pairs and some
-    python code wrapping enabling the reuse of singular experiments
-    defined elsewhere in an outer loop doing variations (collecting
-    statistics, optimizing, &#x2026;)
+-   **smp\_experiments**: define configuration as name-value pairs and
+    some wrapping with python code, enabling the reuse of singular
+    experiments defined elsewhere in an outer loop doing variations
+    experiment variations for statistics or optimization
 -   **smpblocks**: first attempt at using plain python config files
-    containing a dictionary specifying generic computation blocks and
-    their connections. granularity was too small and specifying
-    connections was too complicated
+    containing a dictionary that specifies a graph of computation nodes
+    (blocks) and their connections. granularity was too small and
+    specifying connections was too complicated
 -   **smq**: tried to be more high-level, introducing three specific and
     fixed modules 'world', 'robot', 'brain'. Alas it turned out that
     left us too inflexible and obviosuly couldn't accomodate any
     experiments deviating from that schema. Is where we are ;)
+
+
+<a id="org917680e"></a>
+
+# API documentation
 

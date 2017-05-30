@@ -280,7 +280,7 @@ class MIMVBlock2(PrimBlock2):
         # self.mi[:,0] = (mi/jh).flatten()
         # self.mimv[0,shiftsl] = mimvs.flatten() # /maxjh
         self.mimv[0,shiftsl] = mimvs.flatten() # /maxjh
-        # print "@%d self.mimv.shape = %s, mimv = %s" % (self.cnt, self.mimv.shape, self.mimv)
+        print "@%d self.mimv.shape = %s, mimv = %s" % (self.cnt, self.mimv.shape, self.mimv)
 
 class TEMVBlock2(PrimBlock2):
     """!@brief Compute the multivariate transfer entropy from X to Y, aka the total TE"""

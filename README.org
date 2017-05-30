@@ -1,5 +1,9 @@
+#+AUTHOR: Oswald Berthold
+#+DATE: 20170530
 
-#+OPTIONS: ^:nil toc:nil
+
+#+OPTIONS: ^:nil 
+# toc:nil
 
 #+LATEX_HEADER: \usepackage{fullpage}
 #+LATEX_HEADER: \usepackage{lmodern}
@@ -7,20 +11,65 @@
 
 * smp_graphs
 
-Specifiy sensorimotor learning experiments as a graph of nodes and a
-set of signals, corresponding nicely with the tapping approach. The
-basis framework functions are independent of external libs but the
-block implementations make use of other /smp/ libs such as
-[[https://github.com/x75/smp_base][smp_base]].
+Specify sensorimotor learning experiments as a graph of computation
+nodes (functions) and a set of signals representing the inputs to and
+output from the nodes. The basic framework functions should only
+depend on [[https://github.com/x75/smp_base][smp_base]] and otherwise be independent of external
+libs. Specific block implementations make use of other /smp_*/ libs
+such as smp_sys and of other 3rd party python libs, see dependencies.
 
-The design flow is similar to block based visual programming
-approaches and DSP design techniques found in supercollider, puredata,
-or gnuradio, to name a few. The idea is to use predefined blocks that
-implement a function of the block's inputs. The assignment of values
-to a given input is part of the graph configuration and is either a
-constant computed at configuration time or another block's output
-provided on a globally accessible bus structure. Every block writes
-it's outputs to the bus.
+The design flow is block diagram based. The idea is to use predefined
+blocks that implement a function of the block's inputs. The assignment
+of values to a given input is part of the graph configuration and is
+either a constant computed at configuration time or another block's
+output provided on a globally shared bus structure. Every block
+writes it's outputs to that bus where it can be picked up and used by
+any other block, including the block itself allowing recurrent
+connections.
+
+See also: mdp, Oger; pylearn2, blocks, procgraph, keras;
+supercollider, puredata, gnuradio.
+
+** Installation
+
+Depends on 
+ - External: numpy, scipy, networkx, pandas, matplotlib, sklearn, seaborn,
+rlspy, jpype/infodynamics.jar, mdp/Oger, ros, pyunicorn, hyperopt, cma
+ - smp world: smp_base
+
+smp stuff is 'installed' via setting the PYTHONPATH to include the
+relevant directories like
+
+: export PYTHONPATH=/path/to/smp_base:/path/to/smp_graphs:$PYTHONPATH
+
+** Examples
+
+Go into smp_graphs/experiments directory where experiments are run from
+
+: cd smp_graph/experiments
+
+Run some example configurations like
+
+: # default2.py, test most basic functionality with const and random blocks
+: python experiment.py --conf conf/default2.py
+
+: # default2_loop.py, test the graph modifying loop block
+: python experiment.py --conf conf/default2_loop.py
+
+: # default2_hierarchical.py, test hierarchical composition loading a subblock from
+: #                             an existing configuration
+: python experiment.py --conf conf/default2_hierarchical.py
+
+: # default2_loop_seq.py, test dynamic loop instantiating the loopblock
+: #                         for every loop iteration
+: python experiment.py --conf conf/default2_loop_seq.py
+
+and so on. Other configurations are puppy_rp.py and
+puppy_rp_blocksize.py which load a logfile and do analysis on that
+data.
+
+Two utilities for inspecting logged configurations and data are
+provided in util_logdump.py and util_logplot.py
 
 ** Framework design considerations
 
@@ -209,59 +258,23 @@ to the bottom as they consolidate, hottest items at the top.
    - x expr: puppy scatter with proper delay: done for m:angle/s:angvel
    - x expr: make windowed infth analysis: manifold_timespread_windowed.py
 
-** Examples
+** Notes
 
-Currently depends on the following python libs
- - External: numpy, matplotlib, pandas, networkx, hyperopt
- - smp world: smp_base
-
-smp stuff is 'installed' via setting the PYTHONPATH to include the
-relevant directories like
-
-: export PYTHONPATH=/path/to/smp_base:/path/to/smp_graphs:$PYTHONPATH
-
-then go into smp_graphs/experiments directory where experiments are
-run from
-
-: cd smp_graph/experiments
-
-Example configurations are 
-
-: # default2.py, test most basic functionality with const and random blocks
-: python experiment.py --conf conf/default2.py
-
-: # default2_loop.py, test the graph modifying loop block
-: python experiment.py --conf conf/default2_loop.py
-
-: # default2_hierarchical.py, test hierarchical composition loading a subblock from
-: #                             an existing configuration
-: python experiment.py --conf conf/default2_hierarchical.py
-
-: # default2_loop_seq.py, test dynamic loop instantiating the loopblock
-: #                         for every loop iteration
-: python experiment.py --conf conf/default2_loop_seq.py
-
-and so on. Other configurations are puppy_rp.py and
-puppy_rp_blocksize.py which load a logfile and do analysis on that
-data.
-
-Two utilities for inspecting logged configurations and data are
-provided in util_logdump.py and util_logplot.py
-
-* Notes
-
-This is my 5th attempt at designing a framework for computational
-sensorimotor learning experiments. Earlier attempts include
- - *smp_experiments*: defined config as name value pairs and some
-   python code wrapping enabling the reuse of singular experiments
-   defined elsewhere in an outer loop doing variations (collecting
-   statistics, optimizing, ...)
+This is approximately my 5th attempt at defining a framework for
+computational sensorimotor learning experiments. Earlier attempts
+include
+ - *smp_experiments*: define configuration as name-value pairs and
+   some wrapping with python code, enabling the reuse of singular
+   experiments defined elsewhere in an outer loop doing variations
+   experiment variations for statistics or optimization
  - *smpblocks*: first attempt at using plain python config files
-   containing a dictionary specifying generic computation blocks and
-   their connections. granularity was too small and specifying
-   connections was too complicated
+   containing a dictionary that specifies a graph of computation nodes
+   (blocks) and their connections. granularity was too small and
+   specifying connections was too complicated
  - *smq*: tried to be more high-level, introducing three specific and
    fixed modules 'world', 'robot', 'brain'. Alas it turned out that
    left us too inflexible and obviosuly couldn't accomodate any
    experiments deviating from that schema. Is where we are ;)
+
+* API documentation
 

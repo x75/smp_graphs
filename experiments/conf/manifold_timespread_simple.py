@@ -38,12 +38,13 @@ ppycnf2 = {
     # 'logfile': 'data/stepPickles/step_period_10_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_12_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_76_0.pickle',
-    'logfile': 'data/stepPickles/step_period_26_0.pickle',
+    # 'logfile': 'data/stepPickles/step_period_26_0.pickle',
+    'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle',
     'logtype': 'puppy',
     'xdim': 6,
     'xdim_eff': 3,
     'ydim': 4,
-    'numsteps': 1000,
+    'numsteps': 5000,
 }
     
 testcnfsin = {
@@ -85,7 +86,7 @@ if cnf.has_key('sys_slicespec'):
 else:
     sys_slicespec = {'x': {'acc': slice(0, 3), 'gyr': slice(3, xdim)}}
 
-scanstart = -10
+scanstart = -20
 scanstop = 1
 scanlen = scanstop - scanstart
     
@@ -484,7 +485,7 @@ graph = OrderedDict([
             'subplots': [
                 [{'input': ['d3'], 'ndslice': (slice(scanlen), i, j), 'xaxis': 't',
                       'shape': (1, scanlen),
-                  'plot': partial(timeseries, linestyle="none", marker=".")} for j in range(xdim)]
+                  'plot': partial(timeseries, linestyle="-", marker=".")} for j in range(xdim)]
                 for i in range(ydim)],
                 
             #     [{'input': 'd3_%d_%d' % (i, j), 'xslice': (0, scanlen), 'xaxis': 't',

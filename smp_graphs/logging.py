@@ -98,26 +98,38 @@ log_blocksize    = {}
 log_lognodes_blockidx = {}
 
 def log_pd_init(config):
-    """log_pd: log to tables via pandas, global init
+    """log_pd_init
 
-Arguments:
-    config: the global configuration dictionary
-"""
+    global init for logging to hdf5 tables via pandas
+
+    Arguments:
+        - config: the global configuration dictionary
+    """
     global log_store
     experiment = "%s" % (config['params']['id'])
     log_store = pd.HDFStore("data/%s_pd.h5" % (experiment))
     # print "logging.log_pd_init log_store.root = %s" % (log_store.root)
 
 def log_pd_store_config_initial(conf):
-    # store the initial config for this run via the node attribute hack
+    """log_pd_store_config_initial
+
+    store the initial config in a separate table '/conf'
+
+    Arguments:
+        - conf: configuration dictionary
+    """
+    # # table attribute hack
     # df_conf = pd.DataFrame([[0]])
     # log_store['conf'] = df_conf
     # print "logging.log_pd_store_config_initial conf = %s" % conf
     # log_store.get_storer('conf').attrs.conf = conf
-    # create VLArray for storing the graph configuration
+
+    # get h5 handle from pandas    
     h5file = log_store._handle
+    # create VLArray for storing the graph configuration
     conf_array = h5file.create_vlarray(log_store.root, 'conf', tb.VLStringAtom(),
                                "Variable Length Config String")
+    # store it
     conf_array.append(str(conf))
 
 
@@ -142,7 +154,7 @@ def log_pd_init_block(tbl_name, tbl_dim, tbl_columns = None, numsteps=100, block
         - tbl_columns: node component labels
         - numsteps: experiment number of steps for preallocation
         - blocksize: blocksize
-"""
+    """
     global log_store, log_lognodes, log_lognodes_idx, log_blocksize, log_lognodes_blockidx
     # np.prod(tbl_dim[:-1]), # flattened dim without blocksize
 
@@ -173,13 +185,13 @@ def log_pd_init_block_attr(tbl_name, tbl_dim, numsteps, blocksize):
 
     # pytables
     h5file = log_store._handle
-    print "listnodes[%s] = %s" % (tbl_name, h5file.list_nodes(log_store.root))
-    print "node[%s] = %s" % (tbl_name, h5file.get_node(log_store.root, tbl_name))
+    # print "listnodes[%s] = %s" % (tbl_name, h5file.list_nodes(log_store.root))
+    # print "node[%s] = %s" % (tbl_name, h5file.get_node(log_store.root, tbl_name))
     node = h5file.get_node(h5file.root, tbl_name)
     h5file.set_node_attr(node, 'datashape', tbl_dim)
     h5file.set_node_attr(node, 'numsteps', numsteps)
     h5file.set_node_attr(node, 'blocksize', blocksize)
-    print "node[%s].attr = %s" % (tbl_name, h5file.get_node_attr(log_store.root, 'datashape', tbl_name), )
+    # print "node[%s].attr = %s" % (tbl_name, h5file.get_node_attr(log_store.root, 'datashape', tbl_name), )
     # print "node[%s].attr = %s" % (tbl_name, h5file.get_node_attr(log_store.root, tbl_name, 'numsteps'), )
     # print "node[%s].attr = %s" % (tbl_name, h5file.get_node_attr(log_store.root, tbl_name, 'blocksize'), )
     h5file.flush()

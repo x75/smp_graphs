@@ -5,9 +5,10 @@ from smp_graphs.block import SliceBlock2
 from smp_graphs.block_plot import ImgPlotBlock2
 
 ppycnf = {
-    'numsteps': 27000,
+    # 'numsteps': 27000,
     # 'logfile': 'data/experiment_20170518_161544_puppy_process_logfiles_pd.h5',
-    'logfile': 'data/experiment_20170526_160018_puppy_process_logfiles_pd.h5',
+    # 'numsteps': 27000,
+    # 'logfile': 'data/experiment_20170526_160018_puppy_process_logfiles_pd.h5',
     # 'numsteps': 147000,
     # 'logfile': 'data/experiment_20170510_155432_puppy_process_logfiles_pd.h5', # 147K
     # 'numsteps': 29000,
@@ -15,11 +16,27 @@ ppycnf = {
     # 'numsteps': 10000,
     # 'logfile': 'data/experiment_20170511_145725_puppy_process_logfiles_pd.h5', # 10K
     # 'numsteps': 2000,
-    # 'logfile': 'data/experiment_20170510_173800_puppy_process_logfiles_pd.h5', # 2K
+    # 'logfile': 'data/experiment_20170510_173800_puppy_process_logfiles_pd.h5', 2K
+    'numsteps': 20000,
+    'logfile': 'data/experiment_20170530_174612_process_logfiles_pd.h5', # step fast-to-slow newB all concatenated
     'xdim': 6,
     'xdim_eff': 3,
     'ydim': 4,
     'logtype': 'selflog',
+}
+
+ppycnf2 = {
+    # 'logfile': 'data/stepPickles/step_period_4_0.pickle',
+    # 'logfile': 'data/stepPickles/step_period_10_0.pickle',
+    # 'logfile': 'data/stepPickles/step_period_12_0.pickle',
+    # 'logfile': 'data/stepPickles/step_period_76_0.pickle',
+    # 'logfile': 'data/stepPickles/step_period_26_0.pickle',
+    'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle', # continuous sweep
+    'logtype': 'puppy',
+    'xdim': 6,
+    'xdim_eff': 3,
+    'ydim': 4,
+    'numsteps': 5000,
 }
 
 cnf = ppycnf
@@ -38,20 +55,23 @@ scanstart = -30
 scanstop = 0
 scanlen = scanstop - scanstart
 
+# 1000/1000
 winsize = 1000
 overlap = 1000
+srcsize = overlap
 
 graph = OrderedDict([
     ('data', {
         'block': FileBlock2,
         'params': {
             'id': 'data',
-            'debug': True,
-            'blocksize': overlap, # numsteps,
+            'debug': False,
+            # 'blocksize': overlap, # numsteps,
+            'blocksize': srcsize, # numsteps,
             'type': cnf['logtype'],
             'file': {'filename': cnf['logfile']},
-            'outputs': {'log': None, 'x': {'shape': (xdim, winsize)},
-                            'y': {'shape': (ydim, winsize)}},
+            'outputs': {'log': None, 'x': {'shape': (xdim, srcsize)},
+                            'y': {'shape': (ydim, srcsize)}},
         },
     }),
 
@@ -60,10 +80,11 @@ graph = OrderedDict([
         'block': SliceBlock2,
         'params': {
             'id': 'dataslice',
-            'blocksize': overlap,
+            # 'blocksize': overlap,
+            'blocksize': srcsize,
             'debug': True,
             # puppy sensors
-            'inputs': {'x': {'bus': 'data/x', 'shape': (xdim, winsize)}},
+            'inputs': {'x': {'bus': 'data/x', 'shape': (xdim, srcsize)}},
             'slices': sys_slicespec,
             # 'slices': ,
             }

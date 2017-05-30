@@ -5,17 +5,21 @@ import numpy as np
 from smp_graphs.block import decInit, decStep, Block2, PrimBlock2
 
 
-def f1(d, j, k, shift = (-10, 11)):
+def compute_xcor_matrix_src_dst(data, dst, src, shift = (-10, 11)):
+    """compute_xcor_matrix_src_dst
+
+    Compute the cross-correlation function for one source/destination pair. The destination is shifted by convention.
+    """
     # # this makes an implicit diff on the y signal
     # return np.array([
     #     np.correlate(
-    #         np.roll(d['x'].T[1:,j], shift = i),
-    #         np.diff(d['y'].T[:,k], axis = 0)) for i in range(shift[0], shift[1])
+    #         np.roll(data['x'].T[1:,dst], shift = i),
+    #         np.diff(data['y'].T[:,src], axis = 0)) for i in range(shift[0], shift[1])
     #     ])
     # don't do that
-    x = d['x'].T[:,j]
-    y = d['y'].T[:,k]
-    # print "corr f1 shapes", x.shape, y.shape
+    x = data['x'].T[:,dst]
+    y = data['y'].T[:,src]
+    # print "corr compute_xcor_matrix_src_dst shapes", x.shape, y.shape
     assert len(x.shape) == 1 and len(y.shape) == 1
     # scov = np.std(x) * np.std(y)
     # scov_inv = np.sqrt(1.0/scov)
@@ -29,38 +33,68 @@ def f1(d, j, k, shift = (-10, 11)):
     ])
     # corr_normalized = corr * len_inv
     # this is correct if the inputs are the same size
-    # print "f1 corr = %s" % (corr,)
+    # print "compute_xcor_matrix_src_dst corr = %s" % (corr,)
     return corr # _normalized
     
-def f2(d, k, shift = (-10, 11), xdim = 1):
-    return np.array([f1(d, j, k, shift = shift) for j in range(xdim)])
+def compute_xcor_matrix_src(data = {}, src = 0, shift = (-10, 11), dst_dim = 1):
+    # compute the cross-correlation matrix for one source looping over destinations (sensors)
+    return np.array([compute_xcor_matrix_src_dst(data = data, dst = j, src = src, shift = shift) for j in range(dst_dim)])
 
+def compute_xcor_matrix(data = {}, shift = (-1, 0), src_dim = 1, dst_dim = 1):
+    # np.array([compute_xcor_matrix_src(d, k, shift = self.shift, xdim = self.xdim) for k in range(self.ydim)]).reshape((self.ydim, self.xdim, self.shift[1] - self.shift[0]))
+    return np.array([compute_xcor_matrix_src(data, src = k, shift = shift, dst_dim = dst_dim) for k in range(src_dim)]).reshape((src_dim, dst_dim, shift[1] - shift[0]))
 
 class XCorrBlock2(PrimBlock2):
-    """Compute cross-correlation functions among all variables in dataset"""
+    """XCorrBlock2
+
+    Compute cross-correlation functions all pairs of variables in dataset and a given timeshift
+
+    Arguments:
+        - conf: block configuration dict
+        - paren: block's parent reference
+        - graph's top node reference
+
+    Sub-Arguments:
+        - conf['params']
+            - id: some id string
+            - blocksize: number of timesteps between block computations
+            - inputs: input dict
+            - shift: timeshift start and stop, shift is applied to last axis of input tensor
+            - outputs: output dict
+    """
     def __init__(self, conf = {}, paren = None, top = None):
-        params = conf['params']
-        
+        # # FIXME: legacy        
+        # params = conf['params']
         # for i in range(params['outputs']['xcorr'][0][0]):
         #     # self.params['outputs'][]
         #     for j in range(params['outputs']['xcorr'][0][1]):
         #         params['outputs']['xcorr_%d_%d' % (i, j)] = [(1, params['blocksize'])]
-        
+
+        # super init
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
-        
+
+        # shortcut to variable dimensions params
         self.xdim = self.bus[self.inputs['x']['bus']].shape[0]
         self.ydim = self.bus[self.inputs['y']['bus']].shape[0]
-        # print "xcorrblock", self.xdim, self.ydim
 
     @decStep()
     def step(self, x = None):
+        """XCorrBlock2.step
+
+        Arguments:
+            - x: legacy, None is ok
+        """
+        # init dict
         d = {}
-        # predefined cross correlation inputs
+        
+        # predefined cross correlation inputs are x and y
         for k in ['x', 'y']:
             d[k] = self.inputs[k]['val']
             # print "%s.step d[%s] = %s / %s" % (self.cname, k, d[k].shape, self.inputs[k][0])
 
-        arraytosumraw = np.array([f2(d, k, shift = self.shift, xdim = self.xdim) for k in range(self.ydim)]).reshape((self.ydim, self.xdim, self.shift[1] - self.shift[0]))
+        # compute the entire cross-correlation matrix looping over sources (motors)
+        arraytosumraw = compute_xcor_matrix(data = d, shift = self.shift, src_dim = self.ydim, dst_dim = self.xdim)
+        
         # print "%s.step arraytosumraw.sh = %s" % (self.cname, arraytosumraw.shape)
         # for i in range(self.ydim):
         #     print "%s.step arraytosumraw.sh = %s" % (self.cname, arraytosumraw[0,i,:])
@@ -68,6 +102,7 @@ class XCorrBlock2(PrimBlock2):
         # thesum = np.sum(arraytosum, axis=0)
         # plotdata = np.log(thesum)
 
+        # prepare required output shape
         # print "arraytosum.sh", arraytosumraw.shape
         print "xcorr.shape", self.xcorr.shape
         self.xcorr = arraytosumraw.reshape(self.outputs['xcorr']['shape']) # + (1,))
