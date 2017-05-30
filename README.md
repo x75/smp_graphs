@@ -30,12 +30,14 @@ to the bottom as they consolidate, hottest items at the top.
     -   block\_func: function approximation blocks
 
 -   documentation
+    -   do the documentation
     -   doc: all the logic
     -   doc: inputs spec, outputs spec, slicespec, plotinput spec, mixed blocksizes?
 
 -   experiment: map an sm manifold from logdata via scattermatrix or
     dimstack, sort the axes by pairwise MI/infodist
 -   predictive processing
+    -   prediction
     -   can we map top down - bottom up flow nicely into the graph? think
         yes.
     -   make pp mapping explicit: single sm-interface struct with 3
@@ -63,10 +65,13 @@ to the bottom as they consolidate, hottest items at the top.
         from dynamic containment
 
 -   read/write: integrate input from and output to ROS, OSC, &#x2026;
+    -   robots
     -   ros systems
 
--   x dimstack: easy, kinda ;)
 -   sync / async block execution
+    -   x research: rate/blocksize/ibuf/obuf,
+    -   sequencing (sequential execution) of subgraphs, aka execution phases
+    -   run multiple topblocks and pass around the data
     -   execution timing:
         -   blocksize = rate, at which point during counting should the block be executed
         -   input shape: input buffer expected by the block, step wrapper takes care of collecting incoming data which is faster than the block's rate
@@ -81,9 +86,12 @@ to the bottom as they consolidate, hottest items at the top.
         for block step indexing
 
 -   models, learning, fitting, representing, decomposing, expanding
+    -   models
     -   make learners / models and robots
     -   think of it as layers: model learners, expansions,
         representations, predictive residual layer (e.g. mean/var layer)
+    -   glue: mean/var coder, log coder, nonlin exp coder, res exp coder
+        (build smp\_recurrence\_plot via res exp + som)
 
 -   analysis
     -   check normalization in infth comp and correlation (switching argument)
@@ -134,6 +142,7 @@ to the bottom as they consolidate, hottest items at the top.
         general
     -   proper normalization
     -   proper ax labels, ticks, and scales
+    -   x dimstack: was easy, kinda ;)
     -   x display graph + bus ion
     -   x saveplots
     -   x dimstack plot vs. subplots, depends:mdp
@@ -155,6 +164,8 @@ to the bottom as they consolidate, hottest items at the top.
     -   x use blocks that contain other graphs (default2\_hierarchical.py)
 
 -   x logging
+    -   x graph: windowed computation coupled with rate, slow estimates sparse logging, bus value just remains unchanged
+    -   x block: shape, rate, dt as logging table attributes
     -   x std logging OK
     -   x include git revision, initial and final config in log
     -   x profiling: logging: make logging internal blocksize
@@ -179,8 +190,12 @@ to the bottom as they consolidate, hottest items at the top.
         runtime version in logging and storage
 
 -   experiments to build
+    -   expr: use cte curve for EH and others, concise embedding
+    -   expr: windowed audio fingerprinting
+    -   expr: fm beattrack
     -   expr: make full puppy analysis with motordiff
     -   expr: make target frequency sweep during force learning and do sliding window analysis on shifted mi/te
+    -   x expr: puppy scatter with proper delay: done for m:angle/s:angvel
     -   x expr: make windowed infth analysis: manifold\_timespread\_windowed.py
 
 
