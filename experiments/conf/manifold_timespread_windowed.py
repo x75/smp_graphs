@@ -5,15 +5,15 @@ from smp_graphs.block import SliceBlock2
 from smp_graphs.block_plot import ImgPlotBlock2
 
 ppycnf = {
-    # 'numsteps': 27000,
-    # # 'logfile': 'data/experiment_20170518_161544_puppy_process_logfiles_pd.h5',
-    # 'logfile': 'data/experiment_20170526_160018_puppy_process_logfiles_pd.h5',
+    'numsteps': 27000,
+    # 'logfile': 'data/experiment_20170518_161544_puppy_process_logfiles_pd.h5',
+    'logfile': 'data/experiment_20170526_160018_puppy_process_logfiles_pd.h5',
     # 'numsteps': 147000,
     # 'logfile': 'data/experiment_20170510_155432_puppy_process_logfiles_pd.h5', # 147K
     # 'numsteps': 29000,
     # 'logfile': 'data/experiment_20170517_160523_puppy_process_logfiles_pd.h5', 29K
-    'numsteps': 10000,
-    'logfile': 'data/experiment_20170511_145725_puppy_process_logfiles_pd.h5', # 10K
+    # 'numsteps': 10000,
+    # 'logfile': 'data/experiment_20170511_145725_puppy_process_logfiles_pd.h5', # 10K
     # 'numsteps': 2000,
     # 'logfile': 'data/experiment_20170510_173800_puppy_process_logfiles_pd.h5', # 2K
     'xdim': 6,
@@ -38,8 +38,8 @@ scanstart = -30
 scanstop = 0
 scanlen = scanstop - scanstart
 
-winsize = 2000
-overlap = 200
+winsize = 1000
+overlap = 1000
 
 graph = OrderedDict([
     ('data', {
