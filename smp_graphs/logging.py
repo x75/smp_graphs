@@ -132,13 +132,16 @@ def log_pd_store_config_final(conf):
     conf_array.append(str(conf))
         
 def log_pd_init_block(tbl_name, tbl_dim, tbl_columns = None, numsteps=100, blocksize = 1):
-    """log_pd: log to tables via pandas, local node init
+    """log_pd_init_block
 
-Arguments:
-    tbl_name: node id storage key
-     tbl_dim: busitem output shape for preallocation
- tbl_columns: node component labels
-    numsteps: experiment number of steps for preallocation
+    log to tables via pandas, local node init
+
+    Arguments:
+        - tbl_name: node id storage key
+        - tbl_dim: busitem output shape for preallocation
+        - tbl_columns: node component labels
+        - numsteps: experiment number of steps for preallocation
+        - blocksize: blocksize
 """
     global log_store, log_lognodes, log_lognodes_idx, log_blocksize, log_lognodes_blockidx
     # np.prod(tbl_dim[:-1]), # flattened dim without blocksize

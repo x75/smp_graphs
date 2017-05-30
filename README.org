@@ -22,10 +22,25 @@ constant computed at configuration time or another block's output
 provided on a globally accessible bus structure. Every block writes
 it's outputs to the bus.
 
-** Framework considerations
+** Framework design considerations
 
 This is a dynamic list, items already implemented should trickle down
 to the bottom as they consolidate, hottest items at the top.
+
+ - misc stuff: immediate or small
+   - expansion: mean/var coding, log coding, res expansion, mdp nonlin expansion (mdp block containing entire flow?)
+   - systems: add real systems with async exec foo: stdr, puppy, sphero
+   - fix infth, xcorr, RecurrencePlot normalization via parameter switch
+   - fix parameters for infth embeddings and RecurrencePlot embedding
+     the image can be analyzed further as an image
+   - make recurrenceanalysis separate block, independent of plotting so
+   - general clean up / function refactoring
+   - x fix table attribute storage: pandas silently replaces the table object on reallocation, metadata does not propagate. store attributes at the end of experiment
+   - x dump exec configuration
+   - x dump plain config: as file, as log table vlarray string
+   - x fix config dump via nxgraph
+   - x separate header/footer for full config file to remove code
+     replication and clutter
 
  - power blocks, the real stuff
    - y block_meas: measurement / analysis blocks
@@ -34,10 +49,10 @@ to the bottom as they consolidate, hottest items at the top.
    - block_func: function approximation blocks
 
  - documentation
+   - make more documentation for all existing smp_graphs configs
    - do the documentation
    - doc: all the logic
    - doc: inputs spec, outputs spec, slicespec, plotinput spec, mixed blocksizes?
-
  - experiment: map an sm manifold from logdata via scattermatrix or
    dimstack, sort the axes by pairwise MI/infodist
  - predictive processing
@@ -47,6 +62,7 @@ to the bottom as they consolidate, hottest items at the top.
    - make pp mapping explicit: single sm-interface struct with 3
      layers [raw input, error, prediction], see
      [[file:doc/img/agent-world-interface-sm.pdf]]
+
  - scheduling / phases
    - be able to prescribe definite or variable-dependent sequences of
      development
@@ -105,8 +121,8 @@ to the bottom as they consolidate, hottest items at the top.
    - x transfer entropy / conditional transfer entropy
    - x multivariate vs. uni-/bivariate
 
-
  - graph issues
+   - flat execution graph for running + plotting vs. structured configuration graph for readability and preservation of groupings
    - graph: lazy init with dirty flag that loops until all dependencies are satisfied
    - graph: execution: sequencing / timeline / phases
    - graph: finite episode is the wrong model, switch to infinite
@@ -167,23 +183,13 @@ to the bottom as they consolidate, hottest items at the top.
      enforce 1 or equality: flattening of graph enforces std graph
      rule bs_earlier_lt_bs_later
    - x use blocks that contain other graphs (default2_hierarchical.py)
-
+ 
  - x logging
    - x graph: windowed computation coupled with rate, slow estimates sparse logging, bus value just remains unchanged
    - x block: shape, rate, dt as logging table attributes
    - x std logging OK
    - x include git revision, initial and final config in log
    - x profiling: logging: make logging internal blocksize
- 
- - misc stuff
-   - fix config dump via nxgraph
-   - general clean up / function refactoring
-   - make more documentation for all existing smp_graphs configs
-   - fix parameters for infth embeddings and RecurrencePlot embedding
-   - make recurrenceanalysis separate block, independent of plotting so
-     the image can be analyzed further as an image
-   - x separate header/footer for full config file to remove code
-     replication and clutter
 
  - x base block
 

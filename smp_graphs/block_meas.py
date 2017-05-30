@@ -95,8 +95,8 @@ class XCorrBlock2(PrimBlock2):
 
 
 class WindowedBlock2(PrimBlock2):
-    
     """!@brief Uniform random numbers: output is uniform random vector
+    FIXME: this one is not really needed as sliding window just comes out of blocksize vs. output blocksize
     """
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):

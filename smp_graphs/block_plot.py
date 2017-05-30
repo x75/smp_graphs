@@ -32,10 +32,12 @@ def subplot_input_fix(input_spec):
 class FigPlotBlock2(PrimBlock2):
     """!@brief Basic plotting block
 
-params
- - blocksize: usually numsteps (meaning plot all data created by that episode/experiment)
- - subplots: array of arrays, each cell of that matrix hold on subplot configuration dict
-  - subplotconf: dict with inputs: list of input keys, plot: plotting function pointer
+    matplotlib figure based plot
+    
+    Args
+        - blocksize: usually numsteps (meaning plot all data created by that episode/experiment)
+        - subplots: array of arrays, each cell of that matrix hold on subplot configuration dict
+        - subplotconf: dict with inputs: list of input keys, plot: plotting function pointer
 """
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):

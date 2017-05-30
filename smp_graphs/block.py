@@ -359,7 +359,6 @@ class Block2(object):
             # initialize the graph
             self.init_block()
 
-            
             # print "init top graph", print_dict(self.top.graph)
             
             # dump the execution graph configuration to a file
