@@ -159,19 +159,32 @@ Arguments:
     # FIXME: this doesnt work because pandas doesnt propagate the table attributes when it grows the memory?
     log_store[tbl_name] = log_lognodes[tbl_name]
     
-    log_store.get_storer(tbl_name).attrs.shape = tbl_dim
-    log_store.get_storer(tbl_name).attrs.numsteps = numsteps
-    h5file = log_store._handle
-    print "listnodes", h5file.list_nodes(log_store.root), tbl_name
-    print "blas", h5file.get_node(log_store.root, tbl_name)
-    node = h5file.get_node(h5file.root, tbl_name)
-    h5file.set_node_attr(node, 'shape', tbl_dim)
-    h5file.set_node_attr(node, 'numsteps', numsteps)
-    h5file.flush()
-
     # print "log_pd_init_block: log_store.get_storer(tbl_name).attrs.shape", log_store.get_storer(tbl_name).attrs.shape
     # print "log_pd_init_block: log_store.get_storer(tbl_name).attrs.numsteps", log_store.get_storer(tbl_name).attrs.numsteps
 
+def log_pd_init_block_attr(tbl_name, tbl_dim, numsteps, blocksize):
+    global log_store
+    # log_store.get_storer(tbl_name).attrs.datashape = tbl_dim[:-1]
+    # log_store.get_storer(tbl_name).attrs.numsteps = numsteps
+    # log_store.get_storer(tbl_name).attrs.blocksize = blocksize
+
+    # pytables
+    h5file = log_store._handle
+    print "listnodes[%s] = %s" % (tbl_name, h5file.list_nodes(log_store.root))
+    print "node[%s] = %s" % (tbl_name, h5file.get_node(log_store.root, tbl_name))
+    node = h5file.get_node(h5file.root, tbl_name)
+    h5file.set_node_attr(node, 'datashape', tbl_dim)
+    h5file.set_node_attr(node, 'numsteps', numsteps)
+    h5file.set_node_attr(node, 'blocksize', blocksize)
+    print "node[%s].attr = %s" % (tbl_name, h5file.get_node_attr(log_store.root, 'datashape', tbl_name), )
+    # print "node[%s].attr = %s" % (tbl_name, h5file.get_node_attr(log_store.root, tbl_name, 'numsteps'), )
+    # print "node[%s].attr = %s" % (tbl_name, h5file.get_node_attr(log_store.root, tbl_name, 'blocksize'), )
+    h5file.flush()
+
+def log_pd_deinit():
+    global log_store
+    log_store.close()
+        
 def log_pd_store():
     # store logs, FIXME incrementally
     global log_lognodes, log_store

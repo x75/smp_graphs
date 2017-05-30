@@ -361,8 +361,10 @@ class Block2(object):
 
             
             # print "init top graph", print_dict(self.top.graph)
-            # # dump the execution graph configuration to a file
-            # finalconf = self.dump_final_config()
+            
+            # dump the execution graph configuration to a file
+            finalconf = self.dump_final_config()
+            
             # # this needs more work
             # log.log_pd_store_config_final(finalconf)
             # nx.write_yaml(self.nxgraph, 'nxgraph.yaml')
@@ -671,11 +673,49 @@ class Block2(object):
             if (self.cnt) % 500 == 0 or self.cnt == (self.numsteps - 1):
                 print "storing log @iter %04d" % (self.cnt)
                 log.log_pd_store()
+
+            # store on final step and copy data attributes to log attributes
+            if self.cnt == self.numsteps:
+                print "storing log @iter %04d final" % (self.cnt)
+                # store
+                log.log_pd_store()
+                # recursively copy the attributes
+                self.log_attr()
+                # close the file
+                log.log_pd_deinit()
                 
         # need to to count ourselves
         self.cnt += 1
 
+    def log_attr(self):
+        """Block2.log_attr: enumerate all nodes in hierarchical graph and copy the node's output attributes to table attributes"""
+        for i in range(self.nxgraph.number_of_nodes()):
+            # assume output's initialized
+            node = self.nxgraph.node[i]['block_']
+
+            # depth first
+            if hasattr(node, 'nxgraph'):
+                # recur
+                node.log_attr()
+
+            # loop output items
+            for k,v in node.outputs.items():
+                print k, v
+                if (not v.has_key('init')) or (not v['init']) or (not v['logging']): continue
+        
+                tbl_columns_dims = "_".join(["%d" for axis in v['shape'][:-1]])
+                tbl_columns = [tbl_columns_dims % tup for tup in xproduct(itertools.product, v['shape'][:-1])]
+
+                # set the log table attributes for this output item
+                log.log_pd_init_block_attr(
+                    tbl_name    = v['buskey'], # "%s/%s" % (node.id, k),
+                    tbl_dim     = v['shape'],
+                    numsteps    = (node.top.numsteps / node.blocksize) * node.oblocksize,
+                    blocksize   = node.blocksize,
+                )
+                    
     def get_config(self):
+        """Block2.get_config: get the current node instance as a dictionary"""
         params = {}
         for k, v in self.__dict__.items():
             # FIXME: include bus, top, paren?
@@ -690,6 +730,7 @@ class Block2(object):
         return conf
 
     def dump_final_config(self):
+        """Block2.dump_final_config get the current configuration and dump it into a text file"""
         finalconf = self.get_config()
         # print "Block2.dump_final_config", type(finalconf), finalconf
         # pickle.dump(finalconf, open("data/%s_conf.pkl" % (self.id, ), "wb"))
