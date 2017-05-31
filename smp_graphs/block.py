@@ -760,6 +760,9 @@ class Block2(object):
         for attr in attrs:
             assert hasattr(self, attr), "%s.check_attrs: Don't have attr = %s" % (self.__class__.__name__, attr)
 
+    def get_input(k):
+        return self.inputs[k]['val']
+
 class FuncBlock2(Block2):
     """!@brief Function block: wrap the function given by the configuration in params['func'] in a block"""
     def __init__(self, conf = {}, paren = None, top = None):
@@ -926,9 +929,12 @@ class SeqLoopBlock2(Block2):
             self.dynblock.init_pass_2()
 
             # run the block
-            for j in range(self.dynblock.blocksize):
+            # for j in range(self.dynblock.blocksize):
+            for j in range(self.dynblock.numsteps):
                 # print "%s trying %s.step[%d]" % (self.cname, dynblock.cname, j)
                 self.dynblock.step()
+
+            return {}
         
         def f_obj_hpo(params):
             # print "f_obj_hpo: params", params
@@ -978,8 +984,9 @@ class SeqLoopBlock2(Block2):
             then = time.time()
             # dynblock = obj()
             # func: need input function from config
-            results = self.f_loop(i, f_obj_)#_hpo)
+            results = self.f_loop(i, f_obj_) #_hpo)
             if results is not None:
+                print "results", results
                 for k, v in results.items():
                     setattr(self, k, v)
             # dynblock = results['dynblock']

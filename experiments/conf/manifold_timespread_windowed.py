@@ -1,7 +1,7 @@
 """smp_graphs perform windowed short time mutual info scan"""
 
-from smp_graphs.block_meas_infth import MIMVBlock2
-from smp_graphs.block import SliceBlock2
+from smp_graphs.block_meas_infth import MIMVBlock2, JHBlock2
+from smp_graphs.block import SliceBlock2, SeqLoopBlock2
 from smp_graphs.block_plot import ImgPlotBlock2
 
 ppycnf = {
@@ -31,7 +31,7 @@ ppycnf2 = {
     # 'logfile': 'data/stepPickles/step_period_12_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_76_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_26_0.pickle',
-    'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle', # continuous sweep
+    'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle', # continuous sweep without battery
     'logtype': 'puppy',
     'xdim': 6,
     'xdim_eff': 3,
@@ -39,7 +39,7 @@ ppycnf2 = {
     'numsteps': 5000,
 }
 
-cnf = ppycnf
+cnf = ppycnf2
 
 # copy params to namespace
 numsteps = cnf['numsteps']
@@ -57,10 +57,83 @@ scanlen = scanstop - scanstart
 
 # 1000/1000
 winsize = 1000
-overlap = 1000
+overlap = 500
 srcsize = overlap
 
+
+loopblocksize = 1
+
+loopblock = {
+        'block': Block2,
+        'params': {
+            'id': 'bhier',
+            'debug': False,
+            'topblock': False,
+            'numsteps': numsteps,
+            # contains the subgraph specified in this config file
+            'graph': OrderedDict([
+                ('ldata', {
+                    'block': FileBlock2,
+                    'params': {
+                        'blocksize': numsteps,
+                        'type': cnf['logtype'],
+                        'file': {'filename': cnf['logfile']},
+                        'outputs': {'log': None, 'x': {'shape': (xdim, numsteps)},
+                                    'y': {'shape': (ydim, numsteps)}},
+                    },
+                }),
+                
+                # slice block to split puppy sensors x into gyros x_gyr and accels x_acc
+                ('ldataslice', {
+                    'block': SliceBlock2,
+                    'params': {
+                        'blocksize': srcsize,
+                        'inputs': {'x': {'bus': 'ldata/x', 'shape': (xdim, numsteps)}},
+                        'slices': sys_slicespec,
+                    }
+                }),
+                
+                # joint entropy
+                ('jh', {
+                    'block': JHBlock2,
+                    'params': {
+                        'id': 'jh',
+                        'blocksize': numsteps,
+                        'debug': False,
+                        'inputs': {'x': {'bus': 'ldataslice/x_gyr'}, 'y': {'bus': 'ldata/y'}},
+                        'shift': (0, 1),
+                        'outputs': {'jh': {'shape': (1, 1)}}
+                    }
+                })
+            ]),
+        }
+    }
+
 graph = OrderedDict([
+    # a loop block calling the enclosed block len(loop) times,
+    # returning data of looplength in one outer step
+    ("jhloop", {
+        'block': SeqLoopBlock2,
+        'params': {
+            'id': 'jhloop',
+            # loop specification, check hierarchical block to completely pass on the contained in/out space?
+            'blocksize': 1, # same as loop length
+            'numsteps':  numsteps,
+            'loopblocksize': loopblocksize,
+            # can't do this dynamically yet without changing init passes
+            'outputs': {'jh': {'shape': (1, 1)}},
+            # 'loop': [('inputs', {
+            #     'lo': {'val': np.random.uniform(-i, 0, (3, 1)), 'shape': (3, 1)}, 'hi': {'val': np.random.uniform(0.1, i, (3, 1)), 'shape': (3, 1)}}) for i in range(1, 11)],
+            # 'loop': lambda ref, i: ('inputs', {'lo': [10 * i], 'hi': [20*i]}),
+            # 'loop': [('inputs', {'x': {'val': np.random.uniform(np.pi/2, 3*np.pi/2, (3,1))]}) for i in range(1, numsteps+1)],
+            # 'loop': partial(f_loop_hpo, space = f_loop_hpo_space_f3(pdim = 3)),
+            'loop': [('none', {})], # lambda ref, i, obj: ('none', {}),
+            'loopmode': 'sequential',
+            'loopblock': loopblock,
+        },
+    }),
+
+    
     ('data', {
         'block': FileBlock2,
         'params': {
@@ -138,6 +211,46 @@ graph = OrderedDict([
         }
     }),
     
+    # ('ctemv', {
+    #     'block': CTEBlock2,
+    #     'params': {
+    #         'id': 'ctemv',
+    #         'blocksize': overlap,
+    #         'debug': False,
+    #         'inputs': {'x': {'bus': 'dataslice/x_gyr', 'shape': (xdim_eff, winsize)},
+    #                        'y': {'bus': 'data/y', 'shape': (ydim, winsize)}},
+    #         # 'shift': (-120, 8),
+    #         'shift': (scanstart, scanstop), # len 21
+    #         # 'outputs': {'mi': {'shape': ((ydim + xdim)**2, 1)}}
+    #         'outputs': {'cte': {'shape': (1, scanlen)}}
+    #     }
+    # }),
+
+    # plot module with blocksize = episode, fetching input from busses
+    # and mapping that onto plots
+    ("plot_ts", {
+        'block': PlotBlock2,
+        'params': {
+            'blocksize': numsteps,
+            'debug': False,
+            'saveplot': False,
+            'savetype': 'pdf',
+            'wspace': 0.2, 'hspace': 0.2,
+            'inputs': {'d1': {'bus': 'data/x', 'shape': (xdim, numsteps)}, 'd2': {'bus': 'data/y', 'shape': (ydim, numsteps)}},
+            'outputs': {}, # 'x': {'shape': (3, 1)}
+            'subplots': [
+                [
+                    {'input': 'd1', 'plot': timeseries},
+                    {'input': 'd1', 'plot': histogram},
+                ],
+                [
+                    {'input': 'd2', 'plot': timeseries},
+                    {'input': 'd2', 'plot': histogram},
+                ],
+            ]
+        }
+    }),
+        
     # plot multivariate (global) mutual information over timeshifts
     ('plot_infth', {
         'block': ImgPlotBlock2,

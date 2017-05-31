@@ -21,20 +21,15 @@ def compute_xcor_matrix_src_dst(data, dst, src, shift = (-10, 11)):
     y = data['y'].T[:,src]
     # print "corr compute_xcor_matrix_src_dst shapes", x.shape, y.shape
     assert len(x.shape) == 1 and len(y.shape) == 1
-    # scov = np.std(x) * np.std(y)
-    # scov_inv = np.sqrt(1.0/scov)
-    len_inv  = 1.0/x.shape[0]
-    x = (x - np.mean(x)) / (np.std(x) * x.shape[0]) # * scov_inv
-    # x /= scov
-    y = (y - np.mean(y)) / np.std(y) #  scov_inv
-    # y /= scov
+    # normalization
+    len_inv  = 1.0/x.shape[0] # 1 / N
+    x = (x - np.mean(x)) / (np.std(x) * x.shape[0]) # 1 / N applied once, scaled by stddev
+    y = (y - np.mean(y)) / np.std(y) # scaled by stddev
+    # compute correlation
     corr = np.array([
         np.correlate(np.roll(x, shift = i), y) for i in range(shift[0], shift[1])
     ])
-    # corr_normalized = corr * len_inv
-    # this is correct if the inputs are the same size
-    # print "compute_xcor_matrix_src_dst corr = %s" % (corr,)
-    return corr # _normalized
+    return corr
     
 def compute_xcor_matrix_src(data = {}, src = 0, shift = (-10, 11), dst_dim = 1):
     # compute the cross-correlation matrix for one source looping over destinations (sensors)

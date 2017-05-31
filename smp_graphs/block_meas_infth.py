@@ -51,17 +51,22 @@ class MIBlock2(PrimBlock2):
     def __init__(self, conf = {}, paren = None, top = None):
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
+        self.norm_out = True
+
     @decStep()
     def step(self, x = None):
         mis = []
-        # jhs = []
         
-        dst = self.inputs['x']['val'].T
-        src = self.inputs['y']['val'].T
-        st = np.hstack((src, dst))
+        dst = self.get_inputs('x').T
+        src = self.get_inputs('y').T
 
-        # shouldn't change too much under time shift
-        jh = compute_mi_multivariate(data = {'X': st, 'Y': st})
+        jh = 1.0
+        
+        if self.norm_out:
+            # stack src and destination
+            st = np.hstack((src, dst))
+            # compute full joint entropy as normalization constant
+            jh = 1.0 / compute_mi_multivariate(data = {'X': st, 'Y': st})
         
         # print "%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by " % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape),
         # print "%s.step[%d]-%s src.sh = %s, src = %s" % (self.cname, self.cnt, self.id, src.shape, src)
@@ -80,7 +85,7 @@ class MIBlock2(PrimBlock2):
             # jh = self.measH.step(st)
             # mi = self.meas.step(src, dst)
 
-            mi = compute_mutual_information(src, dst, delay = -i)
+            mi = compute_mutual_information(src, dst, delay = -i, norm_in = True, norm_out = jh)
             # print "mi", mi
             
             mis.append(mi.copy())
@@ -105,7 +110,7 @@ class MIBlock2(PrimBlock2):
         # normalized by joint entropy
         # self.mi[:,0] = mis.flatten()/jh
         # self.mi[:,0] = mis.flatten()
-        self.mi = mis.T.copy()
+        self.mi = mis.T.copy() * jh
 
 class InfoDistBlock2(PrimBlock2):
     """!@brief Compute elementwise information distance among all variables in dataset. This is
@@ -235,9 +240,7 @@ class MIMVBlock2(PrimBlock2):
     """!@brief Compute the multivariate mutual information between X and Y, aka the total MI"""
     def __init__(self, conf = {}, paren = None, top = None):
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
-
-        # self.meas = measMI()
-        # self.measH = measH()
+        self.norm_out = True
 
     @decStep()
     def step(self, x = None):
@@ -246,9 +249,24 @@ class MIMVBlock2(PrimBlock2):
         shiftsl = slice(None, (self.shift[1] - self.shift[0]))
         mimvs = []
         jhs = []
-        src = self.inputs['y']['val'].T
-        dst = self.inputs['x']['val'].T
-        
+        # set default normalization factor
+        jh = 1.0
+
+        # normalize over one step
+        if self.norm_out:
+            # stack src and destination
+            st = np.hstack((src, dst))
+            # compute full joint entropy as normalization constant
+            jh = 1.0 / compute_mi_multivariate(data = {'X': st, 'Y': st})
+
+        # get inputs
+        src = self.get_inputs('y').T
+        dst = self.get_inputs('x').T
+
+        # normalize from external input, overrides stepwise norm_out
+        if self.inputs.has_key['norm']:
+            norm = self.get_inputs('norm').T
+            
         for i in range(self.shift[0], self.shift[1]):
             print "%d" % (i, ),
             sys.stdout.flush()
@@ -279,8 +297,8 @@ class MIMVBlock2(PrimBlock2):
         
         # self.mi[:,0] = (mi/jh).flatten()
         # self.mimv[0,shiftsl] = mimvs.flatten() # /maxjh
-        self.mimv[0,shiftsl] = mimvs.flatten() # /maxjh
-        print "@%d self.mimv.shape = %s, mimv = %s" % (self.cnt, self.mimv.shape, self.mimv)
+        self.mimv[0,shiftsl] = mimvs.flatten() * jh # /maxjh
+        # print "@%d self.mimv.shape = %s, mimv = %s" % (self.cnt, self.mimv.shape, self.mimv)
 
 class TEMVBlock2(PrimBlock2):
     """!@brief Compute the multivariate transfer entropy from X to Y, aka the total TE"""
