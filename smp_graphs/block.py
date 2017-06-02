@@ -388,6 +388,7 @@ class Block2(object):
             
             self.init_block()
 
+        print "%s-%s end of init blocksize = %d" % (self.cname, self.id, self.blocksize)
 
     def init_block(self):
         """Init a graph block: topblock, hierarchical inclusion: file/dict, loop, loop_seq"""
@@ -646,6 +647,7 @@ class Block2(object):
             print fmtstring % data
 
     # undecorated step, need to count ourselves
+    @decStep()
     def step(self, x = None):
         """Base block step function
 
@@ -696,16 +698,20 @@ class Block2(object):
                 log.log_pd_deinit()
 
                 # final hook
-                print "SeqLoopBlock2.step", self.bus.keys()
-                print "SeqLoopBlock2.step", self.bus['jh/jh'], self.bus['jhloop/jh'], self.bus['jhloop_0/jh']
+                print "Block2.step", self.bus.keys()
+                print "Block2.step jh", self.bus['jh/jh'], "jhloop", self.bus['jhloop/jh'], "jhloop_0", self.bus['jhloop_0/jh']
+                print "Block2.step data/x", self.bus['ldata/x'].shape, "data/y", self.bus['ldata/y'].shape
 
-        # copy outputs from subblocks
-        for k, v in self.outputs.items():
-            setattr(self, k, self.bus[v['buskey']])
-            print "%s-%s[%d] self.%s = %s from bus %s" % (self.cname, self.id, self.cnt, k, getattr(self, k), v['buskey'])
+        if self.cnt % self.blocksize == 0:
+            # print "cnt % blocksize", self.cnt, self.blocksize, self.cname, self.id
+            # copy outputs from subblocks as configured in enclosing block outputs spec
+            for k, v in self.outputs.items():
+                if v.has_key('buscopy'):
+                    setattr(self, k, self.bus[v['buscopy']])
+                    # print "%s-%s[%d] self.%s = %s from bus %s" % (self.cname, self.id, self.cnt, k, getattr(self, k), v['buscopy'])
                 
         # need to to count ourselves
-        self.cnt += 1
+        # self.cnt += 1
 
     def log_attr(self):
         """Block2.log_attr: enumerate all nodes in hierarchical graph and copy the node's output attributes to table attributes"""
@@ -935,6 +941,7 @@ class SeqLoopBlock2(Block2):
                 'numsteps': self.numsteps,
             }
             for k, v in self.loopblock['params'].items():
+                # print "loopblock params", k, v
                 if k == 'id':
                     loopblock_params[k] = "%s_%d" % (self.id, i)
                 elif k == lparams[0]:
@@ -942,7 +949,7 @@ class SeqLoopBlock2(Block2):
                 else:
                     loopblock_params[k] = v
 
-            # print "%s.step.f_obj: loopblock_params = %s" % (self.cname, loopblock_params)
+            print "%s.step.f_obj: loopblock_params = %s" % (self.cname, loopblock_params)
             # create dynamic conf
             loopblock_conf = {'block': self.loopblock['block'], 'params': loopblock_params}
             # instantiate block
@@ -1024,17 +1031,20 @@ class SeqLoopBlock2(Block2):
             #     print "dynout", getattr(dynblock, k)
 
             for outk in self.outputs.keys():
-                # outvar = getattr(self, outk)
+                outvar = getattr(self, outk)
                 # outvar[:,[i] = bla
                 
                 # func: need output function from config
                 # FIXME: handle loopblock blocksizes greater than one
                 # self.__dict__[outk][:,[i]] = np.mean(getattr(dynblock, outk), axis = 1, keepdims = True)
                 outslice = slice(i*self.dynblock.blocksize, (i+1)*self.dynblock.blocksize)
-                # print "self.dynblock", self.dynblock.outputs[outk], getattr(self.dynblock, outk).shape, self.dynblock.file
+                # print "self.   block", self.outputs[outk]
+                # print "self.dynblock", self.dynblock.outputs[outk], getattr(self.dynblock, outk).shape #, self.dynblock.file
                 # print "%s.step self.%s = %s, outslice = %s" % (self.cname, outk, self.__dict__[outk].shape, outslice, )
                 # self.__dict__[outk][:,[i]] = getattr(self.dynblock, outk)
-                self.__dict__[outk][:,outslice] = getattr(self.dynblock, outk)
+                # self.__dict__[outk][:,outslice] = getattr(self.dynblock, outk)
+                outvar[:,outslice] = getattr(self.dynblock, outk)
+                # print "outslice", outslice, "outvar", outvar[:,outslice]
         sys.stdout.write('\n')
         
         # # hack for checking hpo minimum
