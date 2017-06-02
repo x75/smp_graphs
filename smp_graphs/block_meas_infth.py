@@ -252,6 +252,10 @@ class MIMVBlock2(PrimBlock2):
         # set default normalization factor
         jh = 1.0
 
+        # get inputs
+        src = self.get_input('y').T
+        dst = self.get_input('x').T
+
         # normalize over one step
         if self.norm_out:
             # stack src and destination
@@ -259,12 +263,8 @@ class MIMVBlock2(PrimBlock2):
             # compute full joint entropy as normalization constant
             jh = 1.0 / compute_mi_multivariate(data = {'X': st, 'Y': st})
 
-        # get inputs
-        src = self.get_inputs('y').T
-        dst = self.get_inputs('x').T
-
         # normalize from external input, overrides stepwise norm_out
-        if self.inputs.has_key['norm']:
+        if self.inputs.has_key('norm'):
             norm = self.get_inputs('norm').T
             
         for i in range(self.shift[0], self.shift[1]):

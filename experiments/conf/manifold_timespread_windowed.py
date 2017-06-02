@@ -61,7 +61,7 @@ overlap = 500
 srcsize = overlap
 
 
-loopblocksize = 1
+loopblocksize = numsteps
 
 loopblock = {
         'block': Block2,
@@ -69,7 +69,10 @@ loopblock = {
             'id': 'bhier',
             'debug': False,
             'topblock': False,
+            'logging': False,
             'numsteps': numsteps,
+            # 'outputs': {'jh': {'shape': (1,1)}},
+            'outputs': {'jh': {'shape': (1, 1), 'buskey': 'jh/jh'}},
             # contains the subgraph specified in this config file
             'graph': OrderedDict([
                 ('ldata', {
@@ -100,6 +103,7 @@ loopblock = {
                         'id': 'jh',
                         'blocksize': numsteps,
                         'debug': False,
+                        'logging': False,
                         'inputs': {'x': {'bus': 'ldataslice/x_gyr'}, 'y': {'bus': 'ldata/y'}},
                         'shift': (0, 1),
                         'outputs': {'jh': {'shape': (1, 1)}}
@@ -113,11 +117,12 @@ graph = OrderedDict([
     # a loop block calling the enclosed block len(loop) times,
     # returning data of looplength in one outer step
     ("jhloop", {
+        'debug': True,
         'block': SeqLoopBlock2,
         'params': {
             'id': 'jhloop',
             # loop specification, check hierarchical block to completely pass on the contained in/out space?
-            'blocksize': 1, # same as loop length
+            'blocksize': numsteps, # same as loop length
             'numsteps':  numsteps,
             'loopblocksize': loopblocksize,
             # can't do this dynamically yet without changing init passes
@@ -134,87 +139,72 @@ graph = OrderedDict([
     }),
 
     
-    ('data', {
-        'block': FileBlock2,
-        'params': {
-            'id': 'data',
-            'debug': False,
-            # 'blocksize': overlap, # numsteps,
-            'blocksize': srcsize, # numsteps,
-            'type': cnf['logtype'],
-            'file': {'filename': cnf['logfile']},
-            'outputs': {'log': None, 'x': {'shape': (xdim, srcsize)},
-                            'y': {'shape': (ydim, srcsize)}},
-        },
-    }),
-
-    # slice block to split puppy sensors x into gyros x_gyr and accels x_acc
-    ('dataslice', {
-        'block': SliceBlock2,
-        'params': {
-            'id': 'dataslice',
-            # 'blocksize': overlap,
-            'blocksize': srcsize,
-            'debug': True,
-            # puppy sensors
-            'inputs': {'x': {'bus': 'data/x', 'shape': (xdim, srcsize)}},
-            'slices': sys_slicespec,
-            # 'slices': ,
-            }
-        }),
-        
-    # multivariate mutual information analysis of data I(X^n ; Y^m)
-    ('mimvl', {
-        'block': LoopBlock2,
-        'params': {
-            'id': 'mimvl',
-            'blocksize': overlap,
-            'loop': [('inputs', {'x': {'bus': 'dataslice/x_acc',
-                                           'shape': (xdim_eff, winsize)},
-                                 'y': {'bus': 'data/y',
-                                           'shape': (ydim, winsize)}}),
-                          # ('inputs', {'x': {'bus': 'dataslice/x_gyr'}, 'y': {'bus': 'data/y'}}),
-                     # ('inputs', {'x': {'bus': 'data/x'}, 'y': {'bus': 'data/r'}}),
-                     # ('inputs', {'x': {'bus': 'data/y'}, 'y': {'bus': 'data/r'}}),
-            ],
-            'loopblock': {
-                'block': MIMVBlock2,
-                'params': {
-                    'id': 'mimv',
-                    'blocksize': overlap,
-                    'debug': False,
-                    'inputs': {'x': {'bus': 'dataslice/x_gyr',
-                                         'shape': (xdim_eff, winsize)},
-                                   'y': {'bus': 'data/y',
-                                             'shape': (ydim, winsize)}},
-                    # 'shift': (-120, 8),
-                    'shift': (scanstart, scanstop), # len 21
-                    # 'outputs': {'mi': {'shape': ((ydim + xdim)**2, 1)}}
-                    'outputs': {'mimv': {'shape': (1, scanlen)}}
-                }
-            },
-        }
-    }),
-
-    ('mimv', {
-        'block': MIMVBlock2,
-        'params': {
-            'id': 'mimv',
-            'blocksize': overlap,
-            'debug': False,
-            'inputs': {'x': {'bus': 'dataslice/x_gyr', 'shape': (xdim_eff, winsize)},
-                           'y': {'bus': 'data/y', 'shape': (ydim, winsize)}},
-            # 'shift': (-120, 8),
-            'shift': (scanstart, scanstop), # len 21
-            # 'outputs': {'mi': {'shape': ((ydim + xdim)**2, 1)}}
-            'outputs': {'mimv': {'shape': (1, scanlen)}}
-        }
-    }),
-    
-    # ('ctemv', {
-    #     'block': CTEBlock2,
+    # ('data', {
+    #     'block': FileBlock2,
     #     'params': {
-    #         'id': 'ctemv',
+    #         'id': 'data',
+    #         'debug': False,
+    #         # 'blocksize': overlap, # numsteps,
+    #         'blocksize': srcsize, # numsteps,
+    #         'type': cnf['logtype'],
+    #         'file': {'filename': cnf['logfile']},
+    #         'outputs': {'log': None, 'x': {'shape': (xdim, srcsize)},
+    #                         'y': {'shape': (ydim, srcsize)}},
+    #     },
+    # }),
+
+    # # slice block to split puppy sensors x into gyros x_gyr and accels x_acc
+    # ('dataslice', {
+    #     'block': SliceBlock2,
+    #     'params': {
+    #         'id': 'dataslice',
+    #         # 'blocksize': overlap,
+    #         'blocksize': srcsize,
+    #         'debug': True,
+    #         # puppy sensors
+    #         'inputs': {'x': {'bus': 'data/x', 'shape': (xdim, srcsize)}},
+    #         'slices': sys_slicespec,
+    #         # 'slices': ,
+    #         }
+    #     }),
+        
+    # # multivariate mutual information analysis of data I(X^n ; Y^m)
+    # ('mimvl', {
+    #     'block': LoopBlock2,
+    #     'params': {
+    #         'id': 'mimvl',
+    #         'blocksize': overlap,
+    #         'loop': [('inputs', {'x': {'bus': 'dataslice/x_acc',
+    #                                        'shape': (xdim_eff, winsize)},
+    #                              'y': {'bus': 'data/y',
+    #                                        'shape': (ydim, winsize)}}),
+    #                       # ('inputs', {'x': {'bus': 'dataslice/x_gyr'}, 'y': {'bus': 'data/y'}}),
+    #                  # ('inputs', {'x': {'bus': 'data/x'}, 'y': {'bus': 'data/r'}}),
+    #                  # ('inputs', {'x': {'bus': 'data/y'}, 'y': {'bus': 'data/r'}}),
+    #         ],
+    #         'loopblock': {
+    #             'block': MIMVBlock2,
+    #             'params': {
+    #                 'id': 'mimv',
+    #                 'blocksize': overlap,
+    #                 'debug': False,
+    #                 'inputs': {'x': {'bus': 'dataslice/x_gyr',
+    #                                      'shape': (xdim_eff, winsize)},
+    #                                'y': {'bus': 'data/y',
+    #                                          'shape': (ydim, winsize)}},
+    #                 # 'shift': (-120, 8),
+    #                 'shift': (scanstart, scanstop), # len 21
+    #                 # 'outputs': {'mi': {'shape': ((ydim + xdim)**2, 1)}}
+    #                 'outputs': {'mimv': {'shape': (1, scanlen)}}
+    #             }
+    #         },
+    #     }
+    # }),
+
+    # ('mimv', {
+    #     'block': MIMVBlock2,
+    #     'params': {
+    #         'id': 'mimv',
     #         'blocksize': overlap,
     #         'debug': False,
     #         'inputs': {'x': {'bus': 'dataslice/x_gyr', 'shape': (xdim_eff, winsize)},
@@ -222,76 +212,91 @@ graph = OrderedDict([
     #         # 'shift': (-120, 8),
     #         'shift': (scanstart, scanstop), # len 21
     #         # 'outputs': {'mi': {'shape': ((ydim + xdim)**2, 1)}}
-    #         'outputs': {'cte': {'shape': (1, scanlen)}}
+    #         'outputs': {'mimv': {'shape': (1, scanlen)}}
     #     }
     # }),
+    
+    # # ('ctemv', {
+    # #     'block': CTEBlock2,
+    # #     'params': {
+    # #         'id': 'ctemv',
+    # #         'blocksize': overlap,
+    # #         'debug': False,
+    # #         'inputs': {'x': {'bus': 'dataslice/x_gyr', 'shape': (xdim_eff, winsize)},
+    # #                        'y': {'bus': 'data/y', 'shape': (ydim, winsize)}},
+    # #         # 'shift': (-120, 8),
+    # #         'shift': (scanstart, scanstop), # len 21
+    # #         # 'outputs': {'mi': {'shape': ((ydim + xdim)**2, 1)}}
+    # #         'outputs': {'cte': {'shape': (1, scanlen)}}
+    # #     }
+    # # }),
 
-    # plot module with blocksize = episode, fetching input from busses
-    # and mapping that onto plots
-    ("plot_ts", {
-        'block': PlotBlock2,
-        'params': {
-            'blocksize': numsteps,
-            'debug': False,
-            'saveplot': False,
-            'savetype': 'pdf',
-            'wspace': 0.2, 'hspace': 0.2,
-            'inputs': {'d1': {'bus': 'data/x', 'shape': (xdim, numsteps)}, 'd2': {'bus': 'data/y', 'shape': (ydim, numsteps)}},
-            'outputs': {}, # 'x': {'shape': (3, 1)}
-            'subplots': [
-                [
-                    {'input': 'd1', 'plot': timeseries},
-                    {'input': 'd1', 'plot': histogram},
-                ],
-                [
-                    {'input': 'd2', 'plot': timeseries},
-                    {'input': 'd2', 'plot': histogram},
-                ],
-            ]
-        }
-    }),
+    # # plot module with blocksize = episode, fetching input from busses
+    # # and mapping that onto plots
+    # ("plot_ts", {
+    #     'block': PlotBlock2,
+    #     'params': {
+    #         'blocksize': numsteps,
+    #         'debug': False,
+    #         'saveplot': False,
+    #         'savetype': 'pdf',
+    #         'wspace': 0.2, 'hspace': 0.2,
+    #         'inputs': {'d1': {'bus': 'data/x', 'shape': (xdim, numsteps)}, 'd2': {'bus': 'data/y', 'shape': (ydim, numsteps)}},
+    #         'outputs': {}, # 'x': {'shape': (3, 1)}
+    #         'subplots': [
+    #             [
+    #                 {'input': 'd1', 'plot': timeseries},
+    #                 {'input': 'd1', 'plot': histogram},
+    #             ],
+    #             [
+    #                 {'input': 'd2', 'plot': timeseries},
+    #                 {'input': 'd2', 'plot': histogram},
+    #             ],
+    #         ]
+    #     }
+    # }),
         
-    # plot multivariate (global) mutual information over timeshifts
-    ('plot_infth', {
-        'block': ImgPlotBlock2,
-        'params': {
-            'id': 'plot_infth',
-            'logging': False,
-            'saveplot': saveplot,
-            'debug': False,
-            'wspace': 0.5,
-            'hspace': 0.5,
-            'blocksize': overlap, # numsteps,
-            'inputs': {
-                'd1': {'bus': 'mimv/mimv', 'shape': (1, scanlen * numsteps/overlap)},
-                'd2': {'bus': 'mimvl_0/mimv', 'shape': (1, scanlen * numsteps/overlap)},
-                't': {'val': np.linspace(scanstart, scanstop-1, scanlen)},},
-            'outputs': {}, #'x': {'shape': (3, 1)}},
-            'subplots': [
-                [
-                    {'input': 'd1', 
-                         'cmap': 'Reds',
-                    'title': 'Multivariate mutual information I(X;Y) for time shifts [0, ..., 20]',
-                    'ndslice': (slice(None), slice(None)),
-                    # 'dimstack': {'x': [0], 'y': [1]},
-                    'shape': (numsteps/overlap, scanlen)},
+    # # plot multivariate (global) mutual information over timeshifts
+    # ('plot_infth', {
+    #     'block': ImgPlotBlock2,
+    #     'params': {
+    #         'id': 'plot_infth',
+    #         'logging': False,
+    #         'saveplot': saveplot,
+    #         'debug': False,
+    #         'wspace': 0.5,
+    #         'hspace': 0.5,
+    #         'blocksize': overlap, # numsteps,
+    #         'inputs': {
+    #             'd1': {'bus': 'mimv/mimv', 'shape': (1, scanlen * numsteps/overlap)},
+    #             'd2': {'bus': 'mimvl_0/mimv', 'shape': (1, scanlen * numsteps/overlap)},
+    #             't': {'val': np.linspace(scanstart, scanstop-1, scanlen)},},
+    #         'outputs': {}, #'x': {'shape': (3, 1)}},
+    #         'subplots': [
+    #             [
+    #                 {'input': 'd1', 
+    #                      'cmap': 'Reds',
+    #                 'title': 'Multivariate mutual information I(X;Y) for time shifts [0, ..., 20]',
+    #                 'ndslice': (slice(None), slice(None)),
+    #                 # 'dimstack': {'x': [0], 'y': [1]},
+    #                 'shape': (numsteps/overlap, scanlen)},
                     
-                    {'input': 'd2', 
-                    'cmap': 'Reds',
-                    'title': 'Multivariate mutual information I(X;Y) for time shifts [0, ..., 20]',
-                    'ndslice': (slice(None), slice(None)),
-                    # 'dimstack': {'x': [0], 'y': [1]},
-                    'shape': (numsteps/overlap, scanlen)},
-                    # {
-                    # 'input': 'd3',
-                    # 'ndslice': (slice(None), slice(None), slice(None)),
-                    # 'dimstack': {'x': [2, 1], 'y': [0]},
-                    # 'shape': (scanlen, ydim, xdim),
-                    # 'cmap': 'Reds'},
-                ],
-            ]
-        },
-    }),
+    #                 {'input': 'd2', 
+    #                 'cmap': 'Reds',
+    #                 'title': 'Multivariate mutual information I(X;Y) for time shifts [0, ..., 20]',
+    #                 'ndslice': (slice(None), slice(None)),
+    #                 # 'dimstack': {'x': [0], 'y': [1]},
+    #                 'shape': (numsteps/overlap, scanlen)},
+    #                 # {
+    #                 # 'input': 'd3',
+    #                 # 'ndslice': (slice(None), slice(None), slice(None)),
+    #                 # 'dimstack': {'x': [2, 1], 'y': [0]},
+    #                 # 'shape': (scanlen, ydim, xdim),
+    #                 # 'cmap': 'Reds'},
+    #             ],
+    #         ]
+    #     },
+    # }),
     
     
 ])

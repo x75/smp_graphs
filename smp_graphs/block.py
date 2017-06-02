@@ -274,7 +274,8 @@ class decStep():
             # call the function on blocksize boundaries
             # FIXME: might not be the best idea to control that on the wrapper level as some
             #        blocks might need to be called every step nonetheless?
-            if (xself.cnt % xself.blocksize) == 0: # or (xself.cnt % xself.rate) == 0:
+            # if (xself.cnt % xself.blocksize) == 0: # or (xself.cnt % xself.rate) == 0:
+            if (xself.cnt % xself.blocksize) in xself.phase: # or (xself.cnt % xself.rate) == 0:
                 # if count aligns with block's execution blocksize
 
                 # compute the block with step()
@@ -317,6 +318,7 @@ class Block2(object):
         'logging': True, # normal logging
         'rate': 1, # execution rate rel. to cnt
         'ros': False, # no ROS yet
+        'phase': [0],
     }
 
     def __init__(self, conf = {}, paren = None, top = None, blockid = None):
@@ -413,6 +415,7 @@ class Block2(object):
             # 2.2 init_pass_2: init inputs, again descending into hierarchy
             self.init_graph_pass_2()
             
+            self.init_outputs()
         ################################################################################
         # 3 initialize a primitive block
         else:
@@ -498,6 +501,10 @@ class Block2(object):
         for k, v in self.outputs.items():
             # print "%s.init_outputs: outk = %s, outv = %s" % (self.cname, k, v)
             assert type(v) is dict, "Old config of %s output %s with type %s, %s" % (self.id, k, type(v), v)
+            # print "v.keys()", v.keys()
+            # assert v.keys()[0] in ['shape', 'bus'], "Need 'bus' or 'shape' key in outputs spec of %s" % (self.id, )
+            assert v.has_key('shape'), "Output spec %s: %s needs 'shape' param" % (k, v)
+            # if v.has_key('shape'):
             assert len(v['shape']) > 1, "Block %s, output %s 'shape' tuple is needs at least (dim1 x output blocksize), v = %s" % (self.id, k, v)
             # # create new shape tuple by appending the blocksize to original dimensions
             # if v['shape'][-1] != self.blocksize: # FIXME: heuristic
@@ -687,6 +694,15 @@ class Block2(object):
                 self.log_attr()
                 # close the file
                 log.log_pd_deinit()
+
+                # final hook
+                print "SeqLoopBlock2.step", self.bus.keys()
+                print "SeqLoopBlock2.step", self.bus['jh/jh'], self.bus['jhloop/jh'], self.bus['jhloop_0/jh']
+
+        # copy outputs from subblocks
+        for k, v in self.outputs.items():
+            setattr(self, k, self.bus[v['buskey']])
+            print "%s-%s[%d] self.%s = %s from bus %s" % (self.cname, self.id, self.cnt, k, getattr(self, k), v['buskey'])
                 
         # need to to count ourselves
         self.cnt += 1
@@ -696,6 +712,7 @@ class Block2(object):
         for i in range(self.nxgraph.number_of_nodes()):
             # assume output's initialized
             node = self.nxgraph.node[i]['block_']
+            print "node", node, node.logging
             if not node.logging: continue
 
             # depth first
@@ -760,7 +777,7 @@ class Block2(object):
         for attr in attrs:
             assert hasattr(self, attr), "%s.check_attrs: Don't have attr = %s" % (self.__class__.__name__, attr)
 
-    def get_input(k):
+    def get_input(self, k):
         return self.inputs[k]['val']
 
 class FuncBlock2(Block2):
@@ -857,7 +874,7 @@ class LoopBlock2(Block2):
         # self.loopblock['block'] = Block2.__class__.__name__
                    
     def step(self, x = None):
-        """loopblock2.step: loop over self.nxgraph items and step them"""
+        """LoopBlock2.step: loop over self.nxgraph items and step them"""
         # pass
         for i in range(self.nxgraph.number_of_nodes()):
             # print "node %d" % (i,)
@@ -905,15 +922,21 @@ class SeqLoopBlock2(Block2):
             
     @decStep()
     def step(self, x = None):
+        """SeqLoopBlock2.step"""
+        self.debug_print("%s.step:\n\tx = %s,\n\tbus = %s,\n\tinputs = %s,\n\toutputs = %s",
+                             (self.__class__.__name__,self.outputs.keys(),
+                                  self.bus, self.inputs, self.outputs))
 
         def f_obj(lparams):
             """instantiate the loopblock and run it"""
             # print "f_obj lparams", lparams
             # copy params
-            loopblock_params = {}
+            loopblock_params = {
+                'numsteps': self.numsteps,
+            }
             for k, v in self.loopblock['params'].items():
                 if k == 'id':
-                    loopblock_params[k] = "%s_%d" % (self.id, i+1)
+                    loopblock_params[k] = "%s_%d" % (self.id, i)
                 elif k == lparams[0]:
                     loopblock_params[k] = lparams[1]
                 else:
@@ -934,7 +957,10 @@ class SeqLoopBlock2(Block2):
                 # print "%s trying %s.step[%d]" % (self.cname, dynblock.cname, j)
                 self.dynblock.step()
 
-            return {}
+            d = {}
+            for outk, outv in self.dynblock.outputs.items():
+                d[outk] = getattr(self.dynblock, outk)
+            return d
         
         def f_obj_hpo(params):
             # print "f_obj_hpo: params", params
@@ -985,9 +1011,10 @@ class SeqLoopBlock2(Block2):
             # dynblock = obj()
             # func: need input function from config
             results = self.f_loop(i, f_obj_) #_hpo)
+            # print "SeqLoopBlock2 f_loop results[%d] = %s" % (i, results)
             if results is not None:
-                print "results", results
                 for k, v in results.items():
+                    print "SeqLoopBlock2.step loop %d result k = %s, v = %s" % (i, k, v)
                     setattr(self, k, v)
             # dynblock = results['dynblock']
             # lparams = results['lparams']
@@ -1009,7 +1036,7 @@ class SeqLoopBlock2(Block2):
                 # self.__dict__[outk][:,[i]] = getattr(self.dynblock, outk)
                 self.__dict__[outk][:,outslice] = getattr(self.dynblock, outk)
         sys.stdout.write('\n')
-
+        
         # # hack for checking hpo minimum
         # if hasattr(self, 'hp_bests'):
         #     print "%s.step: bests = %s, %s" % (self.cname, self.hp_bests[-1], f_obj_hpo(tuple([self.hp_bests[-1][k] for k in sorted(self.hp_bests[-1])])))

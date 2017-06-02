@@ -15,7 +15,7 @@ from functools import partial
 
 # reused variables
 loopblocksize = 1
-loopsteps = 1000
+loopsteps = 100
 numsteps = loopsteps * loopblocksize
 # showplot = False
 
