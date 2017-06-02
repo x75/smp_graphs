@@ -178,11 +178,12 @@ def get_blocksize_input(G, buskey):
     
     # search graph and all subgraphs, greedy + depth first
     n_ = nxgraph_node_by_id_recursive(G, srcid)
-    (n_0, g_0) = n_[0]
-    # print "n_0", srcid, n_0, g_0.node[n_0]['block_'].blocksize, g_0.node[n_0]['block_'].id
     if len(n_) == 0:
         # didn't find anything, return a default (and possibly wrong) blocksize of 1
         return None
+    # returned node, node's (sub)graph where it was found
+    (n_0, g_0) = n_[0]
+    # print "n_0", srcid, n_0, g_0.node[n_0]['block_'].blocksize, g_0.node[n_0]['block_'].id
     # return G.node[n_[0]]['block_'].blocksize
     return g_0.node[n_0]['block_'].blocksize
     
@@ -227,8 +228,10 @@ class decStep():
                             if blocksize_input is None:
                                 blocksize_input = blocksize_input_bus
                             
-                            # input block border 
-                            if (xself.cnt % blocksize_input) == 0: # (blocksize_input - 1):
+                            # input block border
+                            # if (xself.cnt % blocksize_input) == 0: # (blocksize_input - 1):
+                            # if (xself.cnt % blocksize_input) in xself.blockphase: # (blocksize_input - 1):
+                            if (xself.cnt % blocksize_input) == 0 or v['shape'][-1] == 1:
                                 # print "%s-%s[%d] decStep copy inputs bs_in, bs_in_bus" % (xself.cname, xself.id, xself.cnt), blocksize_input, blocksize_input_bus
                                 # shift by input blocksize along self.blocksize axis
                                 # axis = len(xself.bus[v['bus']].shape) - 1
@@ -275,20 +278,21 @@ class decStep():
             # FIXME: might not be the best idea to control that on the wrapper level as some
             #        blocks might need to be called every step nonetheless?
             # if (xself.cnt % xself.blocksize) == 0: # or (xself.cnt % xself.rate) == 0:
-            if (xself.cnt % xself.blocksize) in xself.phase: # or (xself.cnt % xself.rate) == 0:
+            # print "xself.cnt", xself.cnt, "blocksize", xself.blocksize, "blockphase", xself.blockphase
+            if (xself.cnt % xself.blocksize) in xself.blockphase: # or (xself.cnt % xself.rate) == 0:
                 # if count aligns with block's execution blocksize
-
+                
                 # compute the block with step()
                 f_out = f(xself, None)
 
                 # copy output to bus
                 for k, v in xself.outputs.items():
                     buskey = "%s/%s" % (xself.id, k)
-                    # print "copy[%d] %s.outputs[%s] = %s to bus[%s], bs = %d" % (xself.cnt, xself.id, k, getattr(xself, k).shape, buskey, xself.blocksize)
+                    print "copy[%d] %s.outputs[%s] = %s / %s to bus[%s], bs = %d" % (xself.cnt, xself.id, k, getattr(xself, k), getattr(xself, k).shape, buskey, xself.blocksize)
                     assert xself.bus[v['buskey']].shape == v['shape'], "real and desired output shapes need to agree block %s, outk = %s, %s != %s" % (xself.id, k, xself.bus[v['buskey']].shape, v['shape'])
                     # copy data onto bus
                     xself.bus[v['buskey']] = getattr(xself, k).copy()
-                    # print "xself.bus[v['buskey'] = %s]" % (v['buskey'], ) , xself.bus[v['buskey']]
+                    print "xself.bus[v['buskey'] = %s]" % (v['buskey'], ) , xself.bus[v['buskey']]
             else:
                 f_out = None
             
@@ -312,7 +316,8 @@ class Block2(object):
         'ibuf': 1, # input  buffer size
         'obuf': 1, # output buffer size
         'cnt': 1,
-        'blocksize': 1, # this is gonna be phased out
+        'blocksize': 1, # period of computation calls in time steps
+        'blockphase': [0], # list of positions of comp calls along the counter in time steps
         'inputs': {}, # internal port, scalar / vector/ bus key, [slice]
         'outputs': {}, # name, dim
         'logging': True, # normal logging
@@ -588,6 +593,10 @@ class Block2(object):
                         
                         # bus item does not exist yet
                         if not self.bus.has_key(v['bus']):
+                            for i in range(5):
+                                # FIXME: hacky
+                                print "%s-%s init (pass 2) WARNING: bus %s doesn't exist yet and will possibly not be written to by any block" % (self.cname, self.id, v['bus'])
+                                time.sleep(1)
                             # pre-init that bus
                             self.bus[v['bus']] = v['val'].copy()
                         else:
@@ -663,6 +672,7 @@ class Block2(object):
             
             # for k, v in self.graph.items():
             v['block_'].step()
+            # print "%s-%s[%d] k = %s, v = %s" % (self.cname,self.id, self.cnt, k, v)
 
         if self.topblock:
             # then log all
@@ -702,7 +712,8 @@ class Block2(object):
                 print "Block2.step jh", self.bus['jh/jh'], "jhloop", self.bus['jhloop/jh'], "jhloop_0", self.bus['jhloop_0/jh']
                 print "Block2.step data/x", self.bus['ldata/x'].shape, "data/y", self.bus['ldata/y'].shape
 
-        if self.cnt % self.blocksize == 0:
+        # if self.cnt % self.blocksize == 0:
+        if (self.cnt % self.blocksize) in self.blockphase:
             # print "cnt % blocksize", self.cnt, self.blocksize, self.cname, self.id
             # copy outputs from subblocks as configured in enclosing block outputs spec
             for k, v in self.outputs.items():
@@ -960,8 +971,8 @@ class SeqLoopBlock2(Block2):
 
             # run the block
             # for j in range(self.dynblock.blocksize):
-            for j in range(self.dynblock.numsteps):
-                # print "%s trying %s.step[%d]" % (self.cname, dynblock.cname, j)
+            for j in range(1, self.dynblock.numsteps+1):
+                print "%s trying %s.step[%d]" % (self.cname, self.dynblock.cname, j)
                 self.dynblock.step()
 
             d = {}
@@ -1010,7 +1021,7 @@ class SeqLoopBlock2(Block2):
 
         then = time.time()
         # loop the loop
-        print "%s iter#" % (self.cname,),
+        print "%s-%s[%d] iter#" % (self.cname,self.id, self.cnt),
         for i in range(self.numsteps/self.loopblocksize):
             print "%d" % (i,),
             sys.stdout.flush()
@@ -1018,7 +1029,7 @@ class SeqLoopBlock2(Block2):
             # dynblock = obj()
             # func: need input function from config
             results = self.f_loop(i, f_obj_) #_hpo)
-            # print "SeqLoopBlock2 f_loop results[%d] = %s" % (i, results)
+            print "SeqLoopBlock2 f_loop results[%d] = %s" % (i, results)
             if results is not None:
                 for k, v in results.items():
                     print "SeqLoopBlock2.step loop %d result k = %s, v = %s" % (i, k, v)
@@ -1308,7 +1319,6 @@ class UniformRandomBlock2(PrimBlock2):
                          (self.__class__.__name__,self.outputs.keys(), self.bus, self.inputs, self.outputs))
 
         # FIXME: relation rate / blocksize, remember cnt from last step, check difference > rate etc
-        
         if self.cnt % self.rate == 0:
             # FIXME: take care of rate/blocksize issue
             for k, v in self.outputs.items():

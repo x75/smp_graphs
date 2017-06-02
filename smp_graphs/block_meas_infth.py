@@ -63,6 +63,7 @@ class MIBlock2(PrimBlock2):
         jh = 1.0
         
         if self.norm_out:
+            # if self.inputs.has_key('norm'):
             # stack src and destination
             st = np.hstack((src, dst))
             # compute full joint entropy as normalization constant
@@ -246,6 +247,10 @@ class MIMVBlock2(PrimBlock2):
     def step(self, x = None):
         # print "%s meas = %s" % (self.cname, self.meas)
         print "%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by" % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape),
+        # for k, v in self.inputs.items():
+        #     # print "k", k, "v", v
+        #     if k == "norm":
+        #         print "bus value", v['val'], self.bus[v['bus']]
         shiftsl = slice(None, (self.shift[1] - self.shift[0]))
         mimvs = []
         jhs = []
@@ -258,15 +263,17 @@ class MIMVBlock2(PrimBlock2):
 
         # normalize over one step
         if self.norm_out:
-            # stack src and destination
-            st = np.hstack((src, dst))
-            # compute full joint entropy as normalization constant
-            jh = 1.0 / compute_mi_multivariate(data = {'X': st, 'Y': st})
+            # normalize from external input, overrides stepwise norm_out
+            if self.inputs.has_key('norm'):
+                jh = 1.0 / self.get_input('norm').T
+                
+            # normalize over input block
+            else:
+                # stack src and destination
+                st = np.hstack((src, dst))
+                # compute full joint entropy as normalization constant
+                jh = 1.0 / compute_mi_multivariate(data = {'X': st, 'Y': st})
 
-        # normalize from external input, overrides stepwise norm_out
-        if self.inputs.has_key('norm'):
-            norm = self.get_inputs('norm').T
-            
         for i in range(self.shift[0], self.shift[1]):
             print "%d" % (i, ),
             sys.stdout.flush()
@@ -298,7 +305,7 @@ class MIMVBlock2(PrimBlock2):
         # self.mi[:,0] = (mi/jh).flatten()
         # self.mimv[0,shiftsl] = mimvs.flatten() # /maxjh
         self.mimv[0,shiftsl] = mimvs.flatten() * jh # /maxjh
-        # print "@%d self.mimv.shape = %s, mimv = %s" % (self.cnt, self.mimv.shape, self.mimv)
+        print "@%d self.mimv.shape = %s, mimv = %s, jh = %f" % (self.cnt, self.mimv.shape, self.mimv, 1.0/jh)
 
 class TEMVBlock2(PrimBlock2):
     """!@brief Compute the multivariate transfer entropy from X to Y, aka the total TE"""

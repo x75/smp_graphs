@@ -108,8 +108,8 @@ Load a config from the file in args.conf
         # for node,noded in G.nodes_iter(data=True):
         #     print "node", node, G.node[node], noded
         G = nxgraph_add_edges(G)
-        for edge in G.edges_iter():
-            print "edge", edge
+        # for edge in G.edges_iter():
+        #     print "edge", edge
         nxgraph_plot(G, ax = graph_fig.axes[0], layout_type = "spring", node_size = 300)
         # recursive_draw(self.topblock.nxgraph, ax = graph_fig.axes[0], node_size = 300, currentscalefactor = 0.1)
         self.topblock.bus.plot(graph_fig.axes[1])

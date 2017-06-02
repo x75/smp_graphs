@@ -192,7 +192,7 @@ class FileBlock2(Block2):
         
     @decStep()
     def step_puppy(self, x = None):
-        self.debug_print("%s.step: x = %s, bus = %s", (self.__class__.__name__, self.x, self.bus))
+        self.debug_print("%s.step_puppy: x = %s, bus = %s", (self.__class__.__name__, self.x, self.bus))
         # self.x = np.atleast_2d(self.data[[self.cnt]]).T #?
         # self.debug_print("self.x = %s", (self.x,))
         if (self.cnt % self.blocksize) == 0: # (self.blocksize - 1):
@@ -201,7 +201,8 @@ class FileBlock2(Block2):
                 windowlen = v['shape'][-1]
                 if self.cnt < windowlen: continue
                 sl = slice(self.cnt-windowlen, self.cnt)
-                setattr(self, k, self.data[k][sl].T)
+                print "self.cnt", self.cnt, self.blocksize, windowlen, sl, k, self.data[k][sl].T
+                setattr(self, k, self.data[k][...,sl].T)
                 # setattr(self, k, self.data[k][[self.cnt]].T)
             
     @decStep()
