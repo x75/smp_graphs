@@ -201,8 +201,8 @@ class FileBlock2(Block2):
                 windowlen = v['shape'][-1]
                 if self.cnt < windowlen: continue
                 sl = slice(self.cnt-windowlen, self.cnt)
-                print "self.cnt", self.cnt, self.blocksize, windowlen, sl, k, self.data[k][sl].T
-                setattr(self, k, self.data[k][...,sl].T)
+                print "step_puppy: self.cnt", self.cnt, "bs", self.blocksize, "win", windowlen, "sl", sl, "k", k, self.data[k][sl].T.shape
+                setattr(self, k, self.data[k][sl].T)
                 # setattr(self, k, self.data[k][[self.cnt]].T)
             
     @decStep()

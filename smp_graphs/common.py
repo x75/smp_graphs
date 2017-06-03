@@ -49,7 +49,7 @@ def get_config_raw(conf, confvar = 'conf'):
         s_ = open(conf, "r").read()
     except Exception, e:
         print e
-        return None
+        sys.exit(1)
     return get_config_raw_from_string(s_, confvar = confvar)
 
 def get_config_raw_from_string(conf, confvar = 'conf'):

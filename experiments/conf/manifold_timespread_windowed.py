@@ -30,13 +30,13 @@ ppycnf2 = {
     # 'logfile': 'data/stepPickles/step_period_10_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_12_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_76_0.pickle',
-    'logfile': 'data/stepPickles/step_period_26_0.pickle',
-    # 'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle', # continuous sweep without battery
+    # 'logfile': 'data/stepPickles/step_period_26_0.pickle',
+    'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle', # continuous sweep without battery
     'logtype': 'puppy',
     'xdim': 6,
     'xdim_eff': 3,
     'ydim': 4,
-    'numsteps': 1000,
+    'numsteps': 5000,
 }
 
 cnf = ppycnf2
@@ -56,7 +56,7 @@ scanstop = 0
 scanlen = scanstop - scanstart
 
 # 1000/1000
-winsize = 200
+winsize = 100
 overlap = 100
 srcsize = overlap
 

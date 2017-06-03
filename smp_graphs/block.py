@@ -203,7 +203,7 @@ class decStep():
     """!@brief Block.step wrapper"""
     def __call__(self, f):
         def wrap(xself, *args, **kwargs):
-            if True:
+            if True: # great idea
                 sname  = self.__class__.__name__
                 esname = xself.cname
                 esid   = xself.id
@@ -241,8 +241,12 @@ class decStep():
                                 # print "%s.decStep v[val]" % (xself.cname), v['val'].shape, "v.sh", v['shape'], "axis", axis, "v", v['val']
                                 # set inputs [last-inputbs:last] if input blocksize reached                                
                                 sl = slice(-blocksize_input_bus, None)
-                                # print "%s-%s" % (xself.cname, xself.id), "sl", sl, "bus.shape", xself.bus[v['bus']].shape, "v['val'].shape", v['val'].shape
-                                v['val'][...,-blocksize_input_bus:] = xself.bus[v['bus']].copy() # np.fliplr(xself.bus[v[2]])
+                                print "%s-%s" % (xself.cname, xself.id), "sl", sl, "bus", v['bus'], "bus.shape", xself.bus[v['bus']].shape, "v['val'].shape", v['val'].shape
+                                try:
+                                    v['val'][...,-blocksize_input_bus:] = xself.bus[v['bus']].copy() # np.fliplr(xself.bus[v[2]])
+                                except Exception, e:
+                                    print xself.cname, xself.id, xself.cnt, e
+                                    sys.exit(1)
                                 # print v['val'][...,-blocksize_input_bus:]
                                 # if k == 'd2':
                                 # if xself.id == "plot_infth":
@@ -543,7 +547,8 @@ class Block2(object):
         # assume output's initialized        
         for k, v in self.outputs.items():
             if (not v.has_key('init')) or (not v['init']) or (not v['logging']): continue
-
+                
+            # FIXME: ellipsis
             tbl_columns_dims = "_".join(["%d" for axis in v['shape'][:-1]])
             tbl_columns = [tbl_columns_dims % tup for tup in xproduct(itertools.product, v['shape'][:-1])]
             # print "tbl_columns", tbl_columns
@@ -582,14 +587,15 @@ class Block2(object):
                     if v.has_key('shape'):
                         # init input buffer from configuration shape
                         # print "input config shape = %s" % (v['shape'][:-1],)
-                        if len(v['shape']) == 1:
-                            vshape = (v['shape'][0], self.blocksize)
-                        else:
-                            # vshape = v['shape'][:-1] + (self.ibuf,)
-                            vshape = v['shape']
+                        # if len(v['shape']) == 1:
+                        #     vshape = (v['shape'][0], self.blocksize)
+                        # else:
+                        #     # vshape = v['shape'][:-1] + (self.ibuf,)
+                        #     vshape = v['shape']
+                        assert len(v['shape']) > 1, "Shape needs minimum two element"
                             
                         # initialize input buffer
-                        v['val'] = np.zeros(vshape) # ibuf >= blocksize
+                        v['val'] = np.zeros(v['shape']) # ibuf >= blocksize
                         
                         # bus item does not exist yet
                         if not self.bus.has_key(v['bus']):
@@ -597,12 +603,20 @@ class Block2(object):
                                 # FIXME: hacky
                                 print "%s-%s init (pass 2) WARNING: bus %s doesn't exist yet and will possibly not be written to by any block" % (self.cname, self.id, v['bus'])
                                 time.sleep(1)
-                            # pre-init that bus
+                            # pre-init that bus from constant
                             self.bus[v['bus']] = v['val'].copy()
                         else:
                             # sl = slice(-blocksize_input, None)
-                            blocksize_input = self.bus[v['bus']].shape[-1]
-                            v['val'][...,-blocksize_input:] = self.bus[v['bus']].copy() # np.fliplr(self.bus[v[2]])
+                            blocksize_input_bus = self.bus[v['bus']].shape[-1]
+                            # vs = v['shape']
+                            # vv = v['val']
+                            # bus_vbus = self.bus[v['bus']]
+                            if blocksize_input_bus > v['shape'][-1]:
+                                sl = slice((self.cnt - 1) * v['shape'][-1],
+                                            self.cnt * v['shape'][-1])
+                                v['val'] = self.bus[v['bus']][sl].copy()
+                            else:
+                                v['val'][...,-blocksize_input_bus:] = self.bus[v['bus']].copy()
                             # v['val'] = self.bus[v['bus']].copy() # inbus
                             # v['val'][...,0:inbus.shape[-1]] = inbus
                         # print "v['val'].shape", v['val'].shape
@@ -615,10 +629,10 @@ class Block2(object):
                         assert self.bus[v['bus']].shape[-1] <= self.blocksize, "input block size needs to be less than or equal self blocksize in %s/%s, in %s, should %s, has %s\ncheck blocksize param" % (self.cname, self.id, v['bus'], self.bus[v['bus']].shape[-1], self.blocksize)
                         # get shortcut
                         inbus = self.bus[v['bus']]
-                        # print "init_pass_2 inbus.sh = %s" % (inbus.shape,)
+                        print "init_pass_2 inbus.sh = %s, self.bs = %s" % (inbus.shape[:-1], self.blocksize)
                         # if no shape given, take busdim times input buffer size
                         # v['val'] = np.zeros(inbus.shape[:-1] + (self.blocksize,)) # ibuf >= blocksize inbus.copy()
-                        v['val'] = np.zeros(inbus.shape)
+                        v['val'] = np.zeros(inbus.shape[:-1] + (self.blocksize, ))
                                         
                     v['shape'] = v['val'].shape # self.bus[v['bus']].shape
                     
@@ -708,9 +722,9 @@ class Block2(object):
                 log.log_pd_deinit()
 
                 # final hook
-                print "Block2.step", self.bus.keys()
-                print "Block2.step jh", self.bus['jh/jh'], "jhloop", self.bus['jhloop/jh'], "jhloop_0", self.bus['jhloop_0/jh']
-                print "Block2.step data/x", self.bus['ldata/x'].shape, "data/y", self.bus['ldata/y'].shape
+                # print "Block2.step", self.bus.keys()
+                # print "Block2.step jh", self.bus['jh/jh'], "jhloop", self.bus['jhloop/jh'], "jhloop_0", self.bus['jhloop_0/jh']
+                # print "Block2.step data/x", self.bus['ldata/x'].shape, "data/y", self.bus['ldata/y'].shape
 
         # if self.cnt % self.blocksize == 0:
         if (self.cnt % self.blocksize) in self.blockphase:
