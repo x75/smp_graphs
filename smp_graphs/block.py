@@ -201,83 +201,108 @@ class decInit():
 # Block decorator step
 class decStep():
     """!@brief Block.step wrapper"""
+
+    def process_input(self, xself):
+        sname  = self.__class__.__name__
+        esname = xself.cname
+        esid   = xself.id
+        escnt  = xself.cnt
+        
+        # loop over block's inputs
+        for k, v in xself.inputs.items():
+            print "process_input: ", k, xself.id, xself.cnt, v['val'].shape, v['shape']
+            # check input sanity
+            assert v['val'].shape == v['shape'], "real and desired input shapes need to agree for block %s, ink = %s, %s != %s" % (xself.id, k, v['val'].shape, v['shape'])
+            
+            # copy bus inputs to input buffer
+            if v.has_key('bus'): # input item is driven by external signal (bus value)
+                # exec   blocksize of the input's source node
+                # FIXME: search once and store, recursively over nxgraph and subgraphs
+                blocksize_input     = get_blocksize_input(xself.top.nxgraph, v['bus'])
+                # output blocksize of the input's source node
+                blocksize_input_bus = xself.bus[v['bus']].shape[-1]
+                    
+                # if search didn't find the node (for whatever reason),
+                # set a default from the input bus blocksize
+                if blocksize_input is None:
+                    blocksize_input = blocksize_input_bus
+
+                if blocksize_input_bus >= v['shape'][-1]: # for all vshape in 1,2,3..
+                    if xself.cnt % v['shape'][-1] == 0:
+                        mcnt = xself.cnt % blocksize_input_bus
+                        # sl = slice(mcnt - v['shape'][-1] + 1, mcnt + 1) #
+                        sls = (xself.cnt - v['shape'][-1]) % blocksize_input_bus
+                        sle = sls + v['shape'][-1] # xself.cnt % blocksize_input_bus
+                        sl = slice(sls, sle) #
+                        v['val'] = xself.bus[v['bus']][...,sl].copy()
+                        print "bus > v", xself.id, xself.cnt, blocksize_input_bus, mcnt, k, "sl", sl, "v['val']", v['val'], "v['bus']", v['bus'], xself.bus[v['bus']].shape
+                    
+                elif blocksize_input_bus < v['shape'][-1]:
+
+                    # if extended input buffer and new data,
+                    # rotate input buffer by blocksize_input_bus
+                    # if v['shape'][-1] > 1 and (xself.cnt % blocksize_input) == 0:
+                    if (xself.cnt % blocksize_input) == 0:
+                        # print "%s-%s[%d] decStep copy inputs bs_in, bs_in_bus" % (xself.cname, xself.id, xself.cnt), blocksize_input, blocksize_input_bus
+                        # shift by input blocksize along self.blocksize axis
+                        # axis = len(xself.bus[v['bus']].shape) - 1
+                        axis = len(v['shape']) - 1
+                        # print v['val'][...,-blocksize_input_bus:]
+                        v['val'] = np.roll(v['val'], shift = -blocksize_input_bus, axis = axis)
+                        # print "%s.decStep v[val]" % (xself.cname), v['val'].shape, "v.sh", v['shape'], "axis", axis, "v", v['val']
+                        # set inputs [last-inputbs:last] if input blocksize reached                                
+                        sl = slice(-blocksize_input_bus, None)
+                        print "%s-%s" % (xself.cname, xself.id), "sl", sl, "bus", v['bus'], "bus.shape", xself.bus[v['bus']].shape, "v['val'].shape", v['val'].shape
+                        try:
+                            # np.fliplr(xself.bus[v[2]])
+                            # v['val'][...,-blocksize_input_bus:] = self.bus[v['bus']].copy()
+                            v['val'][...,-blocksize_input_bus:] = xself.bus[v['bus']].copy()
+                        except Exception, e:
+                            print xself.cname, xself.id, xself.cnt, e
+                            sys.exit(1)
+                        # print v['val'][...,-blocksize_input_bus:]
+                        # if k == 'd2':
+                        # if xself.id == "plot_infth":
+                        #     # debugging bus to in copy
+                        #     print "%s-%s.%s[%d]\n  bus[%s] = %s to %s[%s] = %s / %s" % (esname, esid,
+                        #                                          sname,
+                        #                                          escnt,
+                        #                                          v['bus'],
+                        #                                          xself.bus[v['bus']].shape, k, sl, v['shape'], v['val'].shape)
+                        #     print "blocksize_input", blocksize_input, "blocksize_input_bus", blocksize_input_bus
+                        
+                        #     # print xself.bus[v['bus']]
+                        #     print v['val'][...,-1]
+
+
+                    
+                    
+                    
+                    # input block border
+                    # if (xself.cnt % blocksize_input) == 0: # (blocksize_input - 1):
+                    # if (xself.cnt % blocksize_input) in xself.blockphase: # (blocksize_input - 1):
+                # else: # ibuf = 1
+                #     v['val'][...,[0]] = xself.bus[v['bus']].copy()
+                    
+            # copy input to output if inkey k is in outkeys
+            if k in xself.outputs.keys():
+                # outvar = v[2].split("/")[-1]
+                # print "%s.stepwrap split %s from %s" % (xself.cname, outvar, v[2])
+                setattr(xself, k, v['val'].copy()) # to copy or not to copy
+                # esk = getattr(xself, k)
+                
+                # # debug in to out copy
+                # print "%s.%s[%d]  self.%s = %s" % (esname, sname, escnt, k, esk)
+                # print "%s.%s[%d] outkeys = %s" % (esname, sname, escnt, xself.outputs.keys())
+                # if k in xself.outputs.keys():
+                #     print "%s.%s[%d]:   outk = %s" % (esname, sname, escnt, k)
+                #     print "%s.%s[%d]:    ink = %s" % (esname, sname, escnt, k)
+                #     # xself.outputs[k] = xself.inputs[k][0]
+    
     def __call__(self, f):
         def wrap(xself, *args, **kwargs):
-            if True: # great idea
-                sname  = self.__class__.__name__
-                esname = xself.cname
-                esid   = xself.id
-                escnt  = xself.cnt
-                # loop over block's inputs
-                for k, v in xself.inputs.items():
-                    # check sanity
-                    assert v['val'].shape == v['shape'], "real and desired input shapes need to agree block %s, ink = %s, %s != %s" % (xself.id, k, v['val'].shape, v['shape'])
-                    
-                    # copy bus inputs to input buffer
-                    if v.has_key('bus'): # input item is driven by external signal (bus value)
-                        # if extended input buffer, rotate the data with each step
-                        if xself.ibuf > 1:
-                            
-                            # exec   blocksize of the input's source node
-                            # FIXME: search once and store, recursively over nxgraph and subgraphs
-                            blocksize_input     = get_blocksize_input(xself.top.nxgraph, v['bus'])
-                            # output blocksize of the input's source node
-                            blocksize_input_bus = xself.bus[v['bus']].shape[-1]
-                            
-                            # if search didn't find the node (for whatever reason), set a default of the input bus blocksize
-                            if blocksize_input is None:
-                                blocksize_input = blocksize_input_bus
-                            
-                            # input block border
-                            # if (xself.cnt % blocksize_input) == 0: # (blocksize_input - 1):
-                            # if (xself.cnt % blocksize_input) in xself.blockphase: # (blocksize_input - 1):
-                            if (xself.cnt % blocksize_input) == 0 or v['shape'][-1] == 1:
-                                # print "%s-%s[%d] decStep copy inputs bs_in, bs_in_bus" % (xself.cname, xself.id, xself.cnt), blocksize_input, blocksize_input_bus
-                                # shift by input blocksize along self.blocksize axis
-                                # axis = len(xself.bus[v['bus']].shape) - 1
-                                axis = len(v['shape']) - 1
-                                # print v['val'][...,-blocksize_input_bus:]
-                                v['val'] = np.roll(v['val'], shift = -blocksize_input_bus, axis = axis)
-                                # print "%s.decStep v[val]" % (xself.cname), v['val'].shape, "v.sh", v['shape'], "axis", axis, "v", v['val']
-                                # set inputs [last-inputbs:last] if input blocksize reached                                
-                                sl = slice(-blocksize_input_bus, None)
-                                print "%s-%s" % (xself.cname, xself.id), "sl", sl, "bus", v['bus'], "bus.shape", xself.bus[v['bus']].shape, "v['val'].shape", v['val'].shape
-                                try:
-                                    v['val'][...,-blocksize_input_bus:] = xself.bus[v['bus']].copy() # np.fliplr(xself.bus[v[2]])
-                                except Exception, e:
-                                    print xself.cname, xself.id, xself.cnt, e
-                                    sys.exit(1)
-                                # print v['val'][...,-blocksize_input_bus:]
-                                # if k == 'd2':
-                                # if xself.id == "plot_infth":
-                                #     # debugging bus to in copy
-                                #     print "%s-%s.%s[%d]\n  bus[%s] = %s to %s[%s] = %s / %s" % (esname, esid,
-                                #                                          sname,
-                                #                                          escnt,
-                                #                                          v['bus'],
-                                #                                          xself.bus[v['bus']].shape, k, sl, v['shape'], v['val'].shape)
-                                #     print "blocksize_input", blocksize_input, "blocksize_input_bus", blocksize_input_bus
-                                
-                                #     # print xself.bus[v['bus']]
-                                #     print v['val'][...,-1]
-                        else: # ibuf = 1
-                            v['val'][...,[0]] = xself.bus[v['bus']].copy()
-                            
-                    # copy input to output if inkey k is in outkeys
-                    if k in xself.outputs.keys():
-                        # outvar = v[2].split("/")[-1]
-                        # print "%s.stepwrap split %s from %s" % (xself.cname, outvar, v[2])
-                        setattr(xself, k, v['val'].copy()) # to copy or not to copy
-                        # esk = getattr(xself, k)
-                        
-                        # # debug in to out copy
-                        # print "%s.%s[%d]  self.%s = %s" % (esname, sname, escnt, k, esk)
-                        # print "%s.%s[%d] outkeys = %s" % (esname, sname, escnt, xself.outputs.keys())
-                        # if k in xself.outputs.keys():
-                        #     print "%s.%s[%d]:   outk = %s" % (esname, sname, escnt, k)
-                        #     print "%s.%s[%d]:    ink = %s" % (esname, sname, escnt, k)
-                        #     # xself.outputs[k] = xself.inputs[k][0]
 
+            self.process_input(xself)
             # call the function on blocksize boundaries
             # FIXME: might not be the best idea to control that on the wrapper level as some
             #        blocks might need to be called every step nonetheless?
@@ -612,14 +637,20 @@ class Block2(object):
                             # vv = v['val']
                             # bus_vbus = self.bus[v['bus']]
                             if blocksize_input_bus > v['shape'][-1]:
-                                sl = slice((self.cnt - 1) * v['shape'][-1],
-                                            self.cnt * v['shape'][-1])
-                                v['val'] = self.bus[v['bus']][sl].copy()
+                                # mcnt = xself.cnt % blocksize_input_bus
+                                # sl = slice(mcnt - v['shape'][-1] + 1, mcnt + 1) #
+                                sls = (self.cnt - v['shape'][-1]) % blocksize_input_bus
+                                sle = sls + v['shape'][-1] # xself.cnt % blocksize_input_bus
+                                sl = slice(sls, sle) #
+                                
+                                v['val'] = self.bus[v['bus']][...,sl].copy()
+                                print "#" * 80
+                                print "sl", sl, v['val']
                             else:
                                 v['val'][...,-blocksize_input_bus:] = self.bus[v['bus']].copy()
                             # v['val'] = self.bus[v['bus']].copy() # inbus
                             # v['val'][...,0:inbus.shape[-1]] = inbus
-                        # print "v['val'].shape", v['val'].shape
+                        print "Blcok2: init_pass_2 v['val'].shape", self.id, v['val'].shape
                         
                     elif not v.has_key('shape'):
                         # check if key exists or not. if it doesn't, that means this is a block inside dynamical graph construction

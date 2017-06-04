@@ -39,7 +39,7 @@ ppycnf2 = {
     'numsteps': 1000,
 }
 
-cnf = ppycnf
+cnf = ppycnf2
 
 # copy params to namespace
 numsteps = cnf['numsteps']
@@ -142,34 +142,34 @@ graph = OrderedDict([
         },
     }),
     
-    ('data', {
-        'block': FileBlock2,
-        'params': {
-            'id': 'data',
-            'debug': False,
-            # 'blocksize': overlap, # numsteps,
-            'blocksize': srcsize, # numsteps,
-            'type': cnf['logtype'],
-            'file': {'filename': cnf['logfile']},
-            'outputs': {'log': None, 'x': {'shape': (xdim, srcsize)},
-                            'y': {'shape': (ydim, srcsize)}},
-        },
-    }),
+    # ('data', {
+    #     'block': FileBlock2,
+    #     'params': {
+    #         'id': 'data',
+    #         'debug': False,
+    #         # 'blocksize': overlap, # numsteps,
+    #         'blocksize': srcsize, # numsteps,
+    #         'type': cnf['logtype'],
+    #         'file': {'filename': cnf['logfile']},
+    #         'outputs': {'log': None, 'x': {'shape': (xdim, srcsize)},
+    #                         'y': {'shape': (ydim, srcsize)}},
+    #     },
+    # }),
 
-    # slice block to split puppy sensors x into gyros x_gyr and accels x_acc
-    ('dataslice', {
-        'block': SliceBlock2,
-        'params': {
-            'id': 'dataslice',
-            # 'blocksize': overlap,
-            'blocksize': srcsize,
-            'debug': True,
-            # puppy sensors
-            'inputs': {'x': {'bus': 'data/x', 'shape': (xdim, srcsize)}},
-            'slices': sys_slicespec,
-            # 'slices': ,
-            }
-        }),
+    # # slice block to split puppy sensors x into gyros x_gyr and accels x_acc
+    # ('dataslice', {
+    #     'block': SliceBlock2,
+    #     'params': {
+    #         'id': 'dataslice',
+    #         # 'blocksize': overlap,
+    #         'blocksize': srcsize,
+    #         'debug': True,
+    #         # puppy sensors
+    #         'inputs': {'x': {'bus': 'data/x', 'shape': (xdim, srcsize)}},
+    #         'slices': sys_slicespec,
+    #         # 'slices': ,
+    #         }
+    #     }),
         
     # multivariate mutual information analysis of data I(X^n ; Y^m)
     ('mimvl', {
@@ -178,9 +178,10 @@ graph = OrderedDict([
             'id': 'mimvl',
             'blocksize': overlap,
             'debug': False,
-            'loop': [('inputs', {'x': {'bus': 'dataslice/x_acc', 'shape': (xdim_eff, winsize)},
-                                 'y': {'bus': 'data/y', 'shape': (ydim, winsize)},
+            'loop': [('inputs', {'x': {'bus': 'ldataslice/x_acc', 'shape': (xdim_eff, winsize)},
+                                 'y': {'bus': 'ldata/y', 'shape': (ydim, winsize)},
                                  'norm': {'bus': 'jhloop/jh', 'shape': (1, 1)},
+                                 # 'norm': {'val': np.array([[7.0]]), 'shape': (1, 1)},
                                  }),
                           # ('inputs', {'x': {'bus': 'dataslice/x_gyr'}, 'y': {'bus': 'data/y'}}),
                      # ('inputs', {'x': {'bus': 'data/x'}, 'y': {'bus': 'data/r'}}),
@@ -192,9 +193,9 @@ graph = OrderedDict([
                     'id': 'mimv',
                     'blocksize': overlap,
                     'debug': False,
-                    'inputs': {'x': {'bus': 'dataslice/x_gyr',
+                    'inputs': {'x': {'bus': 'ldataslice/x_gyr',
                                          'shape': (xdim_eff, winsize)},
-                                   'y': {'bus': 'data/y',
+                                   'y': {'bus': 'ldata/y',
                                              'shape': (ydim, winsize)}},
                     # 'shift': (-120, 8),
                     'shift': (scanstart, scanstop), # len 21
@@ -211,8 +212,8 @@ graph = OrderedDict([
             'id': 'mimv',
             'blocksize': overlap,
             'debug': False,
-            'inputs': {'x': {'bus': 'dataslice/x_gyr', 'shape': (xdim_eff, winsize)},
-                           'y': {'bus': 'data/y', 'shape': (ydim, winsize)}},
+            'inputs': {'x': {'bus': 'ldataslice/x_gyr', 'shape': (xdim_eff, winsize)},
+                           'y': {'bus': 'ldata/y', 'shape': (ydim, winsize)}},
             # 'shift': (-120, 8),
             'shift': (scanstart, scanstop), # len 21
             # 'outputs': {'mi': {'shape': ((ydim + xdim)**2, 1)}}
@@ -245,7 +246,7 @@ graph = OrderedDict([
             'saveplot': False,
             'savetype': 'pdf',
             'wspace': 0.2, 'hspace': 0.2,
-            'inputs': {'d1': {'bus': 'data/x', 'shape': (xdim, numsteps)}, 'd2': {'bus': 'data/y', 'shape': (ydim, numsteps)}},
+            'inputs': {'d1': {'bus': 'ldata/x', 'shape': (xdim, numsteps)}, 'd2': {'bus': 'ldata/y', 'shape': (ydim, numsteps)}},
             'outputs': {}, # 'x': {'shape': (3, 1)}
             'subplots': [
                 [
