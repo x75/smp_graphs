@@ -3,7 +3,7 @@
 from smp_graphs.block_meas_infth import MIMVBlock2
 from smp_graphs.block import SliceBlock2
 from smp_graphs.block_plot import ImgPlotBlock2
-from smp_graphs.block_models import CodingBlock2
+from smp_graphs.block_models import CodingBlock2, ModelBlock2
 
 ppycnf = {
     # 'numsteps': 27000,
@@ -32,12 +32,14 @@ ppycnf2 = {
     # 'logfile': 'data/stepPickles/step_period_12_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_76_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_26_0.pickle',
-    'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle', # continuous sweep
+    # 'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle', # continuous sweep
+    # 'numsteps': 5000,
+    'logfile': 'data/goodPickles/recording_eC0.20_eA0.02_c0.50_n1000_id0.pickle',
+    'numsteps': 1000,
     'logtype': 'puppy',
     'xdim': 6,
     'xdim_eff': 3,
     'ydim': 4,
-    'numsteps': 5000,
 }
 
 cnf = ppycnf2
@@ -101,6 +103,21 @@ graph = OrderedDict([
         }
     }),
 
+    ('mb1', {
+        'block': ModelBlock2,
+        'params': {
+            'id': 'mb1',
+            'blocksize': 1,
+            'inputs': {'x': {'bus': 'data/y', 'shape': (ydim, srcsize)}},
+            'outputs': {},
+            # models': {'res': "reservoir"},
+            'models': {
+                'musig': {'type': 'musig', 'a1': 0.996},
+                'res': {'type': 'res', 'a1': 0.996}
+            },
+        }
+    }),
+
     ('plot_ts', {
         'block': PlotBlock2,
         'params': {
@@ -112,7 +129,10 @@ graph = OrderedDict([
             'wspace': 0.2, 'hspace': 0.2,
             'inputs': {'d1': {'bus': 'data/y', 'shape': (ydim, numsteps)},
                        'd2': {'bus': 'coding/x_mu', 'shape': (ydim, numsteps)},
-                       'd3': {'bus': 'coding/x_sig', 'shape': (ydim, numsteps)}},
+                       'd3': {'bus': 'coding/x_sig', 'shape': (ydim, numsteps)},
+                       'd4': {'bus': 'mb1/x_res', 'shape': (60, numsteps)},
+                       'd5': {'bus': 'mb1/x_sig', 'shape': (ydim, numsteps)}
+             },
             'outputs': {}, # 'x': {'shape': (3, 1)}
             'subplots': [
                 [
@@ -126,6 +146,10 @@ graph = OrderedDict([
                 [
                     {'input': 'd3', 'ndslice': (slice(None), slice(None)), 'shape': (4, numsteps), 'plot': timeseries},
                     {'input': 'd3', 'ndslice': (slice(None), slice(None)), 'shape': (4, numsteps), 'plot': histogram},
+                ],
+                [
+                    {'input': 'd4', 'ndslice': (slice(None), slice(None)), 'shape': (60, numsteps), 'plot': timeseries},
+                    {'input': 'd5', 'ndslice': (slice(None), slice(None)), 'shape': (4, numsteps), 'plot': timeseries},
                 ],
             ]
         }

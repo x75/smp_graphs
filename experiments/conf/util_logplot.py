@@ -14,9 +14,11 @@ selflogcnf = {
 }
 
 puppypklcnf = {
-    'numsteps': 5000,
     'filetype': 'puppy',
-    'filename': 'data/sin_sweep_0-6.4Hz_newB.pickle',
+    # 'numsteps': 5000,
+    # 'filename': 'data/sin_sweep_0-6.4Hz_newB.pickle',
+    'numsteps': 1000,
+    'filename': 'data/goodPickles/recording_eC0.20_eA0.02_c0.50_n1000_id0.pickle',
     'xdim': 6,
     'ydim': 4,
 }
@@ -58,7 +60,7 @@ graph = OrderedDict([
                 # 'd1': ['selflog//b1/x'],
                 # 'd2': ['selflog//b2/x'],
                 'd3': {'bus': 'selflog/x', 'shape': (cnf['xdim'], numsteps)},
-                # 'd4': ['selflog/y'],
+                'd4': {'bus': 'selflog/y'},
             },
             'outputs': {},#'x': [(3, 1)]},
             'subplots': [
@@ -72,7 +74,7 @@ graph = OrderedDict([
                 # ],
                 [
                     {'input': 'd3', 'slice': (3, 6), 'plot': timeseries},
-                    # {'input': 'd3', 'slice': (3, 6), 'plot': histogram},
+                    {'input': 'd4', 'slice': (3, 6), 'plot': timeseries},
                 ],
                 # [
                 #     {'input': 'd4', 'slice': (3, 6), 'plot': timeseries},
