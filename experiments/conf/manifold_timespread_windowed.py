@@ -26,20 +26,20 @@ ppycnf = {
 }
 
 ppycnf2 = {
-    # 'logfile': 'data/stepPickles/step_period_4_0.pickle',
+    'logfile': 'data/stepPickles/step_period_4_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_10_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_12_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_76_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_26_0.pickle',
-    'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle', # continuous sweep without battery
+    # 'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle', # continuous sweep without battery
     'logtype': 'puppy',
     'xdim': 6,
     'xdim_eff': 3,
     'ydim': 4,
-    'numsteps': 5000,
+    'numsteps': 1000,
 }
 
-cnf = ppycnf2
+cnf = ppycnf
 
 # copy params to namespace
 numsteps = cnf['numsteps']
