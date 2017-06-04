@@ -103,7 +103,7 @@ class PlotBlock2(FigPlotBlock2):
 
     def plot_subplots(self):
         """loop over configured subplot and plot the data according to config"""
-        # print "%s plot_subplots self.inputs = %s" % (self.cname, self.inputs)
+        print "%s plot_subplots self.inputs = %s" % (self.cname, self.inputs)
         if True:
             for i, subplot in enumerate(self.subplots):
                 for j, subplotconf in enumerate(subplot):
@@ -170,6 +170,7 @@ class PlotBlock2(FigPlotBlock2):
                             plotdata[ink_] = myt(self.inputs[ink]['val'])[xslice] # .reshape((xslice.stop - xslice.start, -1))
 
                         # print "plotdata", plotdata[ink_].shape, plotshape
+                        # print "plotdata", plotdata[ink_], plotshape
                         
                         # plotdata[ink_] = plotdata[ink_].reshape((plotshape[1], plotshape[0])).T
                         plotdata[ink_] = plotdata[ink_].reshape(plotshape)
@@ -242,6 +243,7 @@ class ImgPlotBlock2(FigPlotBlock2):
         FigPlotBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
     def plot_subplots(self):
+        print "%s plot_subplots self.inputs = %s" % (self.cname, self.inputs)
         numrows = len(self.subplots)
         numcols = len(self.subplots[0])
 
@@ -345,8 +347,7 @@ class ImgPlotBlock2(FigPlotBlock2):
                     # old version
                     # plotdata_cand = self.inputs[subplotconf['input'][0]]['val'][yslice,xslice]
 
-                    # potential FIXME re completeness
-                    # if input is ndim
+                    # FIXME completeness if input is ndim, currently only first dim is handled
                     if subplotconf.has_key('ndslice'):
                         # di = subplotconf['ndslice'][0]
                         # dj = subplotconf['ndslice'][1]

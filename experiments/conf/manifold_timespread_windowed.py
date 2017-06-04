@@ -1,6 +1,6 @@
 """smp_graphs perform windowed short time mutual info scan"""
 
-from smp_graphs.block_meas_infth import MIMVBlock2, JHBlock2
+from smp_graphs.block_meas_infth import MIMVBlock2, JHBlock2, TEMVBlock2
 from smp_graphs.block import SliceBlock2, SeqLoopBlock2
 from smp_graphs.block_plot import ImgPlotBlock2
 
@@ -31,12 +31,12 @@ ppycnf2 = {
     # 'logfile': 'data/stepPickles/step_period_12_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_76_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_26_0.pickle',
-    # 'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle', # continuous sweep without battery
+    'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle', # continuous sweep without battery
     'logtype': 'puppy',
     'xdim': 6,
     'xdim_eff': 3,
     'ydim': 4,
-    'numsteps': 1000,
+    'numsteps': 5000,
 }
 
 cnf = ppycnf2
@@ -213,7 +213,9 @@ graph = OrderedDict([
             'blocksize': overlap,
             'debug': False,
             'inputs': {'x': {'bus': 'ldataslice/x_gyr', 'shape': (xdim_eff, winsize)},
-                           'y': {'bus': 'ldata/y', 'shape': (ydim, winsize)}},
+                           'y': {'bus': 'ldata/y', 'shape': (ydim, winsize)},
+                                 'norm': {'bus': 'jhloop/jh', 'shape': (1, 1)},
+                           },
             # 'shift': (-120, 8),
             'shift': (scanstart, scanstop), # len 21
             # 'outputs': {'mi': {'shape': ((ydim + xdim)**2, 1)}}
@@ -221,20 +223,21 @@ graph = OrderedDict([
         }
     }),
     
-    # # ('ctemv', {
-    # #     'block': CTEBlock2,
-    # #     'params': {
-    # #         'id': 'ctemv',
-    # #         'blocksize': overlap,
-    # #         'debug': False,
-    # #         'inputs': {'x': {'bus': 'dataslice/x_gyr', 'shape': (xdim_eff, winsize)},
-    # #                        'y': {'bus': 'data/y', 'shape': (ydim, winsize)}},
-    # #         # 'shift': (-120, 8),
-    # #         'shift': (scanstart, scanstop), # len 21
-    # #         # 'outputs': {'mi': {'shape': ((ydim + xdim)**2, 1)}}
-    # #         'outputs': {'cte': {'shape': (1, scanlen)}}
-    # #     }
-    # # }),
+    ('temv', {
+        'block': TEMVBlock2,
+        'params': {
+            'id': 'temv',
+            'blocksize': overlap,
+            'debug': False,
+            'inputs': {'x': {'bus': 'ldataslice/x_gyr', 'shape': (xdim_eff, winsize)},
+                           'y': {'bus': 'ldata/y', 'shape': (ydim, winsize)},
+                                 'norm': {'bus': 'jhloop/jh', 'shape': (1, 1)},
+                           },
+            # 'shift': (-120, 8),
+            'shift': (scanstart, scanstop), # len 21
+            'outputs': {'temv': {'shape': (1, scanlen)},}
+        }
+    }),
 
     # plot module with blocksize = episode, fetching input from busses
     # and mapping that onto plots
@@ -275,6 +278,7 @@ graph = OrderedDict([
             'inputs': {
                 'd1': {'bus': 'mimv/mimv', 'shape': (1, scanlen * numsteps/overlap)},
                 'd2': {'bus': 'mimvl_0/mimv', 'shape': (1, scanlen * numsteps/overlap)},
+                'd3': {'bus': 'temv/temv', 'shape': (1, scanlen * numsteps/overlap)},                
                 't': {'val': np.linspace(scanstart, scanstop-1, scanlen)},},
             'outputs': {}, #'x': {'shape': (3, 1)}},
             'subplots': [
@@ -292,12 +296,12 @@ graph = OrderedDict([
                     'ndslice': (slice(None), slice(None)),
                     # 'dimstack': {'x': [0], 'y': [1]},
                     'shape': (numsteps/overlap, scanlen)},
-                    # {
-                    # 'input': 'd3',
-                    # 'ndslice': (slice(None), slice(None), slice(None)),
+                    {
+                    'input': 'd3',
+                    'ndslice': (slice(None), slice(None)),
                     # 'dimstack': {'x': [2, 1], 'y': [0]},
-                    # 'shape': (scanlen, ydim, xdim),
-                    # 'cmap': 'Reds'},
+                    'shape': (numsteps/overlap, scanlen),
+                    'cmap': 'Reds'},
                 ],
             ]
         },

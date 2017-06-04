@@ -57,8 +57,8 @@ class MIBlock2(PrimBlock2):
     def step(self, x = None):
         mis = []
         
-        dst = self.get_inputs('x').T
-        src = self.get_inputs('y').T
+        dst = self.get_input('x').T
+        src = self.get_input('y').T
 
         jh = 1.0
         

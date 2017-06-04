@@ -101,7 +101,7 @@ class XCorrBlock2(PrimBlock2):
         # print "arraytosum.sh", arraytosumraw.shape
         print "xcorr.shape", self.xcorr.shape
         self.xcorr = arraytosumraw.reshape(self.outputs['xcorr']['shape']) # + (1,))
-        print "xcorr.shape", self.xcorr.shape
+        print "xcorr.shape", self.xcorr.shape #, self.xcorr
         
         # # fig = makefig(self.xdim, self.ydim)
         # for i in range(self.ydim):

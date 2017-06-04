@@ -53,12 +53,13 @@ ppycnf2 = {
     # 'logfile': 'data/stepPickles/step_period_10_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_12_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_76_0.pickle',
-    'logfile': 'data/stepPickles/step_period_26_0.pickle',
+    # 'logfile': 'data/stepPickles/step_period_26_0.pickle',
+    'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle', # continuous sweep without battery
     'logtype': 'puppy',
     'xdim': 6,
     'xdim_eff': 3,
     'ydim': 4,
-    'numsteps': 1000,
+    'numsteps': 5000,
 }
     
 testcnfsin = {
@@ -100,7 +101,7 @@ if cnf.has_key('sys_slicespec'):
 else:
     sys_slicespec = {'x': {'acc': slice(0, 3), 'gyr': slice(3, xdim)}}
 
-scanstart = -30
+scanstart = -10
 scanstop = 1
 scanlen = scanstop - scanstart
 
@@ -174,6 +175,7 @@ graph = OrderedDict([
         'block': XCorrBlock2,
         'params': {
             'id': 'xcorr',
+            'debug': True,
             'blocksize': numsteps,
             'inputs': {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylogdiff/dy'}},
             'shift': (scanstart, scanstop),
@@ -230,28 +232,28 @@ graph = OrderedDict([
         }
     }),
 
-    # # # mutual information analysis of data
-    # # ('te', {
-    # #     'block': LoopBlock2,
-    # #     'params': {
-    # #         'id': 'te',
-    # #         'loop': [('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/y'}}),
-    # #                  # ('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/r'}}),
-    # #                  # ('inputs', {'x': {'bus': 'puppylog/y'}, 'y': {'bus': 'puppylog/r'}}),
-    # #         ],
-    # #         'loopblock': {
-    # #             'block': TEBlock2,
-    # #             'params': {
-    # #                 'id': 'te',
-    # #                 'blocksize': numsteps,
-    # #                 'debug': True,
-    # #                 'inputs': {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/y'}},
-    # #                 'shift': (scanstart, scanstop),
-    # #                 'outputs': {'te': {'shape': (scanlen * ydim * xdim, 1)}}
-    # #             }
-    # #         },
-    # #     }
-    # # }),
+    # # mutual information analysis of data
+    # ('te', {
+    #     'block': LoopBlock2,
+    #     'params': {
+    #         'id': 'te',
+    #         'loop': [('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/y'}}),
+    #                  # ('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/r'}}),
+    #                  # ('inputs', {'x': {'bus': 'puppylog/y'}, 'y': {'bus': 'puppylog/r'}}),
+    #         ],
+    #         'loopblock': {
+    #             'block': TEBlock2,
+    #             'params': {
+    #                 'id': 'te',
+    #                 'blocksize': numsteps,
+    #                 'debug': True,
+    #                 'inputs': {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/y'}},
+    #                 'shift': (scanstart, scanstop),
+    #                 'outputs': {'te': {'shape': (scanlen * ydim * xdim, 1)}}
+    #             }
+    #         },
+    #     }
+    # }),
     
     # mutual information analysis of data
     ('te', {
@@ -300,30 +302,30 @@ graph = OrderedDict([
         }
     }),
         
-    # # # slice block to split puppy sensors x into gyros x_gyr and accels x_acc
-    # # ('puppyslice', {
-    # #     'block': SliceBlock2,
-    # #     'params': {
-    # #         'id': 'puppyslice',
-    # #         'blocksize': numsteps,
-    # #         # puppy sensors
-    # #         'inputs': {'x': {'bus': 'puppylog/x'}},
-    # #         'slices': {'x': {'acc': slice(0, 3), 'gyr': slice(3, xdim)}},
-    # #         }
-    # #     }),
+    # # slice block to split puppy sensors x into gyros x_gyr and accels x_acc
+    # ('puppyslice', {
+    #     'block': SliceBlock2,
+    #     'params': {
+    #         'id': 'puppyslice',
+    #         'blocksize': numsteps,
+    #         # puppy sensors
+    #         'inputs': {'x': {'bus': 'puppylog/x'}},
+    #         'slices': {'x': {'acc': slice(0, 3), 'gyr': slice(3, xdim)}},
+    #         }
+    #     }),
     
-    # # # puppy process data block: integrate acc, diff motors
-    # # ('accint', {
-    # #     'block': IBlock2,
-    # #     'params': {
-    # #         'id': 'accint',
-    # #         'blocksize': numsteps,
-    # #         'inputs': {'x_acc': {'bus': 'puppyslice/x_acc'}},
-    # #         'outputs': {},
-    # #         'd': 0.1,
-    # #         'leak': 0.01,
-    # #         },
-    # #     }),
+    # # puppy process data block: integrate acc, diff motors
+    # ('accint', {
+    #     'block': IBlock2,
+    #     'params': {
+    #         'id': 'accint',
+    #         'blocksize': numsteps,
+    #         'inputs': {'x_acc': {'bus': 'puppyslice/x_acc'}},
+    #         'outputs': {},
+    #         'd': 0.1,
+    #         'leak': 0.01,
+    #         },
+    #     }),
         
     # puppy process data block: delay motors by lag to align with their sensory effects
     ('motordel', {
@@ -378,7 +380,7 @@ graph = OrderedDict([
         'params': {
             'id': 'plot_xcor_line',
             'logging': False,
-            'debug': False,
+            'debug': True,
             'blocksize': numsteps,
             'inputs': make_input_matrix_ndim(xdim = xdim, ydim = ydim, with_t = True),
             'outputs': {}, #'x': {'shape': (3, 1)}},
@@ -482,29 +484,29 @@ graph = OrderedDict([
         },
     }),
     
-    # sns matrix plot
-    ('plot2', {
-        'block': SnsMatrixPlotBlock2,
-        'params': {
-            'id': 'plot2',
-            'logging': False,
-            'debug': False,
-            'blocksize': numsteps,
-            'inputs': {
-                # 'd3': {'bus': 'puppyslice/x_gyr'},
-                'd3': {'bus': 'puppylog/x'},
-                # 'd3': {'bus': 'motordel/dx'},
-                # 'd4': {'bus': 'puppylog/y'},
-                'd4': {'bus': 'motordel/dy'},
-            },
-            'outputs': {},#'x': {'shape': (3, 1)}},
-            'subplots': [
-                [
-                    # stack inputs into one vector (stack, combine, concat
-                    {'input': ['d3', 'd4'], 'mode': 'stack',
-                         'plot': histogramnd},
-                ],
-            ],
-        },
-    })
+    # # sns matrix plot
+    # ('plot2', {
+    #     'block': SnsMatrixPlotBlock2,
+    #     'params': {
+    #         'id': 'plot2',
+    #         'logging': False,
+    #         'debug': False,
+    #         'blocksize': numsteps,
+    #         'inputs': {
+    #             # 'd3': {'bus': 'puppyslice/x_gyr'},
+    #             'd3': {'bus': 'puppylog/x'},
+    #             # 'd3': {'bus': 'motordel/dx'},
+    #             # 'd4': {'bus': 'puppylog/y'},
+    #             'd4': {'bus': 'motordel/dy'},
+    #         },
+    #         'outputs': {},#'x': {'shape': (3, 1)}},
+    #         'subplots': [
+    #             [
+    #                 # stack inputs into one vector (stack, combine, concat
+    #                 {'input': ['d3', 'd4'], 'mode': 'stack',
+    #                      'plot': histogramnd},
+    #             ],
+    #         ],
+    #     },
+    # })
 ])

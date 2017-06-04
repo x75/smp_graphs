@@ -20,7 +20,7 @@ graph = OrderedDict([
         'params': {
             'id': 'cnt',
             'inputs': {},
-            'outputs': {'x': {'shape': (1,)}},
+            'outputs': {'x': {'shape': (1,1)}},
             'debug': False,
         },
     }),
@@ -29,7 +29,7 @@ graph = OrderedDict([
         'block': FuncBlock2,
         'params': {
             'id': 'sin',
-            'outputs': {'y': {'shape': (1, )}},
+            'outputs': {'y': {'shape': (1, 1)}},
             'debug': False,
             # 'inputs': {'lo': [0, (3, 1)], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
             # recurrent connection
@@ -45,7 +45,7 @@ graph = OrderedDict([
         'block': UniformRandomBlock2,
         'params': {
             'id': 'noise',
-            'outputs': {'r': {'shape': (1, )}},
+            'outputs': {'r': {'shape': (1, 1)}},
             'debug': False,
             # 'inputs': {'lo': [0, (3, 1)], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
             # recurrent connection

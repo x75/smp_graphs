@@ -210,7 +210,7 @@ class decStep():
         
         # loop over block's inputs
         for k, v in xself.inputs.items():
-            print "process_input: ", k, xself.id, xself.cnt, v['val'].shape, v['shape']
+            # print "process_input: ", k, xself.id, xself.cnt, v['val'].shape, v['shape']
             # check input sanity
             assert v['val'].shape == v['shape'], "real and desired input shapes need to agree for block %s, ink = %s, %s != %s" % (xself.id, k, v['val'].shape, v['shape'])
             
@@ -227,15 +227,24 @@ class decStep():
                 if blocksize_input is None:
                     blocksize_input = blocksize_input_bus
 
-                if blocksize_input_bus >= v['shape'][-1]: # for all vshape in 1,2,3..
-                    if xself.cnt % v['shape'][-1] == 0:
+
+                if blocksize_input_bus == v['shape'][-1]: # for all vshape in 1,2,3..
+                    # FIXME: 
+                    if xself.cnt % xself.blocksize == 0:
+                        v['val'] = xself.bus[v['bus']].copy()
+                        # print "v['val']", v['val'].shape
+                    
+                elif blocksize_input_bus > v['shape'][-1]: # for all vshape in 1,2,3..
+                    # FIXME
+                    # if xself.cnt % v['shape'][-1] == 0:
+                    if xself.cnt % xself.blocksize == 0:
                         mcnt = xself.cnt % blocksize_input_bus
                         # sl = slice(mcnt - v['shape'][-1] + 1, mcnt + 1) #
                         sls = (xself.cnt - v['shape'][-1]) % blocksize_input_bus
                         sle = sls + v['shape'][-1] # xself.cnt % blocksize_input_bus
                         sl = slice(sls, sle) #
                         v['val'] = xself.bus[v['bus']][...,sl].copy()
-                        print "bus > v", xself.id, xself.cnt, blocksize_input_bus, mcnt, k, "sl", sl, "v['val']", v['val'], "v['bus']", v['bus'], xself.bus[v['bus']].shape
+                        # print "bus > v", xself.id, xself.cnt, blocksize_input_bus, mcnt, k, "sl", sl, "v['val']", v['val'], "v['bus']", v['bus'], xself.bus[v['bus']].shape, xself.bus[v['bus']]
                     
                 elif blocksize_input_bus < v['shape'][-1]:
 
@@ -252,7 +261,7 @@ class decStep():
                         # print "%s.decStep v[val]" % (xself.cname), v['val'].shape, "v.sh", v['shape'], "axis", axis, "v", v['val']
                         # set inputs [last-inputbs:last] if input blocksize reached                                
                         sl = slice(-blocksize_input_bus, None)
-                        print "%s-%s" % (xself.cname, xself.id), "sl", sl, "bus", v['bus'], "bus.shape", xself.bus[v['bus']].shape, "v['val'].shape", v['val'].shape
+                        # print "%s-%s" % (xself.cname, xself.id), "sl", sl, "bus", v['bus'], "bus.shape", xself.bus[v['bus']].shape, "v['val'].shape", v['val'].shape
                         try:
                             # np.fliplr(xself.bus[v[2]])
                             # v['val'][...,-blocksize_input_bus:] = self.bus[v['bus']].copy()
@@ -317,11 +326,11 @@ class decStep():
                 # copy output to bus
                 for k, v in xself.outputs.items():
                     buskey = "%s/%s" % (xself.id, k)
-                    print "copy[%d] %s.outputs[%s] = %s / %s to bus[%s], bs = %d" % (xself.cnt, xself.id, k, getattr(xself, k), getattr(xself, k).shape, buskey, xself.blocksize)
+                    # print "copy[%d] %s.outputs[%s] = %s / %s to bus[%s], bs = %d" % (xself.cnt, xself.id, k, getattr(xself, k), getattr(xself, k).shape, buskey, xself.blocksize)
                     assert xself.bus[v['buskey']].shape == v['shape'], "real and desired output shapes need to agree block %s, outk = %s, %s != %s" % (xself.id, k, xself.bus[v['buskey']].shape, v['shape'])
                     # copy data onto bus
                     xself.bus[v['buskey']] = getattr(xself, k).copy()
-                    print "xself.bus[v['buskey'] = %s]" % (v['buskey'], ) , xself.bus[v['buskey']]
+                    # print "xself.bus[v['buskey'] = %s]" % (v['buskey'], ) , xself.bus[v['buskey']]
             else:
                 f_out = None
             
@@ -657,13 +666,16 @@ class Block2(object):
                         assert self.bus.has_key(v['bus']), "Requested bus item %s is not in buskeys %s" % (v['bus'], self.bus.keys())
                     
                         # enforce bus blocksize smaller than local blocksize, tackle later
-                        assert self.bus[v['bus']].shape[-1] <= self.blocksize, "input block size needs to be less than or equal self blocksize in %s/%s, in %s, should %s, has %s\ncheck blocksize param" % (self.cname, self.id, v['bus'], self.bus[v['bus']].shape[-1], self.blocksize)
+                        # CHECK
+                        # assert self.bus[v['bus']].shape[-1] <= self.blocksize, "input block size needs to be less than or equal self blocksize in %s/%s, in %s, should %s, has %s\ncheck blocksize param" % (self.cname, self.id, v['bus'], self.bus[v['bus']].shape[-1], self.blocksize)
                         # get shortcut
                         inbus = self.bus[v['bus']]
                         print "init_pass_2 inbus.sh = %s, self.bs = %s" % (inbus.shape[:-1], self.blocksize)
                         # if no shape given, take busdim times input buffer size
                         # v['val'] = np.zeros(inbus.shape[:-1] + (self.blocksize,)) # ibuf >= blocksize inbus.copy()
-                        v['val'] = np.zeros(inbus.shape[:-1] + (self.blocksize, ))
+                        # v['val'] = np.zeros(inbus.shape[:-1] + (self.blocksize, ))
+                        # think just inbus is better, otherwise enforce shape spec
+                        v['val'] = np.zeros(inbus.shape)
                                         
                     v['shape'] = v['val'].shape # self.bus[v['bus']].shape
                     

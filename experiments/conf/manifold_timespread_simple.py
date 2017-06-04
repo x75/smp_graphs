@@ -13,18 +13,18 @@ from smp_graphs.block_meas_infth import JHBlock2, MIBlock2, InfoDistBlock2, TEBl
 
 randseed = 12345
 
-saveplot = True
+saveplot = False
 
 ppycnf = {
-    'numsteps': 27000,
-    # 'logfile': 'data/experiment_20170518_161544_puppy_process_logfiles_pd.h5',
-    'logfile': 'data/experiment_20170526_160018_puppy_process_logfiles_pd.h5',
+    # 'numsteps': 27000,
+    # # 'logfile': 'data/experiment_20170518_161544_puppy_process_logfiles_pd.h5',
+    # 'logfile': 'data/experiment_20170526_160018_puppy_process_logfiles_pd.h5',
     # 'numsteps': 147000,
     # 'logfile': 'data/experiment_20170510_155432_puppy_process_logfiles_pd.h5', # 147K
     # 'numsteps': 29000,
     # 'logfile': 'data/experiment_20170517_160523_puppy_process_logfiles_pd.h5', 29K
-    # 'numsteps': 10000,
-    # 'logfile': 'data/experiment_20170511_145725_puppy_process_logfiles_pd.h5', # 10K
+    'numsteps': 10000,
+    'logfile': 'data/experiment_20170511_145725_puppy_process_logfiles_pd.h5', # 10K
     # 'numsteps': 2000,
     # 'logfile': 'data/experiment_20170510_173800_puppy_process_logfiles_pd.h5', # 2K
     'xdim': 6,
@@ -38,13 +38,14 @@ ppycnf2 = {
     # 'logfile': 'data/stepPickles/step_period_10_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_12_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_76_0.pickle',
-    # 'logfile': 'data/stepPickles/step_period_26_0.pickle',
-    'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle',
+    'logfile': 'data/stepPickles/step_period_26_0.pickle',
+    'numsteps': 1000,
+    # 'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle',
+    # 'numsteps': 5000,
     'logtype': 'puppy',
     'xdim': 6,
     'xdim_eff': 3,
     'ydim': 4,
-    'numsteps': 5000,
 }
     
 testcnfsin = {
@@ -76,7 +77,7 @@ testcnf = {
     'logtype': 'testdata1',
 }
 
-cnf = ppycnf2
+cnf = ppycnf
 numsteps = cnf['numsteps']
 xdim = cnf['xdim']
 ydim = cnf['ydim']
@@ -531,9 +532,9 @@ graph = OrderedDict([
             'wspace': 0.5,
             'hspace': 0.5,
             'blocksize': numsteps,
-            'inputs': {'d1': {'bus': 'mimv_0/mimv'},
-                       'd2': {'bus': 'temv_0/temv'},
-                       'd3': {'bus': 'jh/jh'},
+            'inputs': {'d1': {'bus': 'mimv_0/mimv', 'shape': (1, scanlen)},
+                       'd2': {'bus': 'temv_0/temv', 'shape': (1, scanlen)},
+                       'd3': {'bus': 'jh/jh', 'shape': (1, scanlen)},
                        't': {'val': np.linspace(scanstart, scanstop-1, scanlen)},},
             'outputs': {}, #'x': {'shape': (3, 1)}},
             'subplots': [
