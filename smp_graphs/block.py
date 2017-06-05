@@ -267,7 +267,7 @@ class decStep():
                             # v['val'][...,-blocksize_input_bus:] = self.bus[v['bus']].copy()
                             v['val'][...,-blocksize_input_bus:] = xself.bus[v['bus']].copy()
                         except Exception, e:
-                            print xself.cname, xself.id, xself.cnt, e
+                            print "%s-%s[%d].decStep input copy k = %s from bus %s/%s to %s/%s, %s" % (xself.cname, xself.id, xself.cnt, k, v['bus'], xself.bus[v['bus']].shape, v['shape'], v['val'].shape, e)
                             sys.exit(1)
                             
                         # if k == 'd2':
@@ -835,7 +835,26 @@ class Block2(object):
             assert hasattr(self, attr), "%s.check_attrs: Don't have attr = %s" % (self.__class__.__name__, attr)
 
     def get_input(self, k):
-        return self.inputs[k]['val']
+        """get_input
+
+        preprocess input tensor using input specification
+
+        FIXME: 
+        """
+        if self.inputs[k].has_key('embedding'):
+            emblen = self.inputs[k]['embedding']
+            embshp = self.inputs[k]['shape']
+            assert len(embshp) == 2
+            ret = np.zeros((embshp[0] * emblen, embshp[1]))
+            for i in range(embshp[1]):
+                if i < emblen: continue
+                tmp = np.hstack(tuple(self.inputs[k]['val'][:,i-j] for j in range(emblen)))
+                # print "tmp", tmp.shape, # tmp
+                ret[:,i] = tmp
+            print "ret", ret.shape, # 
+            return ret
+        else:
+            return self.inputs[k]['val']
 
 class FuncBlock2(Block2):
     """!@brief Function block: wrap the function given by the configuration in params['func'] in a block"""

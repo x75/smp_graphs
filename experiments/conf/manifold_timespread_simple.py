@@ -77,7 +77,7 @@ testcnf = {
     'logtype': 'testdata1',
 }
 
-cnf = ppycnf
+cnf = ppycnf2
 numsteps = cnf['numsteps']
 xdim = cnf['xdim']
 ydim = cnf['ydim']
@@ -88,7 +88,7 @@ else:
     sys_slicespec = {'x': {'acc': slice(0, 3), 'gyr': slice(3, xdim)}}
 
 scanstart = -20
-scanstop = 1
+scanstop = 0
 scanlen = scanstop - scanstart
     
 def make_input_matrix(id = 'xcorr', base = 'xcorr', xdim = 1, ydim = 1, with_t = False):
@@ -621,30 +621,30 @@ graph = OrderedDict([
         },
     }),
     
-    # sns matrix plot
-    ('plot2', {
-        'block': SnsMatrixPlotBlock2,
-        'params': {
-            'id': 'plot2',
-            'logging': False,
-            'debug': False,
-            'saveplot': saveplot,
-            'blocksize': numsteps,
-            'inputs': {
-                'd3': {'bus': 'puppyslice/x_gyr'},
-                # 'd3': {'bus': 'puppylog/x'},
-                # 'd3': {'bus': 'motordel/dx'},
-                # 'd4': {'bus': 'puppylog/y'},
-                'd4': {'bus': 'motordel/dy'},
-            },
-            'outputs': {},#'x': {'shape': 3, 1)}},
-            'subplots': [
-                [
-                    # stack inputs into one vector (stack, combine, concat
-                    {'input': ['d3', 'd4'], 'mode': 'stack',
-                         'plot': histogramnd},
-                ],
-            ],
-        },
-    })
+    # # sns matrix plot
+    # ('plot2', {
+    #     'block': SnsMatrixPlotBlock2,
+    #     'params': {
+    #         'id': 'plot2',
+    #         'logging': False,
+    #         'debug': False,
+    #         'saveplot': saveplot,
+    #         'blocksize': numsteps,
+    #         'inputs': {
+    #             'd3': {'bus': 'puppyslice/x_gyr'},
+    #             # 'd3': {'bus': 'puppylog/x'},
+    #             # 'd3': {'bus': 'motordel/dx'},
+    #             # 'd4': {'bus': 'puppylog/y'},
+    #             'd4': {'bus': 'motordel/dy'},
+    #         },
+    #         'outputs': {},#'x': {'shape': 3, 1)}},
+    #         'subplots': [
+    #             [
+    #                 # stack inputs into one vector (stack, combine, concat
+    #                 {'input': ['d3', 'd4'], 'mode': 'stack',
+    #                      'plot': histogramnd},
+    #             ],
+    #         ],
+    #     },
+    # })
 ])

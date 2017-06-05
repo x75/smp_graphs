@@ -10,6 +10,8 @@ from reservoirs import Reservoir, res_input_matrix_random_sparse, res_input_matr
 
 from smp_graphs.block import decInit, decStep, PrimBlock2
 
+from mdp.nodes import PolynomialExpansionNode
+
 class CodingBlock2(PrimBlock2):
     """CodingBlock2
 
@@ -101,12 +103,22 @@ def step_res(ref):
         ref.res.execute(ref.inputs['x']['val'])
     # print ref.res.r.shape
     setattr(ref, 'x_res', ref.res.r)
-                        
+
+def init_polyexp(ref, conf, mconf):
+    params = conf['params']
+    ref.polyexpnode = PolynomialExpansionNode(3)
+    # params['outputs']['polyexp'] = {'shape': params['inputs']['x']['shape']}
+    params['outputs']['polyexp'] = {'shape': (83, 1)}
+
+def step_polyexp(ref):
+    setattr(ref, 'polyexp', ref.polyexpnode.execute(ref.inputs['x']['val'].T).T)
+    
 class model(object):
     models = {
         # 'identity': {'init': init_identity, 'step': step_identity},
         'musig': {'init': init_musig, 'step': step_musig},
         'res': {'init': init_res, 'step': step_res},
+        'polyexp': {'init': init_polyexp, 'step': step_polyexp},
     }
     # 
     def __init__(self, ref, conf, mconf = {}):

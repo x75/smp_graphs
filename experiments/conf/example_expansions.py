@@ -1,4 +1,16 @@
-"""smp_graphs perform windowed short time mutual info scan"""
+"""smp_graphs expansions
+
+an expansion is a function f of x and possibly x_t-n for all n in some
+index set, taking x to a higher dimensional representation, x \in R^n,
+f(x) \in R^m, m>n
+
+they are considered and implemented as 'models' in block_models.py, they are
+commonly used in machine learning (e.g. kernel machines, convolutional layers)
+or neuroscience (SFA, reservoir computing, ...)
+
+this example loads some sensorimotor data from a logfile and demonstrates
+use and configuration of a few expansions
+"""
 
 from smp_graphs.block_meas_infth import MIMVBlock2
 from smp_graphs.block import SliceBlock2
@@ -32,10 +44,10 @@ ppycnf2 = {
     # 'logfile': 'data/stepPickles/step_period_12_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_76_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_26_0.pickle',
-    'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle', # continuous sweep
-    'numsteps': 5000,
-    # 'logfile': 'data/goodPickles/recording_eC0.20_eA0.02_c0.50_n1000_id0.pickle',
-    # 'numsteps': 1000,
+    # 'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle', # continuous sweep
+    # 'numsteps': 5000,
+    'logfile': 'data/goodPickles/recording_eC0.20_eA0.02_c0.50_n1000_id0.pickle',
+    'numsteps': 1000,
     'logtype': 'puppy',
     'xdim': 6,
     'xdim_eff': 3,
@@ -54,8 +66,8 @@ if cnf.has_key('sys_slicespec'):
 else:
     sys_slicespec = {'x': {'acc': slice(0, 3), 'gyr': slice(3, xdim)}}
 
-scanstart = -30
-scanstop = 0
+scanstart = -60
+scanstop = 1
 scanlen = scanstop - scanstart
 
 # 1000/1000
@@ -107,6 +119,22 @@ graph = OrderedDict([
         }
     }),
 
+    ('mb0', {
+        'block': ModelBlock2,
+        'params': {
+            'id': 'mb0',
+            'blocksize': 1,
+            'inputs': {'x': {'bus': 'data/x', 'shape': (xdim, 1)}},
+            # 'inputs': {'x': {'bus': 'coding/x_std', 'shape': (xdim, 1)}},
+            'outputs': {},
+            # models': {'res': "reservoir"},
+            'models': {
+                # this specfies the actually modelling class
+                'polyexp': {'type': 'polyexp'},
+            },
+        }
+    }),
+
     ('mb1', {
         'block': ModelBlock2,
         'params': {
@@ -121,7 +149,7 @@ graph = OrderedDict([
                 'res': {
                     'type': 'res', 'N': 100, 'input_num': xdim, 
                     'output_num': 1, 'input_scale': 1.0, 'bias_scale': 0.0,
-                    'oversampling': 1}
+                    'oversampling': 2}
             },
         }
     }),
@@ -133,10 +161,11 @@ graph = OrderedDict([
             'blocksize': 100,
             'debug': False,
             'inputs': {
-                'y': {'bus': 'data/y', 'shape': (ydim, 100)},
-                'x': {'bus': 'mb1/x_res', 'shape': (100, 100)},
+                'y': {'bus': 'data/x', 'shape': (xdim, 100)},   # src
+                'x': {'bus': 'mb1/x_res', 'shape': (100, 100)}, # dst
                 # 'norm': {'val': np.array([[7.0]]), 'shape': (1, 1)},
             },
+            'embeddingscan': "src",
             'shift': (scanstart, scanstop),
             'outputs': {'mimv': {'shape': (1, scanlen)}}
         }
@@ -149,8 +178,8 @@ graph = OrderedDict([
             'blocksize': 100,
             'debug': False,
             'inputs': {
+                'y': {'bus': 'data/x', 'shape': (xdim, 100)},
                 'x': {'bus': 'data/x', 'shape': (xdim, 100)},
-                'y': {'bus': 'data/y', 'shape': (ydim, 100)},
                 # 'norm': {'val': np.array([[7.0]]), 'shape': (1, 1)},
             },
             'shift': (scanstart, scanstop),
@@ -172,13 +201,14 @@ graph = OrderedDict([
                        'd3': {'bus': 'coding/x_sig', 'shape': (xdim, numsteps)},
                        'd4': {'bus': 'coding/x_std', 'shape': (xdim, numsteps)},
                        'd5': {'bus': 'mb1/x_res', 'shape': (100, numsteps)},
-                       'd6': {'bus': 'mb1/x_sig', 'shape': (xdim, numsteps)}
+                       'd6': {'bus': 'mb1/x_sig', 'shape': (xdim, numsteps)},
+                       'd7': {'bus': 'mb0/polyexp', 'shape': (83, numsteps)},
              },
             'outputs': {}, # 'x': {'shape': (3, 1)}
             'subplots': [
                 [
                     {'input': 'd1', 'ndslice': (slice(None), slice(None)), 'shape': (ydim, numsteps), 'plot': timeseries},
-                    {'input': 'd1', 'ndslice': (slice(None), slice(None)), 'shape': (ydim, numsteps), 'plot': histogram},
+                    {'input': 'd7', 'ndslice': (slice(None), slice(None)), 'shape': (83, numsteps), 'plot': timeseries},
                 ],
                 [
                     {'input': 'd2', 'ndslice': (slice(None), slice(None)), 'shape': (xdim, numsteps), 'plot': timeseries},
