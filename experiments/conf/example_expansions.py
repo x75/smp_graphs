@@ -32,10 +32,10 @@ ppycnf2 = {
     # 'logfile': 'data/stepPickles/step_period_12_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_76_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_26_0.pickle',
-    # 'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle', # continuous sweep
-    # 'numsteps': 5000,
-    'logfile': 'data/goodPickles/recording_eC0.20_eA0.02_c0.50_n1000_id0.pickle',
-    'numsteps': 1000,
+    'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle', # continuous sweep
+    'numsteps': 5000,
+    # 'logfile': 'data/goodPickles/recording_eC0.20_eA0.02_c0.50_n1000_id0.pickle',
+    # 'numsteps': 1000,
     'logtype': 'puppy',
     'xdim': 6,
     'xdim_eff': 3,
@@ -98,8 +98,12 @@ graph = OrderedDict([
         'params': {
             'id': 'coding',
             'blocksize': srcsize,
-            'inputs': {'x': {'bus': 'data/y', 'shape': (ydim, srcsize)}},
-            'outputs': {'x_mu': {'shape': (ydim, srcsize)}, 'x_sig': {'shape': (ydim, srcsize)}}
+            'inputs': {'x': {'bus': 'data/x', 'shape': (xdim, srcsize)}},
+            'outputs': {
+                'x_mu': {'shape': (xdim, srcsize)},
+                'x_sig': {'shape': (xdim, srcsize)},
+                'x_std': {'shape': (xdim, srcsize)},
+            },
         }
     }),
 
@@ -108,16 +112,52 @@ graph = OrderedDict([
         'params': {
             'id': 'mb1',
             'blocksize': 1,
-            'inputs': {'x': {'bus': 'data/y', 'shape': (ydim, srcsize)}},
+            # 'inputs': {'x': {'bus': 'data/x', 'shape': (xdim, 1)}},
+            'inputs': {'x': {'bus': 'coding/x_std', 'shape': (xdim, 1)}},
             'outputs': {},
             # models': {'res': "reservoir"},
             'models': {
                 'musig': {'type': 'musig', 'a1': 0.996},
-                'res': {'type': 'res', 'a1': 0.996}
+                'res': {
+                    'type': 'res', 'N': 100, 'input_num': xdim, 
+                    'output_num': 1, 'input_scale': 1.0, 'bias_scale': 0.0,
+                    'oversampling': 1}
             },
         }
     }),
 
+    ('mimv', {
+        'block': MIMVBlock2,
+        'params': {
+            'id': 'mimv',
+            'blocksize': 100,
+            'debug': False,
+            'inputs': {
+                'y': {'bus': 'data/y', 'shape': (ydim, 100)},
+                'x': {'bus': 'mb1/x_res', 'shape': (100, 100)},
+                # 'norm': {'val': np.array([[7.0]]), 'shape': (1, 1)},
+            },
+            'shift': (scanstart, scanstop),
+            'outputs': {'mimv': {'shape': (1, scanlen)}}
+        }
+    }),
+    
+    ('mimv2', {
+        'block': MIMVBlock2,
+        'params': {
+            'id': 'mimv2',
+            'blocksize': 100,
+            'debug': False,
+            'inputs': {
+                'x': {'bus': 'data/x', 'shape': (xdim, 100)},
+                'y': {'bus': 'data/y', 'shape': (ydim, 100)},
+                # 'norm': {'val': np.array([[7.0]]), 'shape': (1, 1)},
+            },
+            'shift': (scanstart, scanstop),
+            'outputs': {'mimv': {'shape': (1, scanlen)}}
+        }
+    }),
+    
     ('plot_ts', {
         'block': PlotBlock2,
         'params': {
@@ -128,30 +168,75 @@ graph = OrderedDict([
             'savetype': 'pdf',
             'wspace': 0.2, 'hspace': 0.2,
             'inputs': {'d1': {'bus': 'data/y', 'shape': (ydim, numsteps)},
-                       'd2': {'bus': 'coding/x_mu', 'shape': (ydim, numsteps)},
-                       'd3': {'bus': 'coding/x_sig', 'shape': (ydim, numsteps)},
-                       'd4': {'bus': 'mb1/x_res', 'shape': (60, numsteps)},
-                       'd5': {'bus': 'mb1/x_sig', 'shape': (ydim, numsteps)}
+                       'd2': {'bus': 'coding/x_mu', 'shape': (xdim, numsteps)},
+                       'd3': {'bus': 'coding/x_sig', 'shape': (xdim, numsteps)},
+                       'd4': {'bus': 'coding/x_std', 'shape': (xdim, numsteps)},
+                       'd5': {'bus': 'mb1/x_res', 'shape': (100, numsteps)},
+                       'd6': {'bus': 'mb1/x_sig', 'shape': (xdim, numsteps)}
              },
             'outputs': {}, # 'x': {'shape': (3, 1)}
             'subplots': [
                 [
-                    {'input': 'd1', 'ndslice': (slice(None), slice(None)), 'shape': (4, numsteps), 'plot': timeseries},
-                    {'input': 'd1', 'ndslice': (slice(None), slice(None)), 'shape': (4, numsteps), 'plot': histogram},
+                    {'input': 'd1', 'ndslice': (slice(None), slice(None)), 'shape': (ydim, numsteps), 'plot': timeseries},
+                    {'input': 'd1', 'ndslice': (slice(None), slice(None)), 'shape': (ydim, numsteps), 'plot': histogram},
                 ],
                 [
-                    {'input': 'd2', 'ndslice': (slice(None), slice(None)), 'shape': (4, numsteps), 'plot': timeseries},
-                    {'input': 'd2', 'ndslice': (slice(None), slice(None)), 'shape': (4, numsteps), 'plot': histogram},
+                    {'input': 'd2', 'ndslice': (slice(None), slice(None)), 'shape': (xdim, numsteps), 'plot': timeseries},
+                    {'input': 'd3', 'ndslice': (slice(None), slice(None)), 'shape': (xdim, numsteps), 'plot': timeseries},
                 ],
                 [
-                    {'input': 'd3', 'ndslice': (slice(None), slice(None)), 'shape': (4, numsteps), 'plot': timeseries},
-                    {'input': 'd3', 'ndslice': (slice(None), slice(None)), 'shape': (4, numsteps), 'plot': histogram},
+                    {'input': 'd4', 'ndslice': (slice(None), slice(None)), 'shape': (xdim, numsteps), 'plot': timeseries},
+                    {'input': 'd4', 'ndslice': (slice(None), slice(None)), 'shape': (xdim, numsteps), 'plot': histogram},
                 ],
                 [
-                    {'input': 'd4', 'ndslice': (slice(None), slice(None)), 'shape': (60, numsteps), 'plot': timeseries},
-                    {'input': 'd5', 'ndslice': (slice(None), slice(None)), 'shape': (4, numsteps), 'plot': timeseries},
+                    {'input': 'd5', 'ndslice': (slice(None), slice(None)), 'shape': (100, numsteps), 'plot': timeseries},
+                    {'input': 'd6', 'ndslice': (slice(None), slice(None)), 'shape': (xdim, numsteps), 'plot': timeseries},
                 ],
             ]
         }
     }),
+
+    # plot multivariate (global) mutual information over timeshifts
+    ('plot_infth', {
+        'block': ImgPlotBlock2,
+        'params': {
+            'id': 'plot_infth',
+            'logging': False,
+            'saveplot': saveplot,
+            'debug': False,
+            'wspace': 0.5,
+            'hspace': 0.5,
+            'blocksize': 100, # numsteps,
+            'inputs': {
+                'd1': {'bus': 'mimv/mimv', 'shape': (1, scanlen * numsteps/100)},
+                'd2': {'bus': 'mimv2/mimv', 'shape': (1, scanlen * numsteps/100)},
+                # 'd3': {'bus': 'temv/temv', 'shape': (1, scanlen * numsteps/overlap)},                
+                't': {'val': np.linspace(scanstart, scanstop-1, scanlen)},},
+            'outputs': {}, #'x': {'shape': (3, 1)}},
+            'subplots': [
+                [
+                    {'input': 'd1', 
+                         'cmap': 'Reds',
+                    'title': 'Multivariate mutual information I(X;Y) for time shifts [0, ..., 20]',
+                    'ndslice': (slice(None), slice(None)),
+                    # 'dimstack': {'x': [0], 'y': [1]},
+                    'shape': (numsteps/100, scanlen)},
+                    
+                    {'input': 'd2', 
+                    'cmap': 'Reds',
+                    'title': 'Multivariate mutual information I(X;Y) for time shifts [0, ..., 20]',
+                    'ndslice': (slice(None), slice(None)),
+                    # 'dimstack': {'x': [0], 'y': [1]},
+                    'shape': (numsteps/100, scanlen)},
+                    # {
+                    # 'input': 'd3',
+                    # 'ndslice': (slice(None), slice(None)),
+                    # # 'dimstack': {'x': [2, 1], 'y': [0]},
+                    # 'shape': (numsteps/overlap, scanlen),
+                    # 'cmap': 'Reds'},
+                ],
+            ]
+        },
+    }),
+    
 ])

@@ -103,7 +103,8 @@ class PlotBlock2(FigPlotBlock2):
 
     def plot_subplots(self):
         """loop over configured subplot and plot the data according to config"""
-        print "%s plot_subplots self.inputs = %s" % (self.cname, self.inputs)
+        self.debug_print("%s plot_subplots self.inputs = %s",
+                             (self.cname, self.inputs))
         if True:
             for i, subplot in enumerate(self.subplots):
                 for j, subplotconf in enumerate(subplot):
@@ -243,7 +244,7 @@ class ImgPlotBlock2(FigPlotBlock2):
         FigPlotBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
     def plot_subplots(self):
-        print "%s plot_subplots self.inputs = %s" % (self.cname, self.inputs)
+        self.debug_print("%s plot_subplots self.inputs = %s", (self.cname, self.inputs))
         numrows = len(self.subplots)
         numcols = len(self.subplots[0])
 

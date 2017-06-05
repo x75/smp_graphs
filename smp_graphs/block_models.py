@@ -1,11 +1,12 @@
 """smp_graphs
 
-Models: coding, representation, prediction, inference, association
+smp models: models are coders, representations, predictions, inferences, association
 """
 
 import numpy as np
 
-from reservoirs import Reservoir
+# reservoir lib from smp_base
+from reservoirs import Reservoir, res_input_matrix_random_sparse, res_input_matrix_disjunct_proj
 
 from smp_graphs.block import decInit, decStep, PrimBlock2
 
@@ -21,8 +22,11 @@ class CodingBlock2(PrimBlock2):
         
         for ink, inv in self.inputs.items():
             print inv
-            for outk in ["mu", "sig"]:
-                setattr(self, "%s_%s" % (ink, outk), np.zeros(inv['shape']))
+            for outk in ["mu", "sig", "std"]:
+                if outk.endswith("sig"):
+                    setattr(self, "%s_%s" % (ink, outk), np.ones(inv['shape']))
+                else:
+                    setattr(self, "%s_%s" % (ink, outk), np.zeros(inv['shape']))
         
     @decStep()
     def step(self, x = None):
@@ -33,7 +37,7 @@ class CodingBlock2(PrimBlock2):
         
         if self.cnt % self.blocksize == 0:
             for ink, inv in self.inputs.items():
-                for outk_ in ["mu", "sig"]:
+                for outk_ in ["mu", "sig", "std"]:
                     outk = "%s_%s" % (ink, outk_)
                     outv_ = getattr(self, outk)
 
@@ -41,6 +45,10 @@ class CodingBlock2(PrimBlock2):
                         setattr(self, outk, 0.99 * outv_ + 0.01 * inv['val'])
                     elif outk.endswith("sig"):
                         setattr(self, outk, 0.99 * outv_ + 0.01 * np.sqrt(np.square(inv['val'] - getattr(self, ink + "_mu"))))
+                    elif outk.endswith("std"):
+                        mu = getattr(self, 'x_mu')
+                        sig = getattr(self, 'x_sig')
+                        setattr(self, outk, (inv['val'] - mu) / sig)
 
 # def init_identity(ref):
 #     return None
@@ -73,16 +81,25 @@ def step_musig(ref):
 
 def init_res(ref, conf, mconf):
     params = conf['params']
+    ref.oversampling = mconf['oversampling']
     ref.res = Reservoir(
-        N = 60,
-        input_num = params['inputs']['x']['shape'][0],
-        output_num = 1 
+        N = mconf['N'],
+        input_num = mconf['input_num'],
+        output_num = mconf['output_num'],
+        input_scale = mconf['input_scale'], # 0.03,
+        bias_scale = mconf['bias_scale'], # 0.0,
+        feedback_scale = 0.0,
+        g = 0.99,
+        tau = 0.1,
     )
-    params['outputs']['x_res'] = {'shape': (60, 1)}
+    ref.res.wi = res_input_matrix_random_sparse(mconf['input_num'], mconf['N'], density = 0.2) * mconf['input_scale']
+    params['outputs']['x_res'] = {'shape': (mconf['N'], 1)}
 
 def step_res(ref):
-    ref.res.execute(ref.inputs['x']['val'])
-    print ref.res.r.shape
+    # print ref.inputs['x']['val'].shape
+    for i in range(ref.oversampling):
+        ref.res.execute(ref.inputs['x']['val'])
+    # print ref.res.r.shape
     setattr(ref, 'x_res', ref.res.r)
                         
 class model(object):
