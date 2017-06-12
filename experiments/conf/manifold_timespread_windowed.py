@@ -4,6 +4,8 @@ from smp_graphs.block_meas_infth import MIMVBlock2, JHBlock2, TEMVBlock2
 from smp_graphs.block import SliceBlock2, SeqLoopBlock2
 from smp_graphs.block_plot import ImgPlotBlock2
 
+saveplot = True
+
 ppycnf = {
     # 'numsteps': 27000,
     # 'logfile': 'data/experiment_20170518_161544_puppy_process_logfiles_pd.h5',
@@ -13,12 +15,12 @@ ppycnf = {
     # 'logfile': 'data/experiment_20170510_155432_puppy_process_logfiles_pd.h5', # 147K
     # 'numsteps': 29000,
     # 'logfile': 'data/experiment_20170517_160523_puppy_process_logfiles_pd.h5', 29K
-    # 'numsteps': 10000,
-    # 'logfile': 'data/experiment_20170511_145725_puppy_process_logfiles_pd.h5', # 10K
+    'numsteps': 10000,
+    'logfile': 'data/experiment_20170511_145725_puppy_process_logfiles_pd.h5', # 10K
     # 'numsteps': 2000,
     # 'logfile': 'data/experiment_20170510_173800_puppy_process_logfiles_pd.h5', 2K
-    'numsteps': 20000,
-    'logfile': 'data/experiment_20170530_174612_process_logfiles_pd.h5', # step fast-to-slow newB all concatenated
+    # 'numsteps': 20000,
+    # 'logfile': 'data/experiment_20170530_174612_process_logfiles_pd.h5', # step fast-to-slow newB all concatenated
     'xdim': 6,
     'xdim_eff': 3,
     'ydim': 4,
@@ -39,7 +41,7 @@ ppycnf2 = {
     'numsteps': 5000,
 }
 
-cnf = ppycnf2
+cnf = ppycnf
 
 # copy params to namespace
 numsteps = cnf['numsteps']
@@ -246,7 +248,7 @@ graph = OrderedDict([
         'params': {
             'blocksize': numsteps,
             'debug': False,
-            'saveplot': False,
+            'saveplot': saveplot,
             'savetype': 'pdf',
             'wspace': 0.2, 'hspace': 0.2,
             'inputs': {'d1': {'bus': 'ldata/x', 'shape': (xdim, numsteps)}, 'd2': {'bus': 'ldata/y', 'shape': (ydim, numsteps)}},

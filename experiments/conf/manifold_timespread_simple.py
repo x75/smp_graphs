@@ -13,7 +13,7 @@ from smp_graphs.block_meas_infth import JHBlock2, MIBlock2, InfoDistBlock2, TEBl
 
 randseed = 12345
 
-saveplot = False
+saveplot = True
 
 ppycnf = {
     # 'numsteps': 27000,
@@ -77,7 +77,7 @@ testcnf = {
     'logtype': 'testdata1',
 }
 
-cnf = ppycnf2
+cnf = ppycnf
 numsteps = cnf['numsteps']
 xdim = cnf['xdim']
 ydim = cnf['ydim']
@@ -87,7 +87,7 @@ if cnf.has_key('sys_slicespec'):
 else:
     sys_slicespec = {'x': {'acc': slice(0, 3), 'gyr': slice(3, xdim)}}
 
-scanstart = -20
+scanstart = -30
 scanstop = 0
 scanlen = scanstop - scanstart
     
@@ -621,30 +621,30 @@ graph = OrderedDict([
         },
     }),
     
-    # # sns matrix plot
-    # ('plot2', {
-    #     'block': SnsMatrixPlotBlock2,
-    #     'params': {
-    #         'id': 'plot2',
-    #         'logging': False,
-    #         'debug': False,
-    #         'saveplot': saveplot,
-    #         'blocksize': numsteps,
-    #         'inputs': {
-    #             'd3': {'bus': 'puppyslice/x_gyr'},
-    #             # 'd3': {'bus': 'puppylog/x'},
-    #             # 'd3': {'bus': 'motordel/dx'},
-    #             # 'd4': {'bus': 'puppylog/y'},
-    #             'd4': {'bus': 'motordel/dy'},
-    #         },
-    #         'outputs': {},#'x': {'shape': 3, 1)}},
-    #         'subplots': [
-    #             [
-    #                 # stack inputs into one vector (stack, combine, concat
-    #                 {'input': ['d3', 'd4'], 'mode': 'stack',
-    #                      'plot': histogramnd},
-    #             ],
-    #         ],
-    #     },
-    # })
+    # sns matrix plot
+    ('plot2', {
+        'block': SnsMatrixPlotBlock2,
+        'params': {
+            'id': 'plot2',
+            'logging': False,
+            'debug': False,
+            'saveplot': saveplot,
+            'blocksize': numsteps,
+            'inputs': {
+                'd3': {'bus': 'puppyslice/x_gyr'},
+                # 'd3': {'bus': 'puppylog/x'},
+                # 'd3': {'bus': 'motordel/dx'},
+                # 'd4': {'bus': 'puppylog/y'},
+                'd4': {'bus': 'motordel/dy'},
+            },
+            'outputs': {},#'x': {'shape': 3, 1)}},
+            'subplots': [
+                [
+                    # stack inputs into one vector (stack, combine, concat
+                    {'input': ['d3', 'd4'], 'mode': 'stack',
+                         'plot': histogramnd},
+                ],
+            ],
+        },
+    })
 ])
