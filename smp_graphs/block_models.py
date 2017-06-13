@@ -1,6 +1,6 @@
 """smp_graphs
 
-smp models: models are coders, representations, predictions, inferences, association
+smp models: models are coders, representations, predictions, inferences, associations, ...
 """
 
 import numpy as np
@@ -12,10 +12,19 @@ from smp_graphs.block import decInit, decStep, PrimBlock2
 
 from mdp.nodes import PolynomialExpansionNode
 
+from actinf_models import ActInfKNN, ActInfGMM, ActInfHebbianSOM
+
+try:
+    from actinf_models import ActInfSOESGP, ActInfSTORKGP
+    HAVE_SOESGP = True
+except ImportError, e:
+    print "couldn't import online GP models", e
+    HAVE_SOESGP = False
+
 class CodingBlock2(PrimBlock2):
     """CodingBlock2
 
-    mean/var coding block, recursive estimate of input's mu and sigma
+    mean-variance-residual coding block, recursive estimate of input's mu and sigma
     """
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
@@ -80,7 +89,7 @@ def step_musig(ref):
             elif outk.endswith("sig"):
                 setattr(ref, outk, ref.a1 * outv_ + (1 - ref.a1) * np.sqrt(np.square(inv['val'] - getattr(ref, ink + "_mu"))))
 
-
+# model func: reservoir expansion
 def init_res(ref, conf, mconf):
     params = conf['params']
     ref.oversampling = mconf['oversampling']
@@ -104,6 +113,7 @@ def step_res(ref):
     # print ref.res.r.shape
     setattr(ref, 'x_res', ref.res.r)
 
+# model func: polynomial expansion via mdp
 def init_polyexp(ref, conf, mconf):
     params = conf['params']
     ref.polyexpnode = PolynomialExpansionNode(3)
@@ -112,16 +122,137 @@ def init_polyexp(ref, conf, mconf):
 
 def step_polyexp(ref):
     setattr(ref, 'polyexp', ref.polyexpnode.execute(ref.inputs['x']['val'].T).T)
+
+# model func: random_uniform model
+def init_random_uniform(ref, conf, mconf):
+    params = conf['params']
+    hi = 1
+    for outk, outv in params['outputs'].items():
+        setattr(ref, outk, np.random.uniform(-hi, hi, size = outv['shape']))
+
+def step_random_uniform(ref):
+    if hasattr(ref, 'rate'):
+        if (ref.cnt % ref.rate) not in ref.blockphase: return
+            
+    hi = ref.inputs['x']['val'].T
+    for outk, outv in ref.outputs.items():
+        setattr(ref, outk, np.random.uniform(-hi, hi, size = outv['shape']))
+        print "step_random_uniform %s.%s = %s" % (ref.id, outk, getattr(ref, outk))
+
+# active inference stuff
+def init_model(ref, conf, mconf):
+    """initialize sensorimotor forward model"""
+    algo = mconf['algo']
+    idim = mconf['idim']
+    odim = mconf['odim']
     
+    if not HAVE_SOESGP:
+        algo = "knn"
+        print "Sorry, SOESGP/STORKGP not available, defaulting to knn"
+            
+    if algo == "knn":
+        # mdl = KNeighborsRegressor(n_neighbors=5)
+        mdl = ActInfKNN(idim, odim)
+    elif algo == "soesgp":
+        mdl = ActInfSOESGP(idim, odim)
+    elif algo == "storkgp":
+        mdl = ActInfSTORKGP(idim, odim)
+    else:
+        print "unknown model algorithm %s, exiting" % (algo, )
+        # import sys
+        # sys.exit(1)
+        return None
+        
+    return mdl
+        
+# model func: actinf_m1
+def init_actinf_m1(ref, conf, mconf):
+    # params = conf['params']
+    # hi = 1
+    # for outk, outv in params['outputs'].items():
+    #     setattr(ref, outk, np.random.uniform(-hi, hi, size = outv['shape']))
+    ref.mdl = init_model(ref, conf, mconf)
+    ref.X_  = np.zeros((1, mconf['idim']))
+    ref.y_  = np.zeros((1, mconf['odim']))
+    ref.pre_l1_tm1 = 0
+
+def step_actinf_m1(ref):
+    if hasattr(ref, 'rate'):
+        if (ref.cnt % ref.rate) not in ref.blockphase: return
+
+    eta = 0.7
+            
+    # current goal
+    pre_l1   = ref.inputs['pre_l1']['val']
+    # most recent measurement
+    meas_l0 = ref.inputs['meas_l0']['val']
+    # most recent prediction
+    pre_l0   = ref.inputs['pre_l0']['val']
+
+    # prediction error
+    if np.sum(np.abs(pre_l1 - ref.pre_l1_tm1)) > 1e-3:
+        prerr_l0 = np.zeros_like(pre_l1) # pre_l1 - ref.pre_l1_tm1 # pre_l1 # + noise?
+    else:
+        prerr_l0 = pre_l0 - pre_l1
+
+    # print "prerr_l0", prerr_l0
+    # prerr statistics / expansion
+    # self.prediction_errors_extended()
+
+    # compute the target for the  forward model from the prediction error
+    # if i % 10 == 0: # play with decreased update rates
+    ref.y_ = pre_l0 - (prerr_l0 * eta)
+    # FIXME: suppress update when error is small enough (< threshold)
+
+    # print "%s.step_actinf_m1[%d] ref.X_ = %s, ref.y_ = %s" % (ref.__class__.__name__, ref.cnt, ref.X_.shape, ref.y_.shape)
+    
+    # fit the model
+    ref.mdl.fit(ref.X_, ref.y_)
+
+    # # prepare new model input
+    # if np.sum(np.abs(pre_l1 - ref.pre_l1_tm1)) > 1e-6:
+    #     # goal changed
+    #     prerr_l0 = pre_l0 - pre_l1
+            
+    # prepare model input X as goal and prediction error
+    ref.X_ = np.hstack((pre_l1, prerr_l0))
+
+    # predict next state in proprioceptive space
+    pre_l0 = ref.mdl.predict(ref.X_)
+
+    # for outk, outv in ref.outputs.items():
+    #     setattr(ref, outk, pre_l0)
+    #     print "step_actinf_m1 %s.%s = %s" % (ref.id, outk, getattr(ref, outk))
+
+    ref.pre_l1_tm1 = pre_l1.copy()
+
+    setattr(ref, 'x_p_pre_l0', pre_l0)
+    setattr(ref, 'x_p_prerr_l0', prerr_l0)
+    setattr(ref, 'x_p_target', ref.y_)
+        
 class model(object):
+    """model
+
+    generic model class used by ModelBlock2
+
+    low-level models are implemented via init_<model> and step_<model> functions
+    reducing code?
+    """
     models = {
+        # open-loop models
         # 'identity': {'init': init_identity, 'step': step_identity},
+        # expansions
         'musig': {'init': init_musig, 'step': step_musig},
         'res': {'init': init_res, 'step': step_res},
         'polyexp': {'init': init_polyexp, 'step': step_polyexp},
+        # active randomness
+        'random_uniform': {'init': init_random_uniform, 'step': step_random_uniform},
+        # active inference
+        'actinf_m1': {'init': init_actinf_m1, 'step': step_actinf_m1},
     }
     # 
     def __init__(self, ref, conf, mconf = {}):
+        assert mconf['type'] in self.models.keys(), "in %s.init: unknown model type, %s not in %s" % (self.__class__.__name__, mconf['type'], self.models.keys())
         self.modelstr = mconf['type']
         self.models[self.modelstr]['init'](ref, conf, mconf)
         

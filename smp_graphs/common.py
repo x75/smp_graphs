@@ -23,6 +23,7 @@ debug = False
 showplot = True
 saveplot = False
 randseed = 0
+recurrent = False
 """
 
 conf_footer = """# top block
@@ -37,6 +38,7 @@ conf = {
         'showplot': showplot,
         'saveplot': saveplot,
         'randseed': randseed,
+        'recurrent': recurrent,
     }
 }
 """

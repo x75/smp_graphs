@@ -463,8 +463,16 @@ class Block2(object):
         # make sure subordinate number of steps is less than top level numsteps
         assert subconf['params']['numsteps'] <= self.top.numsteps, "enclosed numsteps = %d greater than top level numsteps = %d" % (subconf['params']['numsteps'], self.top.numsteps)
 
+        if hasattr(self, 'subgraphconf'):
+            for confk, confv in self.subgraphconf.items():
+                (confk_id, confk_param) = confk.split("/")
+                # print "subconf", subconf['params']['graph']['brain_learn_proprio']['params']['graph'][confk_id]
+                # subconf['params']['graph'][confk_id]['params'][confk_param] = confv
+                print confk_param, confv
+                subconf['params']['graph']['brain_learn_proprio']['params']['graph'][confk_id]['params'][confk_param] = confv
+        
         self.conf['params']['graph'] = subconf['params']['graph']
-                    
+
     def init_graph_pass_1(self):
         """!@brief initialize this block's graph by instantiating all graph nodes"""
         # if we're coming from non topblock init
@@ -619,7 +627,7 @@ class Block2(object):
                             for i in range(5):
                                 # FIXME: hacky
                                 print "%s-%s init (pass 2) WARNING: bus %s doesn't exist yet and will possibly not be written to by any block" % (self.cname, self.id, v['bus'])
-                                time.sleep(1)
+                                if not self.top.recurrent: time.sleep(1)
                             # pre-init that bus from constant
                             self.bus[v['bus']] = v['val'].copy()
                         else:
