@@ -12,6 +12,7 @@ from numpy import array
 from matplotlib import colors
 
 from smp_graphs.utils import print_dict
+from smp_graphs.common import dict_replace_idstr_recursive
 
 colors_ = list(six.iteritems(colors.cnames))
 
@@ -34,15 +35,42 @@ def nxgraph_from_smp_graph(conf):
             # print "v", v
             G.add_node(nc, v)
             nc += 1
-            
+
+    # do loopblock specific preprocessing for list based loop
     elif conf['params'].has_key('loopblock') and type(conf['params']['loop']) is list:
         for i, item in enumerate(conf['params']['loop']):
+            if type(item) is tuple:
+                item = [item]
             lpconf = copy.deepcopy(conf['params']['loopblock'])
-            lpconf['params']['id'] = "%s_%d" % (conf['params']['id'], i)
+            print "lpconf", lpconf
+
+            # rewrite block ids with loop count
+            lpconf = dict_replace_idstr_recursive(d = lpconf, cid = conf['params']['id'], xid = "%d" % (i, ))
+
+            print "lpconf", lpconf
             # FIXME: loop over param items
-            lpconf['params'][item[0]] = item[1].copy()
+            # [('inputs', {'x': {'val': 1}}), ('inputs', {'x': {'val': 2}})]
+            # or
+            # [
+            #     [
+            #         ('inputs',  {'x': {'val': 1}}),
+            #         ('gain',    0.5),
+            #         ],
+            #     [
+            #         ('inputs', {'x': {'val': 2}})
+            #         ('gain',    0.75),
+            #         ]
+            #     ]
+
+            # copy loop items into full conf
+            for (paramk, paramv) in item:
+                print "paramk = %s, paramv = %s"  % (paramk, paramv)
+                lpconf['params'][paramk] = paramv # .copy()
+
             G.add_node(nc, lpconf)
             nc += 1
+
+    # FIXME: what about func based loops?
             
     # attributes?
     # edges / bus?

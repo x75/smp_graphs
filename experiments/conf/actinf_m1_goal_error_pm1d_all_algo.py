@@ -20,19 +20,20 @@ motors = dim
 dt = 0.1
 
 # looparray = [('file', {'filename': fname, 'filetype': 'puppy', 'offset': random.randint(0, 500), 'length': numsteps}) for fname in filearray]
-models = ['knn', 'soesgp', 'storkgp']
+models = ['knn', 'soesgp']#, 'storkgp']
 looparray = [('subgraphconf', {
-    'pre_l0_proprio/models': {'fwd': {'type': 'actinf_m1', 'algo': model, 'idim': dim * 2, 'odim': dim},},
-    }) for model in models]
+    'pre_l0/models': {'fwd': {'type': 'actinf_m1', 'algo': model, 'idim': dim * 2, 'odim': dim},},
+    }) for (i, model) in enumerate(models)]
 
 loopblock = {
     'block': Block2,
     'params': {
         'id': 'actinf_m1_loop',
         'debug': False,
-        'blocksize': numsteps,
+        'blocksize': 1,
         'subgraph': 'conf/actinf_m1_goal_error_pm1d.py',
         'subgraphconf': {},
+        'subgraph_rewrite_id': True,
         'outputs': {},
         },
     }

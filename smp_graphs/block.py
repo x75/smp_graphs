@@ -24,7 +24,7 @@ import smp_graphs.logging as log
 from smp_graphs.utils import print_dict, xproduct, myt
 from smp_graphs.common import conf_header, conf_footer
 from smp_graphs.common import get_config_raw, get_config_raw_from_string
-from smp_graphs.common import set_attr_from_dict
+from smp_graphs.common import set_attr_from_dict, dict_search_recursive, dict_replace_idstr_recursive2
 
 from smp_graphs.graph import nxgraph_from_smp_graph, nxgraph_to_smp_graph
 from smp_graphs.graph import nxgraph_node_by_id, nxgraph_node_by_id_recursive
@@ -427,9 +427,14 @@ class Block2(object):
             # for k,v in self.__dict__.items():
             #     print "%s-%s k = %s, v = %s" % (self.cname, self.id, k, v)
 
-            # subgraph prepare
+            # subgraph preprocess, propagate additional subgraph configuration
             if hasattr(self, 'subgraph'):
                 self.init_subgraph()
+                # set_attr_from_dict(self, self.conf['params'])
+                
+            # loopblock preprocess, propagate loop iter id into loopblock
+            # elif hasattr(self, 'loopblock'):
+            #     self.init_loopblock()
             
             self.nxgraph = nxgraph_from_smp_graph(self.conf)
             
@@ -463,16 +468,30 @@ class Block2(object):
         # make sure subordinate number of steps is less than top level numsteps
         assert subconf['params']['numsteps'] <= self.top.numsteps, "enclosed numsteps = %d greater than top level numsteps = %d" % (subconf['params']['numsteps'], self.top.numsteps)
 
-        if hasattr(self, 'subgraphconf'):
-            for confk, confv in self.subgraphconf.items():
-                (confk_id, confk_param) = confk.split("/")
-                # print "subconf", subconf['params']['graph']['brain_learn_proprio']['params']['graph'][confk_id]
-                # subconf['params']['graph'][confk_id]['params'][confk_param] = confv
-                print confk_param, confv
-                subconf['params']['graph']['brain_learn_proprio']['params']['graph'][confk_id]['params'][confk_param] = confv
-        
+        # set the graph params
         self.conf['params']['graph'] = subconf['params']['graph']
 
+        # additional configuration for the subgraph
+        if hasattr(self, 'subgraphconf'):
+            # modifications happen in conf space since graph init pass 1 and 2 are pending
+            for confk, confv in self.subgraphconf.items():
+                (confk_id, confk_param) = confk.split("/")
+                confnode = dict_search_recursive(self.conf['params']['graph'], confk_id)
+                # print "confk_param", confk_param
+                # print "confv", confv
+                # print "confnode", confnode.keys()
+                confnode['params'][confk_param] = confv
+        # # debug
+        # print self.conf['params']['graph']['brain_learn_proprio']['params']['graph'][confk_id]
+
+        # rewrite id strings?
+        if hasattr(self, 'subgraph_rewrite_id') and self.subgraph_rewrite_id:
+            self.conf['params']['graph'] = dict_replace_idstr_recursive2(self.conf['params']['graph'], xid = self.conf['params']['id'][-6:])
+        
+    # def init_loopblock(self):
+    #     print "loopblock", self.loopblock
+    #     print "loopblock", self.conf['params'].keys() # ['id']
+        
     def init_graph_pass_1(self):
         """!@brief initialize this block's graph by instantiating all graph nodes"""
         # if we're coming from non topblock init

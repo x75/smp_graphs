@@ -29,7 +29,7 @@ showplot = True
 
 # experiment
 randseed = 12345
-numsteps = 4000
+numsteps = 1000
 dim = 1
 motors = dim
 dt = 0.1
@@ -55,7 +55,7 @@ graph = OrderedDict([
                     }),
                     
                 # learner basic actinf predictor proprio space learn_proprio_base_0
-                ('pre_l0_proprio', {
+                ('pre_l0', {
                     'block': ModelBlock2,
                     'params': {
                         'blocksize': 1,
@@ -64,7 +64,7 @@ graph = OrderedDict([
                             # descending prediction
                             'pre_l1': {'bus': 'pre_l1/x_p_pre_l1', 'shape': (dim,1)},
                             # ascending prediction error
-                            'pre_l0': {'bus': 'pre_l0_proprio/x_p_pre_l0', 'shape': (dim, 1)},
+                            'pre_l0': {'bus': 'pre_l0/x_p_pre_l0', 'shape': (dim, 1)},
                             # measurement
                             'meas_l0': {'bus': 'robot1/s_proprio', 'shape': (dim, 1)}},
                         'outputs': {
@@ -93,7 +93,7 @@ graph = OrderedDict([
                 # initial state
                 'x0': np.random.uniform(-0.3, 0.3, (motors * 3, 1)),
                 # 'inputs': {'u': {'val': np.random.uniform(-1, 1, (3, numsteps))}},
-                'inputs': {'u': {'bus': 'pre_l0_proprio/x_p_pre_l0'}},
+                'inputs': {'u': {'bus': 'pre_l0/x_p_pre_l0'}},
                 'outputs': {
                     's_proprio': {'shape': (1, 1)},
                     's_extero': {'shape': (1, 1)}
@@ -122,9 +122,9 @@ graph = OrderedDict([
                 'blocksize': numsteps,
                 'inputs': {
                     'goals':    {'bus': 'pre_l1/x_p_pre_l1', 'shape': (dim, numsteps)},
-                    'pre_l0':   {'bus': 'pre_l0_proprio/x_p_pre_l0', 'shape': (dim, numsteps)},
-                    'prerr_l0': {'bus': 'pre_l0_proprio/x_p_prerr_l0', 'shape': (dim, numsteps)},
-                    'target_l0': {'bus': 'pre_l0_proprio/x_p_target', 'shape': (dim, numsteps)},
+                    'pre_l0':   {'bus': 'pre_l0/x_p_pre_l0', 'shape': (dim, numsteps)},
+                    'prerr_l0': {'bus': 'pre_l0/x_p_prerr_l0', 'shape': (dim, numsteps)},
+                    'target_l0': {'bus': 'pre_l0/x_p_target', 'shape': (dim, numsteps)},
                     },
                 'hspace': 0.2,
                 'subplots': [
