@@ -126,7 +126,7 @@ def dict_replace_idstr_recursive(d, cid, xid):
     # assert d['params'].has_key('id')
     
     if cid is not None:
-        d['params']['id'] = "%s_%s" % (cid, xid)
+        d['params']['id'] = "%s|%s" % (cid, xid)
 
     if d['params'].has_key('graph'):
         for k, v in d['params']['graph'].items():
@@ -140,7 +140,7 @@ def dict_replace_nodekeys(d, xid, idmap = {}):
     # idmap = {}
     for k, v in d.items():
         # print "dict_replace_nodekeys: k = %s, v = %s, idmap = %s" % (k, v.keys(), idmap)
-        k_ = "%s_%s" % (k, xid)
+        k_ = "%s|%s" % (k, xid)
         # fix key
         d[k_] = d.pop(k) # FIXME: does this confuse .items()
         # print "k_", k_, "v_", d[k_].keys()

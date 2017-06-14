@@ -38,16 +38,15 @@ def nxgraph_from_smp_graph(conf):
 
     # do loopblock specific preprocessing for list based loop
     elif conf['params'].has_key('loopblock') and type(conf['params']['loop']) is list:
+        # construction loop
         for i, item in enumerate(conf['params']['loop']):
             if type(item) is tuple:
                 item = [item]
             lpconf = copy.deepcopy(conf['params']['loopblock'])
-            print "lpconf", lpconf
 
             # rewrite block ids with loop count
             lpconf = dict_replace_idstr_recursive(d = lpconf, cid = conf['params']['id'], xid = "%d" % (i, ))
 
-            print "lpconf", lpconf
             # FIXME: loop over param items
             # [('inputs', {'x': {'val': 1}}), ('inputs', {'x': {'val': 2}})]
             # or
@@ -64,7 +63,6 @@ def nxgraph_from_smp_graph(conf):
 
             # copy loop items into full conf
             for (paramk, paramv) in item:
-                print "paramk = %s, paramv = %s"  % (paramk, paramv)
                 lpconf['params'][paramk] = paramv # .copy()
 
             G.add_node(nc, lpconf)
@@ -89,7 +87,8 @@ def nxgraph_get_layout(G, layout_type):
         for node in G.nodes_iter():
             # shells =
             # print node
-            if re.search("/", node) or re.search("_", node):
+            # if re.search("/", node) or re.search("_", node):
+            if re.search("|", node): #  or re.search("_", node):
                 s2.append(node)
             else:
                 s1.append(node)
@@ -185,7 +184,7 @@ def nxgraph_add_edges(G):
         cnode = G.node[node]['block_']
         gen = (n for n in G if G.node[n]['block_'].id.startswith(node))
         for loopchild in list(gen):
-            # print "graph.nxgraph_add_edges: loopchild = %s" %( loopchild,)
+            print "graph.nxgraph_add_edges: loopchild = %s" %( loopchild,)
             # if v['params'].has_key('loopblock') and len(v['params']['loopblock']) == 0:
             if loopchild != node: # cnode.id:
                 # k_from = node.split("_")[0]
@@ -223,20 +222,26 @@ def nxgraph_plot(G, ax, pos = None, layout_type = "spring", node_color = None, n
 
     # print "G.nodes", G.nodes(data=True)
     # print "layout", layout
-    labels = {node[0]: '%s\n%s' % (node[1]['block_'].cname, node[1]['block_'].id) for node in G.nodes(data = True)}
+    labels = {node[0]: '%s\n%s' % (node[1]['block_'].id, node[1]['block_'].cname[:-6]) for node in G.nodes(data = True)}
     # print "labels = %s" % labels
     nx.draw_networkx_nodes(G, ax = ax, pos = layout, node_color = node_color, node_shape = '8', node_size = node_size)
     # shift(layout, (0, -2 * node_size))
-    nx.draw_networkx_labels(G, ax = ax, pos = layout, labels = labels, font_color = 'r', font_size = 8, )
+    nx.draw_networkx_labels(G, ax = ax, pos = layout, labels = labels, font_color = 'r', font_size = 8, fontsize = 6)
     # edges
     e1 = [] # std edges
     e2 = [] # loop edges
     for edge in G.edges():
-        # print "edge", edge
-        if re.search("[_/]", G.node[edge[1]]['params']['id']):
+        # edgetype = re.search("[_/]", G.node[edge[1]]['params']['id'])
+        nodetype_0 = re.search("[|]", G.node[edge[0]]['params']['id'])
+        nodetype_1 = re.search("[|]", G.node[edge[1]]['params']['id'])
+        if nodetype_1 and not nodetype_0: # edgetype: # loop
             e2.append(edge)
+            edgetype = "loop"
         else:
             e1.append(edge)
+            edgetype = "data"
+            
+        print "edge type = %s, %s" % (edgetype, edge)
 
     nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = e1, edge_color = "g", width = 2)
     nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = e2, edge_color = "k")

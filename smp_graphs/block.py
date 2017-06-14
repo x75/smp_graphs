@@ -486,7 +486,7 @@ class Block2(object):
 
         # rewrite id strings?
         if hasattr(self, 'subgraph_rewrite_id') and self.subgraph_rewrite_id:
-            self.conf['params']['graph'] = dict_replace_idstr_recursive2(self.conf['params']['graph'], xid = self.conf['params']['id'][-6:])
+            self.conf['params']['graph'] = dict_replace_idstr_recursive2(self.conf['params']['graph'], xid = self.conf['params']['id'][-1:])
         
     # def init_loopblock(self):
     #     print "loopblock", self.loopblock

@@ -1,6 +1,7 @@
 
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
+from  matplotlib import rcParams
 import numpy as np
 import pandas as pd
 # FIXME: soft import
@@ -20,6 +21,8 @@ from smp_base.plot     import makefig, timeseries, histogram, plot_img
 # ...
 
 # FIXME: do some clean up here
+
+rcParams['figure.titlesize'] = 8
 
 def subplot_input_fix(input_spec):
     # assert input an array 
@@ -51,9 +54,14 @@ class FigPlotBlock2(PrimBlock2):
         # configure figure and plot axes
         self.fig_rows = len(self.subplots)
         self.fig_cols = len(self.subplots[0])
+
+        if not hasattr(self, 'title'):
+            self.title = "%s - %s-%s" % (self.top.id, self.cname, self.id)
         
         # create figure
-        self.fig = makefig(rows = self.fig_rows, cols = self.fig_cols, wspace = self.wspace, hspace = self.hspace)
+        self.fig = makefig(
+            rows = self.fig_rows, cols = self.fig_cols, wspace = self.wspace, hspace = self.hspace,
+            title = self.title)
         # self.fig.tight_layout(pad = 1.0)
         # self.debug_print("fig.axes = %s", (self.fig.axes, ))
         
@@ -70,7 +78,7 @@ class FigPlotBlock2(PrimBlock2):
             plots = self.plot_subplots()
             
             # set figure title and show the fig
-            self.fig.suptitle("%s: %s-%s" % (self.top.id, self.cname, self.id))
+            # self.fig.suptitle("%s: %s-%s" % (self.top.id, self.cname, self.id))
             self.fig.show()
 
             if self.saveplot:
