@@ -7,7 +7,6 @@ import pandas as pd
 from smp_graphs.common import read_puppy_hk_pickles
 from smp_graphs.block  import Block2, decInit, decStep
 
-# FIXME: this should go into systems    
 class FileBlock2(Block2):
     """!@brief File block: read some log or data file and output blocksize lines each step"""
     @decInit()
@@ -260,3 +259,18 @@ class FileBlock2(Block2):
                 print "trying k = %s, v = %s" % (k, v)
                 if k.startswith('conf'):
                     print "%s = %s\n" % (k, self.store.get_storer(k).attrs.conf,)
+
+
+# class sweepBlock2(PrimBlock2):
+#     """sweepBlock2
+
+#     generate a sweep of an n-dimensional space (meshgrid wrapper)
+#     """
+
+#     @decInit()
+#     def __init__(self, conf = {}, paren = None, top = None):
+#         Block2.__init__(self, conf = conf, paren = paren, top = top)
+
+#     @decStep()
+#     def step(self, x = None):
+#         pass

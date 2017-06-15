@@ -11,7 +11,7 @@ from collections import OrderedDict
 from functools import partial
 
 from smp_graphs.block import Block2, ConstBlock2, CountBlock2, UniformRandomBlock2
-from smp_graphs.block import FuncBlock2, LoopBlock2
+from smp_graphs.block import FuncBlock2, LoopBlock2, SeqLoopBlock2
 from smp_graphs.block_ols import FileBlock2
 from smp_graphs.block_plot import PlotBlock2
 
@@ -90,6 +90,16 @@ def get_config_raw_from_string(conf, confvar = 'conf'):
 
     # return resulting variable
     return local_vars[confvar]
+
+def get_input(inputs, inkey):
+    """common.get_input
+
+    return the 'val' field of the inputs' item at 'inkey'
+    """
+    assert type(inputs) is dict
+    assert inkey is not None
+    assert inputs.has_key(inkey)
+    return inputs[inkey]['val']
 
 def set_attr_from_dict(obj, dictionary):
     """set object attribute k = v from a dictionary's k, v for all dict items"""

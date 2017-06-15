@@ -12,31 +12,117 @@ from hyperopt import hp
 from hyperopt import STATUS_OK, STATUS_FAIL
 from hyperopt import fmin, tpe, Trials, rand, anneal
 
-# callable test
+from smp_graphs.common import get_input
 
-class f_(object):
-    def __call__(self, f):
-        # args, kwargs
-        # check if first and store stuff
-        pass
+# # callable test
+# class f_(object):
+#     def __call__(self, f):
+#         # args, kwargs
+#         # check if first and store stuff
+#         pass
 
-# some minimal functions
+def fu_check_required_args(args, reqs, funcname = "unknown"):
+    for k in reqs:
+        assert args.has_key(k), "function %s wants a param '%s'" % (funcname, k,)
+    return True
+
+################################################################################
+# generator functions
 f_sinesquare = lambda args: np.sin(args['x'][0])**2
 
+# def f_pulse(args):
+#     for k in ['x']:
+#         assert args.has_key(k), "f_pulse needs param '%s'" % (k,)
+#     pass
+
+def f_sin(args):
+    """return the sin of input"""
+    # FIXME: check that at configuration time?
+    fu_check_required_args(args, ['x', 'f'], 'f_sin')
+        
+    x = args['x']['val']
+    f = args['f']['val']
+    return np.sin(x * f)
+
+def f_sin_noise(args):
+    fu_check_required_args(args, ['x','f','sigma'], 'f_sin_noise')
+    
+    x = f_sin(args)
+    xn = np.random.normal(x, args['sigma']['val'], size=x.shape)
+    return xn
+        
+def f_sinesquare2(args):
+    fu_check_required_args(args, ['x'], 'f_sinesquare2')
+    
+    x = args['x']['val']
+    scaler = np.arange(1, x.shape[0] + 1).reshape(x.shape) * 0.3 + 1.0
+    # offser = np.array([[0.1, -0.05, 0.3]]).T
+    # offser = np.random.uniform(-0.3, 0.3, x.shape)
+    offser = np.zeros(x.shape)
+    # print x.shape, scaler.shape
+    # print "scaler", scaler
+    return np.sin(x * scaler + offser)**2
+
+def f_sinesquare3(args):
+    fu_check_required_args(args, ['x'], 'f_sinesquare2')
+    
+    x = f_sinesquare2(args)
+    s1 = np.sum(x, axis = 0)
+    return np.ones_like(x) * s1
+
+def f_sinesquare4(args):
+    fu_check_required_args(args, ['x'], 'f_sinesquare2')
+    
+    x = f_sinesquare2(args)
+    s1 = np.sum(x, axis = 0)
+    return np.ones((1,1)) * s1
+
+
+def f_meshgrid(args):
+    fu_check_required_args(args, ['ranges', 'steps'], 'f_meshgrid')
+    # FIXME: check_outputs: only one item
+    
+    # create meshgrid over proprio dimensions
+    steps = get_input(args, 'steps')
+    ranges = get_input(args, 'ranges')
+    ndims = len(ranges)
+    # dim_axes = [np.linspace(self.environment.conf.m_mins[i], self.environment.conf.m_maxs[i], sweepsteps) for i in range(self.environment.conf.m_ndims)]
+    # dim_axes = [np.linspace(ranges[i][0], ranges[i][1], steps) for i in range(ndims)]
+    dim_axes = [np.linspace(min_, max_, steps) for min_, max_ in ranges]
+
+    full_axes = np.meshgrid(*tuple(dim_axes), indexing='ij')
+
+    # print "dim_axes", dim_axes
+    # print "full_axes", len(full_axes)
+    # print "full_axes", full_axes
+    
+    for i in range(len(full_axes)):
+        print i, full_axes[i].shape
+        print i, full_axes[i].flatten()
+            
+    # return proxy
+    full_axes_flat = np.vstack([full_axes[i].flatten() for i in range(len(full_axes))])
+    print "func", full_axes_flat
+    return {'meshgrid': full_axes_flat} # .T
+
+    
+################################################################################
+# model functions
+
+# kinesis motivation
 def f_motivation(args):
     """distance / error motivation for cont activity modulation"""
-    for k in ['x_', 'x']:
-        assert args.has_key(k), "f_sin needs param '%s'" % (k,)
+    fu_check_required_args(args, ['x', 'x_'], 'f_motivation')
 
     x = args['x']['val']
     x_ = args['x_']['val']
     d = x_ - x
     return {'y': d, 'y1': -d}
 
+# kinesis binary motivation
 def f_motivation_bin(args):
     """distance / error motivation for binary activity modulation"""
-    for k in ['x_', 'x']:
-        assert args.has_key(k), "f_sin needs param '%s'" % (k,)
+    fu_check_required_args(args, ['x', 'x_'], 'f_motivation_bin')
 
     x = args['x']['val']
     x_ = args['x_']['val']
@@ -52,54 +138,8 @@ def f_motivation_bin(args):
         
     return {'y': mod, 'y1': -mod}
 
-def f_pulse(args):
-    for k in ['x']:
-        assert args.has_key(k), "f_pulse needs param '%s'" % (k,)
-
-
-def f_sin(args):
-    """return the sin of input"""
-    # FIXME: check that at configuration time?
-    for k in ['x', 'f']:
-        assert args.has_key(k), "f_sin needs param '%s'" % (k,)
-        
-    try:
-        x = args['x']['val']
-        f = args['f']['val']
-        return np.sin(x * f)
-    except KeyError, e:
-        print "KeyError", e, args
-        # print "Block %s doesn't have an input %s" % (args['id'], 'x')
-
-def f_sin_noise(args):
-    for k in ['x','f','sigma']:
-        assert args.has_key(k), "f_sin_noise needs param '%s'" % (k,)
-    x = f_sin(args)
-    # print "f_sin_noise: x", x, args['sigma']['val']
-    xn = np.random.normal(x, args['sigma']['val'], size=x.shape)
-    # print "xn.shape", xn.shape
-    return xn
-        
-def f_sinesquare2(args):
-    x = args['x']['val']
-    scaler = np.arange(1, x.shape[0] + 1).reshape(x.shape) * 0.3 + 1.0
-    # offser = np.array([[0.1, -0.05, 0.3]]).T
-    # offser = np.random.uniform(-0.3, 0.3, x.shape)
-    offser = np.zeros(x.shape)
-    # print x.shape, scaler.shape
-    # print "scaler", scaler
-    return np.sin(x * scaler + offser)**2
-
-def f_sinesquare3(args):
-    x = f_sinesquare2(args)
-    s1 = np.sum(x, axis = 0)
-    return np.ones_like(x) * s1
-
-def f_sinesquare4(args):
-    x = f_sinesquare2(args)
-    s1 = np.sum(x, axis = 0)
-    return np.ones((1,1)) * s1
-
+################################################################################
+# exec functions: FIXME separate file, they are not FuncBlock2 funcs
 def f_loop_1(ref, i):
     return ('inputs', {'x': [np.random.uniform(-1, 1, (3, 1))]})
 

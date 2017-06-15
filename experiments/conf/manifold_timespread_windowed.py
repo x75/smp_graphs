@@ -15,10 +15,10 @@ ppycnf = {
     # 'logfile': 'data/experiment_20170510_155432_puppy_process_logfiles_pd.h5', # 147K
     # 'numsteps': 29000,
     # 'logfile': 'data/experiment_20170517_160523_puppy_process_logfiles_pd.h5', 29K
-    'numsteps': 10000,
-    'logfile': 'data/experiment_20170511_145725_puppy_process_logfiles_pd.h5', # 10K
-    # 'numsteps': 2000,
-    # 'logfile': 'data/experiment_20170510_173800_puppy_process_logfiles_pd.h5', 2K
+    # 'numsteps': 10000,
+    # 'logfile': 'data/experiment_20170511_145725_puppy_process_logfiles_pd.h5', # 10K
+    'numsteps': 2000,
+    'logfile': 'data/experiment_20170510_173800_puppy_process_logfiles_pd.h5', # 2K
     # 'numsteps': 20000,
     # 'logfile': 'data/experiment_20170530_174612_process_logfiles_pd.h5', # step fast-to-slow newB all concatenated
     'xdim': 6,

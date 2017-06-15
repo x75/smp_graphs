@@ -38,6 +38,7 @@ class PointmassBlock2(SysBlock2):
         for i in range(self.blocksize):
             self.u = self.inputs['u']['val'][:,[i]]
             self.x = self.system.step(self.u)
+            # print "self.u", self.u
             # real output variables defined by config
             # for k in ['s_proprio', 's_extero', 's_all']:
             for k in self.outputs.keys():

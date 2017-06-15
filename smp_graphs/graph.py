@@ -1,6 +1,8 @@
-"""smp_graphs basic graph operations for networkx based smp graphs
+"""smp_graphs grpahs.py
 
 2017 Oswald Berthold
+
+basic graph operations for networkx based smp graphs: construction from smp_graphs config, plotting, searching
 """
 
 import networkx as nx
@@ -8,7 +10,6 @@ import re, copy, random, six
 
 from numpy import array
 
-# from matplotlib import colors as mcolors
 from matplotlib import colors
 
 from smp_graphs.utils import print_dict

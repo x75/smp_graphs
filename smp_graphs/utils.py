@@ -1,3 +1,7 @@
+"""smp_graphs utils
+
+some general utils for data structures and ops
+"""
 
 from collections import OrderedDict
 from functools import partial

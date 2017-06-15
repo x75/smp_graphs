@@ -70,8 +70,8 @@ class FigPlotBlock2(PrimBlock2):
         # have inputs at all?
         if len(self.inputs) < 1: return
 
-        # make sure that data can have been generated
-        if self.cnt > 0 and (self.cnt % self.blocksize) == 0: # (self.blocksize - 1):
+        # make sure that data has been generated
+        if (self.cnt % self.blocksize) in self.blockphase: # or (xself.cnt % xself.rate) == 0:
             # for ink, inv in self.inputs.items():
             #     self.debug_print("[%s]step in[%s].shape = %s", (self.id, ink, inv['shape']))
 

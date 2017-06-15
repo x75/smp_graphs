@@ -25,6 +25,7 @@ from smp_graphs.utils import print_dict, xproduct, myt
 from smp_graphs.common import conf_header, conf_footer
 from smp_graphs.common import get_config_raw, get_config_raw_from_string
 from smp_graphs.common import set_attr_from_dict, dict_search_recursive, dict_replace_idstr_recursive2
+from smp_graphs.common import get_input
 
 from smp_graphs.graph import nxgraph_from_smp_graph, nxgraph_to_smp_graph
 from smp_graphs.graph import nxgraph_node_by_id, nxgraph_node_by_id_recursive
@@ -725,7 +726,9 @@ class Block2(object):
     # undecorated step, need to count ourselves
     @decStep()
     def step(self, x = None):
-        """Base block step function
+        """Block2.step
+
+        block step function: compute one step
 
         if topblock iterate graph and step each node block, reiterate graph and do the logging for each node, store the log every n steps
         """
@@ -739,7 +742,7 @@ class Block2(object):
             
             # for k, v in self.graph.items():
             v['block_'].step()
-            # print "%s-%s[%d] k = %s, v = %s" % (self.cname,self.id, self.cnt, k, v)
+            # print "%s-%s.step[%d]: k = %s, v = %s" % (self.cname, self.id, self.cnt, k, type(v))
 
         if self.topblock:
             # then log all
@@ -881,7 +884,8 @@ class Block2(object):
             print "ret", ret.shape, # 
             return ret
         else:
-            return self.inputs[k]['val']
+            # return self.inputs[k]['val']
+            return get_input(self.inputs, k)
 
 class FuncBlock2(Block2):
     """!@brief Function block: wrap the function given by the configuration in params['func'] in a block"""
@@ -896,16 +900,18 @@ class FuncBlock2(Block2):
     def step(self, x = None):
         # print "%s.step inputs[%d] = %s" % (self.cname, self.cnt, self.inputs)
         # self.inputs is a dict with values [array]
-        assert self.inputs.has_key('x'), "%s.inputs expected to have key 'x' with function input vector. Check config."
+        # assert self.inputs.has_key('x'), "%s.inputs expected to have key 'x' with function input vector. Check config."
 
         self.debug_print("step[%d]: x = %s", (self.cnt, self.inputs,))
+
+        # assumes func to be smp_graphs aware and map the input/output onto the inner function 
         f_val = self.func(self.inputs)
         if type(f_val) is dict:
             for k, v in f_val.items():
                 setattr(self, k, v)
         else:
             self.y = f_val
-        self.debug_print("step[%d]: y = %s", (self.cnt, self.y,))
+            self.debug_print("step[%d]: y = %s", (self.cnt, self.y,))
             
 class LoopBlock2(Block2):
     """!@brief Loop block: dynamically create block variations according to some specificiations of variation
@@ -1055,8 +1061,8 @@ class SeqLoopBlock2(Block2):
             # second pass
             self.dynblock.init_pass_2()
 
-            # run the block
-            # for j in range(self.dynblock.blocksize):
+            # this is needed for using SeqLoop as a sequencer / timeline with full sideway time
+            # run the block starting from cnt = 1
             for j in range(1, self.dynblock.numsteps+1):
                 print "%s trying %s.step[%d]" % (self.cname, self.dynblock.cname, j)
                 self.dynblock.step()
@@ -1064,6 +1070,7 @@ class SeqLoopBlock2(Block2):
             d = {}
             for outk, outv in self.dynblock.outputs.items():
                 d[outk] = getattr(self.dynblock, outk)
+            # print "j", j, "d", d
             return d
         
         def f_obj_hpo(params):
@@ -1105,8 +1112,8 @@ class SeqLoopBlock2(Block2):
         else:
             f_obj_ = f_obj_hpo
 
-        then = time.time()
         # loop the loop
+        then = time.time()
         print "%s-%s[%d] iter#" % (self.cname,self.id, self.cnt),
         for i in range(self.numsteps/self.loopblocksize):
             print "%d" % (i,),
@@ -1134,12 +1141,17 @@ class SeqLoopBlock2(Block2):
                 # func: need output function from config
                 # FIXME: handle loopblock blocksizes greater than one
                 # self.__dict__[outk][:,[i]] = np.mean(getattr(dynblock, outk), axis = 1, keepdims = True)
-                outslice = slice(i*self.dynblock.blocksize, (i+1)*self.dynblock.blocksize)
+                
+                # FIXME: which breaks more?
+                # outslice = slice(i*self.dynblock.blocksize, (i+1)*self.dynblock.blocksize)
+
+                # FIXME: which breaks more?
+                outslice = slice(i*self.dynblock.outputs[outk]['shape'][-1], (i+1)*self.dynblock.outputs[outk]['shape'][-1])
+                
                 # print "self.   block", self.outputs[outk]
                 # print "self.dynblock", self.dynblock.outputs[outk], getattr(self.dynblock, outk).shape #, self.dynblock.file
-                # print "%s.step self.%s = %s, outslice = %s" % (self.cname, outk, self.__dict__[outk].shape, outslice, )
-                # self.__dict__[outk][:,[i]] = getattr(self.dynblock, outk)
-                # self.__dict__[outk][:,outslice] = getattr(self.dynblock, outk)
+                print "%s.step self.%s = %s, outslice = %s" % (self.cname, outk, getattr(self, outk).shape, outslice, )
+                # print "    dynblock = %s.%s" % (self.dynblock.cname)
                 outvar[:,outslice] = getattr(self.dynblock, outk)
                 # print "outslice", outslice, "outvar", outvar[:,outslice]
         sys.stdout.write('\n')

@@ -1,6 +1,10 @@
 """smp_graphs
 
 smp models: models are coders, representations, predictions, inferences, associations, ...
+
+models raw (fit/predict X/Y style models)
+models sm  sensorimotor  models
+models dvl devleopmental models
 """
 
 import numpy as np
@@ -12,10 +16,10 @@ from smp_graphs.block import decInit, decStep, PrimBlock2
 
 from mdp.nodes import PolynomialExpansionNode
 
-from actinf_models import ActInfKNN, ActInfGMM, ActInfHebbianSOM
+from smp_base.models_actinf import ActInfKNN, ActInfGMM, ActInfHebbianSOM
 
 try:
-    from actinf_models import ActInfSOESGP, ActInfSTORKGP
+    from smp_base.models_actinf import ActInfSOESGP, ActInfSTORKGP
     HAVE_SOESGP = True
 except ImportError, e:
     print "couldn't import online GP models", e
@@ -182,14 +186,14 @@ def step_actinf_m1(ref):
 
     eta = 0.7
             
-    # current goal
+    # current goal, prediction descending from layer above
     pre_l1   = ref.inputs['pre_l1']['val']
-    # most recent measurement
+    # measurement at current layer input
     meas_l0 = ref.inputs['meas_l0']['val']
-    # most recent prediction
+    # prediction  at current layer input
     pre_l0   = ref.inputs['pre_l0']['val']
 
-    # prediction error
+    # prediction error at current layer input
     if np.sum(np.abs(pre_l1 - ref.pre_l1_tm1)) > 1e-3:
         prerr_l0 = np.zeros_like(pre_l1) # pre_l1 - ref.pre_l1_tm1 # pre_l1 # + noise?
     else:
@@ -214,21 +218,23 @@ def step_actinf_m1(ref):
     #     # goal changed
     #     prerr_l0 = pre_l0 - pre_l1
             
-    # prepare model input X as goal and prediction error
+    # m1: model input X is goal and prediction error
     ref.X_ = np.hstack((pre_l1, prerr_l0))
 
-    # predict next state in proprioceptive space
+    # predict next values at current layer input
     pre_l0 = ref.mdl.predict(ref.X_)
 
     # for outk, outv in ref.outputs.items():
     #     setattr(ref, outk, pre_l0)
     #     print "step_actinf_m1 %s.%s = %s" % (ref.id, outk, getattr(ref, outk))
 
+    # remember last descending prediction
     ref.pre_l1_tm1 = pre_l1.copy()
 
-    setattr(ref, 'x_p_pre_l0', pre_l0)
-    setattr(ref, 'x_p_prerr_l0', prerr_l0)
-    setattr(ref, 'x_p_target', ref.y_)
+    # publish model's internal state
+    setattr(ref, 'pre', pre_l0)
+    setattr(ref, 'err', prerr_l0)
+    setattr(ref, 'tgt', ref.y_)
         
 class model(object):
     """model
