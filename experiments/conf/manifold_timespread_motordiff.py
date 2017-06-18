@@ -188,6 +188,7 @@ graph = OrderedDict([
         'block': LoopBlock2,
         'params': {
             'id': 'mi',
+            'loopmode': 'parallel',
             'loop': [('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/y'}}),
                      # ('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/r'}}),
                      # ('inputs', {'x': {'bus': 'puppylog/y'}, 'y': {'bus': 'puppylog/r'}}),
@@ -213,6 +214,7 @@ graph = OrderedDict([
         'block': LoopBlock2,
         'params': {
             'id': 'infodist',
+            'loopmode': 'parallel',
             'loop': [('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/y'}}),
                      # ('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/r'}}),
                      # ('inputs', {'x': {'bus': 'puppylog/y'}, 'y': {'bus': 'puppylog/r'}}),
@@ -237,6 +239,7 @@ graph = OrderedDict([
         'block': LoopBlock2,
         'params': {
             'id': 'te',
+            'loopmode': 'parallel',
             'loop': [('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/y'}}),
                      # ('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/r'}}),
                      # ('inputs', {'x': {'bus': 'puppylog/y'}, 'y': {'bus': 'puppylog/r'}}),
@@ -260,6 +263,7 @@ graph = OrderedDict([
         'block': LoopBlock2,
         'params': {
             'id': 'cte',
+            'loopmode': 'parallel',
             'loop': [('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/y'}, 'cond': {'bus': 'puppylog/y'}}),
                      # ('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/r'}}),
                      # ('inputs', {'x': {'bus': 'puppylog/y'}, 'y': {'bus': 'puppylog/r'}}),
@@ -411,10 +415,10 @@ graph = OrderedDict([
             'blocksize': numsteps,
             # 'inputs': {'d1': {'bus': 'mi_1/mi'}, 'd2': {'bus': 'infodist_1/infodist'}},
             'inputs': {
-                'd1': {'bus': 'mi_0/mi', 'shape': (ydim, xdim, scanlen)},
-                'd11': {'bus': 'infodist_0/infodist', 'shape': (ydim, xdim, scanlen)},
-                'd2': {'bus': 'te_0/te', 'shape': (ydim, xdim, scanlen)},
-                'd3': {'bus': 'cte_0/cte', 'shape': (ydim, xdim, scanlen)}
+                'd1': {'bus': 'mi|0/mi', 'shape': (ydim, xdim, scanlen)},
+                'd11': {'bus': 'infodist|0/infodist', 'shape': (ydim, xdim, scanlen)},
+                'd2': {'bus': 'te|0/te', 'shape': (ydim, xdim, scanlen)},
+                'd3': {'bus': 'cte|0/cte', 'shape': (ydim, xdim, scanlen)}
             },
             'outputs': {}, #'x': {'shape': (3, 1)}},
             'subplots': [

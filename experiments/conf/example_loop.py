@@ -47,7 +47,7 @@ graph = OrderedDict([
             'id': 'b3',
             'logging': False,
             'loop': [('inputs', {'c': {'val': np.random.uniform(-i, i, (3, 1)), 'shape': (3, 1)}}) for i in range(1, 4)],
-            # 'loopmode': 'parallel',
+            'loopmode': 'parallel',
             'loopblock': {
                 'block': ConstBlock2,
                 'params': {
@@ -73,9 +73,9 @@ graph = OrderedDict([
             'debug': False,
             'inputs': {'d1': {'bus': 'b1/x', 'shape': (3, numsteps)},
                        'd2': {'bus': 'b2/x', 'shape': (3, numsteps)},
-                       'd3': {'bus': 'b3_0/x', 'shape': (3, numsteps)},
-                       'd4': {'bus': 'b3_1/x', 'shape': (3, numsteps)},
-                       'd5': {'bus': 'b3_2/x', 'shape': (3, numsteps)}},
+                       'd3': {'bus': 'b3|0/x', 'shape': (3, numsteps)},
+                       'd4': {'bus': 'b3|1/x', 'shape': (3, numsteps)},
+                       'd5': {'bus': 'b3|2/x', 'shape': (3, numsteps)}},
             'outputs': {},
             'subplots': [
                 [

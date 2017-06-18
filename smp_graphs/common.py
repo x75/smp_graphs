@@ -138,7 +138,7 @@ def dict_replace_idstr_recursive(d, cid, xid):
     if cid is not None:
         d['params']['id'] = "%s|%s" % (cid, xid)
 
-    if d['params'].has_key('graph'):
+    if d['params'].has_key('graph') and type(d['params']['graph']) is not str:
         for k, v in d['params']['graph'].items():
             # v['params']['id'] = k
             v = dict_replace_idstr_recursive(d = v, cid = k, xid = xid)

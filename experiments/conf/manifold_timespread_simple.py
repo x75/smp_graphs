@@ -13,7 +13,7 @@ from smp_graphs.block_meas_infth import JHBlock2, MIBlock2, InfoDistBlock2, TEBl
 
 randseed = 12345
 
-saveplot = True
+saveplot = False
 
 ppycnf = {
     # 'numsteps': 27000,
@@ -77,7 +77,7 @@ testcnf = {
     'logtype': 'testdata1',
 }
 
-cnf = ppycnf
+cnf = ppycnf2
 numsteps = cnf['numsteps']
 xdim = cnf['xdim']
 ydim = cnf['ydim']
@@ -87,7 +87,7 @@ if cnf.has_key('sys_slicespec'):
 else:
     sys_slicespec = {'x': {'acc': slice(0, 3), 'gyr': slice(3, xdim)}}
 
-scanstart = -30
+scanstart = -10
 scanstop = 0
 scanlen = scanstop - scanstart
     
@@ -223,6 +223,7 @@ graph = OrderedDict([
                      # ('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/r'}}),
                      # ('inputs', {'x': {'bus': 'puppylog/y'}, 'y': {'bus': 'puppylog/r'}}),
             ],
+            'loopmode': 'parallel',
             'loopblock': {
                 'block': MIMVBlock2,
                 'params': {
@@ -248,6 +249,7 @@ graph = OrderedDict([
                      # ('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/r'}}),
                      # ('inputs', {'x': {'bus': 'puppylog/y'}, 'y': {'bus': 'puppylog/r'}}),
             ],
+            'loopmode': 'parallel',
             'loopblock': {
                 'block': TEMVBlock2,
                 'params': {
@@ -297,6 +299,7 @@ graph = OrderedDict([
                      # ('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/r'}}),
                      # ('inputs', {'x': {'bus': 'puppylog/y'}, 'y': {'bus': 'puppylog/r'}}),
             ],
+            'loopmode': 'parallel',
             'loopblock': {
                 'block': MIBlock2,
                 'params': {
@@ -319,6 +322,7 @@ graph = OrderedDict([
         'block': LoopBlock2,
         'params': {
             'id': 'te',
+            'loopmode': 'parallel',
             'loop': [('inputs', {'x': {'bus': 'puppyslice/x_gyr'}, 'y': {'bus': 'puppylog/y'}}),
                      # ('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/r'}}),
                      # ('inputs', {'x': {'bus': 'puppylog/y'}, 'y': {'bus': 'puppylog/r'}}),
@@ -346,6 +350,7 @@ graph = OrderedDict([
                      # ('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/r'}}),
                      # ('inputs', {'x': {'bus': 'puppylog/y'}, 'y': {'bus': 'puppylog/r'}}),
             ],
+            'loopmode': 'parallel',
             'loopblock': {
                 'block': CTEBlock2,
                 'params': {
@@ -532,8 +537,8 @@ graph = OrderedDict([
             'wspace': 0.5,
             'hspace': 0.5,
             'blocksize': numsteps,
-            'inputs': {'d1': {'bus': 'mimv_0/mimv', 'shape': (1, scanlen)},
-                       'd2': {'bus': 'temv_0/temv', 'shape': (1, scanlen)},
+            'inputs': {'d1': {'bus': 'mimv|0/mimv', 'shape': (1, scanlen)},
+                       'd2': {'bus': 'temv|0/temv', 'shape': (1, scanlen)},
                        'd3': {'bus': 'jh/jh', 'shape': (1, scanlen)},
                        't': {'val': np.linspace(scanstart, scanstop-1, scanlen)},},
             'outputs': {}, #'x': {'shape': (3, 1)}},
@@ -568,7 +573,7 @@ graph = OrderedDict([
             'hsapce': 0.1,
             'blocksize': numsteps,
             # 'inputs': {'d1': {'bus': 'mi_1/mi'}, 'd2': {'bus': 'infodist_1/infodist'}},
-            'inputs': {'d1': {'bus': 'mi_0/mi'}, 'd2': {'bus': 'te_0/te'}, 'd3': {'bus': 'cte_0/cte'}},
+            'inputs': {'d1': {'bus': 'mi|0/mi'}, 'd2': {'bus': 'te|0/te'}, 'd3': {'bus': 'cte|0/cte'}},
             'outputs': {}, #'x': {'shape': (3, 1)}},
             # 'subplots': [
             #     [

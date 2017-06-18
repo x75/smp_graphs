@@ -5,6 +5,7 @@ from smp_graphs.block import SliceBlock2, SeqLoopBlock2
 from smp_graphs.block_plot import ImgPlotBlock2
 
 saveplot = True
+recurrent = True
 
 ppycnf = {
     # 'numsteps': 27000,
@@ -189,6 +190,7 @@ graph = OrderedDict([
                      # ('inputs', {'x': {'bus': 'data/x'}, 'y': {'bus': 'data/r'}}),
                      # ('inputs', {'x': {'bus': 'data/y'}, 'y': {'bus': 'data/r'}}),
             ],
+            'loopmode': 'parallel',
             'loopblock': {
                 'block': MIMVBlock2,
                 'params': {
@@ -279,7 +281,7 @@ graph = OrderedDict([
             'blocksize': overlap, # numsteps,
             'inputs': {
                 'd1': {'bus': 'mimv/mimv', 'shape': (1, scanlen * numsteps/overlap)},
-                'd2': {'bus': 'mimvl_0/mimv', 'shape': (1, scanlen * numsteps/overlap)},
+                'd2': {'bus': 'mimvl|0/mimv', 'shape': (1, scanlen * numsteps/overlap)},
                 'd3': {'bus': 'temv/temv', 'shape': (1, scanlen * numsteps/overlap)},                
                 't': {'val': np.linspace(scanstart, scanstop-1, scanlen)},},
             'outputs': {}, #'x': {'shape': (3, 1)}},

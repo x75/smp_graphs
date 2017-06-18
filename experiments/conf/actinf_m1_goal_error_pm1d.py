@@ -22,7 +22,7 @@ from smp_graphs.block_meas_infth import JHBlock2, MIBlock2, InfoDistBlock2, TEBl
 from smp_graphs.block_models import ModelBlock2
 from smp_graphs.block_cls import PointmassBlock2
 
-from smp_graphs.funcs import f_meshgrid
+from smp_graphs.funcs import f_meshgrid, f_meshgrid_mdl
 
 # execution
 saveplot = True
@@ -37,8 +37,7 @@ dim = 1
 motors = dim
 dt = 0.1
 loopblocksize = numsteps
-sweepsteps = 21
-algo = 'knn'
+algo = 'soesgp' # 'knn', 'soesgp', 'storkgp'
 
 """system block
  - a robot
@@ -74,109 +73,253 @@ systemblock = {
         }
     }
 
-plot_timeseries_block = {
+def plot_timeseries_block(l0 = 'pre_l0', blocksize = 1):
+    global PlotBlock2, dim, numsteps, timeseries
+    return {
     'block': PlotBlock2,
     'params': {
-        'blocksize': numsteps,
+        'blocksize': blocksize,
         'inputs': {
-            'goals':    {'bus': 'pre_l1/pre_l1', 'shape': (dim, numsteps)},
-            'pre_l0':   {'bus': 'pre_l0/pre', 'shape': (dim, numsteps)},
-            'err_l0': {'bus': 'pre_l0/err', 'shape': (dim, numsteps)},
-            'tgt_l0': {'bus': 'pre_l0/tgt', 'shape': (dim, numsteps)},
+            'goals':    {'bus': 'pre_l1/pre_l1', 'shape': (dim, blocksize)},
+            'pre':   {'bus': '%s/pre' % (l0,), 'shape': (dim, blocksize)},
+            'err': {'bus': '%s/err' % (l0,), 'shape': (dim, blocksize)},
+            'tgt': {'bus': '%s/tgt' % (l0,), 'shape': (dim, blocksize)},
             },
-            'hspace': 0.2,
-            'subplots': [
-                [
-                    {'input': ['goals'], 'plot': timeseries},
-                ],
-                [
-                    {'input': ['pre_l0'], 'plot': timeseries},
-                ],
-                [
-                    {'input': ['err_l0'], 'plot': timeseries},
-                ],
-                [
-                    {'input': ['tgt_l0'], 'plot': timeseries},
-                ],
-                ]
+        'hspace': 0.2,
+        'subplots': [
+            [
+                {'input': ['goals'], 'plot': timeseries},
+            ],
+            [
+                {'input': ['pre'], 'plot': timeseries},
+            ],
+            [
+                {'input': ['err'], 'plot': timeseries},
+            ],
+            [
+                {'input': ['tgt'], 'plot': timeseries},
+            ],
+            ]
         }
     }
 
-# plot_sweep_block =     
-    
-"""sweep system subgraph
+"""
+sweep system subgraph
  - sweep block is an open-loop system (data source) itself
  - system block is the system we want to sweep
 """
-sweepinflat = np.power(sweepsteps, dim)
-sweepsystem = ('robot0', copy.deepcopy(systemblock))
-sweepsystem[1]['params']['blocksize'] = sweepinflat
-sweepsystem[1]['params']['debug'] = True
-sweepsystem[1]['params']['inputs'] = {'u': {'bus': 'sweepinf/meshgrid'}}
-sweepsystem[1]['params']['outputs']['s_proprio']['shape'] = (dim, sweepinflat)
-sweepsystem[1]['params']['outputs']['s_extero']['shape']  = (dim, sweepinflat)
+sweepsys_steps = 21
+sweepsys_input_flat = np.power(sweepsys_steps, dim)
+sweepsys = ('robot0', copy.deepcopy(systemblock))
+sweepsys[1]['params']['blocksize'] = sweepsys_input_flat
+sweepsys[1]['params']['debug'] = True
+sweepsys[1]['params']['inputs'] = {'u': {'bus': 'sweepsys_grid/meshgrid'}}
+sweepsys[1]['params']['outputs']['s_proprio']['shape'] = (dim, sweepsys_input_flat)
+sweepsys[1]['params']['outputs']['s_extero']['shape']  = (dim, sweepsys_input_flat)
+
+sweepmdl_steps = 11
+sweepmdl_input_flat = np.power(sweepmdl_steps, dim)
 
 loopblock = {
-        'block': Block2,
-        'params': {
-            'id': 'bhier',
-            'debug': False,
-            'topblock': False,
-            'logging': False,
-            'numsteps': sweepinflat,  # inner numsteps when used as loopblock (sideways time)
-            'blocksize': 1,           # compute single steps, has to be 1 so inner cnt is correct etc
-            'blockphase': [0],        # phase = 0
-            'outputs': {'meshgrid': {'shape': (dim, sweepinflat), 'buscopy': 'sweepinf/meshgrid'}},
-            # contains the subgraph specified in this config file
-            'graph': OrderedDict([
-                # ('sweepin', {
-                #     'block': sweepBlock2,
-                #     'params': {
-                #         'ranges': [],
-                #         'steps': 21,
-                #         'mode': 'lin',
-                #         },
-                #     }),
-                ('sweepinf', {
-                    'block': FuncBlock2,
-                    'params': {
-                        'debug': True,
-                        'blocksize': sweepinflat,
-                        'inputs': {
-                            'ranges': {'val': np.array([[-1, 1]])},
-                            'steps':  {'val': sweepsteps},
-                            },
-                        'outputs': {'meshgrid': {'shape': (dim, sweepinflat)}},
-                        'func': f_meshgrid
+    'block': Block2,
+    'params': {
+        'id': 'bhier',
+        'debug': False,
+        'topblock': False,
+        'logging': False,
+        'numsteps': sweepsys_input_flat,  # inner numsteps when used as loopblock (sideways time)
+        'blocksize': 1,           # compute single steps, has to be 1 so inner cnt is correct etc
+        'blockphase': [0],        # phase = 0
+        'outputs': {'meshgrid': {'shape': (dim, sweepsys_input_flat), 'buscopy': 'sweepsys_grid/meshgrid'}},
+        # subgraph
+        'graph': OrderedDict([
+            ('sweepsys_grid', {
+                'block': FuncBlock2,
+                'params': {
+                    'debug': True,
+                    'blocksize': sweepsys_input_flat,
+                    'inputs': {
+                        'ranges': {'val': np.array([[-1, 1]])},
+                        'steps':  {'val': sweepsys_steps},
                         },
-                    }),
+                    'outputs': {'meshgrid': {'shape': (dim, sweepsys_input_flat)}},
+                    'func': f_meshgrid
+                    },
+                }),
+                
                 # sys to sweep
-                sweepsystem,
+                sweepsys,
 
             ]),
         }
     }
 
+loopblock_model = {
+    'block': Block2,
+    'params': {
+        'id': 'bhier',
+        'debug': False,
+        'topblock': False,
+        'logging': False,
+        'numsteps': sweepmdl_input_flat,  # inner numsteps when used as loopblock (sideways time)
+        'blocksize': 1,           # compute single steps, has to be 1 so inner cnt is correct etc
+        'blockphase': [0],        # phase = 0
+        'outputs': {
+            'meshgrid': {
+                'shape': (dim, sweepmdl_input_flat),
+                'buscopy': 'sweepmdl_grid_goal/meshgrid'}},
+        # subgraph
+        'graph': OrderedDict([
+            # model sweep input
+            ('sweepmdl_grid_goal', {
+                'block': FuncBlock2,
+                'params': {
+                    'debug': True,
+                    'blocksize': sweepmdl_input_flat,
+                    'inputs': {
+                        'ranges': {'val': np.array([[-1, 1]])},
+                        'steps':  {'val': sweepmdl_steps},
+                        },
+                    'outputs': {'meshgrid': {'shape': (dim, sweepmdl_input_flat)}},
+                    'func': f_meshgrid,
+                    },
+                }),
+                
+            # model sweep input
+            ('sweepmdl_grid_err', {
+                'block': FuncBlock2,
+                'params': {
+                    'debug': True,
+                    'blocksize': sweepmdl_input_flat,
+                    'inputs': {
+                        'ranges': {'val': np.array([[-1e-0, 1e-0]])},
+                        'steps':  {'val': sweepmdl_steps},
+                        },
+                    'outputs': {'meshgrid': {'shape': (dim, sweepmdl_input_flat)}},
+                    'func': f_meshgrid,
+                    },
+                }),
+
+            # model sweep
+            # learner: basic actinf predictor proprio space learn_proprio_base_0
+            ('pre_l0_test', {
+                'block': ModelBlock2,
+                'params': {
+                    'blocksize': sweepmdl_input_flat,
+                    'blockphase': [0],
+                    'inputs': {
+                        # descending prediction
+                        'pre_l1': {'bus': 'sweepmdl_grid_goal/meshgrid', 'shape': (dim,sweepmdl_input_flat)},
+                        # ascending prediction error
+                        'pre_l0': {'bus': 'sweepmdl_grid_err/meshgrid', 'shape': (dim, sweepmdl_input_flat)},
+                        # measurement
+                        'meas_l0': {
+                            'val': np.array([[-np.inf for i in range(sweepmdl_input_flat)]]),
+                            # 'bus': 'robot1/s_proprio',
+                            'shape': (dim, sweepmdl_input_flat)}},
+                    'outputs': {
+                        'pre': {'shape': (dim, sweepmdl_input_flat)},
+                        'err': {'shape': (dim, sweepmdl_input_flat)},
+                        'tgt': {'shape': (dim, sweepmdl_input_flat)},
+                        },
+                    'models': {
+                        # 'fwd': {'type': 'actinf_m1', 'algo': algo, 'idim': dim * 2, 'odim': dim},
+                        'fwd': {
+                            'type': 'actinf_m1', 'algo': 'copy',
+                            'copyid': 'pre_l0', 'idim': dim * 2, 'odim': dim},
+                        },
+                    'rate': 1,
+                    },
+                }),
+                    
+            # # model sweep model
+            # ('test_pre_l0', {
+            #     'block': Block2,
+            #     'params': {
+            #         'id': 'test_pre_l0',
+            #         'numsteps':  sweepmdl_input_flat, # np.power(21, dim),
+            #         'blocksize': sweepmdl_input_flat, # numsteps,
+            #         'blockphase': [0], # [i * numsteps/2 for i in range(2)],
+            #         'inputs': {
+            #             # descending prediction
+            #             'pre_l1': {
+            #                 'bus': 'sweepmdl_grid_goal/meshgrid', 'shape': (dim,sweepmdl_input_flat)},
+            #             # ascending prediction error
+            #             'pre_l0': {
+            #                 'bus': 'sweepmdl_grid_err/meshgrid',  'shape': (dim, sweepmdl_input_flat)},
+            #             # measurement
+            #             'meas_l0': {
+            #                 'val': np.array([[-np.inf for i in range(sweepmdl_input_flat)]]),
+            #                 'shape': (dim, 1)}},
+            #         'outputs': {
+            #             'pre': {'shape': (dim, sweepmdl_input_flat)},
+            #             'err': {'shape': (dim, sweepmdl_input_flat)},
+            #             'tgt': {'shape': (dim, sweepmdl_input_flat)},
+            #             },
+            #         'graph': 'id:pre_l0',
+            #         }
+            #     }),
+
+            
+
+            # plot timeseries
+            ('plot_ts', plot_timeseries_block(l0 = 'pre_l0_test', blocksize = sweepmdl_input_flat)),
+            # # plot model sweep 1d
+            # ('plot_model_sweep', {
+            #     'block': ImgPlotBlock2,
+            #     'params': {
+            #         'id': 'plot_model_sweep',
+            #         'logging': False,
+            #         'saveplot': saveplot,
+            #         'debug': False,
+            #         'blocksize': sweepsys_input_flat,
+            #         'inputs': {
+            #             'sweepin_goal': {
+            #                 'bus': 'sweepmdl_grid_goal/meshgrid', 'shape': (dim,1)},
+            #                 },
+            #             'sweepin_err':  {
+            #                 'bus': 'sweepmdl_grid_err/meshgrid',  'shape': (dim,1)},
+            #                 },
+            #             'sweepout_mdl':  {
+            #                 'bus': 'pre_l0_clone/pre', 'shape': (dim,1)},
+            #                 },
+            #             }
+            #         'outputs': {}, #'x': {'shape': (3, 1)}},
+            #         'wspace': 0.5,
+            #         'hspace': 0.5,
+            #         # with one subplot and reshape
+            #         'subplots': [
+            #             [
+            #                 {'input': ['d3'],
+            #                   'ndslice': (slice(None), slice(None), slice(None)),
+            #                   'shape': (scanlen, ydim, xdim), 'cmap': 'RdGy',
+            #                   'dimstack': {'x': [2, 1], 'y': [0]},
+            #                 }
+            #             ],
+            #             ],
+            #         },
+            #     }),
+            ]),
+        }
+    }
+        
+
 
 graph = OrderedDict([
     # sweep system
-    ("sweepsystem", {
+    ("sweepsys", {
         'debug': True,
         'block': SeqLoopBlock2,
         'params': {
-            'id': 'sweepsystem',
-            # loop specification, check hierarchical block to completely pass on the contained in/out space?
+            'id': 'sweepsys',
+            # loop specification, check hierarchical block to completely
+            # pass on the contained in/out space?
             'blocksize': numsteps, # execution cycle, same as global numsteps
             'blockphase': [1],     # execute on first time step only
             'numsteps':  numsteps,          # numsteps      / loopblocksize = looplength
             'loopblocksize': loopblocksize, # loopblocksize * looplength    = numsteps
             # can't do this dynamically yet without changing init passes
-            'outputs': {'meshgrid': {'shape': (dim, sweepinflat)}},
-            # 'loop': [('inputs', {
-            #     'lo': {'val': np.random.uniform(-i, 0, (3, 1)), 'shape': (3, 1)}, 'hi': {'val': np.random.uniform(0.1, i, (3, 1)), 'shape': (3, 1)}}) for i in range(1, 11)],
-            # 'loop': lambda ref, i: ('inputs', {'lo': [10 * i], 'hi': [20*i]}),
-            # 'loop': [('inputs', {'x': {'val': np.random.uniform(np.pi/2, 3*np.pi/2, (3,1))]}) for i in range(1, numsteps+1)],
-            # 'loop': partial(f_loop_hpo, space = f_loop_hpo_space_f3(pdim = 3)),
+            'outputs': {'meshgrid': {'shape': (dim, sweepsys_input_flat)}},
             'loop': [('none', {})], # lambda ref, i, obj: ('none', {}),
             'loopmode': 'sequential',
             'loopblock': loopblock,
@@ -232,36 +375,75 @@ graph = OrderedDict([
             }
         }),
 
-        # system block from definition elsewhere
-        ('robot1', systemblock),
-        
-        # plot the result
-        ('plot_sweep', {
-            'block': PlotBlock2,
-            'params': {
-                'debug': True,
-                'blocksize': numsteps, # sweepinflat,
-                'title': 'system sweep',
-                'inputs': {
-                    'meshgrid':     {'bus': 'sweepinf/meshgrid', 'shape': (dim, sweepinflat)},
-                    's_proprio':    {'bus': 'robot0/s_proprio', 'shape': (dim, sweepinflat)},
-                    's_extero':     {'bus': 'robot0/s_extero', 'shape': (dim, sweepinflat)},
-                    },
-                    'hspace': 0.2,
-                    'subplots': [
-                        [
-                            {'input': ['meshgrid'], 'plot': timeseries},
-                        ],
-                        [
-                            {'input': ['s_proprio'], 'plot': timeseries},
-                        ],
-                        [
-                            {'input': ['s_extero'], 'plot': timeseries},
-                        ],
-                        ],
-                }
-            }),
+    # sequenced model evaluation
+    # 1 make a block executing every n steps
+    # 2 execute: search a node and clone it
+    # 3 execute: run the clone according cloner's internal time (sideways or not)
+    
+    # # standalone clone test
+    # ('test_pre_l0', {
+    #     'block': Block2,
+    #     'params': {
+    #         'id': 'test_pre_l0',
+    #         'numsteps': np.power(21, dim),
+    #         'blocksize': numsteps,
+    #         'blockphase': [i * numsteps/2 for i in range(2)],
+    #         'graph': 'id:pre_l0',
+    #         }
+    #     }),
+
+    ("sweepmodel", {
+        'debug': True,
+        'block': SeqLoopBlock2,
+        'params': {
+            'id': 'sweepmodel',
+            # loop specification, check hierarchical block to completely
+            # pass on the contained in/out space?
+            'blocksize': numsteps, # execution cycle, same as global numsteps
+            #                        execution phase, on first time step only
+            # 'blockphase': [numsteps/2, numsteps-10],
+            'blockphase': [100, 200, 950],
+            # 'blockphase': [i * numsteps/2 for i in range(2)],
+            'numsteps':  1, # numsteps,          # numsteps      / loopblocksize = looplength
+            'loopblocksize': 1, #loopblocksize, # loopblocksize * looplength    = numsteps
+            # can't do this dynamically yet without changing init passes
+            'outputs': {'meshgrid': {'shape': (dim, sweepmdl_input_flat)}},
+            'loop': [('none', {}) for i in range(2)], # lambda ref, i, obj: ('none', {}),
+            'loopmode': 'sequential',
+            'loopblock': loopblock_model,
+        },
+    }),
+    
+    # system block from definition elsewhere
+    ('robot1', systemblock),
+    
+    # plot the result
+    ('plot_sweep', {
+        'block': PlotBlock2,
+        'params': {
+            'debug': False,
+            'blocksize': numsteps, # sweepsys_input_flat,
+            'title': 'system sweep',
+            'inputs': {
+                'meshgrid':     {'bus': 'sweepsys_grid/meshgrid', 'shape': (dim, sweepsys_input_flat)},
+                's_proprio':    {'bus': 'robot0/s_proprio', 'shape': (dim, sweepsys_input_flat)},
+                's_extero':     {'bus': 'robot0/s_extero', 'shape': (dim, sweepsys_input_flat)},
+                },
+                'hspace': 0.2,
+                'subplots': [
+                    [
+                        {'input': ['meshgrid'], 'plot': timeseries},
+                    ],
+                    [
+                        {'input': ['s_proprio'], 'plot': timeseries},
+                    ],
+                    [
+                        {'input': ['s_extero'], 'plot': timeseries},
+                    ],
+                    ],
+            }
+        }),
               
-        # plot timeseries
-        ('plot_ts', plot_timeseries_block),
-    ])
+    # plot timeseries
+    ('plot_ts', plot_timeseries_block(l0 = 'pre_l0', blocksize = numsteps)),
+])

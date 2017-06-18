@@ -1,12 +1,15 @@
-"""smp_graphs grpahs.py
+"""smp_graphs graph.py
 
 2017 Oswald Berthold
 
-basic graph operations for networkx based smp graphs: construction from smp_graphs config, plotting, searching
+basic graph operations for networkx based smp graphs: construction from
+smp_graphs config, manipulation, plotting, searching
 """
 
 import networkx as nx
 import re, copy, random, six
+
+from collections import OrderedDict
 
 from numpy import array
 
@@ -20,25 +23,72 @@ colors_ = list(six.iteritems(colors.cnames))
 # colors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)
 # colors = dict(mcolors.BASE_COLORS)
 
+def nxgraph_add_nodes_from_dict(conf, G, nc):
+    """nxgraph_add_nodes_from_dict
+
+    take an smp_graphs dict with id, {block config} and create
+    a graph node for every item in the dict
+    Args:
+     - conf: configuration dict
+     - G: the graph
+     - nc: node count
+
+    Returns:
+     - tuple (G, nc), the new graph, the new node count after insertion
+    """
+    for k, v in conf.items():
+        v['params']['id'] = k
+        # print "v", v
+        G.add_node(nc, v)
+        nc += 1
+    return (G, nc)
+
 def nxgraph_from_smp_graph(conf):
-    """!@brief construct an nx.graph from smp_graph configuration dictionary"""
+    """nxgraph_from_smp_graph
+
+    construct an nx.graph from an smp_graph configuration dictionary
+    Args:
+    - conf: smp_graphs configuration dict
+
+    Returns:
+    - G: the nx graph object
+    """
     # new empty graph
     G = nx.MultiDiGraph()
     G.name = conf['params']['id']
     # node count
     nc = 0
     
+    # assert conf['params'].has_key('loopmode'), "%s-%s loopmode?" % (conf['params']['id'], conf['block'])
+    
     # node order: fixed with numeric keys, alternative: key array
     # slightly different types: graph, subgraph, loopblock
     if conf['params'].has_key('graph') or conf['params'].has_key('subgraph'):
-        for k, v in conf['params']['graph'].items():
-            v['params']['id'] = k
-            # print "v", v
-            G.add_node(nc, v)
-            nc += 1
+        # two subordinate cases
+        # 1 standard graph as dict
+        # 2 existing node which we want to clone
 
+        print "type graph", type(conf['params']['graph'])
+        if type(conf['params']['graph']) is OrderedDict:
+            (G, nc) = nxgraph_add_nodes_from_dict(conf['params']['graph'], G, nc)
+        elif type(conf['params']['graph']) is str and \
+            conf['params']['graph'].startswith("id:"):
+            # look at the structure we want to copy and copy the input / output
+            # spec?
+            # no, input / output spec needs to be given, do the inference in a
+            # later version
+            
+            # 1 get the block by id
+            # 2 store the block in the graph
+            # 3 check in step if things need initialization
+            pass
+            
     # do loopblock specific preprocessing for list based loop
-    elif conf['params'].has_key('loopblock') and type(conf['params']['loop']) is list:
+    # FIXME: only do this for Loop, not SeqLoop
+    elif conf['params'].has_key('loopblock') \
+      and conf['params'].has_key('loopmode') \
+      and conf['params']['loopmode'] is not 'sequential' \
+      and type(conf['params']['loop']) is list:
         # construction loop
         for i, item in enumerate(conf['params']['loop']):
             if type(item) is tuple:
@@ -48,20 +98,22 @@ def nxgraph_from_smp_graph(conf):
             # rewrite block ids with loop count
             lpconf = dict_replace_idstr_recursive(d = lpconf, cid = conf['params']['id'], xid = "%d" % (i, ))
 
-            # FIXME: loop over param items
-            # [('inputs', {'x': {'val': 1}}), ('inputs', {'x': {'val': 2}})]
-            # or
-            # [
-            #     [
-            #         ('inputs',  {'x': {'val': 1}}),
-            #         ('gain',    0.5),
-            #         ],
-            #     [
-            #         ('inputs', {'x': {'val': 2}})
-            #         ('gain',    0.75),
-            #         ]
-            #     ]
+            
+            """Examples for loop specification
 
+            [('inputs', {'x': {'val': 1}}), ('inputs', {'x': {'val': 2}})]
+            or
+            [
+                [
+                    ('inputs',  {'x': {'val': 1}}),
+                    ('gain',    0.5),
+                    ],
+                [
+                    ('inputs', {'x': {'val': 2}})
+                    ('gain',    0.75),
+                    ]
+                ]
+            """
             # copy loop items into full conf
             for (paramk, paramv) in item:
                 lpconf['params'][paramk] = paramv # .copy()
@@ -71,9 +123,6 @@ def nxgraph_from_smp_graph(conf):
 
     # FIXME: what about func based loops?
             
-    # attributes?
-    # edges / bus?
-    # visualization
     return G
 
 def nxgraph_get_layout(G, layout_type):
@@ -162,7 +211,7 @@ def nxgraph_node_by_id_recursive(G, nid):
         return tmp
     else:
         for n in G.nodes():
-            # print "nxgraph_node_by_id_recursive: n = %s, node['block_'] = %s" % (n, G.node[n]['block_'])
+            # print "nxgraph_node_by_id_recursive: n = %s, node['block_'] = %s" % (n, G.node[n]['block_'].id)
             if hasattr(G.node[n]['block_'], 'nxgraph'):
                 # print "nxgraph_node_by_id_recursive: node[%s]['block_'].nxgraph = %s" % (n, G.node[n]['block_'].nxgraph.nodes())
                 tmp = nxgraph_node_by_id_recursive(G.node[n]['block_'].nxgraph, nid)
@@ -185,7 +234,7 @@ def nxgraph_add_edges(G):
         cnode = G.node[node]['block_']
         gen = (n for n in G if G.node[n]['block_'].id.startswith(node))
         for loopchild in list(gen):
-            print "graph.nxgraph_add_edges: loopchild = %s" %( loopchild,)
+            # print "graph.nxgraph_add_edges: loopchild = %s" %( loopchild,)
             # if v['params'].has_key('loopblock') and len(v['params']['loopblock']) == 0:
             if loopchild != node: # cnode.id:
                 # k_from = node.split("_")[0]
@@ -242,7 +291,7 @@ def nxgraph_plot(G, ax, pos = None, layout_type = "spring", node_color = None, n
             e1.append(edge)
             edgetype = "data"
             
-        print "edge type = %s, %s" % (edgetype, edge)
+        # print "edge type = %s, %s" % (edgetype, edge)
 
     nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = e1, edge_color = "g", width = 2)
     nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = e2, edge_color = "k")

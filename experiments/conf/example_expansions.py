@@ -44,10 +44,10 @@ ppycnf2 = {
     # 'logfile': 'data/stepPickles/step_period_12_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_76_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_26_0.pickle',
-    # 'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle', # continuous sweep
-    # 'numsteps': 5000,
-    'logfile': 'data/goodPickles/recording_eC0.20_eA0.02_c0.50_n1000_id0.pickle',
-    'numsteps': 1000,
+    'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle', # continuous sweep
+    'numsteps': 5000,
+    # 'logfile': 'data/goodPickles/recording_eC0.20_eA0.02_c0.50_n1000_id0.pickle',
+    # 'numsteps': 1000,
     'logtype': 'puppy',
     'xdim': 6,
     'xdim_eff': 3,
@@ -67,7 +67,7 @@ else:
     sys_slicespec = {'x': {'acc': slice(0, 3), 'gyr': slice(3, xdim)}}
 
 scanstart = -60
-scanstop = 1
+scanstop = 0
 scanlen = scanstop - scanstart
 
 # 1000/1000
@@ -178,7 +178,7 @@ graph = OrderedDict([
             'blocksize': 100,
             'debug': False,
             'inputs': {
-                'y': {'bus': 'data/x', 'shape': (xdim, 100)},
+                'y': {'bus': 'data/y', 'shape': (ydim, 100)},
                 'x': {'bus': 'data/x', 'shape': (xdim, 100)},
                 # 'norm': {'val': np.array([[7.0]]), 'shape': (1, 1)},
             },

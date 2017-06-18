@@ -5,7 +5,7 @@ block: basic block of computation
 2017 Oswald Berthold
 """
 
-import uuid, sys, time, copy
+import uuid, sys, time, copy, re
 from collections import OrderedDict, MutableMapping
 import itertools
 from functools import partial
@@ -365,13 +365,13 @@ class Block2(object):
             print "What could it be? Look at %s" % (self.conf)
 
         # check id
-        assert hasattr(self, 'id')
+        assert hasattr(self, 'id'), "Block2 init: id needs to be configured"
         # FIXME: check unique id, self.id not in self.topblock.ids
         # if id not is None:
         #     self.id = blockid
 
         # input buffer vs. blocksize: input buffer is sliding, blocksize is jumping
-        # FIXME: delete ibuf
+        # FIXME: obsolete? delete ibuf
         if self.blocksize > self.ibuf:
             self.ibuf = self.blocksize
 
@@ -408,7 +408,8 @@ class Block2(object):
                 # print "Trying nxgraph_dump"
 
             log.log_pd_store_config_final(nxgraph_to_smp_graph(self.nxgraph))
-                
+
+        # not topblock
         else:
             # get bus from topblock
             self.bus = self.top.bus
@@ -422,7 +423,15 @@ class Block2(object):
         ################################################################################
         # 2 copy the config dict to exec graph if hierarchical
         if hasattr(self, 'graph') or hasattr(self, 'subgraph') \
-          or (hasattr(self, 'loopblock') and len(self.loopblock) != 0): # composite block made up of other blocks FIXME: loop, loop_seq
+          or (hasattr(self, 'loopblock') and len(self.loopblock) != 0):
+            """This is a composite block made up of other blocks via one of
+            several mechanisms:
+             - graph: is a graph configuration dict
+             - subgraph: is path of configuration file
+             - loopblock: loopblocks build subgraphs dynamically
+             - cloneblock: we are cloning another subgraph referenced by existing
+               nodeid
+            """
 
             # print "has all these attrs %s-%s" % (self.cname, self.id)
             # for k,v in self.__dict__.items():
@@ -439,6 +448,105 @@ class Block2(object):
             
             self.nxgraph = nxgraph_from_smp_graph(self.conf)
             
+            # clone
+            if hasattr(self, 'graph') \
+              and type(self.graph) is str \
+              and self.graph.startswith('id:'):
+                # search node
+                print "top graph", self.top.nxgraph.nodes()
+                targetid = self.graph[3:]
+                targetnode = nxgraph_node_by_id_recursive(self.top.nxgraph, targetid)
+                print "targetid", targetid, "targetnode", targetnode
+                if len(targetnode) > 0:
+                    print "    targetnode id = %d, node = %s" % (
+                        targetnode[0][0],
+                        targetnode[0][1].node[targetnode[0][0]])
+                # copy node
+                clone = {}
+                tnode = targetnode[0][1].node[targetnode[0][0]]
+                for k in tnode.keys():
+                    print "cloning: subcloning: k = %s, v = %s" % (k, tnode[k])
+                    clone[k]  = copy.copy(tnode[k])
+                    if k == 'block_':
+                        clone[k].inputs  = copy.deepcopy(tnode[k].inputs)
+                        clone[k].outputs = copy.deepcopy(tnode[k].outputs)
+                    # clone[k]  = copy.deepcopy(tnode[k])
+                    
+                # clone = copy.deepcopy(targetnode[0][1].node[targetnode[0][0]])
+                # clone = copy.copy(targetnode[0][1].node[targetnode[0][0]])
+                # reference copy of block configuration
+                targetnode_ = {
+                    'block_': "<smp_graphs.block_models.ModelBlock2 object at 0x7f586c3e2710>",
+                    'params': {
+                        'inputs': {
+                            'pre_l0': {
+                                'bus': 'pre_l0/pre',
+                                'shape': (1, 1),
+                                'val': np.array([[ 0.]])},
+                            'pre_l1': {
+                                'bus': 'pre_l1/pre_l1',
+                                'shape': (1, 1),
+                                'val': np.array([[ 0.]])},
+                            'meas_l0': {
+                                'bus': 'robot1/s_proprio',
+                                'shape': (1, 1),
+                                'val': np.array([[ 0.]])}},
+                        'models': {
+                            'fwd': {
+                                'inst_': "<smp_graphs.block_models.model object at 0x7f586c3e2b10>",
+                                'odim': 1,
+                                'type': 'actinf_m1',
+                                'algo': 'knn',
+                                'idim': 2}},
+                        'blocksize': 1,
+                        'rate': 1,
+                        'blockphase': [0],
+                        'outputs': {
+                            'pre': {
+                                'buskey': 'pre_l0/pre',
+                                'shape': (1, 1),
+                                'logging': True,
+                                'init': True},
+                            'tgt': {
+                                'buskey': 'pre_l0/tgt',
+                                'shape': (1, 1),
+                                'logging': True,
+                                'init': True},
+                            'err': {
+                                'buskey':
+                                'pre_l0/err',
+                                'shape': (1, 1),
+                                'logging': True,
+                                'init': True}},
+                        'id': 'pre_l0'},
+                    'block': "<class 'smp_graphs.block_models.ModelBlock2'>"}
+                    
+                # replace id refs
+                id_orig = copy.copy(clone['params']['id'])
+                clone['params']['id'] = id_orig + "_clone"
+                clone['block_'].id    = id_orig + "_clone"
+                # replace input refs
+                for k, v in clone['block_'].inputs.items():
+                    # if v['bus']
+                    # v['bus'].split("/")[0]
+                    # v['bus'].split("/")[0] + "_clone"
+                    if hasattr(self, 'inputs'):
+                        v = self.inputs[k]
+                    else:
+                        # replace all occurences of original id with clone id
+                        v['bus'] = re.sub(id_orig, clone['params']['id'], v['bus'])
+                    clone['block_'].inputs[k] = copy.deepcopy(v)
+                    print "%s.init cloning  input k = %s, v = %s" % (self.cname, k, clone['block_'].inputs[k])
+                # replace output refs
+                for k, v in clone['block_'].outputs.items():
+                    # v['buskey'].split("/")[0], v['buskey'].split("/")[0] + "_clone"
+                    v['buskey'] = re.sub(id_orig, clone['params']['id'], v['buskey'])
+                    print "%s.init cloning output k = %s, v = %s" % (self.cname, k, v)
+                    clone['block_'].outputs[k] = copy.deepcopy(v)
+                print "cloning: cloned block_.id = %s" % (clone['block_'].id)
+                # add the modified node
+                self.nxgraph.add_node(0, clone)
+                
             # for n in self.nxgraph.nodes():
             #     print "%s-%s g.node[%s] = %s" % (self.cname, self.id, n, self.nxgraph.node[n])
         
@@ -646,7 +754,7 @@ class Block2(object):
                         if not self.bus.has_key(v['bus']):
                             for i in range(5):
                                 # FIXME: hacky
-                                print "%s-%s init (pass 2) WARNING: bus %s doesn't exist yet and will possibly not be written to by any block" % (self.cname, self.id, v['bus'])
+                                print "%s-%s init (pass 2) WARNING: bus %s doesn't exist yet and will possibly not be written to by any block, buskeys = %s" % (self.cname, self.id, v['bus'], self.bus.keys())
                                 if not self.top.recurrent: time.sleep(1)
                             # pre-init that bus from constant
                             self.bus[v['bus']] = v['val'].copy()
@@ -922,7 +1030,7 @@ class LoopBlock2(Block2):
      """
     def __init__(self, conf = {}, paren = None, top = None):
         self.defaults['loop'] = [1]
-        # self.defaults['loopmode'] = 'sequential'
+        self.loopmode = 'parallel'
         self.defaults['loopblock'] = {}
 
         assert conf['params'].has_key('loop'), "Come on, looping without specification is dumb"
@@ -1006,7 +1114,7 @@ class SeqLoopBlock2(Block2):
     """!@brief Sequential loop block"""
     def __init__(self, conf = {}, paren = None, top = None):
         self.defaults['loop'] = [1]
-        # self.defaults['loopmode'] = 'sequential'
+        self.defaults['loopmode'] = 'sequential'
         self.defaults['loopblock'] = {}
         Block2.__init__(self, conf = conf, paren = paren, top = top)
 

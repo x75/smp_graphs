@@ -63,7 +63,10 @@ graph = OrderedDict([
             'id': 'bplot',
             'blocksize': numsteps,
             'debug': False,
-            'inputs': {'d1': {'bus': 'cnt/x'}, 'd2': {'bus': 'sin/y'}, 'd3': {'bus': 'noise/r'}},
+            'inputs': {
+                'd1': {'bus': 'cnt/x', 'shape': (1, numsteps)},
+                'd2': {'bus': 'sin/y', 'shape': (1, numsteps)},
+                'd3': {'bus': 'noise/r', 'shape': (1, numsteps)}},
             'outputs': {},
             'subplots': [
                 [
@@ -89,9 +92,9 @@ graph = OrderedDict([
             'debug': False,
             'blocksize': numsteps,
             'inputs': {
-                'd1': {'bus': 'cnt/x'},
-                'd2': {'bus': 'sin/y'},
-                'd3': {'bus': 'noise/r'},
+                'd1': {'bus': 'cnt/x', 'shape': (1, numsteps)},
+                'd2': {'bus': 'sin/y', 'shape': (1, numsteps)},
+                'd3': {'bus': 'noise/r', 'shape': (1, numsteps)},
             },
             'outputs': {},#'x': [(3, 1)]},
             'subplots': [

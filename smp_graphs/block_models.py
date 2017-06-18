@@ -9,13 +9,13 @@ models dvl devleopmental models
 
 import numpy as np
 
+from mdp.nodes import PolynomialExpansionNode
+
 # reservoir lib from smp_base
 from reservoirs import Reservoir, res_input_matrix_random_sparse, res_input_matrix_disjunct_proj
 
+from smp_graphs.graph import nxgraph_node_by_id_recursive
 from smp_graphs.block import decInit, decStep, PrimBlock2
-
-from mdp.nodes import PolynomialExpansionNode
-
 from smp_base.models_actinf import ActInfKNN, ActInfGMM, ActInfHebbianSOM
 
 try:
@@ -105,7 +105,7 @@ def init_res(ref, conf, mconf):
         bias_scale = mconf['bias_scale'], # 0.0,
         feedback_scale = 0.0,
         g = 0.99,
-        tau = 0.1,
+        tau = 0.05,
     )
     ref.res.wi = res_input_matrix_random_sparse(mconf['input_num'], mconf['N'], density = 0.2) * mconf['input_scale']
     params['outputs']['x_res'] = {'shape': (mconf['N'], 1)}
@@ -141,7 +141,8 @@ def step_random_uniform(ref):
     hi = ref.inputs['x']['val'].T
     for outk, outv in ref.outputs.items():
         setattr(ref, outk, np.random.uniform(-hi, hi, size = outv['shape']))
-        print "step_random_uniform %s.%s = %s" % (ref.id, outk, getattr(ref, outk))
+        print "%s-%s[%d]model.step_random_uniform %s = %s" % (
+            ref.cname, ref.id, ref.cnt, outk, getattr(ref, outk))
 
 # active inference stuff
 def init_model(ref, conf, mconf):
@@ -161,6 +162,18 @@ def init_model(ref, conf, mconf):
         mdl = ActInfSOESGP(idim, odim)
     elif algo == "storkgp":
         mdl = ActInfSTORKGP(idim, odim)
+    elif algo == 'copy':
+        targetid = mconf['copyid']
+        targetnode = nxgraph_node_by_id_recursive(ref.top.nxgraph, targetid)
+        print "targetid", targetid, "targetnode", targetnode
+        if len(targetnode) > 0:
+            print "    targetnode id = %d, node = %s" % (
+                targetnode[0][0],
+                targetnode[0][1].node[targetnode[0][0]])
+            # copy node
+            clone = {}
+            tnode = targetnode[0][1].node[targetnode[0][0]]
+        mdl = tnode['block_'].mdl
     else:
         print "unknown model algorithm %s, exiting" % (algo, )
         # import sys
@@ -181,11 +194,6 @@ def init_actinf_m1(ref, conf, mconf):
     ref.pre_l1_tm1 = 0
 
 def step_actinf_m1(ref):
-    if hasattr(ref, 'rate'):
-        if (ref.cnt % ref.rate) not in ref.blockphase: return
-
-    eta = 0.7
-            
     # current goal, prediction descending from layer above
     pre_l1   = ref.inputs['pre_l1']['val']
     # measurement at current layer input
@@ -193,25 +201,56 @@ def step_actinf_m1(ref):
     # prediction  at current layer input
     pre_l0   = ref.inputs['pre_l0']['val']
 
-    # prediction error at current layer input
-    if np.sum(np.abs(pre_l1 - ref.pre_l1_tm1)) > 1e-3:
-        prerr_l0 = np.zeros_like(pre_l1) # pre_l1 - ref.pre_l1_tm1 # pre_l1 # + noise?
-    else:
-        prerr_l0 = pre_l0 - pre_l1
-
-    # print "prerr_l0", prerr_l0
-    # prerr statistics / expansion
-    # self.prediction_errors_extended()
-
-    # compute the target for the  forward model from the prediction error
-    # if i % 10 == 0: # play with decreased update rates
-    ref.y_ = pre_l0 - (prerr_l0 * eta)
-    # FIXME: suppress update when error is small enough (< threshold)
-
-    # print "%s.step_actinf_m1[%d] ref.X_ = %s, ref.y_ = %s" % (ref.__class__.__name__, ref.cnt, ref.X_.shape, ref.y_.shape)
+    assert pre_l1.shape[-1] == pre_l0.shape[-1] == meas_l0.shape[-1], "step_actinf_m1: input shapes need to agree"
     
-    # fit the model
-    ref.mdl.fit(ref.X_, ref.y_)
+    if pre_l1.shape[-1] > 0:
+        for i in range(pre_l1.shape[-1]):
+            (pre, prerr, y_) = step_actinf_m1_single(ref, pre_l1[...,[i]], pre_l0[...,[i]], meas_l0[...,[i]])
+            print "id", ref.id, "pre", pre, "prerr", prerr, "y_", y_
+            pre_ = getattr(ref, 'pre')
+            pre_[...,[i]] = pre
+            err_ = getattr(ref, 'err')
+            err_[...,[i]] = prerr
+            tgt_ = getattr(ref, 'tgt')
+            tgt_[...,[i]] = y_
+            
+    # publish model's internal state
+    # setattr(ref, 'pre', pre_l0.T)
+    # setattr(ref, 'err', prerr_l0)
+    # setattr(ref, 'tgt', ref.y_)
+    setattr(ref, 'pre', pre_)
+    setattr(ref, 'err', err_)
+    setattr(ref, 'tgt', tgt_)
+    
+def step_actinf_m1_single(ref, pre_l1, pre_l0, meas_l0):
+    if hasattr(ref, 'rate'):
+        if (ref.cnt % ref.rate) not in ref.blockphase: return
+
+    eta = 0.7
+            
+    prerr_l0 = np.zeros_like(pre_l1)
+    
+    print "pre_l1", pre_l1.shape, "meas_l0", meas_l0.shape, "pre_l0", pre_l0.shape
+
+    if not np.any(np.isinf(meas_l0)):
+        # prediction error at current layer input
+        if np.sum(np.abs(pre_l1 - ref.pre_l1_tm1)) < 1e-3:
+            # prerr_l0 = pre_l0 - pre_l1
+            prerr_l0 = meas_l0 - pre_l1
+
+        # print "prerr_l0", prerr_l0
+        # prerr statistics / expansion
+        # self.prediction_errors_extended()
+
+        # compute the target for the  forward model from the prediction error
+        # if i % 10 == 0: # play with decreased update rates
+        ref.y_ = pre_l0 - (prerr_l0 * eta)
+        # FIXME: suppress update when error is small enough (< threshold)
+
+        # print "%s.step_actinf_m1[%d] ref.X_ = %s, ref.y_ = %s" % (ref.__class__.__name__, ref.cnt, ref.X_.shape, ref.y_.shape)
+    
+        # fit the model
+        ref.mdl.fit(ref.X_, ref.y_)
 
     # # prepare new model input
     # if np.sum(np.abs(pre_l1 - ref.pre_l1_tm1)) > 1e-6:
@@ -219,11 +258,13 @@ def step_actinf_m1(ref):
     #     prerr_l0 = pre_l0 - pre_l1
             
     # m1: model input X is goal and prediction error
-    ref.X_ = np.hstack((pre_l1, prerr_l0))
+    ref.X_ = np.hstack((pre_l1.T, prerr_l0.T))
+    print "ref.X_.shape", ref.X_.shape
 
     # predict next values at current layer input
     pre_l0 = ref.mdl.predict(ref.X_)
 
+    print "ModelBlock2: X", ref.X_.shape, "pre_l0", pre_l0.shape
     # for outk, outv in ref.outputs.items():
     #     setattr(ref, outk, pre_l0)
     #     print "step_actinf_m1 %s.%s = %s" % (ref.id, outk, getattr(ref, outk))
@@ -231,10 +272,7 @@ def step_actinf_m1(ref):
     # remember last descending prediction
     ref.pre_l1_tm1 = pre_l1.copy()
 
-    # publish model's internal state
-    setattr(ref, 'pre', pre_l0)
-    setattr(ref, 'err', prerr_l0)
-    setattr(ref, 'tgt', ref.y_)
+    return (pre_l0.T, prerr_l0, ref.y_)
         
 class model(object):
     """model
@@ -273,12 +311,15 @@ class ModelBlock2(PrimBlock2):
     def __init__(self, conf = {}, paren = None, top = None):
         """ModelBlock2 init"""
         params = conf['params']
+
+        self.top = top
         
         for k, v in params['models'].items():
             v['inst_'] = model(ref = self, conf = conf, mconf = v)
             params['models'][k] = v
 
-        # print "\n params.models = %s" % (params['models'], )
+        print "\n params.models = %s" % (params['models'], )
+        print "top", top.id
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
         # print "\n self.models = %s" % (self.models, )

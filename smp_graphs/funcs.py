@@ -105,6 +105,69 @@ def f_meshgrid(args):
     print "func", full_axes_flat
     return {'meshgrid': full_axes_flat} # .T
 
+def f_meshgrid_mdl(args):
+    fu_check_required_args(args, ['ranges', 'steps'], 'f_meshgrid_mdl')
+
+    # create meshgrid over proprio dimensions
+    steps = get_input(args, 'steps')
+    ranges = get_input(args, 'ranges')
+    ndims = len(ranges)
+    
+    # # extero config
+    # dim_axes = [np.linspace(self.environment.conf.s_mins[i], self.environment.conf.s_maxs[i], steps) for i in range(self.environment.conf.s_ndims)]
+    # # dim_axes = [np.linspace(self.environment.conf.s_mins[i], self.environment.conf.s_maxs[i], steps) for i in range(self.mdl.idim)]
+    # print "rh_model_sweep_generate_input_grid: s_ndims = %d, dim_axes = %s" % (self.environment.conf.s_ndims, dim_axes,)
+    # full_axes = np.meshgrid(*tuple(dim_axes), indexing='ij')
+    # print "rh_model_sweep_generate_input_grid: full_axes = %s, %s" % (len(full_axes), full_axes,)
+
+    dim_axes = [np.linspace(min_, max_, steps) for min_, max_ in ranges]
+
+    full_axes = np.meshgrid(*tuple(dim_axes), indexing='ij')
+    
+    for i in range(len(full_axes)):
+        print i, full_axes[i].shape
+        print i, full_axes[i].flatten()
+
+    # return proxy
+    error_grid = np.vstack([full_axes[i].flatten() for i in range(len(full_axes))])
+    print "error_grid", error_grid.shape
+
+    # draw state / goal configurations
+    X_accum = []
+    states = np.linspace(-1, 1, steps)
+    # for state in range(1): # steps):
+    for state in states:
+        # randomize initial position
+        # self.M_prop_pred = self.environment.compute_motor_command(np.random.uniform(-1.0, 1.0, (1, self.odim)))
+        # draw random goal and keep it fixed
+        # self.goal_prop = self.environment.compute_motor_command(np.random.uniform(-1.0, 1.0, (1, self.odim)))
+        goal_prop = np.ones((1, ndims)) * state
+        # self.goal_prop = np.random.uniform(self.environment.conf.m_mins, self.environment.conf.m_maxs, (1, self.odim))
+        GOALS = np.repeat(goal_prop, error_grid.shape[1], axis = 0) # as many goals as error components
+        # FIXME: hacks for M1/M2
+        if ndims == 3:
+            X = GOALS
+        elif ndims == 6:
+            X = np.hstack((GOALS, error_grid.T))
+        else:
+            X = np.hstack((GOALS, error_grid.T))
+        X_accum.append(X)
+
+    X_accum = np.array(X_accum)
+
+    # don't need this?
+    # X_accum = X_accum.reshape((X_accum.shape[0] * X_accum.shape[1], X_accum.shape[2]))
+        
+    # print "X_accum.shape = %s, mdl.idim = %d, mdl.odim = %d" % (X_accum.shape, self.mdl.idim, self.mdl.odim)
+    # print X_accum
+    X = X_accum
+    # X's and pred's indices now mean: slowest: goal, e1, e2, fastest: e3
+    # self.X_model_sweep = X.copy()
+    # print "self.X_model_sweep.shape", self.X_model_sweep.shape
+    # return proxy
+    full_axes_flat = np.vstack([full_axes[i].flatten() for i in range(len(full_axes))])
+    print "func", full_axes_flat
+    return {'meshgrid': full_axes_flat} # .T
     
 ################################################################################
 # model functions
