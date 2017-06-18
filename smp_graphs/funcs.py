@@ -102,6 +102,7 @@ def f_meshgrid(args):
             
     # return proxy
     full_axes_flat = np.vstack([full_axes[i].flatten() for i in range(len(full_axes))])
+    # print "func", full_axes_flat.shape
     # print "func", full_axes_flat
     return {'meshgrid': full_axes_flat} # .T
 

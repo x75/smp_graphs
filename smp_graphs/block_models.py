@@ -201,6 +201,10 @@ def step_actinf_m1(ref):
     # prediction  at current layer input
     pre_l0   = ref.inputs['pre_l0']['val']
 
+    # print "pre_l1.shape", pre_l1.shape, "pre_l0.shape", pre_l0.shape
+
+    # print "ref.pre.shape", ref.pre.shape, "ref.err.shape", ref.err.shape
+    
     assert pre_l1.shape[-1] == pre_l0.shape[-1] == meas_l0.shape[-1], "step_actinf_m1: input shapes need to agree"
 
     # loop over block if inputs
@@ -217,6 +221,10 @@ def step_actinf_m1(ref):
             err_[...,[i]] = prerr
             tgt_ = getattr(ref, 'tgt')
             tgt_[...,[i]] = y_
+
+    # print "pre_", pre_
+    # print "err_", err_
+    # print "tgt_", tgt_
             
     # publish model's internal state
     # setattr(ref, 'pre', pre_l0.T)
@@ -258,6 +266,9 @@ def step_actinf_m1_single(ref, pre_l1, pre_l0, meas_l0):
     
         # fit the model
         ref.mdl.fit(ref.X_, ref.y_)
+    else:
+        # FIXME: for model testing
+        prerr_l0 = pre_l0.copy()
 
     # # prepare new model input
     # if np.sum(np.abs(pre_l1 - ref.pre_l1_tm1)) > 1e-6:

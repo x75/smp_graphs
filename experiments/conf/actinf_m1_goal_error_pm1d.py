@@ -117,8 +117,8 @@ sweepsys[1]['params']['inputs'] = {'u': {'bus': 'sweepsys_grid/meshgrid'}}
 sweepsys[1]['params']['outputs']['s_proprio']['shape'] = (dim, sweepsys_input_flat)
 sweepsys[1]['params']['outputs']['s_extero']['shape']  = (dim, sweepsys_input_flat)
 
-sweepmdl_steps = 11
-sweepmdl_input_flat = np.power(sweepmdl_steps, dim)
+sweepmdl_steps = 21
+sweepmdl_input_flat = np.power(sweepmdl_steps, dim * 2)
 
 loopblock = {
     'block': Block2,
@@ -166,38 +166,76 @@ loopblock_model = {
         'blockphase': [0],        # phase = 0
         'outputs': {
             'pre': {
-                'shape': (dim, sweepmdl_input_flat),
-                'buscopy': 'sweepmdl_grid_goal/pre'}},
+                'shape': (dim * 2, sweepmdl_input_flat),
+                'buscopy': 'sweepmdl_grid/meshgrid'}},
         # subgraph
         'graph': OrderedDict([
             # model sweep input
-            ('sweepmdl_grid_goal', {
+            ('sweepmdl_grid', {
                 'block': FuncBlock2,
                 'params': {
                     'debug': False,
                     'blocksize': sweepmdl_input_flat,
                     'inputs': {
-                        'ranges': {'val': np.array([[-1, 1]])},
+                        'ranges': {'val': np.array([[-1, 1], [-1e-0, 1e-0]])},
                         'steps':  {'val': sweepmdl_steps},
                         },
-                    'outputs': {'pre': {'shape': (dim, sweepmdl_input_flat)}},
+                    'outputs': {
+                        'meshgrid': {
+                            'shape': (
+                                dim * 2,
+                                sweepmdl_input_flat,)}},
                     'func': f_meshgrid,
                     },
                 }),
                 
-            # model sweep input
-            ('sweepmdl_grid_err', {
-                'block': FuncBlock2,
+            # # model sweep input
+            # ('sweepmdl_grid_goal', {
+            #     'block': FuncBlock2,
+            #     'params': {
+            #         'debug': False,
+            #         'blocksize': sweepmdl_input_flat,
+            #         'inputs': {
+            #             'ranges': {'val': np.array([[-1, 1]])},
+            #             'steps':  {'val': sweepmdl_steps},
+            #             },
+            #         'outputs': {'pre': {'shape': (dim, sweepmdl_input_flat)}},
+            #         'func': f_meshgrid,
+            #         },
+            #     }),
+                
+            # # model sweep input
+            # ('sweepmdl_grid_err', {
+            #     'block': FuncBlock2,
+            #     'params': {
+            #         'debug': False,
+            #         'blocksize': sweepmdl_input_flat,
+            #         'inputs': {
+            #             'ranges': {'val': np.array([[-1e-0, 1e-0]])},
+            #             'steps':  {'val': sweepmdl_steps},
+            #             },
+            #         'outputs': {'pre': {'shape': (dim, sweepmdl_input_flat)}},
+            #         'func': f_meshgrid,
+            #         },
+            #     }),
+
+            ('sweep_slice', {
+                'block': SliceBlock2,
                 'params': {
-                    'debug': False,
+                    'id': 'sweep_slice',
                     'blocksize': sweepmdl_input_flat,
+                    # puppy sensors
                     'inputs': {
-                        'ranges': {'val': np.array([[-1e-0, 1e-0]])},
-                        'steps':  {'val': sweepmdl_steps},
+                        'x': {
+                            'bus': 'sweepmdl_grid/meshgrid',
+                            'shape': (dim * 2, sweepmdl_input_flat)}},
+                    'slices': {
+                        'x': {
+                            'goals': slice(0, dim),
+                            'errs':  slice(dim, dim*2)},
                         },
-                    'outputs': {'pre': {'shape': (dim, sweepmdl_input_flat)}},
-                    'func': f_meshgrid,
-                    },
+                    # 'slices': ,
+                    }
                 }),
 
             # model sweep
@@ -207,14 +245,15 @@ loopblock_model = {
                 'params': {
                     'blocksize': sweepmdl_input_flat,
                     'blockphase': [0],
+                    'debug': False, # True,
                     'inputs': {
                         # descending prediction
                         'pre_l1': {
-                            'bus': 'sweepmdl_grid_goal/pre',
+                            'bus': 'sweep_slice/x_goals',
                             'shape': (dim,sweepmdl_input_flat)},
                         # ascending prediction error
                         'pre_l0': {
-                            'bus': 'sweepmdl_grid_err/pre',
+                            'bus': 'sweep_slice/x_errs',
                             'shape': (dim, sweepmdl_input_flat)},
                         # measurement
                         'meas_l0': {
@@ -240,13 +279,17 @@ loopblock_model = {
                 'block': StackBlock2,
                 'params': {
                     'inputs': {
-                        'goals': {
-                            'bus': 'sweepmdl_grid_goal/pre',
-                            'shape': (dim, sweepmdl_input_flat),
-                            },
-                        'errs':  {
-                            'bus': 'sweepmdl_grid_err/pre',
-                            'shape': (dim, sweepmdl_input_flat),
+                        # 'goals': {
+                        #     'bus': 'sweepmdl_grid_goal/pre',
+                        #     'shape': (dim, sweepmdl_input_flat),
+                        #     },
+                        # 'errs':  {
+                        #     'bus': 'sweepmdl_grid_err/pre',
+                        #     'shape': (dim, sweepmdl_input_flat),
+                        #     },
+                        'goalerrs': {
+                            'bus': 'sweepmdl_grid/meshgrid',
+                            'shape': (dim * 2, sweepmdl_input_flat),
                             },
                         'pres':  {
                             'bus': 'pre_l0_test/pre',
@@ -301,18 +344,18 @@ loopblock_model = {
                     'id': 'plot_model_sweep',
                     'logging': False,
                     'saveplot': saveplot,
-                    'debug': False,
+                    'debug': True,
                     'blocksize': sweepmdl_input_flat,
                     'inputs': {
-                        'sweepin_goal': {
-                            'bus': 'sweepmdl_grid_goal/pre',
-                            'shape': (dim, sweepmdl_input_flat)},
-                        'sweepin_err':  {
-                            'bus': 'sweepmdl_grid_err/pre',
-                            'shape': (dim, sweepmdl_input_flat)},
-                        'sweepout_mdl':  {
-                            'bus': 'pre_l0_test/pre',
-                            'shape': (dim, sweepmdl_input_flat)},
+                        # 'sweepin_goal': {
+                        #     'bus': 'sweepmdl_grid_goal/pre',
+                        #     'shape': (dim, sweepmdl_input_flat)},
+                        # 'sweepin_err':  {
+                        #     'bus': 'sweepmdl_grid_err/pre',
+                        #     'shape': (dim, sweepmdl_input_flat)},
+                        # 'sweepout_mdl':  {
+                        #     'bus': 'pre_l0_test/pre',
+                        #     'shape': (dim, sweepmdl_input_flat)},
                         'all': {
                             'bus': 'pre_l0_combined/y',
                             'shape': (dim * 3, sweepmdl_input_flat),
@@ -326,8 +369,9 @@ loopblock_model = {
                         [
                             {
                                 'input': ['all'],
-                                'shape': (1, sweepmdl_input_flat),
-                                'ndslice': (slice(None), slice(-1, None)),
+                                'shape': (sweepmdl_steps, sweepmdl_steps),
+                                'ndslice': [(slice(None), slice(2, 3))],
+                                'vmin': -1, 'vmax': 1, 'cmap': 'RdGy',
                                 }
                             # {
                             #     'input': ['sweepin_goal'],
@@ -459,10 +503,11 @@ graph = OrderedDict([
             #                        execution phase, on first time step only
             # 'blockphase': [numsteps/2, numsteps-10],
             'blockphase': [100, 200, 950],
+            # 'blockphase': [0],
             'numsteps':  1, # numsteps,          # numsteps      / loopblocksize = looplength
             'loopblocksize': 1, #loopblocksize, # loopblocksize * looplength    = numsteps
             # can't do this dynamically yet without changing init passes
-            'outputs': {'pre': {'shape': (dim, sweepmdl_input_flat)}},
+            'outputs': {'pre': {'shape': (dim * 2, sweepmdl_input_flat)}},
             'loop': [('none', {}) for i in range(2)], # lambda ref, i, obj: ('none', {}),
             'loopmode': 'sequential',
             'loopblock': loopblock_model,

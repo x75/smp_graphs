@@ -363,8 +363,8 @@ class ImgPlotBlock2(FigPlotBlock2):
                         # plotdata_cand = self.inputs[subplotconf['input'][0]]['val'][di, dj, :, -1]
                         ink = subplotconf['input'][0]
                         plotdata_cand = myt(self.inputs[ink]['val'])[subplotconf['ndslice'][0]]
-                        # print "%s[%d]-%s.step plotdata_cand.shape = %s, ndslice = %s, shape = %s, xslice = %s, yslice = %s" % (self.cname, self.cnt, self.id, plotdata_cand.shape, subplotconf['ndslice'], subplotconf['shape'], xslice, yslice)
-                        # print "plotdata_cand", plotdata_cand
+                        print "%s[%d]-%s.step plotdata_cand.shape = %s, ndslice = %s, shape = %s, xslice = %s, yslice = %s" % (self.cname, self.cnt, self.id, plotdata_cand.shape, subplotconf['ndslice'], subplotconf['shape'], xslice, yslice)
+                        print "plotdata_cand", plotdata_cand
                     else:
                         try:
                             plotdata_cand = myt(self.inputs[subplotconf['input'][0]]['val'])[xslice,yslice]

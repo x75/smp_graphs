@@ -1441,7 +1441,7 @@ class SliceBlock2(PrimBlock2):
             slicespec = params['slices'][k]
             # print slicespec
             for slk, slv in slicespec.items():
-                # print "%s.init inkeys %s" % (self.__class__.__name__, k)
+                # print "%s.init inkeys %s, slicekey = %s" % (self.__class__.__name__, k, slk)
                 # really use the specified output shape, not execution blocksize
                 oblocksize = v['shape'][-1]
                 outk = "%s_%s" % (k, slk)
@@ -1457,11 +1457,13 @@ class SliceBlock2(PrimBlock2):
     @decStep()
     def step(self, x = None):
         for ink in self.inputs.keys():
+            # print "%s-%s[%d] ink = %s, inv = %s" % (self.cname, self.id, self.cnt,
+            #                                             ink, self.inputs[ink])
             slicespec = self.slices[ink]
             for slk, slv in slicespec.items():
                 outk = "%s_%s" % (ink, slk)
                 setattr(self, outk, self.inputs[ink]['val'][slv])
-                # print "%s-%s.step[%d] outk = %s, outsh = %s" % (self.cname, self.id, self.cnt, outk, getattr(self, outk).shape)
+                # print "%s-%s.step[%d] outk = %s, outsh = %s, out = %s" % (self.cname, self.id, self.cnt, outk, getattr(self, outk).shape, getattr(self, outk))
 
 class StackBlock2(PrimBlock2):
     """!@brief Stack block can combine input slices into a single output item
