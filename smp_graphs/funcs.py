@@ -96,13 +96,13 @@ def f_meshgrid(args):
     # print "full_axes", len(full_axes)
     # print "full_axes", full_axes
     
-    for i in range(len(full_axes)):
-        print i, full_axes[i].shape
-        print i, full_axes[i].flatten()
+    # for i in range(len(full_axes)):
+    #     print i, full_axes[i].shape
+    #     print i, full_axes[i].flatten()
             
     # return proxy
     full_axes_flat = np.vstack([full_axes[i].flatten() for i in range(len(full_axes))])
-    print "func", full_axes_flat
+    # print "func", full_axes_flat
     return {'meshgrid': full_axes_flat} # .T
 
 def f_meshgrid_mdl(args):

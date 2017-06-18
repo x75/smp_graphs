@@ -68,11 +68,12 @@ def nxgraph_from_smp_graph(conf):
         # 1 standard graph as dict
         # 2 existing node which we want to clone
 
-        print "type graph", type(conf['params']['graph'])
+        # print "type graph", type(conf['params']['graph'])
         if type(conf['params']['graph']) is OrderedDict:
             (G, nc) = nxgraph_add_nodes_from_dict(conf['params']['graph'], G, nc)
         elif type(conf['params']['graph']) is str and \
             conf['params']['graph'].startswith("id:"):
+            # FIXME: obsolete, from cloning
             # look at the structure we want to copy and copy the input / output
             # spec?
             # no, input / output spec needs to be given, do the inference in a

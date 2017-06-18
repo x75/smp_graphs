@@ -141,8 +141,8 @@ def step_random_uniform(ref):
     hi = ref.inputs['x']['val'].T
     for outk, outv in ref.outputs.items():
         setattr(ref, outk, np.random.uniform(-hi, hi, size = outv['shape']))
-        print "%s-%s[%d]model.step_random_uniform %s = %s" % (
-            ref.cname, ref.id, ref.cnt, outk, getattr(ref, outk))
+        # print "%s-%s[%d]model.step_random_uniform %s = %s" % (
+        #     ref.cname, ref.id, ref.cnt, outk, getattr(ref, outk))
 
 # active inference stuff
 def init_model(ref, conf, mconf):
@@ -165,11 +165,11 @@ def init_model(ref, conf, mconf):
     elif algo == 'copy':
         targetid = mconf['copyid']
         targetnode = nxgraph_node_by_id_recursive(ref.top.nxgraph, targetid)
-        print "targetid", targetid, "targetnode", targetnode
+        # print "targetid", targetid, "targetnode", targetnode
         if len(targetnode) > 0:
-            print "    targetnode id = %d, node = %s" % (
-                targetnode[0][0],
-                targetnode[0][1].node[targetnode[0][0]])
+            # print "    targetnode id = %d, node = %s" % (
+            #     targetnode[0][0],
+            #     targetnode[0][1].node[targetnode[0][0]])
             # copy node
             clone = {}
             tnode = targetnode[0][1].node[targetnode[0][0]]
@@ -202,11 +202,15 @@ def step_actinf_m1(ref):
     pre_l0   = ref.inputs['pre_l0']['val']
 
     assert pre_l1.shape[-1] == pre_l0.shape[-1] == meas_l0.shape[-1], "step_actinf_m1: input shapes need to agree"
-    
+
+    # loop over block if inputs
     if pre_l1.shape[-1] > 0:
         for i in range(pre_l1.shape[-1]):
             (pre, prerr, y_) = step_actinf_m1_single(ref, pre_l1[...,[i]], pre_l0[...,[i]], meas_l0[...,[i]])
-            print "id", ref.id, "pre", pre, "prerr", prerr, "y_", y_
+            ref.debug_print(
+                "id = %s, pre = %s, prerr = %s, tgt = %s",
+                (ref.id, pre, prerr, y_))
+            
             pre_ = getattr(ref, 'pre')
             pre_[...,[i]] = pre
             err_ = getattr(ref, 'err')
@@ -229,8 +233,11 @@ def step_actinf_m1_single(ref, pre_l1, pre_l0, meas_l0):
     eta = 0.7
             
     prerr_l0 = np.zeros_like(pre_l1)
-    
-    print "pre_l1", pre_l1.shape, "meas_l0", meas_l0.shape, "pre_l0", pre_l0.shape
+
+    # debug
+    ref.debug_print(
+        "actinf_m1 pre_l1 = %s, meas_l0 = %s, pre_l0 = %s",
+        (pre_l1.shape, meas_l0.shape, pre_l0.shape))
 
     if not np.any(np.isinf(meas_l0)):
         # prediction error at current layer input
@@ -259,12 +266,12 @@ def step_actinf_m1_single(ref, pre_l1, pre_l0, meas_l0):
             
     # m1: model input X is goal and prediction error
     ref.X_ = np.hstack((pre_l1.T, prerr_l0.T))
-    print "ref.X_.shape", ref.X_.shape
+    ref.debug_print("ref.X_.shape = %s", (ref.X_.shape, ))
 
     # predict next values at current layer input
     pre_l0 = ref.mdl.predict(ref.X_)
 
-    print "ModelBlock2: X", ref.X_.shape, "pre_l0", pre_l0.shape
+    ref.debug_print("actinf_m1 ref.X_ = %s, pre_l0 = %s", (ref.X_.shape, pre_l0.shape))
     # for outk, outv in ref.outputs.items():
     #     setattr(ref, outk, pre_l0)
     #     print "step_actinf_m1 %s.%s = %s" % (ref.id, outk, getattr(ref, outk))
@@ -318,8 +325,9 @@ class ModelBlock2(PrimBlock2):
             v['inst_'] = model(ref = self, conf = conf, mconf = v)
             params['models'][k] = v
 
-        print "\n params.models = %s" % (params['models'], )
-        print "top", top.id
+        # print "\n params.models = %s" % (params['models'], )
+        # print "top", top.id
+        
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
         # print "\n self.models = %s" % (self.models, )

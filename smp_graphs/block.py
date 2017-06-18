@@ -907,7 +907,7 @@ class Block2(object):
         for i in range(self.nxgraph.number_of_nodes()):
             # assume output's initialized
             node = self.nxgraph.node[i]['block_']
-            print "node", node, node.logging
+            # print "%s-%s log_attr\n    node = %s, logging = %s" % (self.cname, self.id, node, node.logging)
             if not node.logging: continue
 
             # depth first
@@ -1030,9 +1030,11 @@ class LoopBlock2(Block2):
      """
     def __init__(self, conf = {}, paren = None, top = None):
         self.defaults['loop'] = [1]
-        self.loopmode = 'parallel'
         self.defaults['loopblock'] = {}
 
+        # force loopmode set
+        self.loopmode = 'parallel'
+        
         assert conf['params'].has_key('loop'), "Come on, looping without specification is dumb"
         
         Block2.__init__(self, conf = conf, paren = paren, top = top)
@@ -1116,6 +1118,10 @@ class SeqLoopBlock2(Block2):
         self.defaults['loop'] = [1]
         self.defaults['loopmode'] = 'sequential'
         self.defaults['loopblock'] = {}
+
+        # force loopmode set
+        self.loopmode = 'sequential'
+
         Block2.__init__(self, conf = conf, paren = paren, top = top)
 
         self.init_primitive()
@@ -1160,7 +1166,10 @@ class SeqLoopBlock2(Block2):
                 else:
                     loopblock_params[k] = v
 
-            print "%s.step.f_obj: loopblock_params = %s" % (self.cname, loopblock_params)
+            self.debug_print(
+                "%s.step.f_obj:\n    loopblock_params = %s",
+                (self.cname, loopblock_params))
+            
             # create dynamic conf
             loopblock_conf = {'block': self.loopblock['block'], 'params': loopblock_params}
             # instantiate block
@@ -1172,9 +1181,11 @@ class SeqLoopBlock2(Block2):
             # this is needed for using SeqLoop as a sequencer / timeline with full sideway time
             # run the block starting from cnt = 1
             for j in range(1, self.dynblock.numsteps+1):
-                print "%s trying %s.step[%d]" % (self.cname, self.dynblock.cname, j)
+                # print "%s trying %s.step[%d]" % (self.cname, self.dynblock.cname, j)
                 self.dynblock.step()
 
+            print "%s.step did %s.step * %d" % (self.cname, self.dynblock.cname, j)
+                
             d = {}
             for outk, outv in self.dynblock.outputs.items():
                 d[outk] = getattr(self.dynblock, outk)
@@ -1222,18 +1233,18 @@ class SeqLoopBlock2(Block2):
 
         # loop the loop
         then = time.time()
-        print "%s-%s[%d] iter#" % (self.cname,self.id, self.cnt),
+        print "%s-%s[%d] iter#" % (self.cname, self.id, self.cnt),
         for i in range(self.numsteps/self.loopblocksize):
             print "%d" % (i,),
             sys.stdout.flush()
             then = time.time()
-            # dynblock = obj()
+
             # func: need input function from config
-            results = self.f_loop(i, f_obj_) #_hpo)
-            print "SeqLoopBlock2 f_loop results[%d] = %s" % (i, results)
+            results = self.f_loop(i, f_obj_)
+            self.debug_print("SeqLoopBlock2 f_loop results[%d] = %s", (i, results))
             if results is not None:
                 for k, v in results.items():
-                    print "SeqLoopBlock2.step loop %d result k = %s, v = %s" % (i, k, v)
+                    self.debug_print("SeqLoopBlock2.step loop %d result k = %s, v = %s", (i, k, v))
                     setattr(self, k, v)
             # dynblock = results['dynblock']
             # lparams = results['lparams']
@@ -1258,7 +1269,10 @@ class SeqLoopBlock2(Block2):
                 
                 # print "self.   block", self.outputs[outk]
                 # print "self.dynblock", self.dynblock.outputs[outk], getattr(self.dynblock, outk).shape #, self.dynblock.file
-                print "%s.step self.%s = %s, outslice = %s" % (self.cname, outk, getattr(self, outk).shape, outslice, )
+                self.debug_print(
+                    "%s.step self.%s = %s, outslice = %s",
+                    (self.cname, outk, getattr(self, outk).shape, outslice, ))
+                    
                 # print "    dynblock = %s.%s" % (self.dynblock.cname)
                 outvar[:,outslice] = getattr(self.dynblock, outk)
                 # print "outslice", outslice, "outvar", outvar[:,outslice]
@@ -1411,10 +1425,12 @@ params: inputs, delay in steps / shift
             setattr(self, ink_, np.roll(inv_, shift = -self.blocksize, axis = 1))
                         
 class SliceBlock2(PrimBlock2):
-    """!@brief Slice block can cut slices from the input
+    """SliceBlock2
 
-FIXME: make slicing a general function of block i/o
-FIXME: generic ndim slicing?
+    Cut slices from the input tensor
+
+    FIXME: make slicing a general function of block i/o
+    FIXME: generic ndim slicing?
     """
     def __init__(self, conf = {}, paren = None, top = None):
         params = conf['params']
@@ -1455,7 +1471,7 @@ class StackBlock2(PrimBlock2):
 
     @decStep()
     def step(self, x = None):
-        st = [inv[0] for ink, inv in self.inputs.items()]
+        st = [inv['val'] for ink, inv in self.inputs.items()]
         # print "Stack st = %s" % ( len(st))
         self.y = np.vstack(st)
                     
