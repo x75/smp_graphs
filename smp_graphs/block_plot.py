@@ -233,10 +233,10 @@ class PlotBlock2(FigPlotBlock2):
                         
                     # plot the plotdata
                     labels = []
+                    self.fig.axes[idx].clear()
                     for ink, inv in plotdata.items():
                         # print "%s.plot_subplots: ink = %s, plotvar = %s, inv.sh = %s, t.sh = %s" % (self.cname, ink, plotvar, inv.shape, t.shape)
                         # this is the plotfunction from the config
-                        self.fig.axes[idx].clear()
                         subplotconf['plot'](self.fig.axes[idx], data = inv, ordinate = t, label = "%s" % ink, title = title)
                         # labels.append("%s" % ink)
                         # metadata

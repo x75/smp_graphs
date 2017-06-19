@@ -51,6 +51,11 @@ def set_config_defaults(conf):
         conf['params']['numsteps'] = 100
     return conf
 
+def set_config_commandline_args(conf, args):
+    for commandline_arg in conf['params'].has_key("numsteps"):
+        conf['params']['numsteps'] = 100
+    return conf
+
 def make_expr_id_configfile(name = "experiment", configfile = "conf/default2.py"):
     """return experiment signature as name and timestamp"""
     confs = configfile.split("/")
@@ -81,8 +86,10 @@ Load a config from the file in args.conf
         self.conf = get_config_raw(args.conf)
         assert self.conf is not None, "%s.init: Couldn't read config file %s" % (self.__class__.__name__, args.conf)
         self.conf = set_config_defaults(self.conf)
+
+        # self.conf = set_config_commandline_args(self.conf, args)
         
-        # print "%s.init: conf keys = %s\n" % (self.__class__.__name__, self.conf.keys())
+        # print "%s.init: conf keys = %s\n\n\n\n" % (self.__class__.__name__, self.conf.keys())
         
         for k in self.conf.keys():
             setattr(self, k, self.conf[k])

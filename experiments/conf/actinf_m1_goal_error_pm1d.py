@@ -31,13 +31,14 @@ debug = False
 showplot = True
 
 # experiment
+commandline_args = ['numsteps']
 randseed = 12345
-numsteps = 2000
+numsteps = 1000
 dim = 1
 motors = dim
 dt = 0.1
 loopblocksize = numsteps
-algo = 'knn' # 'knn', 'soesgp', 'storkgp'
+algo = 'soesgp' # 'knn', 'soesgp', 'storkgp'
 
 """system block
  - a robot
@@ -64,7 +65,7 @@ systemblock = {
         # "ros": False,
         "statedim": motors * 3,
         "dt": dt,
-        "mass": 1.0,
+        "mass": 1.0/3.0,
         "force_max":  1.0,
         "force_min": -1.0,
         "friction": 0.001,
@@ -84,21 +85,26 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = "pre_l1", blocksize = 1):
             'pre':   {'bus': '%s/pre' % (l0,), 'shape': (dim, blocksize)},
             'err':   {'bus': '%s/err' % (l0,), 'shape': (dim, blocksize)},
             'tgt':   {'bus': '%s/tgt' % (l0,), 'shape': (dim, blocksize)},
+            's_proprio':    {'bus': 'robot1/s_proprio', 'shape': (dim, blocksize)},
+            's_extero':     {'bus': 'robot1/s_extero',  'shape': (dim, blocksize)},
             },
         'hspace': 0.2,
         'subplots': [
             [
-                {'input': ['goals'], 'plot': timeseries},
+                {'input': ['goals', 'pre', 'tgt', 's_proprio'], 'plot': timeseries},
             ],
-            [
-                {'input': ['pre'], 'plot': timeseries},
-            ],
+            # [
+            #     {'input': ['pre'], 'plot': timeseries},
+            # ],
             [
                 {'input': ['err'], 'plot': timeseries},
             ],
-            [
-                {'input': ['tgt'], 'plot': timeseries},
-            ],
+            # [
+            #     {'input': ['tgt'], 'plot': timeseries},
+            # ],
+            # [
+            #     {'input': ['s_proprio', 's_extero'], 'plot': timeseries},
+            # ],
             ]
         }
     }
@@ -502,7 +508,8 @@ graph = OrderedDict([
             'blocksize': numsteps, # execution cycle, same as global numsteps
             #                        execution phase, on first time step only
             # 'blockphase': [numsteps/2, numsteps-10],
-            'blockphase': [100, 200, 950],
+            # 'blockphase': [int(i * numsteps)-1 for i in np.linspace(1.0/2, 1, 2)],
+            'blockphase': [int(i * numsteps)-1 for i in np.linspace(1.0/1, 1, 1)],
             # 'blockphase': [0],
             'numsteps':  1, # numsteps,          # numsteps      / loopblocksize = looplength
             'loopblocksize': 1, #loopblocksize, # loopblocksize * looplength    = numsteps
