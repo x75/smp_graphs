@@ -37,7 +37,7 @@ dim = 1
 motors = dim
 dt = 0.1
 loopblocksize = numsteps
-algo = 'soesgp' # 'knn', 'soesgp', 'storkgp'
+algo = 'knn' # 'knn', 'soesgp', 'storkgp'
 
 """system block
  - a robot

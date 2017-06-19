@@ -363,8 +363,8 @@ class ImgPlotBlock2(FigPlotBlock2):
                         # plotdata_cand = self.inputs[subplotconf['input'][0]]['val'][di, dj, :, -1]
                         ink = subplotconf['input'][0]
                         plotdata_cand = myt(self.inputs[ink]['val'])[subplotconf['ndslice'][0]]
-                        print "%s[%d]-%s.step plotdata_cand.shape = %s, ndslice = %s, shape = %s, xslice = %s, yslice = %s" % (self.cname, self.cnt, self.id, plotdata_cand.shape, subplotconf['ndslice'], subplotconf['shape'], xslice, yslice)
-                        print "plotdata_cand", plotdata_cand
+                        # print "%s[%d]-%s.step plotdata_cand.shape = %s, ndslice = %s, shape = %s, xslice = %s, yslice = %s" % (self.cname, self.cnt, self.id, plotdata_cand.shape, subplotconf['ndslice'], subplotconf['shape'], xslice, yslice)
+                        # print "plotdata_cand", plotdata_cand
                     else:
                         try:
                             plotdata_cand = myt(self.inputs[subplotconf['input'][0]]['val'])[xslice,yslice]
@@ -380,7 +380,7 @@ class ImgPlotBlock2(FigPlotBlock2):
                     # if we're dimstacking, now is the time
                     if subplotconf.has_key('dimstack'):
                         plotdata['i_%d_%d' % (i, j)] = dimensional_stacking(plotdata_cand, subplotconf['dimstack']['x'], subplotconf['dimstack']['y'])
-                        print "plotdata[" + 'i_%d_%d' % (i, j) + "].shape", plotdata['i_%d_%d' % (i, j)].shape
+                        # print "plotdata[" + 'i_%d_%d' % (i, j) + "].shape", plotdata['i_%d_%d' % (i, j)].shape
                     else:
                         plotdata['i_%d_%d' % (i, j)] = plotdata_cand.reshape(subplotconf['shape'][0])
                     if subplotconf.has_key('ylog'):
