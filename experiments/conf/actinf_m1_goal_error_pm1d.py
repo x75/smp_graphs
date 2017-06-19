@@ -32,7 +32,7 @@ showplot = True
 
 # experiment
 randseed = 12345
-numsteps = 1000
+numsteps = 2000
 dim = 1
 motors = dim
 dt = 0.1

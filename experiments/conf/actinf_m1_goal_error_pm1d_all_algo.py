@@ -14,7 +14,7 @@ showplot = True
 
 # experiment
 randseed = 12345
-numsteps = 1000
+numsteps = 2000
 dim = 1
 motors = dim
 dt = 0.1
@@ -25,6 +25,8 @@ looparray = [('subgraphconf', {
     'pre_l0/models': {'fwd': {'type': 'actinf_m1', 'algo': model, 'idim': dim * 2, 'odim': dim},},
     'plot_ts/title': 'actinf_m1 pm1d with %s' % (model, )
     }) for (i, model) in enumerate(models)]
+
+# 'pre_l0_test/models': {'fwd': {'type': 'actinf_m1', 'algo': 'copy', 'copyid': 'pre_l0', 'idim': dim * 2, 'odim': dim},},
 
 loopblock = {
     'block': Block2,
@@ -48,40 +50,9 @@ graph = OrderedDict([
         'params': {
             'id': 'actinf_m1_loop',
             'loop': looparray,
+            # required
+            'loopmode': 'parallel',
             'loopblock': loopblock,
         },
     }),
-
-    # # plot module with blocksize = episode, fetching input from busses
-    # # and mapping that onto plots
-    # ("bplot", {
-    #     'block': PlotBlock2,
-    #     'params': {
-    #         'id': 'bplot',
-    #         'blocksize': numsteps,
-    #         'idim': 6,
-    #         'odim': 3,
-    #         'debug': False,
-    #         'inputs': {'d1': {'bus': 'b1/x', 'shape': (3, numsteps)},
-    #                    'd2': {'bus': 'b2/x', 'shape': (3, numsteps)},
-    #                    'd3': {'bus': 'b3_0/x', 'shape': (3, numsteps)},
-    #                    'd4': {'bus': 'b3_1/x', 'shape': (3, numsteps)},
-    #                    'd5': {'bus': 'b3_2/x', 'shape': (3, numsteps)}},
-    #         'outputs': {},
-    #         'subplots': [
-    #             [
-    #                 {'input': 'd1', 'xslice': (0, numsteps), 'plot': timeseries},
-    #                 {'input': 'd1', 'xslice': (0, numsteps), 'plot': histogram},
-    #             ],
-    #             [
-    #                 {'input': 'd2', 'slice': (3, 6), 'plot': timeseries},
-    #                 {'input': 'd2', 'slice': (3, 6), 'plot': histogram},
-    #             ],
-    #         ] + [[
-    #             {'input': 'd%d' % i, 'slice': (1, 1), 'plot': timeseries},
-    #             {'input': 'd%d' % i, 'slice': (1, 1), 'plot': histogram},
-    #             ] for i in range(3, 6)
-    #             ]
-    #     }
-    # })
 ])

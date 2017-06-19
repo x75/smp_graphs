@@ -147,27 +147,58 @@ def dict_replace_idstr_recursive(d, cid, xid):
     return d
 
 def dict_replace_nodekeys(d, xid, idmap = {}):
-    # idmap = {}
+    """dict_replace_nodekeys
+
+    replace all keys in d by a copy with xid appended (looping) and store key/replacement in idmap
+
+    Returns:
+    - d: dictionary
+    - idmap: map old -> new ids
+    """
+
+    # loop over dictionary items
     for k, v in d.items():
         # print "dict_replace_nodekeys: k = %s, v = %s, idmap = %s" % (k, v.keys(), idmap)
+        # new id from old id
         k_ = "%s|%s" % (k, xid)
-        # fix key
-        d[k_] = d.pop(k) # FIXME: does this confuse .items()
+        # fix key:
+        d[k_] = d.pop(k) # FIXME: does this confuse .items(), FIXME: even worse, does this confuse the order in OrderedDict?
         # print "k_", k_, "v_", d[k_].keys()
+
+        # # debug
+        # if not d[k_].has_key('params'):
+        #     print "\n\n\n\n\nd[k_]", d[k_].keys()
+        #     return d, idmap
+        
         # fix block id
         d[k_]['params']['id'] = k_
         idmap[k] = k_
         
-        # descend
+        # descend into graph hierarchy
         if d[k_]['params'].has_key('graph'):
             d[k_]['params']['graph'], idmap = dict_replace_nodekeys(d[k_]['params']['graph'], xid, idmap)
 
-    # ascend
+        # descend into loopblock
+        if d[k_]['params'].has_key('loopblock') and d[k_]['params']['loopblock']['params'].has_key('graph'):
+            d[k_]['params']['loopblock']['params']['graph'], idmap = dict_replace_nodekeys(d[k_]['params']['loopblock']['params']['graph'], xid, idmap)
+            # print "\n\n\n\n\n\n\n", d[k_]['params']['loopblock']['params']['graph']
+
+    # return to surface
     return d, idmap
 
 def dict_replace_nodekeyrefs(d, xid, idmap):
+    """dict_replace_nodekeyrefs
+
+    replace all references to ids in idmap.keys with corresponding idmap.values
+
+    Returns:
+    - d: dictionary
+    - idmap: map old -> new ids
+    """
+    
+    # loop over dictionary items
     for k_, v in d.items():
-        # fix bus references
+        # fix bus references in inputs
         if d[k_]['params'].has_key('inputs'):
             for ink, inv in [(ink, inv) for ink, inv in d[k_]['params']['inputs'].items() if inv.has_key('bus')]:
                 # if inv.has_key('bus'):
@@ -178,14 +209,65 @@ def dict_replace_nodekeyrefs(d, xid, idmap):
                     buskey = "%s/%s" % (idmap[invbuss[0]], invbuss[1])
                     print "dict_replace_nodekeyrefs: replacing %s with %s in node %s" % (inv['bus'], buskey, k_)
                     inv['bus'] = buskey
-        # descend
+                    
+        # fix bus references in outputs
+        if d[k_]['params'].has_key('outputs'):
+            for ink, inv in [(ink, inv) for ink, inv in d[k_]['params']['outputs'].items() if inv.has_key('buscopy')]:
+                # if inv.has_key('bus'):
+                invbuss = inv['buscopy'].split("/")
+                if invbuss[0] in idmap.keys():
+                    # print "ink, inv", ink, inv
+                    # print "idmap", idmap
+                    buskey = "%s/%s" % (idmap[invbuss[0]], invbuss[1])
+                    print "dict_replace_nodekeyrefs: replacing %s with %s in node %s" % (inv['buscopy'], buskey, k_)
+                    inv['buscopy'] = buskey
+                print "\n\n\n\n\n\n\noutputs, buscopy", d[k_]['params']
+
+        # fix id references in 'copy' models (want to copy the model from the block with that id)
+        if d[k_]['params'].has_key('models'):
+            for ink, inv in [(ink, inv) for ink, inv in d[k_]['params']['models'].items() if inv.has_key('copyid')]:
+                inv['copyid'] = idmap[inv['copyid']]
+            # print "\n\n\n\n\n\nfound model", d[k_]['params']['id'], d[k_]['params']['models']
+
+        # descend into graph hierarchy
         if d[k_]['params'].has_key('graph'):
             d[k_]['params']['graph'], idmap = dict_replace_nodekeyrefs(d[k_]['params']['graph'], xid, idmap)
 
-    # ascend
+        # descend into loopblock
+        if d[k_]['params'].has_key('loopblock') and d[k_]['params']['loopblock']['params'].has_key('graph'):
+            for ink, inv in d[k_]['params']['loopblock']['params']['outputs'].items():
+                if inv.has_key('buscopy'):
+                    invbuss = inv['buscopy'].split("/")
+                    if invbuss[0] in idmap.keys():
+                        # print "ink, inv", ink, inv
+                        # print "idmap", idmap
+                        buskey = "%s/%s" % (idmap[invbuss[0]], invbuss[1])
+                        print "dict_replace_nodekeyrefs: replacing %s with %s in node %s" % (inv['buscopy'], buskey, k_)
+                        inv['buscopy'] = buskey
+                        
+            d[k_]['params']['loopblock']['params']['graph'], idmap = dict_replace_nodekeyrefs(d[k_]['params']['loopblock']['params']['graph'], xid, idmap)
+            # print "\n\n\n\n\n\n\n", d[k_]['params']['loopblock']['params']['graph']
+
+    # return to surface
     return d, idmap
 
 def dict_replace_idstr_recursive2(d, xid, idmap = {}):
+    """dict_replace_idstr_recursive2
+
+    replace occurences of an 'id' string with a numbered version for looping
+
+    Two steps
+    1 - replace the dict keys
+    2 - replace all references in the conf to dict keys
+
+    Args:
+    - d: dictionary
+    - xid: extension to append to existing id
+    - idmap: map of ids that have been modified
+
+    Return:
+    - d: the modified dict
+    """
 
     d, idmap = dict_replace_nodekeys(d, xid, idmap)
 

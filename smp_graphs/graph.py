@@ -199,13 +199,13 @@ def nxgraph_node_by_id(G, nid):
     return tmp
         
 def nxgraph_node_by_id_recursive(G, nid):
-    """!@brief get a node key from a nested nx.graph by searching for an smp_graphs id
+    """!@brief get a node key from a nested nxgraph by searching for an smp_graphs id
 
     Args:
         G: nxgraph
         nid: node params['id'] to search for
 """
-    if nid is None: return
+    if nid is None: return []
     gen = ((n, G) for n in G if G.node[n]['params']['id'] == nid)
     tmp = list(gen)
     if len(tmp) > 0:

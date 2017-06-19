@@ -164,8 +164,17 @@ def init_model(ref, conf, mconf):
         mdl = ActInfSTORKGP(idim, odim)
     elif algo == 'copy':
         targetid = mconf['copyid']
+
+        # # debugging
+        # print "topgraph", ref.top.nxgraph.nodes()
+        # print "topgraph.node[0]['block_'].nxgraph", ref.top.nxgraph.node[0]['block_'].nxgraph.nodes()
+        # for n in ref.top.nxgraph.node[0]['block_'].nxgraph.nodes():
+        #     print "    node.id = %s, graph = %s" % (
+        #         ref.top.nxgraph.node[0]['block_'].nxgraph.node[n]['block_'].id,
+        #         ref.top.nxgraph.node[0]['block_'].nxgraph.node[n]['block_'].nxgraph.nodes(), )
+            
         targetnode = nxgraph_node_by_id_recursive(ref.top.nxgraph, targetid)
-        # print "targetid", targetid, "targetnode", targetnode
+        print "targetid", targetid, "targetnode", targetnode
         if len(targetnode) > 0:
             # print "    targetnode id = %d, node = %s" % (
             #     targetnode[0][0],

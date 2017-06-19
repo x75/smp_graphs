@@ -445,7 +445,8 @@ class Block2(object):
             # loopblock preprocess, propagate loop iter id into loopblock
             # elif hasattr(self, 'loopblock'):
             #     self.init_loopblock()
-            
+
+            # get the graph from the configuration dict
             self.nxgraph = nxgraph_from_smp_graph(self.conf)
             
             # clone
@@ -456,7 +457,7 @@ class Block2(object):
                 print "top graph", self.top.nxgraph.nodes()
                 targetid = self.graph[3:]
                 targetnode = nxgraph_node_by_id_recursive(self.top.nxgraph, targetid)
-                print "targetid", targetid, "targetnode", targetnode
+                print "%s-%s" % (self.cname, self.id), "targetid", targetid, "targetnode", targetnode
                 if len(targetnode) > 0:
                     print "    targetnode id = %d, node = %s" % (
                         targetnode[0][0],
