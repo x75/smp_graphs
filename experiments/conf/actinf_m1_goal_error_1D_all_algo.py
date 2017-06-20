@@ -23,7 +23,7 @@ dt = 0.1
 models = ['knn', 'soesgp'] # , 'storkgp',]
 looparray = [('subgraphconf', {
     'pre_l0/models': {'fwd': {'type': 'actinf_m1', 'algo': model, 'idim': dim * 2, 'odim': dim},},
-    'plot_ts/title': 'actinf_m1 pm1d with %s' % (model, )
+    'plot_ts/title': 'actinf_m1 1D with %s' % (model, )
     }) for (i, model) in enumerate(models)]
 
 # 'pre_l0_test/models': {'fwd': {'type': 'actinf_m1', 'algo': 'copy', 'copyid': 'pre_l0', 'idim': dim * 2, 'odim': dim},},
@@ -34,7 +34,7 @@ loopblock = {
         'id': 'actinf_m1_loop',
         'debug': False,
         'blocksize': 1,
-        'subgraph': 'conf/actinf_m1_goal_error_pm1d.py',
+        'subgraph': 'conf/actinf_m1_goal_error_1D.py',
         'subgraphconf': {},
         'subgraph_rewrite_id': True,
         'outputs': {},

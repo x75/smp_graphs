@@ -130,15 +130,15 @@ def step_polyexp(ref):
 # model func: random_uniform model
 def init_random_uniform(ref, conf, mconf):
     params = conf['params']
-    hi = 1
     for outk, outv in params['outputs'].items():
+        hi = np.ones(( outv['shape'] ))
         setattr(ref, outk, np.random.uniform(-hi, hi, size = outv['shape']))
 
 def step_random_uniform(ref):
     if hasattr(ref, 'rate'):
         if (ref.cnt % ref.rate) not in ref.blockphase: return
             
-    hi = ref.inputs['x']['val'].T
+    hi = ref.inputs['x']['val'] # .T
     for outk, outv in ref.outputs.items():
         setattr(ref, outk, np.random.uniform(-hi, hi, size = outv['shape']))
         # print "%s-%s[%d]model.step_random_uniform %s = %s" % (
@@ -198,8 +198,8 @@ def init_actinf_m1(ref, conf, mconf):
     # for outk, outv in params['outputs'].items():
     #     setattr(ref, outk, np.random.uniform(-hi, hi, size = outv['shape']))
     ref.mdl = init_model(ref, conf, mconf)
-    ref.X_  = np.zeros((1, mconf['idim']))
-    ref.y_  = np.zeros((1, mconf['odim']))
+    ref.X_  = np.zeros((mconf['idim'], 1))
+    ref.y_  = np.zeros((mconf['odim'], 1))
     ref.pre_l1_tm1 = 0
 
 def step_actinf_m1(ref):
@@ -217,19 +217,19 @@ def step_actinf_m1(ref):
     assert pre_l1.shape[-1] == pre_l0.shape[-1] == meas_l0.shape[-1], "step_actinf_m1: input shapes need to agree"
 
     # loop over block if inputs
-    if pre_l1.shape[-1] > 0:
-        for i in range(pre_l1.shape[-1]):
-            (pre, prerr, y_) = step_actinf_m1_single(ref, pre_l1[...,[i]], pre_l0[...,[i]], meas_l0[...,[i]])
-            ref.debug_print(
-                "id = %s, pre = %s, prerr = %s, tgt = %s",
-                (ref.id, pre, prerr, y_))
+    # if pre_l1.shape[-1] > 0:
+    for i in range(pre_l1.shape[-1]):
+        (pre, prerr, y_) = step_actinf_m1_single(ref, pre_l1[...,[i]], pre_l0[...,[i]], meas_l0[...,[i]])
+        ref.debug_print(
+            "step_actinf_m1 id = %s, pre = %s, prerr = %s, tgt = %s",
+            (ref.id, pre, prerr, y_))
             
-            pre_ = getattr(ref, 'pre')
-            pre_[...,[i]] = pre
-            err_ = getattr(ref, 'err')
-            err_[...,[i]] = prerr
-            tgt_ = getattr(ref, 'tgt')
-            tgt_[...,[i]] = y_
+        pre_ = getattr(ref, 'pre')
+        pre_[...,[i]] = pre
+        err_ = getattr(ref, 'err')
+        err_[...,[i]] = prerr
+        tgt_ = getattr(ref, 'tgt')
+        tgt_[...,[i]] = y_
 
     # print "pre_", pre_
     # print "err_", err_
@@ -253,8 +253,8 @@ def step_actinf_m1_single(ref, pre_l1, pre_l0, meas_l0):
 
     # debug
     ref.debug_print(
-        "actinf_m1 pre_l1 = %s, meas_l0 = %s, pre_l0 = %s",
-        (pre_l1.shape, meas_l0.shape, pre_l0.shape))
+        "step_actinf_m1_single ref.X_ = %s, pre_l1 = %s, meas_l0 = %s, pre_l0 = %s",
+        (ref.X_.shape, pre_l1.shape, meas_l0.shape, pre_l0.shape))
 
     if not np.any(np.isinf(meas_l0)):
         # prediction error at current layer input
@@ -274,7 +274,7 @@ def step_actinf_m1_single(ref, pre_l1, pre_l0, meas_l0):
         # print "%s.step_actinf_m1[%d] ref.X_ = %s, ref.y_ = %s" % (ref.__class__.__name__, ref.cnt, ref.X_.shape, ref.y_.shape)
     
         # fit the model
-        ref.mdl.fit(ref.X_, ref.y_)
+        ref.mdl.fit(ref.X_.T, ref.y_.T)
     else:
         # FIXME: for model testing
         prerr_l0 = pre_l0.copy()
@@ -285,13 +285,14 @@ def step_actinf_m1_single(ref, pre_l1, pre_l0, meas_l0):
     #     prerr_l0 = pre_l0 - pre_l1
             
     # m1: model input X is goal and prediction error
-    ref.X_ = np.hstack((pre_l1.T, prerr_l0.T))
-    ref.debug_print("ref.X_.shape = %s", (ref.X_.shape, ))
+    # ref.X_ = np.hstack((pre_l1.T, prerr_l0.T))
+    ref.X_ = np.vstack((pre_l1, prerr_l0))
+    ref.debug_print("step_actinf_m1_single ref.X_.shape = %s", (ref.X_.shape, ))
 
     # predict next values at current layer input
-    pre_l0 = ref.mdl.predict(ref.X_)
+    pre_l0 = ref.mdl.predict(ref.X_.T)
 
-    ref.debug_print("actinf_m1 ref.X_ = %s, pre_l0 = %s", (ref.X_.shape, pre_l0.shape))
+    ref.debug_print("step_actinf_m1_single ref.X_ = %s, pre_l0 = %s", (ref.X_.shape, pre_l0.shape))
     # for outk, outv in ref.outputs.items():
     #     setattr(ref, outk, pre_l0)
     #     print "step_actinf_m1 %s.%s = %s" % (ref.id, outk, getattr(ref, outk))

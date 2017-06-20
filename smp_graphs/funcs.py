@@ -77,8 +77,14 @@ def f_sinesquare4(args):
     s1 = np.sum(x, axis = 0)
     return np.ones((1,1)) * s1
 
+################################################################################
+# grids
 
 def f_meshgrid(args):
+    """f_meshgrid
+
+    create meshgrid
+    """
     fu_check_required_args(args, ['ranges', 'steps'], 'f_meshgrid')
     # FIXME: check_outputs: only one item
     
@@ -169,7 +175,16 @@ def f_meshgrid_mdl(args):
     full_axes_flat = np.vstack([full_axes[i].flatten() for i in range(len(full_axes))])
     print "func", full_axes_flat
     return {'meshgrid': full_axes_flat} # .T
-    
+
+def f_random_uniform(args):
+    fu_check_required_args(args, ['ranges', 'steps'], 'f_random_uniform')
+
+    ranges = get_input(args, 'ranges')
+    steps = get_input(args, 'steps')
+
+    return {'meshgrid': np.random.uniform(ranges[:,[0]], ranges[:,[1]], (ranges.shape[0], int(steps[0,0])))}
+
+
 ################################################################################
 # model functions
 

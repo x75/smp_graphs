@@ -4,12 +4,11 @@ smp_graphs config for experiment
 
 active inference
 model type 1 (goal error)
-pointmass 1D system
+simple 1D system (point mass, simple 1-joint arm)
 
 from actinf/active_inference_basic.py --mode m1_goal_error_1d
 
 Model variant M1, 1-dimensional data, proprioceptive space
-
 """
 
 import copy
@@ -20,12 +19,12 @@ from smp_graphs.block import dBlock2, IBlock2, SliceBlock2, DelayBlock2, StackBl
 from smp_graphs.block_meas import XCorrBlock2
 from smp_graphs.block_meas_infth import JHBlock2, MIBlock2, InfoDistBlock2, TEBlock2, CTEBlock2, MIMVBlock2, TEMVBlock2
 from smp_graphs.block_models import ModelBlock2
-from smp_graphs.block_cls import PointmassBlock2
+from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2
 
 from smp_graphs.funcs import f_meshgrid, f_meshgrid_mdl
 
 # execution
-saveplot = True
+saveplot = False
 recurrent = True
 debug = False
 showplot = True
@@ -38,12 +37,11 @@ dim = 1
 motors = dim
 dt = 0.1
 loopblocksize = numsteps
-algo = 'soesgp' # 'knn', 'soesgp', 'storkgp'
 
 """system block
  - a robot
 """
-systemblock = {
+systemblock_pm = {
     'block': PointmassBlock2,
     'params': {
         'id': 'robot1',
@@ -71,11 +69,61 @@ systemblock = {
         "friction": 0.001,
         "sysnoise": 1e-2,
         'debug': False,
+        'dim_s_motor': dim,    # motors
+        'length_ratio': [1], # gain curve?
+        'm_mins': -1,
+        'm_maxs': 1,
+        'dim_s_extero': dim,
         }
     }
 
+systemblock_sa = {
+    'block': SimplearmBlock2,
+    'params': {
+        'id': 'robot1',
+        'blocksize': 1, # FIXME: make pm blocksize aware!
+        'sysdim': motors,
+        # initial state
+        'x0': np.random.uniform(-0.3, 0.3, (motors * 3, 1)),
+        # 'inputs': {'u': {'val': np.random.uniform(-1, 1, (3, numsteps))}},
+        'inputs': {'u': {'bus': 'pre_l0/pre'}},
+        'outputs': {
+            's_proprio': {'shape': (1, 1)},
+            's_extero': {'shape': (2, 1)}
+            }, # , 's_all': [(9, 1)]},
+        "statedim": motors * 3,
+        "dt": dt,
+        "mass": 1.0/3.0,
+        "force_max":  1.0,
+        "force_min": -1.0,
+        "friction": 0.001,
+        "sysnoise": 1e-2,
+        'debug': False,
+        'dim_s_motor': 1,
+        'length_ratio': [1],
+        'm_mins': -1,
+        'm_maxs': 1,
+        'dim_s_extero': 2,
+        }
+    }
+
+
+################################################################################
+# experiment variations
+# - algo
+# - system
+# - system order
+# - dimensions
+# - number of modalities
+    
+algo = 'knn' # 'knn', 'soesgp', 'storkgp'
+
+systemblock = systemblock_pm
+dim_s_motor  = systemblock['params']['dim_s_motor']
+dim_s_extero = systemblock['params']['dim_s_extero']
+
 def plot_timeseries_block(l0 = 'pre_l0', l1 = "pre_l1", blocksize = 1):
-    global PlotBlock2, dim, numsteps, timeseries
+    global PlotBlock2, dim, numsteps, timeseries, dim_s_extero
     return {
     'block': PlotBlock2,
     'params': {
@@ -86,7 +134,7 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = "pre_l1", blocksize = 1):
             'err':   {'bus': '%s/err' % (l0,), 'shape': (dim, blocksize)},
             'tgt':   {'bus': '%s/tgt' % (l0,), 'shape': (dim, blocksize)},
             's_proprio':    {'bus': 'robot1/s_proprio', 'shape': (dim, blocksize)},
-            's_extero':     {'bus': 'robot1/s_extero',  'shape': (dim, blocksize)},
+            's_extero':     {'bus': 'robot1/s_extero',  'shape': (dim_s_extero, blocksize)},
             },
         'hspace': 0.2,
         'subplots': [
@@ -121,7 +169,7 @@ sweepsys[1]['params']['blocksize'] = sweepsys_input_flat
 sweepsys[1]['params']['debug'] = False
 sweepsys[1]['params']['inputs'] = {'u': {'bus': 'sweepsys_grid/meshgrid'}}
 sweepsys[1]['params']['outputs']['s_proprio']['shape'] = (dim, sweepsys_input_flat)
-sweepsys[1]['params']['outputs']['s_extero']['shape']  = (dim, sweepsys_input_flat)
+sweepsys[1]['params']['outputs']['s_extero']['shape']  = (dim_s_extero, sweepsys_input_flat)
 
 sweepmdl_steps = 21
 sweepmdl_input_flat = np.power(sweepmdl_steps, dim * 2)
@@ -534,7 +582,7 @@ graph = OrderedDict([
             'inputs': {
                 'meshgrid':     {'bus': 'sweepsys_grid/meshgrid', 'shape': (dim, sweepsys_input_flat)},
                 's_proprio':    {'bus': 'robot0/s_proprio', 'shape': (dim, sweepsys_input_flat)},
-                's_extero':     {'bus': 'robot0/s_extero', 'shape': (dim, sweepsys_input_flat)},
+                's_extero':     {'bus': 'robot0/s_extero', 'shape': (dim_s_extero, sweepsys_input_flat)},
                 },
                 'hspace': 0.2,
                 'subplots': [
