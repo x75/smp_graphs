@@ -173,8 +173,11 @@ sweepsys[1]['params']['outputs']['s_extero']['shape']  = (dim_s_extero, sweepsys
 
 # sweepmdl_steps = 2500
 # sweepmdl_input_flat = sweepmdl_steps # np.power(sweepmdl_steps, dim * 2)
+# sweepmdl_func = f_random_uniform
+
 sweepmdl_steps = 3
 sweepmdl_input_flat = np.power(sweepmdl_steps, dim * 2)
+sweepmdl_func = f_meshgrid
 
 loopblock = {
     'block': Block2,
@@ -242,8 +245,7 @@ loopblock_model = {
                             'shape': (
                                 dim * 2,
                                 sweepmdl_input_flat,)}},
-                    # 'func': f_random_uniform,
-                    'func': f_meshgrid,
+                    'func': sweepmdl_func,
                     },
                 }),
                 

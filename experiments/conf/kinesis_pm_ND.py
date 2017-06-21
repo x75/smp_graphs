@@ -1,13 +1,15 @@
-"""smp_graphs config
+"""smp_graphs configuration
 
-kinesis on a 1D point mass system
+kinesis on an n-dimensional system
+
+Oswald Berthold 2017
 
 porting from smq/experiments/conf2/kinesis_pm_1d.py
 
-components for kinesis:
+components for kinesis (fom smq):
  - world (identity)
- - robot (pointmass)
- - motivation: goal state
+ - robot (pointmass, simplearm)
+ - motivation: distance to goal
  - action: activity modulated proportionally by distance to goal
 
 now: motivation and action are of the same kind (a prediction), but
@@ -16,9 +18,6 @@ self-organizing?
 
 start with innermost (fundamental drives) and outermost (raw sensors)
 layers and start to grow connecting pathways
-
-rename brain to smloop
- 
 """
 
 from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2
@@ -34,7 +33,7 @@ dim = 3
 motors = dim
 dt = 0.1
 showplot = True
-randseed = 124
+randseed = 126
 
 systemblock_pm = {
         'block': PointmassBlock2,
@@ -99,7 +98,7 @@ systemblock_sa = {
         }
     }    
 
-systemblock = systemblock_sa
+systemblock = systemblock_pm
 dim_s_motor  = systemblock['params']['dim_s_motor']
 dim_s_extero = systemblock['params']['dim_s_extero']
 dim_s_goal   = dim_s_extero
@@ -156,7 +155,8 @@ graph = OrderedDict([
                             'x':   {'bus': 'robot1/s_extero', 'shape': (dim_s_extero, 1)},
                             # 'x': {'bus': 'robot1/s_proprio', 'shape': (dim_s_motor, 1)},
                             'x_':  {'bus': 'mot0/x', 'shape': (dim_s_goal, 1)},
-                            'x__': {'val': dim_s_motor, 'shape': (dim_s_motor, 1)}},
+                            # 'x__': {'val': dim_s_motor, 'shape': (dim_s_motor, 1)}
+                            },
                         'outputs': {
                             'y': {'shape': (dim_s_motor, 1)},
                             'y1': {'shape': (dim_s_motor, 1)},

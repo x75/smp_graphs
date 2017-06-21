@@ -1,5 +1,5 @@
 
-import itertools
+# import itertools
 
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
@@ -13,7 +13,7 @@ from smp_graphs.block import decStep, decInit
 from smp_graphs.block import PrimBlock2
 from smp_graphs.utils import myt, mytupleroll
 
-from smp_base.dimstack import dimensional_stacking
+from smp_base.dimstack import dimensional_stacking, digitize_pointcloud
 from smp_base.plot     import makefig, timeseries, histogram, plot_img
 
 ################################################################################
@@ -380,42 +380,14 @@ class ImgPlotBlock2(FigPlotBlock2):
                     ################################################################################
                     # digitize a random sample (continuous arguments, continuous values)
                     # to an argument grid and average the values
+                    # FIXME: to separate function
                     if subplotconf.has_key('digitize'):
                         argdims = subplotconf['digitize']['argdims']
                         numbins = subplotconf['digitize']['numbins']
-                        valdim = subplotconf['digitize']['valdim']
-                        # print "plotdata_cand", plotdata_cand.shape
-                        # H = np.histogramdd(plotdata_cand, bins=3, normed = True)
-                        space = plotdata_cand[:,argdims]
-                        print "space", space.shape, space
-                        space_digitized = np.digitize(space, bins = np.linspace(-1, 1, numbins + 1))
-                        print "space_digitized", space_digitized.shape, space_digitized
-                        plotdata_new = np.zeros(tuple([numbins for k in range(len(argdims))]))
-                        print "plotdata_new", plotdata_new.shape
+                        valdims = subplotconf['digitize']['valdim']
                         
-                        # for idx in [list(i) for i in itertools.permutations(range(0, 6))]:
-                        # np.indices((3,3,3,3,3,3))
-                        # for idx_ in [np.array([k]) for k in itertools.combinations_with_replacement(range(1, numbins + 1), len(argdims))]:
-                        for idx_ in [np.array([k]) for k in itertools.product(*[range(1, numbins + 1)] * len(argdims))]:
-                            # iset[:,[1]] == X__
-                            # print "idx_", idx_
-                            sidx = idx_ == space_digitized
-                            sidx = np.sum(sidx, axis = 1) > (len(argdims) - 1)
-                            # sidx = np.where(idx_ == )
-                            print "idx_", idx_
-                            print "sidx", sidx.shape, np.sum(sidx) #, sidx
-                            v___ = plotdata_cand[sidx, valdim]
-                            print "v___", v___
-                            
-                            # idx_ = idx_.flatten() - 1
-                            # idx_ = idx_.reshape() - 1
-                            # plotdata_new[idx_[0],idx_[1],idx_[2],idx_[3],idx_[4],idx_[5]] = np.mean(v___)
-                            if len(v___) > 0:
-                                plotdata_new[tuple(idx_.T-1)] = np.mean(v___)
-                        # plotdata_cand = H[0]
-                        # plotdata_cand = plotdata_cand[[6],space_digitized]
-                        plotdata_cand = plotdata_new
-                        # print "plotdata_cand", plotdata_cand.shape, plotdata_cand
+                        plotdata_cand = digitize_pointcloud(data = plotdata_cand, argdims = argdims, numbins = numbins, valdims = valdims)
+                        
                     plotdata = {}
 
                     # if we're dimstacking, now is the time
