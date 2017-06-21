@@ -121,7 +121,9 @@ class BhasimulatedBlock2(SysBlock2):
             # for k in ['s_proprio', 's_extero', 's_all']:
             for k in self.outputs.keys():
                 k_ = getattr(self, k)
-                k_[:,[i]] = self.x[k]
+                print "bhasysblock k_", k_, k_[:,[i]].shape, self.x[k].shape
+                print "bhasysblock k_", k_, k_[:,[i]], self.x[k]
+                k_[:,[i]] = self.x[k].T
                 # setattr(self, k, self.x[k])
                 # print "%s.step[%d]: x = %s/%s" % (self.cname, self.cnt, self.x, self.system.x)
                 

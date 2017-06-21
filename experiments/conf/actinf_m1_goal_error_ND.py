@@ -137,8 +137,8 @@ systemblock_bha = {
         'dim_s_extero': 3,
         'numsegs': 3,
         'segradii': np.array([0.1,0.093,0.079]),
-        'm_mins': [0.05] * 9,
-        'm_maxs': [0.4]  * 9,
+        'm_mins': [0.11] * 9,
+        'm_maxs': [0.29]  * 9,
         's_mins': [-1] * 9,
         's_maxs': [1]  * 9,
         }
@@ -153,11 +153,13 @@ systemblock_bha = {
 # - dimensions
 # - number of modalities
     
-algo = 'knn' # 'knn', 'soesgp', 'storkgp'
+algo = 'soesgp' # 'knn', 'soesgp', 'storkgp'
 
 systemblock = systemblock_bha
 dim_s_motor  = systemblock['params']['dim_s_motor']
 dim_s_extero = systemblock['params']['dim_s_extero']
+m_mins = systemblock['params']['m_mins']
+m_maxs = systemblock['params']['m_maxs']
 
 def plot_timeseries_block(l0 = 'pre_l0', l1 = "pre_l1", blocksize = 1):
     global PlotBlock2, dim, numsteps, timeseries, dim_s_extero
@@ -208,7 +210,7 @@ sweepsys[1]['params']['inputs'] = {'u': {'bus': 'sweepsys_grid/meshgrid'}}
 sweepsys[1]['params']['outputs']['s_proprio']['shape'] = (dim, sweepsys_input_flat)
 sweepsys[1]['params']['outputs']['s_extero']['shape']  = (dim_s_extero, sweepsys_input_flat)
 
-sweepmdl_steps = 2500
+sweepmdl_steps = 2000
 sweepmdl_input_flat = sweepmdl_steps # np.power(sweepmdl_steps, dim * 2)
 sweepmdl_func = f_random_uniform
 
@@ -274,7 +276,8 @@ loopblock_model = {
                     'blocksize': sweepmdl_input_flat,
                     'inputs': {
                         # 'ranges': {'val': np.array([[-1, 1], [-1e-0, 1e-0]])},
-                        'ranges': {'val': np.array([[-1.0, 1.0]] * dim * 2)},
+                        'ranges': {
+                            'val': np.array([[m_mins[0], m_maxs[0]]] * dim * 2)},
                         'steps':  {'val': sweepmdl_steps},
                         },
                     'outputs': {
@@ -471,28 +474,41 @@ loopblock_model = {
                                 'ndslice': [(slice(None), slice(None))],
                                 # 'vmin': -1.0, 'vmax': 1.0,
                                 'cmap': 'RdGy',
-                                'dimstack': {'x': [5, 4, 3], 'y': [2, 1, 0]},
-                                'digitize': {'argdims': range(0, 6), 'valdim': 6, 'numbins': 2},
-                            },
-                            {
-                                'input': ['all'],
-                                'shape': (dim * 3, sweepmdl_input_flat),
-                                'ndslice': [(slice(None), slice(None))],
-                                # 'vmin': -1.0, 'vmax': 1.0,
-                                'cmap': 'RdGy',
-                                'dimstack': {'x': [5, 4, 3], 'y': [2, 1, 0]},
-                                'digitize': {'argdims': range(0, 6), 'valdim': 7, 'numbins': 2},
-                            },
-                            {
-                                'input': ['all'],
-                                'shape': (dim * 3, sweepmdl_input_flat),
-                                'ndslice': [(slice(None), slice(None))],
-                                # 'vmin': -1.0, 'vmax': 1.0,
-                                'cmap': 'RdGy',
-                                'dimstack': {'x': [5, 4, 3], 'y': [2, 1, 0]},
-                                'digitize': {'argdims': range(0, 6), 'valdim': 8, 'numbins': 2},
-                            }
-                        ],
+                                'dimstack': {
+                                    'x': range(2*dim-1, dim - 1, -1),
+                                    'y': range(dim-1,   -1     , -1)},
+                                'digitize': {'argdims': range(0, dim * 2), 'valdim': 2*dim+i, 'numbins': 2},
+                            } for i in range(3)],
+
+                        # [
+                        #     {
+                        #         'input': ['all'],
+                        #         'shape': (dim * 3, sweepmdl_input_flat),
+                        #         'ndslice': [(slice(None), slice(None))],
+                        #         # 'vmin': -1.0, 'vmax': 1.0,
+                        #         'cmap': 'RdGy',
+                        #         'dimstack': {'x': [5, 4, 3], 'y': [2, 1, 0]},
+                        #         'digitize': {'argdims': range(0, 6), 'valdim': 6, 'numbins': 2},
+                        #     },
+                        #     {
+                        #         'input': ['all'],
+                        #         'shape': (dim * 3, sweepmdl_input_flat),
+                        #         'ndslice': [(slice(None), slice(None))],
+                        #         # 'vmin': -1.0, 'vmax': 1.0,
+                        #         'cmap': 'RdGy',
+                        #         'dimstack': {'x': [5, 4, 3], 'y': [2, 1, 0]},
+                        #         'digitize': {'argdims': range(0, 6), 'valdim': 7, 'numbins': 2},
+                        #     },
+                        #     {
+                        #         'input': ['all'],
+                        #         'shape': (dim * 3, sweepmdl_input_flat),
+                        #         'ndslice': [(slice(None), slice(None))],
+                        #         # 'vmin': -1.0, 'vmax': 1.0,
+                        #         'cmap': 'RdGy',
+                        #         'dimstack': {'x': [5, 4, 3], 'y': [2, 1, 0]},
+                        #         'digitize': {'argdims': range(0, 6), 'valdim': 8, 'numbins': 2},
+                        #     }
+                        # ],
                         ],
                     },
                 }),
@@ -561,7 +577,10 @@ graph = OrderedDict([
                     'params': {
                         'blocksize': 1,
                         'blockphase': [0],
-                        'inputs': {'x': {'val': 1, 'shape': (dim, 1)}},
+                        'inputs': {                        
+                            'lo': {'val': np.array([m_mins]).T, 'shape': (dim, 1)},
+                            'hi': {'val': np.array([m_maxs]).T, 'shape': (dim, 1)},
+                            },
                         'outputs': {'pre': {'shape': (dim, 1)}},
                         'models': {
                             'goal': {'type': 'random_uniform'}
@@ -606,26 +625,26 @@ graph = OrderedDict([
     # blockphase: points in the cnt % numsteps space when to execute
     # numsteps:      
     # loopblocksize: number of loop iterations = numsteps/loopblocksize 
-    ("sweepmodel", {
-        'debug': False,
-        'block': SeqLoopBlock2,
-        'params': {
-            'id': 'sweepmodel',
-            'blocksize': numsteps, # execution cycle, same as global numsteps
-            #                        execution phase, on first time step only
-            # 'blockphase': [numsteps/2, numsteps-10],
-            # 'blockphase': [int(i * numsteps)-1 for i in np.linspace(1.0/2, 1, 2)],
-            'blockphase': [int(i * numsteps)-1 for i in np.linspace(1.0/1, 1, 1)],
-            # 'blockphase': [0],
-            'numsteps':  1, # numsteps,          # numsteps      / loopblocksize = looplength
-            'loopblocksize': 1, #loopblocksize, # loopblocksize * looplength    = numsteps
-            # can't do this dynamically yet without changing init passes
-            'outputs': {'pre': {'shape': (dim * 2, sweepmdl_input_flat)}},
-            'loop': [('none', {}) for i in range(2)], # lambda ref, i, obj: ('none', {}),
-            'loopmode': 'sequential',
-            'loopblock': loopblock_model,
-        },
-    }),        
+    # ("sweepmodel", {
+    #     'debug': False,
+    #     'block': SeqLoopBlock2,
+    #     'params': {
+    #         'id': 'sweepmodel',
+    #         'blocksize': numsteps, # execution cycle, same as global numsteps
+    #         #                        execution phase, on first time step only
+    #         # 'blockphase': [numsteps/2, numsteps-10],
+    #         # 'blockphase': [int(i * numsteps)-1 for i in np.linspace(1.0/2, 1, 2)],
+    #         'blockphase': [int(i * numsteps)-1 for i in np.linspace(1.0/1, 1, 1)],
+    #         # 'blockphase': [0],
+    #         'numsteps':  1, # numsteps,          # numsteps      / loopblocksize = looplength
+    #         'loopblocksize': 1, #loopblocksize, # loopblocksize * looplength    = numsteps
+    #         # can't do this dynamically yet without changing init passes
+    #         'outputs': {'pre': {'shape': (dim * 2, sweepmdl_input_flat)}},
+    #         'loop': [('none', {}) for i in range(2)], # lambda ref, i, obj: ('none', {}),
+    #         'loopmode': 'sequential',
+    #         'loopblock': loopblock_model,
+    #     },
+    # }),        
         
     # system block from definition elsewhere
     ('robot1', systemblock),

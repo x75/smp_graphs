@@ -131,16 +131,18 @@ def step_polyexp(ref):
 def init_random_uniform(ref, conf, mconf):
     params = conf['params']
     for outk, outv in params['outputs'].items():
+        lo = -np.ones(( outv['shape'] ))
         hi = np.ones(( outv['shape'] ))
-        setattr(ref, outk, np.random.uniform(-hi, hi, size = outv['shape']))
+        setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
 
 def step_random_uniform(ref):
     if hasattr(ref, 'rate'):
         if (ref.cnt % ref.rate) not in ref.blockphase: return
             
-    hi = ref.inputs['x']['val'] # .T
+    lo = ref.inputs['lo']['val'] # .T
+    hi = ref.inputs['hi']['val'] # .T
     for outk, outv in ref.outputs.items():
-        setattr(ref, outk, np.random.uniform(-hi, hi, size = outv['shape']))
+        setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
         # print "%s-%s[%d]model.step_random_uniform %s = %s" % (
         #     ref.cname, ref.id, ref.cnt, outk, getattr(ref, outk))
 
