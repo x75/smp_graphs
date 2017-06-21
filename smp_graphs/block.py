@@ -776,6 +776,8 @@ class Block2(object):
                                 print "#" * 80
                                 print "sl", sl, v['val']
                             else:
+                                # print "\nsetting", self.cname, v
+                                assert v['shape'][0] == self.bus[v['bus']].shape[0], "%s-%s's input buffer and input bus shapes need to agree (besides blocksize) for input %s, buf: %s, bus: %s/%s" % (self.cname, self.id, k, v['shape'], v['bus'], self.bus[v['bus']].shape)
                                 v['val'][...,-blocksize_input_bus:] = self.bus[v['bus']].copy()
                             # v['val'] = self.bus[v['bus']].copy() # inbus
                             # v['val'][...,0:inbus.shape[-1]] = inbus

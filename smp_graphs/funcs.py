@@ -195,7 +195,12 @@ def f_motivation(args):
 
     x = args['x']['val']
     x_ = args['x_']['val']
+    # element-wise if goal dims and proprio dims are the same
+    # if args['x']['shape'][0] == args['x__']['shape'][0]:
     d = x_ - x
+    if args.has_key('x__'):
+        # else distance norm
+        d = np.ones_like(args['x__']['val']) * np.linalg.norm(d, 2)
     return {'y': d, 'y1': -d}
 
 # kinesis binary motivation
