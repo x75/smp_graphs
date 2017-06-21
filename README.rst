@@ -1,5 +1,5 @@
     :Author: Oswald Berthold
-    :Date: 20170530
+    :Date: 20170621
 
 .. contents::
 
@@ -8,38 +8,56 @@
 1 smp\_graphs
 -------------
 
-Specify sensorimotor learning experiments as a graph of computation
-nodes (functions) and a set of signals representing the inputs to and
-output from the nodes. The basic framework functions should only
-depend on `smp\_base <https://github.com/x75/smp_base>`_ and otherwise be independent of external
-libs. Specific block implementations make use of other *smp\_\** libs
-such as smp\_sys and of other 3rd party python libs, see dependencies.
+This is an experimental framework for specifying sensorimotor learning
+experiments as a computation graph. The nodes represent functions
+which consume and produce signals which are the function's inputs and
+outputs and are represented as edges in the graph. This approach
+reflects the necessity of identifying design patterns in such
+experiments and capturing them in such a way that they can be reused
+across many different experiments. This idea is not new and smp\_graphs
+simply represents the commitment to my own characteristic
+decompositions of the problems into reusable elements and patterns of
+arrangement. There are many examples of similar environments out there
+some of which I have used extensively and which acted as inspiration
+to my own design here. These mdp, pylearn2, blocks, procgraph, keras,
+supercollider, puredata, gstreamer, gnuradio, and simulink / labview.
 
-The design flow is block diagram based. The idea is to use predefined
-blocks that implement a function of the block's inputs. The assignment
-of values to a given input is part of the graph configuration and is
-either a constant computed at configuration time or another block's
-output provided on a globally shared bus structure. Every block
-writes it's outputs to that bus where it can be picked up and used by
-any other block, including the block itself allowing recurrent
-connections.
+The framework exists inside the larger sensorimotor primitives (smp)
+ecosystem and it implements only (mostly) framework specific functions
+of graph handling, manipulation, and execution. The actual algorithms
+are kept separately in a library called `smp\_base <https://github.com/x75/smp_base>`_. Specific block
+implementations make use of other *smp\_\** libs, such as `smp\_sys <https://github.com/x75/smp_sys>`_
+(robots :math:`\in` systems) and other 3rd party python libs, see
+dependencies.
 
-See also: mdp, Oger; pylearn2, blocks, procgraph, keras;
-supercollider, puredata, gnuradio.
+An experiment's graph is specified in a configuration file written
+down as a Python dictionary. The configuration is then loaded by the
+general experimental shell 'experiment.py'. The assignment of values
+to a node's inputs is part of the graph configuration and is either a
+constant computed at configuration time or another block's output
+provided on a globally shared bus structure. Every block writes it's
+outputs to that bus, where it can be picked up and used by any other
+block, including the block itself, allowing recurrent connections.
+
+The graph-based representation provides good separation of the
+experiment's algorithm and the implementation. The project is
+work-in-progress and stilll moving. In principle the configuration is
+independent of this specific implementation and could also be used
+to generate or assemble an implementation in another language or
+particular hardware etc. The most important drawback right now is the
+verbosity of the configuration dictionary but clearly this can also be
+optimized to allow very terse formulations.
 
 1.1 Installation
 ~~~~~~~~~~~~~~~~
 
 Depends on 
 
-- External: numpy, scipy, networkx, pandas, matplotlib, sklearn, seaborn,
+- External: numpy, scipy, networkx, pandas, matplotlib, sklearn, seaborn, rlspy, jpype/infodynamics.jar, mdp/Oger, ros, pyunicorn, hyperopt, cma
 
-rlspy, jpype/infodynamics.jar, mdp/Oger, ros, pyunicorn, hyperopt, cma
+- smp world: smp\_base, smp\_sys
 
-- smp world: smp\_base
-
-smp stuff is 'installed' via setting the PYTHONPATH to include the
-relevant directories like
+smp stuff is 'installed' by cloning the repositories and setting the PYTHONPATH to include the relevant directories like
 
 ::
 
@@ -58,38 +76,39 @@ Run some example configurations like
 
 ::
 
-    # default2.py, test most basic functionality with const and random blocks
-    python experiment.py --conf conf/default2.py
+    # example_default2.py, test most basic functionality with const and random blocks
+    python experiment.py --conf conf/example_default2.py
 
 ::
 
-    # default2_loop.py, test the graph modifying loop block
-    python experiment.py --conf conf/default2_loop.py
+    # example_loop.py, test the graph modifying loop block
+    python experiment.py --conf conf/example_loop.py
 
 ::
 
-    # default2_hierarchical.py, test hierarchical composition loading a subblock from
+    # example_hierarchical.py, test hierarchical composition loading a subblock from
     #                             an existing configuration
-    python experiment.py --conf conf/default2_hierarchical.py
+    python experiment.py --conf conf/example_hierarchical.py
 
 ::
 
-    # default2_loop_seq.py, test dynamic loop instantiating the loopblock
+    # example_loop_seq.py, test dynamic loop instantiating the loopblock
     #                         for every loop iteration
-    python experiment.py --conf conf/default2_loop_seq.py
+    python experiment.py --conf conf/example_loop_seq.py
 
-and so on. Other configurations are puppy\_rp.py and
-puppy\_rp\_blocksize.py which load a logfile and do analysis on that
-data.
+and so on. Have a look at the files in the 'experiments/conf/'
+directory.
 
-Two utilities for inspecting logged configurations and data are
-provided in util\_logdump.py and util\_logplot.py
+\FIXME Provide the data for the examples as a .zip file on osf
 
-1.3 Framework design considerations
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1.3 Design considerations
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This is a dynamic list, items already implemented should trickle down
-to the bottom as they consolidate, hottest items at the top.
+This is a dynamic list which I use both to sketch (TODO) and document
+(DONE) the requirements and issues of the framework. Items that are
+already implemented should trickle down to the bottom as they
+consolidate, while the hottest items are at the top. Otherwise the
+order of items is random.
 
 - misc stuff: immediate or small
 
@@ -119,13 +138,13 @@ to the bottom as they consolidate, hottest items at the top.
 
 - power blocks, the real stuff
 
-  - y block\_meas: measurement / analysis blocks
-
   - block\_expand: expansion blocks: random non-linear expansion (mdp), reservoir expansion, soft-body expansion
 
   - block\_repr: representation learning, unsupervised learning, input decomposition
 
   - block\_func: function approximation blocks
+
+  - x block\_meas: measurement / analysis blocks
 
 - documentation
 
@@ -136,9 +155,6 @@ to the bottom as they consolidate, hottest items at the top.
   - doc: all the logic
 
   - doc: inputs spec, outputs spec, slicespec, plotinput spec, mixed blocksizes?
-
-- experiment: map an sm manifold from logdata via scattermatrix or
-  dimstack, sort the axes by pairwise MI/infodist
 
 - predictive processing
 
@@ -340,7 +356,7 @@ to the bottom as they consolidate, hottest items at the top.
     enforce 1 or equality: flattening of graph enforces std graph
     rule bs\_earlier\_lt\_bs\_later
 
-  - x use blocks that contain other graphs (default2\_hierarchical.py)
+  - x use blocks that contain other graphs (example\_hierarchical.py)
 
 - x logging
 
@@ -353,8 +369,6 @@ to the bottom as they consolidate, hottest items at the top.
   - x include git revision, initial and final config in log
 
   - x profiling: logging: make logging internal blocksize
-
-- x base block
 
 - dict printing for dynamic reconf inspection
 
@@ -378,9 +392,31 @@ to the bottom as they consolidate, hottest items at the top.
 
   - expr: make target frequency sweep during force learning and do sliding window analysis on shifted mi/te
 
+  - expr: map an sm manifold from logdata via scattermatrix or dimstack, sort the axes by pairwise MI/infodist
+
   - x expr: puppy scatter with proper delay: done for m:angle/s:angvel
 
   - x expr: make windowed infth analysis: manifold\_timespread\_windowed.py
+
+1.3.1 DONE Base block
+^^^^^^^^^^^^^^^^^^^^^
+
+The basic block class is Block2. Blocks come in two fundamental
+flavours, composite blocks and primitive blocks. Composite ones are
+composed of other composite or primitive blocks. An experiment
+consists at the top level of a single block with a 'graph' attribute
+that contains all subordinate blocks. When the experiment is run, we
+just iterate over the range from 1 up to the top level 'numsteps'
+parameter and call the .step function of the top block, which in turn
+walks the graph and calls each node's step function.
+
+Composite blocks are Block2, LoopBlock2, and SeqLoopBlock2. Block2 can
+be used to include an entire static subgraph specified either as a
+dict directly in the configuration, or as a filename that points to
+any other configuration file. At init time, the configuration
+dictionary is converted into the execution graph, which as a networkx
+graph, and whose nodes' attributes contain the original configuration
+plus the runtime block instance.
 
 1.4 Notes
 ~~~~~~~~~
@@ -399,7 +435,7 @@ include
   (blocks) and their connections. granularity was too small and
   specifying connections was too complicated
 
-- **smq**: tried to be more high-level, introducing three specific and
+- **smq**: in `smq <https://github.com/x75/smq>`_ I tried to be more high-level, introducing three specific and
   fixed modules 'world', 'robot', 'brain'. Alas it turned out that
   left us too inflexible and obviosuly couldn't accomodate any
   experiments deviating from that schema. Is where we are ;)

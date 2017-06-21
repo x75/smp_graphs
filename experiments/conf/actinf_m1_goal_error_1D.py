@@ -601,5 +601,4 @@ graph = OrderedDict([
               
     # plot timeseries
     ('plot_ts', plot_timeseries_block(l0 = 'pre_l0', blocksize = numsteps)),
-    
 ])
