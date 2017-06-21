@@ -1,99 +1,107 @@
-smp_graphs package
-==================
+smp\_graphs package
+===================
 
 Submodules
 ----------
 
-smp_graphs.block module
------------------------
+smp\_graphs\.block module
+-------------------------
 
 .. automodule:: smp_graphs.block
     :members:
     :undoc-members:
     :show-inheritance:
 
-smp_graphs.block_cls module
----------------------------
+smp\_graphs\.block\_cls module
+------------------------------
 
 .. automodule:: smp_graphs.block_cls
     :members:
     :undoc-members:
     :show-inheritance:
 
-smp_graphs.block_meas module
-----------------------------
+smp\_graphs\.block\_meas module
+-------------------------------
 
 .. automodule:: smp_graphs.block_meas
     :members:
     :undoc-members:
     :show-inheritance:
 
-smp_graphs.block_meas_infth module
-----------------------------------
+smp\_graphs\.block\_meas\_infth module
+--------------------------------------
 
 .. automodule:: smp_graphs.block_meas_infth
     :members:
     :undoc-members:
     :show-inheritance:
 
-smp_graphs.block_ols module
----------------------------
+smp\_graphs\.block\_models module
+---------------------------------
+
+.. automodule:: smp_graphs.block_models
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+smp\_graphs\.block\_ols module
+------------------------------
 
 .. automodule:: smp_graphs.block_ols
     :members:
     :undoc-members:
     :show-inheritance:
 
-smp_graphs.block_plot module
-----------------------------
+smp\_graphs\.block\_plot module
+-------------------------------
 
 .. automodule:: smp_graphs.block_plot
     :members:
     :undoc-members:
     :show-inheritance:
 
-smp_graphs.common module
-------------------------
+smp\_graphs\.common module
+--------------------------
 
 .. automodule:: smp_graphs.common
     :members:
     :undoc-members:
     :show-inheritance:
 
-smp_graphs.experiment module
-----------------------------
+smp\_graphs\.experiment module
+------------------------------
 
 .. automodule:: smp_graphs.experiment
     :members:
     :undoc-members:
     :show-inheritance:
 
-smp_graphs.funcs module
------------------------
+smp\_graphs\.funcs module
+-------------------------
 
 .. automodule:: smp_graphs.funcs
     :members:
     :undoc-members:
     :show-inheritance:
 
-smp_graphs.graph module
------------------------
+smp\_graphs\.graph module
+-------------------------
 
 .. automodule:: smp_graphs.graph
     :members:
     :undoc-members:
     :show-inheritance:
 
-smp_graphs.logging module
--------------------------
+smp\_graphs\.logging module
+---------------------------
 
 .. automodule:: smp_graphs.logging
     :members:
     :undoc-members:
     :show-inheritance:
 
-smp_graphs.utils module
------------------------
+smp\_graphs\.utils module
+-------------------------
 
 .. automodule:: smp_graphs.utils
     :members:

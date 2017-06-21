@@ -2,6 +2,7 @@
 *.pyc
 doc/html
 doc/latex
+doc/_build
 doc/doxygen_sqlite3.db
 experiments/data/*.pdf
 experiments/data/*.jpg
