@@ -12,7 +12,7 @@ import numpy as np
 from smp_graphs.block import decStep, PrimBlock2
 from smp_sys.systems import PointmassSys
 from smp_sys.systems import SimplearmSys
-from smp_sys.bha_simulated import BhaSimulatedSys
+from smp_sys.systems_bhasim import BhaSimulatedSys
 # BHA / mathias
 # stdr
 # sphero
@@ -96,7 +96,7 @@ class SimplearmBlock2(SysBlock2):
                 
 
 class BhasimulatedBlock2(SysBlock2):
-    """Bhasimulated system block, thin wrapper around smp_sys.bha_simulated.BhasimulatedSys"""
+    """Bhasimulated system block, thin wrapper around smp_sys.systems_bhasim.BhasimulatedSys"""
     def __init__(self, conf = {}, paren = None, top = None):
         SysBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
