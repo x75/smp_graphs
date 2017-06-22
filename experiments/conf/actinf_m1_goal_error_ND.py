@@ -210,7 +210,7 @@ sweepsys[1]['params']['inputs'] = {'u': {'bus': 'sweepsys_grid/meshgrid'}}
 sweepsys[1]['params']['outputs']['s_proprio']['shape'] = (dim, sweepsys_input_flat)
 sweepsys[1]['params']['outputs']['s_extero']['shape']  = (dim_s_extero, sweepsys_input_flat)
 
-sweepmdl_steps = 2000
+sweepmdl_steps = 100
 sweepmdl_input_flat = sweepmdl_steps # np.power(sweepmdl_steps, dim * 2)
 sweepmdl_func = f_random_uniform
 
@@ -625,26 +625,26 @@ graph = OrderedDict([
     # blockphase: points in the cnt % numsteps space when to execute
     # numsteps:      
     # loopblocksize: number of loop iterations = numsteps/loopblocksize 
-    # ("sweepmodel", {
-    #     'debug': False,
-    #     'block': SeqLoopBlock2,
-    #     'params': {
-    #         'id': 'sweepmodel',
-    #         'blocksize': numsteps, # execution cycle, same as global numsteps
-    #         #                        execution phase, on first time step only
-    #         # 'blockphase': [numsteps/2, numsteps-10],
-    #         # 'blockphase': [int(i * numsteps)-1 for i in np.linspace(1.0/2, 1, 2)],
-    #         'blockphase': [int(i * numsteps)-1 for i in np.linspace(1.0/1, 1, 1)],
-    #         # 'blockphase': [0],
-    #         'numsteps':  1, # numsteps,          # numsteps      / loopblocksize = looplength
-    #         'loopblocksize': 1, #loopblocksize, # loopblocksize * looplength    = numsteps
-    #         # can't do this dynamically yet without changing init passes
-    #         'outputs': {'pre': {'shape': (dim * 2, sweepmdl_input_flat)}},
-    #         'loop': [('none', {}) for i in range(2)], # lambda ref, i, obj: ('none', {}),
-    #         'loopmode': 'sequential',
-    #         'loopblock': loopblock_model,
-    #     },
-    # }),        
+    ("sweepmodel", {
+        'debug': False,
+        'block': SeqLoopBlock2,
+        'params': {
+            'id': 'sweepmodel',
+            'blocksize': numsteps, # execution cycle, same as global numsteps
+            #                        execution phase, on first time step only
+            # 'blockphase': [numsteps/2, numsteps-10],
+            # 'blockphase': [int(i * numsteps)-1 for i in np.linspace(1.0/2, 1, 2)],
+            'blockphase': [int(i * numsteps)-1 for i in np.linspace(1.0/1, 1, 1)],
+            # 'blockphase': [0],
+            'numsteps':  1, # numsteps,          # numsteps      / loopblocksize = looplength
+            'loopblocksize': 1, #loopblocksize, # loopblocksize * looplength    = numsteps
+            # can't do this dynamically yet without changing init passes
+            'outputs': {'pre': {'shape': (dim * 2, sweepmdl_input_flat)}},
+            'loop': [('none', {}) for i in range(2)], # lambda ref, i, obj: ('none', {}),
+            'loopmode': 'sequential',
+            'loopblock': loopblock_model,
+        },
+    }),        
         
     # system block from definition elsewhere
     ('robot1', systemblock),

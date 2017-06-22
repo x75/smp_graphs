@@ -18,6 +18,9 @@ from smp_sys.bha_simulated import BhaSimulatedSys
 # sphero
 # 
 
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
 class SysBlock2(PrimBlock2):
     """!@brief Basic system block"""
     def __init__(self, conf = {}, paren = None, top = None):
@@ -109,7 +112,8 @@ class BhasimulatedBlock2(SysBlock2):
         for k in ['s_proprio', 's_extero', 's_all']:
             setattr(self, k, self.x[k])
             # print "%s.init[%d]: x = %s/%s" % (self.cname, self.cnt, self.x, self.system.x)
-        
+        self.fig = plt.figure()
+        self.ax = self.fig.add_subplot(111, projection = "3d")
 
     @decStep()
     def step(self, x = None):
@@ -121,10 +125,13 @@ class BhasimulatedBlock2(SysBlock2):
             # for k in ['s_proprio', 's_extero', 's_all']:
             for k in self.outputs.keys():
                 k_ = getattr(self, k)
-                print "bhasysblock k_", k_, k_[:,[i]].shape, self.x[k].shape
-                print "bhasysblock k_", k_, k_[:,[i]], self.x[k]
+                # print "bhasysblock k_", k_, k_[:,[i]].shape, self.x[k].shape
+                # print "bhasysblock k_", k_, k_[:,[i]], self.x[k]
                 k_[:,[i]] = self.x[k].T
                 # setattr(self, k, self.x[k])
                 # print "%s.step[%d]: x = %s/%s" % (self.cname, self.cnt, self.x, self.system.x)
-                
-
+            if self.cnt % 100 == 0:
+                print "%s.step plotting arm with u = %s" % (self.cname, self.u.T)
+                self.system.visualize(self.ax, self.u.T)
+                plt.draw()
+                plt.pause(1e-6)
