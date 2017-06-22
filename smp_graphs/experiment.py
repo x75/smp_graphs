@@ -87,6 +87,10 @@ Load a config from the file in args.conf
         assert self.conf is not None, "%s.init: Couldn't read config file %s" % (self.__class__.__name__, args.conf)
         self.conf = set_config_defaults(self.conf)
 
+        if self.conf['params']['ros']:
+            import rospy
+            rospy.init_node("smp_graph")
+    
         # self.conf = set_config_commandline_args(self.conf, args)
         
         # print "%s.init: conf keys = %s\n\n\n\n" % (self.__class__.__name__, self.conf.keys())

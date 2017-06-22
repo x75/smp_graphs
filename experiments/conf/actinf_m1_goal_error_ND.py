@@ -20,6 +20,7 @@ from smp_graphs.block_meas import XCorrBlock2
 from smp_graphs.block_meas_infth import JHBlock2, MIBlock2, InfoDistBlock2, TEBlock2, CTEBlock2, MIMVBlock2, TEMVBlock2
 from smp_graphs.block_models import ModelBlock2
 from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2, BhasimulatedBlock2
+from smp_graphs.block_cls_ros import STDRCircularBlock2
 
 from smp_graphs.funcs import f_meshgrid, f_meshgrid_mdl, f_random_uniform
 
@@ -35,6 +36,11 @@ randseed = 12345
 numsteps = 1000
 dim = 3 # 2, 1
 # dim = 9 # bha
+
+dim_s_proprio = 2 # linear, angular
+dim_s_extero = 3  # three sonar rangers
+dim = dim_s_proprio
+
 motors = dim
 dt = 0.1
 loopblocksize = numsteps
@@ -149,6 +155,28 @@ systemblock_bha = {
         }
     }
     
+# ROS system STDR
+systemblock_stdr = {
+    'block': STDRCircularBlock2,
+    'params': {
+        'id': 'robot1',
+        'debug': False,
+        'blocksize': 1, # FIXME: make pm blocksize aware!
+        'inputs': {'u': {'bus': 'pre_l0/pre'}},
+        'outputs': {
+            's_proprio': {'shape': (dim_s_proprio, 1)},
+            's_extero': {'shape': (dim_s_extero, 1)}
+            }, # , 's_all': [(9, 1)]},
+        "ros": True,
+        "dt": dt,
+        'm_mins': [-1.] * dim_s_proprio,
+        'm_maxs': [ 1.] * dim_s_proprio,
+        'dim_s_proprio': dim_s_proprio, 
+        'dim_s_extero': dim_s_extero,   
+        'outdict': {},
+        'smdict': {},
+        }
+    }
 
 ################################################################################
 # experiment variations
@@ -158,11 +186,12 @@ systemblock_bha = {
 # - dimensions
 # - number of modalities
     
-algo = 'soesgp' # 'knn', 'soesgp', 'storkgp'
+algo = 'knn' # 'knn', 'soesgp', 'storkgp'
 
-systemblock = systemblock_pm
-dim_s_motor  = systemblock['params']['dim_s_motor']
-dim_s_extero = systemblock['params']['dim_s_extero']
+systemblock   = systemblock_stdr
+# dim_s_motor   = systemblock['params']['dim_s_motor']
+dim_s_proprio = systemblock['params']['dim_s_proprio']
+dim_s_extero  = systemblock['params']['dim_s_extero']
 m_mins = systemblock['params']['m_mins']
 m_maxs = systemblock['params']['m_maxs']
 

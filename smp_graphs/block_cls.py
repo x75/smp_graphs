@@ -36,9 +36,12 @@ class PointmassBlock2(SysBlock2):
         self.system = PointmassSys(conf['params'])
         # latent output variables defined by pointmass system
         self.x = {
-            's_proprio': np.zeros((self.sysdim,   self.blocksize)),
-            's_extero':  np.zeros((self.sysdim,   self.blocksize)),
-            's_all':     np.zeros((self.statedim, self.blocksize)),
+            's_proprio': np.zeros((self.dim_s_proprio,  self.blocksize)),
+            's_extero':  np.zeros((self.dim_s_extero,   self.blocksize)),
+            's_all':     np.zeros((self.dim_s_proprio + self.dim_s_extero, self.blocksize)),
+            # 's_proprio': np.zeros((self.sysdim,   self.blocksize)),
+            # 's_extero':  np.zeros((self.sysdim,   self.blocksize)),
+            # 's_all':     np.zeros((self.statedim, self.blocksize)),
         }
         # copy those into self attributes
         for k in ['s_proprio', 's_extero', 's_all']:
