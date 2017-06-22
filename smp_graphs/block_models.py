@@ -294,6 +294,8 @@ def step_actinf_m1_single(ref, pre_l1, pre_l0, meas_l0):
     # predict next values at current layer input
     pre_l0 = ref.mdl.predict(ref.X_.T)
 
+    # print "pre_l0", pre_l0
+    
     ref.debug_print("step_actinf_m1_single ref.X_ = %s, pre_l0 = %s", (ref.X_.shape, pre_l0.shape))
     # for outk, outv in ref.outputs.items():
     #     setattr(ref, outk, pre_l0)

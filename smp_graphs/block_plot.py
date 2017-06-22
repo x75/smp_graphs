@@ -255,6 +255,7 @@ class ImgPlotBlock2(FigPlotBlock2):
 
     def plot_subplots(self):
         self.debug_print("%s plot_subplots self.inputs = %s", (self.cname, self.inputs))
+        print "%s.plot_subplots(): all = %s" % (self.cname, self.inputs['all']['val'].shape)
         numrows = len(self.subplots)
         numcols = len(self.subplots[0])
 
@@ -385,8 +386,11 @@ class ImgPlotBlock2(FigPlotBlock2):
                         argdims = subplotconf['digitize']['argdims']
                         numbins = subplotconf['digitize']['numbins']
                         valdims = subplotconf['digitize']['valdim']
+
+                        # print "%s.plot_subplots(): digitize argdims = %s, numbins = %s, valdims = %s" % (self.cname, argdims, numbins, valdims)
                         
-                        plotdata_cand = digitize_pointcloud(data = plotdata_cand, argdims = argdims, numbins = numbins, valdims = valdims)
+                        # plotdata_cand = digitize_pointcloud(data = plotdata_cand, argdims = argdims, numbins = numbins, valdims = valdims)
+                        plotdata_cand = digitize_pointcloud(data = plotdata_cand, argdims = argdims, numbins = numbins, valdims = valdims, f_fval = np.mean)
                         
                     plotdata = {}
 
@@ -394,6 +398,7 @@ class ImgPlotBlock2(FigPlotBlock2):
                     if subplotconf.has_key('dimstack'):
                         plotdata['i_%d_%d' % (i, j)] = dimensional_stacking(plotdata_cand, subplotconf['dimstack']['x'], subplotconf['dimstack']['y'])
                         # print "plotdata[" + 'i_%d_%d' % (i, j) + "].shape", plotdata['i_%d_%d' % (i, j)].shape
+                        # print "%s.plot_subplots(): dimstack x = %s, y = %s" % (self.cname, subplotconf['dimstack']['x'], subplotconf['dimstack']['y'])
                     else:
                         plotdata['i_%d_%d' % (i, j)] = plotdata_cand.reshape(subplotconf['shape'][0])
                     if subplotconf.has_key('ylog'):
@@ -427,7 +432,8 @@ class ImgPlotBlock2(FigPlotBlock2):
 
                         # Linv = np.log(inv + 1)
                         Linv = inv
-                        # print "Linv.shape", Linv.shape
+                        print "Linv.shape", Linv.shape
+                        print "Linv", np.sum(np.abs(Linv))
                         plotfunc = "pcolorfast"
                         plot_img(ax = ax, data = Linv, plotfunc = plotfunc,
                                      vmin = vmin, vmax = vmax, cmap = cmap,

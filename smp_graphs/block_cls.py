@@ -84,8 +84,8 @@ class SimplearmBlock2(SysBlock2):
     def step(self, x = None):
         for i in range(self.blocksize):
             self.u = self.inputs['u']['val'][:,[i]]
-            self.x = self.system.step(self.u)
             # print "self.u", self.u
+            self.x = self.system.step(self.u)
             # real output variables defined by config
             # for k in ['s_proprio', 's_extero', 's_all']:
             for k in self.outputs.keys():
@@ -112,8 +112,10 @@ class BhasimulatedBlock2(SysBlock2):
         for k in ['s_proprio', 's_extero', 's_all']:
             setattr(self, k, self.x[k])
             # print "%s.init[%d]: x = %s/%s" % (self.cname, self.cnt, self.x, self.system.x)
-        self.fig = plt.figure()
-        self.ax = self.fig.add_subplot(111, projection = "3d")
+
+        if self.doplot:
+            self.fig = plt.figure()
+            self.ax = self.fig.add_subplot(111, projection = "3d")
 
     @decStep()
     def step(self, x = None):
@@ -130,7 +132,7 @@ class BhasimulatedBlock2(SysBlock2):
                 k_[:,[i]] = self.x[k].T
                 # setattr(self, k, self.x[k])
                 # print "%s.step[%d]: x = %s/%s" % (self.cname, self.cnt, self.x, self.system.x)
-            if self.cnt % 100 == 0:
+            if self.doplot and self.cnt % 100 == 0:
                 print "%s.step plotting arm with u = %s" % (self.cname, self.u.T)
                 self.system.visualize(self.ax, self.u.T)
                 plt.draw()

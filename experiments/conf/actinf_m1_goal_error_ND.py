@@ -34,7 +34,7 @@ commandline_args = ['numsteps']
 randseed = 12345
 numsteps = 1000
 dim = 3 # 2, 1
-dim = 9 # bha
+# dim = 9 # bha
 motors = dim
 dt = 0.1
 loopblocksize = numsteps
@@ -72,8 +72,8 @@ systemblock_pm = {
         'debug': False,
         'dim_s_motor': motors,
         'length_ratio': 3./2., # gain curve?
-        'm_mins': -1,
-        'm_maxs': 1,
+        'm_mins': [-1.] * motors,
+        'm_maxs': [ 1.] * motors,
         'dim_s_extero': dim,
         }
     }
@@ -102,8 +102,12 @@ systemblock_sa = {
         'debug': False,
         'dim_s_motor': dim,
         'length_ratio': 3./2.,
-        'm_mins': -1,
-        'm_maxs': 1,
+        'm_mins': [-1.] * motors,
+        'm_maxs': [ 1.] * motors,
+        # 's_mins': [-1.00] * 9,
+        # 's_maxs': [ 1.00] * 9,
+        # 'm_mins': -1,
+        # 'm_maxs': 1,
         'dim_s_extero': 2,
         }
     }
@@ -137,10 +141,11 @@ systemblock_bha = {
         'dim_s_extero': 3,
         'numsegs': 3,
         'segradii': np.array([0.1,0.093,0.079]),
-        'm_mins': [0.11] * 9,
-        'm_maxs': [0.29]  * 9,
-        's_mins': [-1] * 9,
-        's_maxs': [1]  * 9,
+        'm_mins': [ 0.10] * dim,
+        'm_maxs': [ 0.30] * dim,
+        's_mins': [-1.00] * dim, # fixme all sensors
+        's_maxs': [ 1.00] * dim,
+        'doplot': False,
         }
     }
     
@@ -155,7 +160,7 @@ systemblock_bha = {
     
 algo = 'soesgp' # 'knn', 'soesgp', 'storkgp'
 
-systemblock = systemblock_bha
+systemblock = systemblock_pm
 dim_s_motor  = systemblock['params']['dim_s_motor']
 dim_s_extero = systemblock['params']['dim_s_extero']
 m_mins = systemblock['params']['m_mins']
@@ -210,7 +215,7 @@ sweepsys[1]['params']['inputs'] = {'u': {'bus': 'sweepsys_grid/meshgrid'}}
 sweepsys[1]['params']['outputs']['s_proprio']['shape'] = (dim, sweepsys_input_flat)
 sweepsys[1]['params']['outputs']['s_extero']['shape']  = (dim_s_extero, sweepsys_input_flat)
 
-sweepmdl_steps = 100
+sweepmdl_steps = 1000
 sweepmdl_input_flat = sweepmdl_steps # np.power(sweepmdl_steps, dim * 2)
 sweepmdl_func = f_random_uniform
 
@@ -278,6 +283,10 @@ loopblock_model = {
                         # 'ranges': {'val': np.array([[-1, 1], [-1e-0, 1e-0]])},
                         'ranges': {
                             'val': np.array([[m_mins[0], m_maxs[0]]] * dim * 2)},
+                            # 'val': np.vstack((
+                            #     np.array([[m_mins[0], m_maxs[0]]] * dim),
+                            #     np.array([[-2.0,      1.0]]       * dim),
+                            #     ))},
                         'steps':  {'val': sweepmdl_steps},
                         },
                     'outputs': {
@@ -473,12 +482,13 @@ loopblock_model = {
                                 'shape': (dim * 3, sweepmdl_input_flat),
                                 'ndslice': [(slice(None), slice(None))],
                                 # 'vmin': -1.0, 'vmax': 1.0,
+                                # 'vmin': 0.1, 'vmax': 0.3,
                                 'cmap': 'RdGy',
                                 'dimstack': {
                                     'x': range(2*dim-1, dim - 1, -1),
                                     'y': range(dim-1,   -1     , -1)},
                                 'digitize': {'argdims': range(0, dim * 2), 'valdim': 2*dim+i, 'numbins': 2},
-                            } for i in range(3)],
+                            } for i in range(dim)],
 
                         # [
                         #     {
