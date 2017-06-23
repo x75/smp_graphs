@@ -17,10 +17,13 @@ experiments and capturing them in such a way that they can be reused
 across many different experiments. This idea is not new and smp\_graphs
 simply represents the commitment to my own characteristic
 decompositions of the problems into reusable elements and patterns of
-arrangement. There are many examples of similar environments out there
-some of which I have used extensively and which acted as inspiration
-to my own design here. These mdp, pylearn2, blocks, procgraph, keras,
-supercollider, puredata, gstreamer, gnuradio, and simulink / labview.
+arrangement. Of course there is no fundamental intrinsic restriction
+to sensorimotor learning so the framework can be used for any kind of
+computation flow. There are many examples of similar environments out
+there some of which I have used extensively and which acted as
+inspiration to my own design here. These are for example mdp,
+pylearn2, blocks, procgraph, keras, supercollider, puredata,
+gstreamer, gnuradio, and simulink / labview.
 
 The framework exists inside the larger sensorimotor primitives (smp)
 ecosystem and it implements only (mostly) framework specific functions

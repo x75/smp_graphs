@@ -20,10 +20,13 @@ experiments and capturing them in such a way that they can be reused
 across many different experiments. This idea is not new and smp_graphs
 simply represents the commitment to my own characteristic
 decompositions of the problems into reusable elements and patterns of
-arrangement. There are many examples of similar environments out there
-some of which I have used extensively and which acted as inspiration
-to my own design here. These mdp, pylearn2, blocks, procgraph, keras,
-supercollider, puredata, gstreamer, gnuradio, and simulink / labview.
+arrangement. Of course there is no fundamental intrinsic restriction
+to sensorimotor learning so the framework can be used for any kind of
+computation flow. There are many examples of similar environments out
+there some of which I have used extensively and which acted as
+inspiration to my own design here. These are for example mdp,
+pylearn2, blocks, procgraph, keras, supercollider, puredata,
+gstreamer, gnuradio, and simulink / labview.
 
 The framework exists inside the larger sensorimotor primitives (smp)
 ecosystem and it implements only (mostly) framework specific functions
@@ -158,10 +161,6 @@ order of items is random.
    - x parallel loop within graph, modify graph. this is different
      from dynamic containment
 
- - read/write: integrate input from and output to ROS, OSC, ...
-   - robots
-   - ros systems
-
  - sync / async block execution
    - x research: rate/blocksize/ibuf/obuf, 
    - sequencing (sequential execution) of subgraphs, aka execution phases
@@ -281,6 +280,11 @@ order of items is random.
    - expr: map an sm manifold from logdata via scattermatrix or dimstack, sort the axes by pairwise MI/infodist
    - x expr: puppy scatter with proper delay: done for m:angle/s:angvel
    - x expr: make windowed infth analysis: manifold_timespread_windowed.py
+
+*** DONE Read/write: integrate input from and output to ROS, OSC, ...
+ - x basic simulated robots: pointmass, simplearm, bha
+ - x ros systems: STDRCircular, LPZBarrel
+ - OSC in/out?
 
 *** DONE Base block
 

@@ -2,25 +2,25 @@
 <h2>Table of Contents</h2>
 <div id="text-table-of-contents">
 <ul>
-<li><a href="#orgb35aa47">1. smp_graphs</a>
+<li><a href="#org22f1523">1. smp_graphs</a>
 <ul>
-<li><a href="#org0e31ed9">1.1. Installation</a></li>
-<li><a href="#orgdd78685">1.2. Examples</a></li>
-<li><a href="#org00c6fdb">1.3. Design considerations</a>
+<li><a href="#org51ebac0">1.1. Installation</a></li>
+<li><a href="#org6c8addc">1.2. Examples</a></li>
+<li><a href="#orgf9e5dce">1.3. Design considerations</a>
 <ul>
-<li><a href="#org4b24ffa">1.3.1. <span class="done DONE">DONE</span> Base block</a></li>
+<li><a href="#orgd3f96a6">1.3.1. <span class="done DONE">DONE</span> Base block</a></li>
 </ul>
 </li>
-<li><a href="#orge6ce953">1.4. Notes</a></li>
+<li><a href="#orgfe91f72">1.4. Notes</a></li>
 </ul>
 </li>
-<li><a href="#orgd09cf35">2. API documentation</a></li>
+<li><a href="#org9da324f">2. API documentation</a></li>
 </ul>
 </div>
 </div>
 
 
-<a id="orgb35aa47"></a>
+<a id="org22f1523"></a>
 
 # smp\_graphs
 
@@ -33,10 +33,13 @@ experiments and capturing them in such a way that they can be reused
 across many different experiments. This idea is not new and smp\_graphs
 simply represents the commitment to my own characteristic
 decompositions of the problems into reusable elements and patterns of
-arrangement. There are many examples of similar environments out there
-some of which I have used extensively and which acted as inspiration
-to my own design here. These mdp, pylearn2, blocks, procgraph, keras,
-supercollider, puredata, gstreamer, gnuradio, and simulink / labview.
+arrangement. Of course there is no fundamental intrinsic restriction
+to sensorimotor learning so the framework can be used for any kind of
+computation flow. There are many examples of similar environments out
+there some of which I have used extensively and which acted as
+inspiration to my own design here. These are for example mdp,
+pylearn2, blocks, procgraph, keras, supercollider, puredata,
+gstreamer, gnuradio, and simulink / labview.
 
 The framework exists inside the larger sensorimotor primitives (smp)
 ecosystem and it implements only (mostly) framework specific functions
@@ -65,7 +68,7 @@ verbosity of the configuration dictionary but clearly this can also be
 optimized to allow very terse formulations.
 
 
-<a id="org0e31ed9"></a>
+<a id="org51ebac0"></a>
 
 ## Installation
 
@@ -79,7 +82,7 @@ smp stuff is 'installed' by cloning the repositories and setting the PYTHONPATH 
     export PYTHONPATH=/path/to/smp_base:/path/to/smp_graphs:$PYTHONPATH
 
 
-<a id="orgdd78685"></a>
+<a id="org6c8addc"></a>
 
 ## Examples
 
@@ -109,7 +112,7 @@ directory.
 \FIXME Provide the data for the examples as a .zip file on osf
 
 
-<a id="org00c6fdb"></a>
+<a id="orgf9e5dce"></a>
 
 ## Design considerations
 
@@ -300,7 +303,7 @@ order of items is random.
     -   x expr: make windowed infth analysis: manifold\_timespread\_windowed.py
 
 
-<a id="org4b24ffa"></a>
+<a id="orgd3f96a6"></a>
 
 ### Base block
 
@@ -322,7 +325,7 @@ graph, and whose nodes' attributes contain the original configuration
 plus the runtime block instance.
 
 
-<a id="orge6ce953"></a>
+<a id="orgfe91f72"></a>
 
 ## Notes
 
@@ -344,7 +347,7 @@ include
     experiments deviating from that schema. Is where we are ;)
 
 
-<a id="orgd09cf35"></a>
+<a id="org9da324f"></a>
 
 # API documentation
 
