@@ -11,7 +11,7 @@ from smp_graphs.block_meas_infth import JHBlock2, MIBlock2, InfoDistBlock2, TEBl
 from smp_graphs.block_models import ModelBlock2
 from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2, BhasimulatedBlock2
 
-from smp_graphs.block_cls_ros import STDRCircularBlock2
+from smp_graphs.block_cls_ros import STDRCircularBlock2, LPZBlock2
 
 from smp_graphs.funcs import f_meshgrid, f_meshgrid_mdl, f_random_uniform
 
@@ -28,7 +28,7 @@ randseed = 12345
 numsteps = 100 # ten seconds
 dt = 0.1
 dim_s_proprio = 2 # linear, angular
-dim_s_extero = 3  # three sonar rangers
+dim_s_extero = 1 # 3  # three sonar rangers
 
 # ROS system STDR
 systemblock_stdr = {
@@ -53,8 +53,33 @@ systemblock_stdr = {
         }
     }
 
-m_mins = systemblock_stdr['params']['m_mins']
-m_maxs = systemblock_stdr['params']['m_maxs']
+# ROS system STDR
+systemblock_lpz = {
+    'block': LPZBlock2,
+    'params': {
+        'id': 'robot1',
+        'debug': False,
+        'blocksize': 1, # FIXME: make pm blocksize aware!
+        'inputs': {'u': {'bus': 'pre_l0/pre'}},
+        'outputs': {
+            's_proprio': {'shape': (dim_s_proprio, 1)},
+            's_extero': {'shape': (dim_s_extero, 1)}
+            }, # , 's_all': [(9, 1)]},
+        "ros": True,
+        "dt": dt,
+        'm_mins': [-1.] * dim_s_proprio,
+        'm_maxs': [ 1.] * dim_s_proprio,
+        'dim_s_proprio': dim_s_proprio, 
+        'dim_s_extero': dim_s_extero,   
+        'outdict': {},
+        'smdict': {},
+        }
+    }
+
+systemblock = systemblock_lpz
+    
+m_mins = systemblock['params']['m_mins']
+m_maxs = systemblock['params']['m_maxs']
 
 graph = OrderedDict([
     # goal sampler (motivation) sample_discrete_uniform_goal unconditioned
@@ -76,7 +101,7 @@ graph = OrderedDict([
         }),
 
     # ROS robot
-    ('robot1', systemblock_stdr),
+    ('robot1', systemblock),
 
     ('plot_robot1', {
         'block': PlotBlock2,
