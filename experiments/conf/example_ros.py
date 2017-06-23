@@ -11,7 +11,7 @@ from smp_graphs.block_meas_infth import JHBlock2, MIBlock2, InfoDistBlock2, TEBl
 from smp_graphs.block_models import ModelBlock2
 from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2, BhasimulatedBlock2
 
-from smp_graphs.block_cls_ros import STDRCircularBlock2, LPZBlock2
+from smp_graphs.block_cls_ros import STDRCircularBlock2, LPZBarrelBlock2
 
 from smp_graphs.funcs import f_meshgrid, f_meshgrid_mdl, f_random_uniform
 
@@ -55,7 +55,7 @@ systemblock_stdr = {
 
 # ROS system STDR
 systemblock_lpz = {
-    'block': LPZBlock2,
+    'block': LPZBarrelBlock2,
     'params': {
         'id': 'robot1',
         'debug': False,

@@ -13,7 +13,7 @@ except Exception, e:
 
 from smp_graphs.block import decStep, PrimBlock2
 from smp_graphs.block_cls import SysBlock2
-from smp_sys.systems_ros import STDRCircularSys, LPZSys
+from smp_sys.systems_ros import STDRCircularSys, LPZBarrelSys
 
 ################################################################################
 # STDR 2D robot simulator a la stage
