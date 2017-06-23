@@ -1,6 +1,6 @@
-"""smp_graphs systems blocks using ROS
+"""smp_graphs.block_cls_ros
 
-a system block is a wrapper for a system from smp_sys which uses ROS
+Systems blocks using ROS
 """
 
 import numpy as np

@@ -20,6 +20,14 @@ smp\_graphs\.block\_cls module
     :undoc-members:
     :show-inheritance:
 
+smp\_graphs\.block\_cls\_ros module
+-----------------------------------
+
+.. automodule:: smp_graphs.block_cls_ros
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 smp\_graphs\.block\_meas module
 -------------------------------
 
