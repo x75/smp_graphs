@@ -10,6 +10,7 @@
 #+LATEX_HEADER: \renewcommand{\familydefault}{\sfdefault}
 
 * smp_graphs
+** smp what?
 
 This is an experimental framework for specifying sensorimotor learning
 experiments as a computation graph. The nodes represent functions
@@ -66,6 +67,12 @@ Depends on
 smp stuff is 'installed' by cloning the repositories and setting the PYTHONPATH to include the relevant directories like
 
 : export PYTHONPATH=/path/to/smp_base:/path/to/smp_graphs:$PYTHONPATH
+
+Simulators and robots
+ - stdr simulator (FIXME: fetch config from smq)
+ - lpzrobots
+ - sphero_ros
+ - MORSE
 
 ** Examples
 

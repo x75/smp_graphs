@@ -27,7 +27,7 @@ def fu_check_required_args(args, reqs, funcname = "unknown"):
     return True
 
 ################################################################################
-# generator functions
+# generator functions simple, fixed output name
 f_sinesquare = lambda args: np.sin(args['x'][0])**2
 
 # def f_pulse(args):
@@ -41,16 +41,20 @@ def f_sin(args):
     fu_check_required_args(args, ['x', 'f'], 'f_sin')
         
     x = args['x']['val']
+    p = np.zeros_like(x)
+    p[0,0] = 0.0
+    p[1,0] = np.pi/2.0
     f = args['f']['val']
-    return np.sin(x * f)
+    return np.sin(x * f + np.array([[0.0, np.pi/2.0]]).T * f)
 
 def f_sin_noise(args):
     fu_check_required_args(args, ['x','f','sigma'], 'f_sin_noise')
     
     x = f_sin(args)
     xn = np.random.normal(x, args['sigma']['val'], size=x.shape)
+    print "x", x, "xn", xn
     return xn
-        
+
 def f_sinesquare2(args):
     fu_check_required_args(args, ['x'], 'f_sinesquare2')
     
@@ -76,6 +80,31 @@ def f_sinesquare4(args):
     x = f_sinesquare2(args)
     s1 = np.sum(x, axis = 0)
     return np.ones((1,1)) * s1
+
+################################################################################
+# generator functions
+
+def f_sin_2(args):
+    """funcs.f_sin_2
+
+    return the sin of input on named output
+    """
+    # FIXME: check that at configuration time?
+    fu_check_required_args(args, ['x', 'f'], 'f_sin')
+        
+    x = args['x']['val']
+    f = args['f']['val']
+
+    
+    return np.sin(x * f)
+
+# def f_sin_noise(args):
+#     fu_check_required_args(args, ['x','f','sigma'], 'f_sin_noise')
+    
+#     x = f_sin(args)
+#     xn = np.random.normal(x, args['sigma']['val'], size=x.shape)
+#     print "x", x, "xn", xn
+#     return xn
 
 ################################################################################
 # grids

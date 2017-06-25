@@ -1021,6 +1021,8 @@ class FuncBlock2(Block2):
             for k, v in f_val.items():
                 setattr(self, k, v)
         else:
+            for outk, outv in self.outputs.items():
+                setattr(self, outk, f_val)
             self.y = f_val
             self.debug_print("step[%d]: y = %s", (self.cnt, self.y,))
             

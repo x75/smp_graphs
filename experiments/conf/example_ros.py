@@ -14,7 +14,7 @@ from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2, BhasimulatedB
 # the ros system blocks
 from smp_graphs.block_cls_ros import STDRCircularBlock2, LPZBarrelBlock2, SpheroBlock2
 
-from smp_graphs.funcs import f_meshgrid, f_meshgrid_mdl, f_random_uniform
+from smp_graphs.funcs import f_meshgrid, f_meshgrid_mdl, f_random_uniform, f_sin_noise
 
 # execution
 saveplot = False
@@ -26,22 +26,22 @@ ros = True
 # experiment
 commandline_args = ['numsteps']
 randseed = 12345
-numsteps = 100 # ten seconds
+numsteps = 10000 # ten seconds
 
 # sys = "stdr"
 # dim_s_proprio = 2 # linear, angular
 # dim_s_extero = 3  # three sonar rangers
 # dt = 0.1
 
-# sys = "lpzbarrel"
-# dim_s_proprio = 2 # linear, angular
-# dim_s_extero = 1  # three sonar rangers
-# dt = 0.01
-
-sys = "sphero"
+sys = "lpzbarrel"
 dim_s_proprio = 2 # linear, angular
 dim_s_extero = 1  # three sonar rangers
-dt = 0.05
+dt = 0.01
+
+# sys = "sphero"
+# dim_s_proprio = 2 # linear, angular
+# dim_s_extero = 1  # three sonar rangers
+# dt = 0.05
 
 # ROS system using Simple Two-Dimensional Robot Simulator (STDR) with basic circular
 # configuration and 3 sonar rangers
@@ -155,10 +155,37 @@ graph = OrderedDict([
             'models': {
                 'goal': {'type': 'random_uniform'}
                 },
-                'rate': 2,
+                'rate': 100,
             },
         }),
 
+    # ('cnt', {
+    #     'block': CountBlock2,
+    #     'params': {
+    #         'blocksize': 1,
+    #         'debug': False,
+    #         'inputs': {},
+    #         'outputs': {'x': {'shape': (2, 1)}},
+    #     },
+    # }),
+
+    # # a random number generator, mapping const input to hi
+    # ('pre_l0', {
+    #     'block': FuncBlock2,
+    #     'params': {
+    #         'id': 'pre_l0',
+    #         'outputs': {'pre': {'shape': (dim_s_proprio, 1)}},
+    #         'debug': False,
+    #         'blocksize': 1,
+    #         # 'inputs': {'lo': [0, (3, 1)], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+    #         # recurrent connection
+    #         'inputs': {'x': {'bus': 'cnt/x'},
+    #                    'f': {'val': np.array([[0.03, 0.07]]).T},
+    #                    'sigma': {'val': np.array([[0.1, 0.06]]).T}}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+    #         'func': f_sin_noise,
+    #     },
+    # }),
+        
     # ROS robot
     ('robot1', systemblock),
 

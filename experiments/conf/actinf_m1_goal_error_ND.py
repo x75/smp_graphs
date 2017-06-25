@@ -20,9 +20,9 @@ from smp_graphs.block_meas import XCorrBlock2
 from smp_graphs.block_meas_infth import JHBlock2, MIBlock2, InfoDistBlock2, TEBlock2, CTEBlock2, MIMVBlock2, TEMVBlock2
 from smp_graphs.block_models import ModelBlock2
 from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2, BhasimulatedBlock2
-from smp_graphs.block_cls_ros import STDRCircularBlock2
+from smp_graphs.block_cls_ros import STDRCircularBlock2, LPZBarrelBlock2, SpheroBlock2
 
-from smp_graphs.funcs import f_meshgrid, f_meshgrid_mdl, f_random_uniform
+from smp_graphs.funcs import f_meshgrid, f_meshgrid_mdl, f_random_uniform, f_sin_noise
 
 # execution
 saveplot = False
@@ -38,7 +38,8 @@ dim = 3 # 2, 1
 # dim = 9 # bha
 
 dim_s_proprio = 2 # linear, angular
-dim_s_extero = 3  # three sonar rangers
+dim_s_extero = 1 # 1 for lpzbarrel
+# dim_s_proprio = 3 # three sonar rangers stdr
 dim = dim_s_proprio
 
 motors = dim
@@ -178,6 +179,62 @@ systemblock_stdr = {
         }
     }
 
+# ROS system using lpzrobots' roscontroller to interact with the 'Barrel'
+def get_systemblock_lpzbarrel(dim_s_proprio = 2, dim_s_extero = 1, dt = 0.01):
+    global LPZBarrelBlock2
+    systemblock_lpz = {
+        'block': LPZBarrelBlock2,
+        'params': {
+            'id': 'robot1',
+            'debug': False,
+            'blocksize': 1, # FIXME: make pm blocksize aware!
+            'inputs': {'u': {'bus': 'pre_l0/pre'}},
+            'outputs': {
+                's_proprio': {'shape': (dim_s_proprio, 1)},
+                's_extero': {'shape': (dim_s_extero, 1)}
+                }, # , 's_all': [(9, 1)]},
+                "ros": True,
+                "dt": dt,
+            'm_mins': [-1.] * dim_s_proprio,
+            'm_maxs': [ 1.] * dim_s_proprio,
+            'dim_s_proprio': dim_s_proprio, 
+            'dim_s_extero': dim_s_extero,   
+            'outdict': {},
+            'smdict': {},
+            }
+        }
+    return systemblock_lpz
+
+systemblock_lpzbarrel = get_systemblock_lpzbarrel(dt = 0.1)
+
+# ROS system using the Sphero
+def get_systemblock_sphero(dim_s_proprio = 2, dim_s_extero = 1, dt = 0.05):
+    global SpheroBlock2
+    systemblock_sphero = {
+        'block': SpheroBlock2,
+        'params': {
+            'id': 'robot1',
+            'debug': False,
+            'blocksize': 1, # FIXME: make pm blocksize aware!
+            'inputs': {'u': {'bus': 'pre_l0/pre'}},
+            'outputs': {
+                's_proprio': {'shape': (dim_s_proprio, 1)},
+                's_extero': {'shape': (dim_s_extero, 1)}
+                }, # , 's_all': [(9, 1)]},
+                "ros": True,
+                "dt": dt,
+            'm_mins': [-1.] * dim_s_proprio,
+            'm_maxs': [ 1.] * dim_s_proprio,
+            'dim_s_proprio': dim_s_proprio, 
+            'dim_s_extero': dim_s_extero,   
+            'outdict': {},
+            'smdict': {},
+            }
+        }
+    return systemblock_sphero
+
+systemblock_sphero = get_systemblock_sphero()
+
 ################################################################################
 # experiment variations
 # - algo
@@ -188,12 +245,13 @@ systemblock_stdr = {
     
 algo = 'knn' # 'knn', 'soesgp', 'storkgp'
 
-systemblock   = systemblock_stdr
+systemblock   = systemblock_lpzbarrel
 # dim_s_motor   = systemblock['params']['dim_s_motor']
 dim_s_proprio = systemblock['params']['dim_s_proprio']
 dim_s_extero  = systemblock['params']['dim_s_extero']
 m_mins = systemblock['params']['m_mins']
 m_maxs = systemblock['params']['m_maxs']
+lag = 4
 
 def plot_timeseries_block(l0 = 'pre_l0', l1 = "pre_l1", blocksize = 1):
     global PlotBlock2, dim, numsteps, timeseries, dim_s_extero
@@ -393,6 +451,10 @@ loopblock_model = {
                         'pre_l0': {
                             'bus': 'sweep_slice/x_errs',
                             'shape': (dim, sweepmdl_input_flat)},
+                        # ascending prediction error
+                        'prerr_l0': {
+                            'bus': 'pre_l0_test/err',
+                            'shape': (dim, lag+1), 'lag': lag},
                         # measurement
                         'meas_l0': {
                             'val': np.array([[-np.inf for i in range(sweepmdl_input_flat)]] * dim),
@@ -440,35 +502,6 @@ loopblock_model = {
                     }
                 }),
                 
-            # OBSOLETE: old cloning approach, didn't work
-            # # model sweep model
-            # ('test_pre_l0', {
-            #     'block': Block2,
-            #     'params': {
-            #         'id': 'test_pre_l0',
-            #         'numsteps':  sweepmdl_input_flat, # np.power(21, dim),
-            #         'blocksize': sweepmdl_input_flat, # numsteps,
-            #         'blockphase': [0], # [i * numsteps/2 for i in range(2)],
-            #         'inputs': {
-            #             # descending prediction
-            #             'pre_l1': {
-            #                 'bus': 'sweepmdl_grid_goal/pre', 'shape': (dim,sweepmdl_input_flat)},
-            #             # ascending prediction error
-            #             'pre_l0': {
-            #                 'bus': 'sweepmdl_grid_err/pre',  'shape': (dim, sweepmdl_input_flat)},
-            #             # measurement
-            #             'meas_l0': {
-            #                 'val': np.array([[-np.inf for i in range(sweepmdl_input_flat)]]),
-            #                 'shape': (dim, 1)}},
-            #         'outputs': {
-            #             'pre': {'shape': (dim, sweepmdl_input_flat)},
-            #             'err': {'shape': (dim, sweepmdl_input_flat)},
-            #             'tgt': {'shape': (dim, sweepmdl_input_flat)},
-            #             },
-            #         'graph': 'id:pre_l0',
-            #         }
-            #     }),
-
             # # plot timeseries
             # ('plot_ts',
             #      plot_timeseries_block(
@@ -476,81 +509,52 @@ loopblock_model = {
             #          l1 = 'sweepmdl_grid_goal',
             #          blocksize = sweepmdl_input_flat)),
                         
-            # plot model sweep 1d
-            ('plot_model_sweep', {
-                'block': ImgPlotBlock2,
-                'params': {
-                    'id': 'plot_model_sweep',
-                    'logging': False,
-                    'saveplot': saveplot,
-                    'debug': False,
-                    'blocksize': sweepmdl_input_flat,
-                    'inputs': {
-                        # 'sweepin_goal': {
-                        #     'bus': 'sweepmdl_grid_goal/pre',
-                        #     'shape': (dim, sweepmdl_input_flat)},
-                        # 'sweepin_err':  {
-                        #     'bus': 'sweepmdl_grid_err/pre',
-                        #     'shape': (dim, sweepmdl_input_flat)},
-                        # 'sweepout_mdl':  {
-                        #     'bus': 'pre_l0_test/pre',
-                        #     'shape': (dim, sweepmdl_input_flat)},
-                        'all': {
-                            'bus': 'pre_l0_combined/y',
-                            'shape': (dim * 3, sweepmdl_input_flat),
-                            },
-                        },
-                    'outputs': {},
-                    'wspace': 0.5,
-                    'hspace': 0.5,
-                    # with one subplot and reshape
-                    'subplots': [
-                        [
-                            {
-                                'input': ['all'],
-                                'shape': (dim * 3, sweepmdl_input_flat),
-                                'ndslice': [(slice(None), slice(None))],
-                                # 'vmin': -1.0, 'vmax': 1.0,
-                                # 'vmin': 0.1, 'vmax': 0.3,
-                                'cmap': 'RdGy',
-                                'dimstack': {
-                                    'x': range(2*dim-1, dim - 1, -1),
-                                    'y': range(dim-1,   -1     , -1)},
-                                'digitize': {'argdims': range(0, dim * 2), 'valdim': 2*dim+i, 'numbins': 2},
-                            } for i in range(dim)],
+            # # plot model sweep 1d
+            # ('plot_model_sweep', {
+            #     'block': ImgPlotBlock2,
+            #     'params': {
+            #         'id': 'plot_model_sweep',
+            #         'logging': False,
+            #         'saveplot': saveplot,
+            #         'debug': False,
+            #         'blocksize': sweepmdl_input_flat,
+            #         'inputs': {
+            #             # 'sweepin_goal': {
+            #             #     'bus': 'sweepmdl_grid_goal/pre',
+            #             #     'shape': (dim, sweepmdl_input_flat)},
+            #             # 'sweepin_err':  {
+            #             #     'bus': 'sweepmdl_grid_err/pre',
+            #             #     'shape': (dim, sweepmdl_input_flat)},
+            #             # 'sweepout_mdl':  {
+            #             #     'bus': 'pre_l0_test/pre',
+            #             #     'shape': (dim, sweepmdl_input_flat)},
+            #             'all': {
+            #                 'bus': 'pre_l0_combined/y',
+            #                 'shape': (dim * 3, sweepmdl_input_flat),
+            #                 },
+            #             },
+            #         'outputs': {},
+            #         'wspace': 0.5,
+            #         'hspace': 0.5,
+            #         # with one subplot and reshape
+            #         'subplots': [
+            #             [
+            #                 {
+            #                     'input': ['all'],
+            #                     'shape': (dim * 3, sweepmdl_input_flat),
+            #                     'ndslice': [(slice(None), slice(None))],
+            #                     # 'vmin': -1.0, 'vmax': 1.0,
+            #                     # 'vmin': 0.1, 'vmax': 0.3,
+            #                     'cmap': 'RdGy',
+            #                     'dimstack': {
+            #                         'x': range(2*dim-1, dim - 1, -1),
+            #                         'y': range(dim-1,   -1     , -1)},
+            #                     'digitize': {'argdims': range(0, dim * 2), 'valdim': 2*dim+i, 'numbins': 2},
+            #                 } for i in range(dim)],
 
-                        # [
-                        #     {
-                        #         'input': ['all'],
-                        #         'shape': (dim * 3, sweepmdl_input_flat),
-                        #         'ndslice': [(slice(None), slice(None))],
-                        #         # 'vmin': -1.0, 'vmax': 1.0,
-                        #         'cmap': 'RdGy',
-                        #         'dimstack': {'x': [5, 4, 3], 'y': [2, 1, 0]},
-                        #         'digitize': {'argdims': range(0, 6), 'valdim': 6, 'numbins': 2},
-                        #     },
-                        #     {
-                        #         'input': ['all'],
-                        #         'shape': (dim * 3, sweepmdl_input_flat),
-                        #         'ndslice': [(slice(None), slice(None))],
-                        #         # 'vmin': -1.0, 'vmax': 1.0,
-                        #         'cmap': 'RdGy',
-                        #         'dimstack': {'x': [5, 4, 3], 'y': [2, 1, 0]},
-                        #         'digitize': {'argdims': range(0, 6), 'valdim': 7, 'numbins': 2},
-                        #     },
-                        #     {
-                        #         'input': ['all'],
-                        #         'shape': (dim * 3, sweepmdl_input_flat),
-                        #         'ndslice': [(slice(None), slice(None))],
-                        #         # 'vmin': -1.0, 'vmax': 1.0,
-                        #         'cmap': 'RdGy',
-                        #         'dimstack': {'x': [5, 4, 3], 'y': [2, 1, 0]},
-                        #         'digitize': {'argdims': range(0, 6), 'valdim': 8, 'numbins': 2},
-                        #     }
-                        # ],
-                        ],
-                    },
-                }),
+            #             ],
+            #         },
+            #     }),
             ]),
         }
     }
@@ -610,24 +614,64 @@ graph = OrderedDict([
         'block': Block2,
         'params': {
             'graph': OrderedDict([
-                # goal sampler (motivation) sample_discrete_uniform_goal
-                ('pre_l1', {
-                    'block': ModelBlock2,
+                # # goal sampler (motivation) sample_discrete_uniform_goal
+                # ('pre_l1', {
+                #     'block': ModelBlock2,
+                #     'params': {
+                #         'blocksize': 1,
+                #         'blockphase': [0],
+                #         'inputs': {                        
+                #             'lo': {'val': np.array([m_mins]).T, 'shape': (dim, 1)},
+                #             'hi': {'val': np.array([m_maxs]).T, 'shape': (dim, 1)},
+                #             },
+                #         'outputs': {'pre': {'shape': (dim, 1)}},
+                #         'models': {
+                #             'goal': {'type': 'random_uniform'}
+                #             },
+                #         'rate': 50,
+                #         },
+                #     }),
+
+                ('cnt', {
+                    'block': CountBlock2,
                     'params': {
                         'blocksize': 1,
-                        'blockphase': [0],
-                        'inputs': {                        
-                            'lo': {'val': np.array([m_mins]).T, 'shape': (dim, 1)},
-                            'hi': {'val': np.array([m_maxs]).T, 'shape': (dim, 1)},
-                            },
-                        'outputs': {'pre': {'shape': (dim, 1)}},
-                        'models': {
-                            'goal': {'type': 'random_uniform'}
-                            },
-                        'rate': 50,
+                        'debug': False,
+                        'inputs': {},
+                        'outputs': {'x': {'shape': (dim_s_proprio, 1)}},
                         },
                     }),
-                    
+
+                # a random number generator, mapping const input to hi
+                ('pre_l1', {
+                    'block': FuncBlock2,
+                    'params': {
+                        'id': 'pre_l1',
+                        'outputs': {'pre': {'shape': (dim_s_proprio, 1)}},
+                        'debug': False,
+                        'blocksize': 1,
+                        # 'inputs': {'lo': [0, (3, 1)], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+                        # recurrent connection
+                        'inputs': {'x': {'bus': 'cnt/x'},
+                                       'f': {'val': np.array([[0.82, 0.82]]).T},
+                                       # 'f': {'val': np.array([[0.39, 0.39]]).T},
+                                       # 'f': {'val': np.array([[0.37, 0.37]]).T},
+                                       # 'f': {'val': np.array([[0.325, 0.325]]).T},
+                                       # 'f': {'val': np.array([[0.31, 0.31]]).T},
+                                       # 'f': {'val': np.array([[0.19, 0.19]]).T},
+                                       # 'f': {'val': np.array([[0.18, 0.181]]).T},
+                                       # 'f': {'val': np.array([[0.171, 0.171]]).T},
+                                       # 'f': {'val': np.array([[0.161, 0.161]]).T},
+                                       # 'f': {'val': np.array([[0.151, 0.151]]).T},
+                                       # 'f': {'val': np.array([[0.141, 0.141]]).T},
+                                       # stay in place
+                                       # 'f': {'val': np.array([[0.1, 0.1]]).T},
+                                       # 'f': {'val': np.array([[0.24, 0.24]]).T},
+                                       'sigma': {'val': np.array([[0.01, 0.02]]).T}}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+                                       'func': f_sin_noise,
+                        },
+                    }),
+                
                 # learner: basic actinf predictor proprio space learn_proprio_base_0
                 ('pre_l0', {
                     'block': ModelBlock2,
@@ -637,11 +681,20 @@ graph = OrderedDict([
                         'debug': False,
                         'inputs': {
                             # descending prediction
-                            'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim,1)},
+                            'pre_l1': {
+                                'bus': 'pre_l1/pre',
+                                'shape': (dim, lag+1), 'lag': lag},
                             # ascending prediction error
-                            'pre_l0': {'bus': 'pre_l0/pre', 'shape': (dim, 1)},
+                            'pre_l0': {
+                                'bus': 'pre_l0/pre',
+                                'shape': (dim, lag+1), 'lag': lag},
+                            # ascending prediction error
+                            'prerr_l0': {
+                                'bus': 'pre_l0/err',
+                                'shape': (dim, lag+1), 'lag': lag},
                             # measurement
-                            'meas_l0': {'bus': 'robot1/s_proprio', 'shape': (dim, 1)}},
+                            'meas_l0': {
+                                'bus': 'robot1/s_proprio', 'shape': (dim, lag+1)}},
                         'outputs': {
                             'pre': {'shape': (dim, 1)},
                             'err': {'shape': (dim, 1)},
@@ -664,26 +717,26 @@ graph = OrderedDict([
     # blockphase: points in the cnt % numsteps space when to execute
     # numsteps:      
     # loopblocksize: number of loop iterations = numsteps/loopblocksize 
-    ("sweepmodel", {
-        'debug': False,
-        'block': SeqLoopBlock2,
-        'params': {
-            'id': 'sweepmodel',
-            'blocksize': numsteps, # execution cycle, same as global numsteps
-            #                        execution phase, on first time step only
-            # 'blockphase': [numsteps/2, numsteps-10],
-            # 'blockphase': [int(i * numsteps)-1 for i in np.linspace(1.0/2, 1, 2)],
-            'blockphase': [int(i * numsteps)-1 for i in np.linspace(1.0/1, 1, 1)],
-            # 'blockphase': [0],
-            'numsteps':  1, # numsteps,          # numsteps      / loopblocksize = looplength
-            'loopblocksize': 1, #loopblocksize, # loopblocksize * looplength    = numsteps
-            # can't do this dynamically yet without changing init passes
-            'outputs': {'pre': {'shape': (dim * 2, sweepmdl_input_flat)}},
-            'loop': [('none', {}) for i in range(2)], # lambda ref, i, obj: ('none', {}),
-            'loopmode': 'sequential',
-            'loopblock': loopblock_model,
-        },
-    }),        
+    # ("sweepmodel", {
+    #     'debug': False,
+    #     'block': SeqLoopBlock2,
+    #     'params': {
+    #         'id': 'sweepmodel',
+    #         'blocksize': numsteps, # execution cycle, same as global numsteps
+    #         #                        execution phase, on first time step only
+    #         # 'blockphase': [numsteps/2, numsteps-10],
+    #         # 'blockphase': [int(i * numsteps)-1 for i in np.linspace(1.0/2, 1, 2)],
+    #         'blockphase': [int(i * numsteps)-1 for i in np.linspace(1.0/1, 1, 1)],
+    #         # 'blockphase': [0],
+    #         'numsteps':  1, # numsteps,          # numsteps      / loopblocksize = looplength
+    #         'loopblocksize': 1, #loopblocksize, # loopblocksize * looplength    = numsteps
+    #         # can't do this dynamically yet without changing init passes
+    #         'outputs': {'pre': {'shape': (dim * 2, sweepmdl_input_flat)}},
+    #         'loop': [('none', {}) for i in range(2)], # lambda ref, i, obj: ('none', {}),
+    #         'loopmode': 'sequential',
+    #         'loopblock': loopblock_model,
+    #     },
+    # }),        
         
     # system block from definition elsewhere
     ('robot1', systemblock),

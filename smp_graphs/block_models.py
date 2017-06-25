@@ -155,7 +155,7 @@ def init_model(ref, conf, mconf):
     
     if not HAVE_SOESGP:
         algo = "knn"
-        print "Sorry, SOESGP/STORKGP not available, defaulting to knn"
+        print "soesgp/storkgp not available, defaulting to knn"
             
     if algo == "knn":
         # mdl = KNeighborsRegressor(n_neighbors=5)
@@ -205,35 +205,55 @@ def init_actinf_m1(ref, conf, mconf):
     ref.pre_l1_tm1 = 0
 
 def step_actinf_m1(ref):
+    # get lag
+    # lag = ref.inputs['']['val'][...,lag]
+    lag = 0
     # current goal, prediction descending from layer above
-    pre_l1   = ref.inputs['pre_l1']['val']
+    pre_l1   = ref.inputs['pre_l1']['val'] # [...,[lag]]
     # measurement at current layer input
     meas_l0 = ref.inputs['meas_l0']['val']
     # prediction  at current layer input
-    pre_l0   = ref.inputs['pre_l0']['val']
+    pre_l0   = ref.inputs['pre_l0']['val'] # [...,[lag]]
+    # prediction  at current layer input
+    prerr_l0 = ref.inputs['prerr_l0']['val'] # [...,[lag]]
 
-    # print "pre_l1.shape", pre_l1.shape, "pre_l0.shape", pre_l0.shape
+    print "pre_l1.shape", pre_l1.shape, "pre_l0.shape", pre_l0.shape, "meas_l0.shape", meas_l0.shape
 
     # print "ref.pre.shape", ref.pre.shape, "ref.err.shape", ref.err.shape
     
     assert pre_l1.shape[-1] == pre_l0.shape[-1] == meas_l0.shape[-1], "step_actinf_m1: input shapes need to agree"
 
-    # loop over block if inputs
-    # if pre_l1.shape[-1] > 0:
-    for i in range(pre_l1.shape[-1]):
-        (pre, prerr, y_) = step_actinf_m1_single(ref, pre_l1[...,[i]], pre_l0[...,[i]], meas_l0[...,[i]])
-        ref.debug_print(
-            "step_actinf_m1 id = %s, pre = %s, prerr = %s, tgt = %s",
-            (ref.id, pre, prerr, y_))
+    # # loop over block of inputs if pre_l1.shape[-1] > 0:
+    # for i in range(pre_l1.shape[-1]):
+    #     (pre, prerr, y_) = step_actinf_m1_single(ref, pre_l1[...,[i]], pre_l0[...,[i]], meas_l0[...,[i]])
+    #     ref.debug_print(
+    #         "step_actinf_m1 id = %s, pre = %s, prerr = %s, tgt = %s",
+    #         (ref.id, pre, prerr, y_))
             
-        pre_ = getattr(ref, 'pre')
-        pre_[...,[i]] = pre
-        err_ = getattr(ref, 'err')
-        err_[...,[i]] = prerr
-        tgt_ = getattr(ref, 'tgt')
-        tgt_[...,[i]] = y_
+    #     pre_ = getattr(ref, 'pre')
+    #     pre_[...,[i]] = pre
+    #     err_ = getattr(ref, 'err')
+    #     err_[...,[i]] = prerr
+    #     tgt_ = getattr(ref, 'tgt')
+    #     tgt_[...,[i]] = y_
+        
+    # loop over block of inputs if pre_l1.shape[-1] > 0:
+    (prerr, y_) = step_actinf_m1_fit(ref, pre_l1, pre_l0, meas_l0, prerr_l0)
+    (pre, )     = step_actinf_m1_predict(ref, pre_l1, pre_l0, meas_l0, prerr_l0)
+     
+    # ref.debug_print(
+    print "step_actinf_m1 id = %s, pre = %s, prerr = %s, tgt = %s" % (ref.id, pre, prerr, y_)
+            
+    pre_ = getattr(ref, 'pre')
+    pre_[...,[-1]] = pre
+    err_ = getattr(ref, 'err')
+    err_[...,[-1]] = prerr
+    tgt_ = getattr(ref, 'tgt')
+    tgt_[...,[-1]] = y_
+    # prerr_ = getattr(ref, 'prerr')
+    # prerr_[...,[i]] = y_
 
-    # print "pre_", pre_
+    print "pre_", pre_
     # print "err_", err_
     # print "tgt_", tgt_
             
@@ -244,25 +264,31 @@ def step_actinf_m1(ref):
     setattr(ref, 'pre', pre_)
     setattr(ref, 'err', err_)
     setattr(ref, 'tgt', tgt_)
+
+def step_actinf_m1_fit(ref, pre_l1, pre_l0, meas_l0, prerr_l0):
+    eta = 0.3
+    lag = 2
     
-def step_actinf_m1_single(ref, pre_l1, pre_l0, meas_l0):
-    if hasattr(ref, 'rate'):
-        if (ref.cnt % ref.rate) not in ref.blockphase: return
-
-    eta = 0.7
-            
-    prerr_l0 = np.zeros_like(pre_l1)
-
     # debug
     ref.debug_print(
         "step_actinf_m1_single ref.X_ = %s, pre_l1 = %s, meas_l0 = %s, pre_l0 = %s",
         (ref.X_.shape, pre_l1.shape, meas_l0.shape, pre_l0.shape))
 
+    prerr_l0_ = prerr_l0[...,[-1]] # np.zeros_like(pre_l1[...,[-1]])
+    
     if not np.any(np.isinf(meas_l0)):
-        # prediction error at current layer input
-        if np.sum(np.abs(pre_l1 - ref.pre_l1_tm1)) < 1e-3:
+        # pre_l1_ = pre_l1[...,[-lag]]
+        # pre_l0_ = pre_l0[...,[-lag]]
+        # prerr_l0_ = prerr_l0[...,[-lag]]
+        # print "blub", pre_l1[...,[-1]], ref.pre_l1_tm1
+        # prediction error at current layer input if goal hasn't changed
+        if np.sum(np.abs(pre_l1[...,[-1]] - ref.pre_l1_tm1)) < 1e-0:
+            # print "EVER"
             # prerr_l0 = pre_l0 - pre_l1
-            prerr_l0 = meas_l0 - pre_l1
+            prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
+            # prerr_l0_ = np.zeros_like(pre_l1[...,[-1]])
+        else:
+            prerr_l0_ = np.random.uniform(-1e-3, 1e-3, pre_l1[...,[-1]].shape)
 
         # print "prerr_l0", prerr_l0
         # prerr statistics / expansion
@@ -270,17 +296,34 @@ def step_actinf_m1_single(ref, pre_l1, pre_l0, meas_l0):
 
         # compute the target for the  forward model from the prediction error
         # if i % 10 == 0: # play with decreased update rates
-        ref.y_ = pre_l0 - (prerr_l0 * eta)
+        ref.y_ = pre_l0[...,[-lag]] - (prerr_l0_ * eta) # pre_l0[-lag]
         # FIXME: suppress update when error is small enough (< threshold)
 
         # print "%s.step_actinf_m1[%d] ref.X_ = %s, ref.y_ = %s" % (ref.__class__.__name__, ref.cnt, ref.X_.shape, ref.y_.shape)
     
         # fit the model
-        ref.mdl.fit(ref.X_.T, ref.y_.T)
+        # prerr_l0_ = meas_l0_ - pre_l1_
+        X__ = np.vstack((pre_l1[...,[-lag]], prerr_l0[...,[-lag]]))
+        print "X__.shape", X__.shape, "y_.shape", ref.y_, ref.y_.shape
+        ref.mdl.fit(X__.T, ref.y_.T) # ref.X_[-lag]
     else:
         # FIXME: for model testing
-        prerr_l0 = pre_l0.copy()
+        prerr_l0_ = pre_l0[...,[-1]].copy()
 
+    # remember last descending prediction
+    ref.pre_l1_tm1 = pre_l1[...,[-1]].copy()
+    return (prerr_l0_, ref.y_)
+    
+# def step_actinf_m1_single(ref, pre_l1, pre_l0, meas_l0):
+def step_actinf_m1_predict(ref, pre_l1, pre_l0, meas_l0, prerr_l0):
+    # FIXME: this doesn't work, need to return proper tuple
+    if hasattr(ref, 'rate'):
+        if (ref.cnt % ref.rate) not in ref.blockphase: return # return pre, prerr, y_
+
+    # pre_l1 = 
+    # pre_l1_ = pre_l1[...,[-lag]]
+    # pre_l0_ = pre_l0[...,[-lag]]
+    # prerr_l0_ = prerr_l0[...,[-lag]]
     # # prepare new model input
     # if np.sum(np.abs(pre_l1 - ref.pre_l1_tm1)) > 1e-6:
     #     # goal changed
@@ -288,23 +331,21 @@ def step_actinf_m1_single(ref, pre_l1, pre_l0, meas_l0):
             
     # m1: model input X is goal and prediction error
     # ref.X_ = np.hstack((pre_l1.T, prerr_l0.T))
-    ref.X_ = np.vstack((pre_l1, prerr_l0))
+    ref.X_ = np.vstack((pre_l1[...,[-1]], prerr_l0[...,[-1]]))
     ref.debug_print("step_actinf_m1_single ref.X_.shape = %s", (ref.X_.shape, ))
 
     # predict next values at current layer input
-    pre_l0 = ref.mdl.predict(ref.X_.T)
+    pre_l0_ = ref.mdl.predict(ref.X_.T)
 
     # print "pre_l0", pre_l0
     
-    ref.debug_print("step_actinf_m1_single ref.X_ = %s, pre_l0 = %s", (ref.X_.shape, pre_l0.shape))
+    ref.debug_print("step_actinf_m1_single ref.X_ = %s, pre_l0 = %s", (ref.X_.shape, pre_l0_.shape))
     # for outk, outv in ref.outputs.items():
     #     setattr(ref, outk, pre_l0)
     #     print "step_actinf_m1 %s.%s = %s" % (ref.id, outk, getattr(ref, outk))
 
-    # remember last descending prediction
-    ref.pre_l1_tm1 = pre_l1.copy()
-
-    return (pre_l0.T, prerr_l0, ref.y_)
+    # return (pre_l0.T, prerr_l0, ref.y_)
+    return (pre_l0_.T, )
         
 class model(object):
     """model
