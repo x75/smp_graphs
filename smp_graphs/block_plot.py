@@ -255,7 +255,7 @@ class ImgPlotBlock2(FigPlotBlock2):
 
     def plot_subplots(self):
         self.debug_print("%s plot_subplots self.inputs = %s", (self.cname, self.inputs))
-        print "%s.plot_subplots(): all = %s" % (self.cname, self.inputs['all']['val'].shape)
+        # print "%s.plot_subplots(): all = %s" % (self.cname, self.inputs['all']['val'].shape)
         numrows = len(self.subplots)
         numcols = len(self.subplots[0])
 

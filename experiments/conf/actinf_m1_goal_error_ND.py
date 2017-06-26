@@ -33,7 +33,7 @@ showplot = True
 # experiment
 commandline_args = ['numsteps']
 randseed = 12345
-numsteps = 1000
+numsteps = 2000
 dim = 3 # 2, 1
 # dim = 9 # bha
 
@@ -243,7 +243,7 @@ systemblock_sphero = get_systemblock_sphero()
 # - dimensions
 # - number of modalities
     
-algo = 'knn' # 'knn', 'soesgp', 'storkgp'
+algo = 'soesgp' # 'knn', 'soesgp', 'storkgp'
 
 systemblock   = systemblock_lpzbarrel
 # dim_s_motor   = systemblock['params']['dim_s_motor']
@@ -251,7 +251,7 @@ dim_s_proprio = systemblock['params']['dim_s_proprio']
 dim_s_extero  = systemblock['params']['dim_s_extero']
 m_mins = systemblock['params']['m_mins']
 m_maxs = systemblock['params']['m_maxs']
-lag = 4
+lag = 3 # 2 or 3 worked with lpzbarrel
 
 def plot_timeseries_block(l0 = 'pre_l0', l1 = "pre_l1", blocksize = 1):
     global PlotBlock2, dim, numsteps, timeseries, dim_s_extero
@@ -442,6 +442,8 @@ loopblock_model = {
                     'blocksize': sweepmdl_input_flat,
                     'blockphase': [0],
                     'debug': False, # True,
+                    'lag': lag,
+                    'eta': 0.3,
                     'inputs': {
                         # descending prediction
                         'pre_l1': {
@@ -652,23 +654,31 @@ graph = OrderedDict([
                         'blocksize': 1,
                         # 'inputs': {'lo': [0, (3, 1)], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
                         # recurrent connection
-                        'inputs': {'x': {'bus': 'cnt/x'},
-                                       'f': {'val': np.array([[0.82, 0.82]]).T},
-                                       # 'f': {'val': np.array([[0.39, 0.39]]).T},
-                                       # 'f': {'val': np.array([[0.37, 0.37]]).T},
-                                       # 'f': {'val': np.array([[0.325, 0.325]]).T},
-                                       # 'f': {'val': np.array([[0.31, 0.31]]).T},
-                                       # 'f': {'val': np.array([[0.19, 0.19]]).T},
-                                       # 'f': {'val': np.array([[0.18, 0.181]]).T},
-                                       # 'f': {'val': np.array([[0.171, 0.171]]).T},
-                                       # 'f': {'val': np.array([[0.161, 0.161]]).T},
-                                       # 'f': {'val': np.array([[0.151, 0.151]]).T},
-                                       # 'f': {'val': np.array([[0.141, 0.141]]).T},
-                                       # stay in place
-                                       # 'f': {'val': np.array([[0.1, 0.1]]).T},
-                                       # 'f': {'val': np.array([[0.24, 0.24]]).T},
-                                       'sigma': {'val': np.array([[0.01, 0.02]]).T}}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
-                                       'func': f_sin_noise,
+                        'inputs': {
+                            'x': {'bus': 'cnt/x'},
+                            # 'f': {'val': np.array([[0.2355, 0.2355]]).T * 1.0}, # good with knn and eta = 0.3
+                            # 'f': {'val': np.array([[0.23538, 0.23538]]).T * 1.0}, # good with knn and eta = 0.3
+                            'f': {'val': np.array([[0.23539, 0.23539]]).T * 1.0}, # good with knn and eta = 0.3
+                            # 'f': {'val': np.array([[0.14, 0.14]]).T * 1.0},
+                            # 'f': {'val': np.array([[0.82, 0.82]]).T},
+                            # 'f': {'val': np.array([[0.745, 0.745]]).T},
+                            # 'f': {'val': np.array([[0.7, 0.7]]).T},
+                            # 'f': {'val': np.array([[0.65, 0.65]]).T},
+                            # 'f': {'val': np.array([[0.39, 0.39]]).T},
+                            # 'f': {'val': np.array([[0.37, 0.37]]).T},
+                            # 'f': {'val': np.array([[0.325, 0.325]]).T},
+                            # 'f': {'val': np.array([[0.31, 0.31]]).T},
+                            # 'f': {'val': np.array([[0.19, 0.19]]).T},
+                            # 'f': {'val': np.array([[0.18, 0.181]]).T},
+                            # 'f': {'val': np.array([[0.171, 0.171]]).T},
+                            # 'f': {'val': np.array([[0.161, 0.161]]).T},
+                            # 'f': {'val': np.array([[0.151, 0.151]]).T},
+                            # 'f': {'val': np.array([[0.141, 0.141]]).T},
+                            # stay in place
+                            # 'f': {'val': np.array([[0.1, 0.1]]).T},
+                            # 'f': {'val': np.array([[0.24, 0.24]]).T},
+                            'sigma': {'val': np.array([[0.001, 0.002]]).T}}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+                            'func': f_sin_noise,
                         },
                     }),
                 
@@ -679,6 +689,8 @@ graph = OrderedDict([
                         'blocksize': 1,
                         'blockphase': [0],
                         'debug': False,
+                        'lag': lag,
+                        'eta': 0.68,
                         'inputs': {
                             # descending prediction
                             'pre_l1': {
@@ -706,6 +718,28 @@ graph = OrderedDict([
                         'rate': 1,
                         },
                     }),
+
+                # ('pre_l0', {
+                #     'block': ModelBlock2,
+                #     'params': {
+                #         'blocksize': 1,
+                #         'blockphase': [0],
+                #         'inputs': {                        
+                #             'lo': {'val': np.array([m_mins]).T, 'shape': (dim, 1)},
+                #             'hi': {'val': np.array([m_maxs]).T, 'shape': (dim, 1)},
+                #             },
+                #         'outputs': {
+                #             'pre': {'shape': (dim, 1)},
+                #             'err': {'val': np.zeros((dim, 1)), 'shape': (dim, 1)},
+                #             'tgt': {'val': np.zeros((dim, 1)), 'shape': (dim, 1)},
+                #             },
+                #         'models': {
+                #             'goal': {'type': 'random_uniform'}
+                #             },
+                #         'rate': 50,
+                #         },
+                #     }),
+                    
                 # learn_proprio_e2p2e
                 ]),
             }

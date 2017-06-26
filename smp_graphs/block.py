@@ -315,6 +315,11 @@ class decStep():
                     # copy data onto bus
                     xself.bus[v['buskey']] = getattr(xself, k).copy()
                     # print "xself.bus[v['buskey'] = %s]" % (v['buskey'], ) , xself.bus[v['buskey']]
+
+                    # do logging
+                    if xself.logging:
+                        log.log_pd(tbl_name = v['buskey'], data = xself.bus[v['buskey']])
+                    
             else:
                 f_out = None
             
@@ -663,7 +668,7 @@ class Block2(object):
         # new format: outkey = str: outval = {val: value, shape: shape, dst: destination, ...}
         self.oblocksize = 0
         for k, v in self.outputs.items():
-            # print "%s.init_outputs: outk = %s, outv = %s" % (self.cname, k, v)
+            print "%s.init_outputs: outk = %s, outv = %s" % (self.cname, k, v)
             assert type(v) is dict, "Old config of %s output %s with type %s, %s" % (self.id, k, type(v), v)
             # print "v.keys()", v.keys()
             # assert v.keys()[0] in ['shape', 'bus'], "Need 'bus' or 'shape' key in outputs spec of %s" % (self.id, )
@@ -856,22 +861,22 @@ class Block2(object):
             # print "%s-%s.step[%d]: k = %s, v = %s" % (self.cname, self.id, self.cnt, k, type(v))
 
         if self.topblock:
-            # then log all
-            # for k, v in self.graph.items(): # self.bus.items():
-            for i in range(self.nxgraph.number_of_nodes()):
-                v = self.nxgraph.node[i]
-                k = v['params']['id']
-                # return if block doesn't want logging
-                if not v['block_'].logging: continue
-                # if (self.cnt % v['block'].blocksize) != (v['block'].blocksize - 1): continue
-                if (self.cnt % v['block_'].blocksize) > 0: continue
-                # print debug foo
-                self.debug_print("step: node k = %s, v = %s", (k, v))
-                # do logging for all of the node's output variables
-                for k_o, v_o in v['block_'].outputs.items():
-                    buskey = "%s/%s" % (v['block_'].id, k_o)
-                    # print "%s step outk = %s, outv = %s, bus.sh = %s" % (self.cname, k_o, v_o, self.bus[buskey].shape)
-                    log.log_pd(tbl_name = buskey, data = self.bus[buskey])
+            # # then log all
+            # # for k, v in self.graph.items(): # self.bus.items():
+            # for i in range(self.nxgraph.number_of_nodes()):
+            #     v = self.nxgraph.node[i]
+            #     k = v['params']['id']
+            #     # return if block doesn't want logging
+            #     if not v['block_'].logging: continue
+            #     # if (self.cnt % v['block'].blocksize) != (v['block'].blocksize - 1): continue
+            #     if (self.cnt % v['block_'].blocksize) > 0: continue
+            #     # print debug foo
+            #     self.debug_print("step: node k = %s, v = %s", (k, v))
+            #     # do logging for all of the node's output variables
+            #     for k_o, v_o in v['block_'].outputs.items():
+            #         buskey = "%s/%s" % (v['block_'].id, k_o)
+            #         # print "%s step outk = %s, outv = %s, bus.sh = %s" % (self.cname, k_o, v_o, self.bus[buskey].shape)
+            #         log.log_pd(tbl_name = buskey, data = self.bus[buskey])
 
             # store log
             if (self.cnt) % 500 == 0 or self.cnt == (self.numsteps - 1):

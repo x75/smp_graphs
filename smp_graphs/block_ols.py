@@ -130,15 +130,19 @@ class FileBlock2(Block2):
                 # print "FileBlock2 selflog", conf['params']['blocksize']
                 k_ = k.lstrip("/")
                 if not k_.startswith('conf'):
+                    n_ = k_.split("/")[0]
+                    # FIXME: hack
+                    if n_ == 'pre_l1': continue
                     k_ = "/".join(k_.split("/")[1:])
                     # assert conf['params']['blocksize'] == self.store[k].shape[0], "numsteps (%d) needs to be set to numsteps (%s) in the file %s" % (conf['params']['blocksize'], self.store[k].shape, lfile)
                     
-                    print "%s.init store_key = %s, shape = %s" % (self.__class__.__name__, k, self.store[k].shape)
+                    print "%s.init store_key = %s, raw key = %s, shape = %s" % (self.__class__.__name__, k, k_, self.store[k].shape)
                     # conf['params']['outputs'][k_] = {'shape': self.store[k].T.shape[:-1]}
                     if conf['params'].has_key('blocksize'):
                         conf['params']['outputs'][k_] = {'shape': self.store[k].T.shape[:-1] + (conf['params']['blocksize'],)}
                     else:
                         conf['params']['outputs'][k_] = {'shape': self.store[k].T.shape}
+                # print "out shape", k_, conf['params']['outputs'][k_]
                 # conf['params']['blocksize'] = self.store[k].shape[0]
                 # map output key to log table key
                 conf['params']['storekeys'][k_] = k

@@ -45,14 +45,18 @@ def f_sin(args):
     p[0,0] = 0.0
     p[1,0] = np.pi/2.0
     f = args['f']['val']
-    return np.sin(x * f + np.array([[0.0, np.pi/2.0]]).T * f)
+    w = (2 * np.pi * f)
+    # 2 * np.pi * f
+    # print "w.shape", w.shape, (np.array([[0.0, 1.0/2.0]]).T * w).shape
+    return np.sin((x * w) + np.array([[0.0, 1.0/2.0]]).T * np.pi)
+    # return np.sin(x * w)
 
 def f_sin_noise(args):
     fu_check_required_args(args, ['x','f','sigma'], 'f_sin_noise')
     
     x = f_sin(args)
     xn = np.random.normal(x, args['sigma']['val'], size=x.shape)
-    print "x", x, "xn", xn
+    # print "x", x, "xn", xn
     return xn
 
 def f_sinesquare2(args):

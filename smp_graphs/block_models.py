@@ -217,7 +217,7 @@ def step_actinf_m1(ref):
     # prediction  at current layer input
     prerr_l0 = ref.inputs['prerr_l0']['val'] # [...,[lag]]
 
-    print "pre_l1.shape", pre_l1.shape, "pre_l0.shape", pre_l0.shape, "meas_l0.shape", meas_l0.shape
+    # print "pre_l1.shape", pre_l1.shape, "pre_l0.shape", pre_l0.shape, "meas_l0.shape", meas_l0.shape
 
     # print "ref.pre.shape", ref.pre.shape, "ref.err.shape", ref.err.shape
     
@@ -239,10 +239,11 @@ def step_actinf_m1(ref):
         
     # loop over block of inputs if pre_l1.shape[-1] > 0:
     (prerr, y_) = step_actinf_m1_fit(ref, pre_l1, pre_l0, meas_l0, prerr_l0)
-    (pre, )     = step_actinf_m1_predict(ref, pre_l1, pre_l0, meas_l0, prerr_l0)
+    # (pre, )     = step_actinf_m1_predict(ref, pre_l1, pre_l0, meas_l0, prerr_l0)
+    (pre, )     = step_actinf_m1_predict(ref, pre_l1, pre_l0, meas_l0, prerr)
      
     # ref.debug_print(
-    print "step_actinf_m1 id = %s, pre = %s, prerr = %s, tgt = %s" % (ref.id, pre, prerr, y_)
+    # print "step_actinf_m1 id = %s, pre = %s, prerr = %s, tgt = %s" % (ref.id, pre, prerr, y_)
             
     pre_ = getattr(ref, 'pre')
     pre_[...,[-1]] = pre
@@ -253,7 +254,7 @@ def step_actinf_m1(ref):
     # prerr_ = getattr(ref, 'prerr')
     # prerr_[...,[i]] = y_
 
-    print "pre_", pre_
+    # print "pre_", pre_
     # print "err_", err_
     # print "tgt_", tgt_
             
@@ -266,8 +267,10 @@ def step_actinf_m1(ref):
     setattr(ref, 'tgt', tgt_)
 
 def step_actinf_m1_fit(ref, pre_l1, pre_l0, meas_l0, prerr_l0):
-    eta = 0.3
-    lag = 2
+    # eta = 0.3
+    eta = ref.eta
+    lag = ref.lag
+    print "Lag = %d" % (lag,)
     
     # debug
     ref.debug_print(
@@ -281,9 +284,10 @@ def step_actinf_m1_fit(ref, pre_l1, pre_l0, meas_l0, prerr_l0):
         # pre_l0_ = pre_l0[...,[-lag]]
         # prerr_l0_ = prerr_l0[...,[-lag]]
         # print "blub", pre_l1[...,[-1]], ref.pre_l1_tm1
+        print "goal dist", np.sum(np.abs(pre_l1[...,[-1]] - ref.pre_l1_tm1))
         # prediction error at current layer input if goal hasn't changed
-        if np.sum(np.abs(pre_l1[...,[-1]] - ref.pre_l1_tm1)) < 1e-0:
-            # print "EVER"
+        if np.sum(np.abs(pre_l1[...,[-1]] - ref.pre_l1_tm1)) < 1e1:
+            print "goal hasn't changed"
             # prerr_l0 = pre_l0 - pre_l1
             prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
             # prerr_l0_ = np.zeros_like(pre_l1[...,[-1]])
@@ -303,8 +307,8 @@ def step_actinf_m1_fit(ref, pre_l1, pre_l0, meas_l0, prerr_l0):
     
         # fit the model
         # prerr_l0_ = meas_l0_ - pre_l1_
-        X__ = np.vstack((pre_l1[...,[-lag]], prerr_l0[...,[-lag]]))
-        print "X__.shape", X__.shape, "y_.shape", ref.y_, ref.y_.shape
+        X__ = np.vstack((pre_l1[...,[-lag]], prerr_l0[...,[-(lag-1)]]))
+        # print "X__.shape", X__.shape, "y_.shape", ref.y_, ref.y_.shape
         ref.mdl.fit(X__.T, ref.y_.T) # ref.X_[-lag]
     else:
         # FIXME: for model testing

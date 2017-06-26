@@ -167,8 +167,12 @@ def log_pd_init_block(tbl_name, tbl_dim, tbl_columns = None, numsteps=100, block
     log_lognodes_idx[tbl_name] = 0
     log_lognodes_blockidx[tbl_name] = 0
     # logging blocksize, FIXME: enforce max and integer multiple relation
-    log_blocksize[tbl_name]    = max(50, blocksize)
-    
+    # log_blocksize[tbl_name]    = max(50, blocksize)
+    if blocksize == 1:
+        log_blocksize[tbl_name]    = 50
+    else:
+        log_blocksize[tbl_name]    = blocksize
+        
     # store original shape in table attribute
     # FIXME: doesn't seem to work?
     # FIXME: this doesnt work because pandas doesnt propagate the table attributes when it grows the memory?
@@ -215,7 +219,7 @@ Arguments:
       data: the data as a dim x 1 numpy vector
 """
     global log_lognodes, log_lognodes_idx, log_blocksize, log_logarray, log_lognodes_blockidx
-    # print "data.shape", data.flatten().shape, log_lognodes_idx[tbl_name]
+    # print "log_pd tbl_name = %s, data.shape = %s" % (tbl_name, data.flatten().shape), log_lognodes_idx[tbl_name]
     # infer blocksize from data
     blocksize = data.shape[-1]
     # get last index
@@ -267,7 +271,7 @@ Arguments:
         dloc = log_lognodes_blockidx[tbl_name]
         pdsl = slice(dloc, dloc + log_blocksize[tbl_name] - 1)
         sl = slice(dloc, dloc + log_blocksize[tbl_name])
-        # print "logging.log_pd: log.shape at sl", sl, log_lognodes[tbl_name].loc[pdsl].shape, log_logarray[tbl_name][:,sl].T.shape
+        print "logging.log_pd: tbl_name = %s, log.shape at sl = %s" % (tbl_name, sl), log_lognodes[tbl_name].loc[pdsl].shape, log_logarray[tbl_name][:,sl].T.shape
         # log_lognodes[tbl_name].loc[sl] = data.T # data.flatten()
         log_lognodes[tbl_name].loc[pdsl] = log_logarray[tbl_name][:,sl].T # data.flatten()
         log_lognodes_blockidx[tbl_name] += log_blocksize[tbl_name]

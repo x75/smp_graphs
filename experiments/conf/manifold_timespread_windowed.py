@@ -7,6 +7,29 @@ from smp_graphs.block_plot import ImgPlotBlock2
 saveplot = True
 recurrent = True
 
+lpzbarrelcnf = {
+    'numsteps': 1000,
+    # 'logfile': 'data/experiment_20170626_120004_actinf_m1_goal_error_ND_pd.h5', # 250
+    # 'logfile': 'data/experiment_20170626_115924_actinf_m1_goal_error_ND_pd.h5', # 250
+    # 'logfile': 'data/experiment_20170626_115813_actinf_m1_goal_error_ND_pd.h5', # 250
+    # 'logfile': 'data/experiment_20170626_115719_actinf_m1_goal_error_ND_pd.h5', # 250
+    # 'logfile': 'data/experiment_20170626_115628_actinf_m1_goal_error_ND_pd.h5', # 250
+    # 'logfile': 'data/experiment_20170626_115540_actinf_m1_goal_error_ND_pd.h5', # 250
+    # 'logfile': 'data/experiment_20170626_115457_actinf_m1_goal_error_ND_pd.h5', # 250
+    # 'logfile': 'data/experiment_20170626_115406_actinf_m1_goal_error_ND_pd.h5', # 250
+    # 'logfile': 'data/experiment_20170626_115323_actinf_m1_goal_error_ND_pd.h5', # 250
+    # learning static target
+    # 'logfile': 'data/experiment_20170626_124247_actinf_m1_goal_error_ND_pd.h5', # 500
+    # just stepping
+    'logfile': 'data/experiment_20170626_125226_actinf_m1_goal_error_ND_pd.h5', # 500
+    'logfile': 'data/experiment_20170626_140407_actinf_m1_goal_error_ND_pd.h5', # 1000
+    'xdim': 2,
+    'xdim_eff': 2,
+    'ydim': 2,
+    'logtype': 'selflog',
+    'sys_slicespec': {'x': {'gyr': slice(0, 2)}}    
+}
+    
 ppycnf = {
     # 'numsteps': 27000,
     # 'logfile': 'data/experiment_20170518_161544_puppy_process_logfiles_pd.h5',
@@ -42,7 +65,7 @@ ppycnf2 = {
     'numsteps': 5000,
 }
 
-cnf = ppycnf
+cnf = lpzbarrelcnf
 
 # copy params to namespace
 numsteps = cnf['numsteps']
@@ -59,12 +82,19 @@ scanstop = 0
 scanlen = scanstop - scanstart
 
 # 1000/1000
-winsize = 100
-overlap = 100
+winsize = 1000
+overlap = 1000
+# winsize = 50
+# overlap = 50
 srcsize = overlap
 
 
 loopblocksize = numsteps
+
+# data_x_key = 'x'
+# data_y_key = 'y'
+data_x_key = 's_proprio'
+data_y_key = 'pre'
 
 loopblock = {
         'block': Block2,
@@ -87,8 +117,10 @@ loopblock = {
                         'blocksize': numsteps,
                         'type': cnf['logtype'],
                         'file': {'filename': cnf['logfile']},
-                        'outputs': {'log': None, 'x': {'shape': (xdim, numsteps)},
-                                    'y': {'shape': (ydim, numsteps)}},
+                        'outputs': {
+                            'log': None,
+                            data_x_key: {'shape': (xdim, numsteps), 'storekey': '/robot1/s_proprio'},
+                            data_y_key: {'shape': (ydim, numsteps), 'storekey': '/pre_l0/pre'}},
                     },
                 }),
                 
@@ -97,7 +129,7 @@ loopblock = {
                     'block': SliceBlock2,
                     'params': {
                         'blocksize': srcsize,
-                        'inputs': {'x': {'bus': 'ldata/x', 'shape': (xdim, numsteps)}},
+                        'inputs': {'x': {'bus': 'ldata/%s' % data_x_key, 'shape': (xdim, numsteps)}},
                         'slices': sys_slicespec,
                     }
                 }),
@@ -110,7 +142,7 @@ loopblock = {
                         'blocksize': numsteps,
                         'debug': False,
                         'logging': False,
-                        'inputs': {'x': {'bus': 'ldataslice/x_gyr'}, 'y': {'bus': 'ldata/y'}},
+                        'inputs': {'x': {'bus': 'ldataslice/x_gyr'}, 'y': {'bus': 'ldata/%s' % data_y_key}},
                         'shift': (0, 1),
                         'outputs': {'jh': {'shape': (1, 1)}}
                     }
@@ -182,7 +214,7 @@ graph = OrderedDict([
             'blocksize': overlap,
             'debug': False,
             'loop': [('inputs', {'x': {'bus': 'ldataslice/x_acc', 'shape': (xdim_eff, winsize)},
-                                 'y': {'bus': 'ldata/y', 'shape': (ydim, winsize)},
+                                 'y': {'bus': 'ldata/%s' % data_y_key, 'shape': (ydim, winsize)},
                                  'norm': {'bus': 'jhloop/jh', 'shape': (1, 1)},
                                  # 'norm': {'val': np.array([[7.0]]), 'shape': (1, 1)},
                                  }),
@@ -199,7 +231,7 @@ graph = OrderedDict([
                     'debug': False,
                     'inputs': {'x': {'bus': 'ldataslice/x_gyr',
                                          'shape': (xdim_eff, winsize)},
-                                   'y': {'bus': 'ldata/y',
+                                   'y': {'bus': 'ldata/%s' % data_y_key,
                                              'shape': (ydim, winsize)}},
                     # 'shift': (-120, 8),
                     'shift': (scanstart, scanstop), # len 21
@@ -217,7 +249,7 @@ graph = OrderedDict([
             'blocksize': overlap,
             'debug': False,
             'inputs': {'x': {'bus': 'ldataslice/x_gyr', 'shape': (xdim_eff, winsize)},
-                           'y': {'bus': 'ldata/y', 'shape': (ydim, winsize)},
+                           'y': {'bus': 'ldata/%s' % data_y_key, 'shape': (ydim, winsize)},
                                  'norm': {'bus': 'jhloop/jh', 'shape': (1, 1)},
                            },
             # 'shift': (-120, 8),
@@ -234,7 +266,7 @@ graph = OrderedDict([
             'blocksize': overlap,
             'debug': False,
             'inputs': {'x': {'bus': 'ldataslice/x_gyr', 'shape': (xdim_eff, winsize)},
-                           'y': {'bus': 'ldata/y', 'shape': (ydim, winsize)},
+                           'y': {'bus': 'ldata/%s' % (data_y_key, ), 'shape': (ydim, winsize)},
                                  'norm': {'bus': 'jhloop/jh', 'shape': (1, 1)},
                            },
             # 'shift': (-120, 8),
@@ -253,7 +285,7 @@ graph = OrderedDict([
             'saveplot': saveplot,
             'savetype': 'pdf',
             'wspace': 0.2, 'hspace': 0.2,
-            'inputs': {'d1': {'bus': 'ldata/x', 'shape': (xdim, numsteps)}, 'd2': {'bus': 'ldata/y', 'shape': (ydim, numsteps)}},
+            'inputs': {'d1': {'bus': 'ldata/%s' % (data_x_key, ), 'shape': (xdim, numsteps)}, 'd2': {'bus': 'ldata/%s' % (data_y_key, ), 'shape': (ydim, numsteps)}},
             'outputs': {}, # 'x': {'shape': (3, 1)}
             'subplots': [
                 [
