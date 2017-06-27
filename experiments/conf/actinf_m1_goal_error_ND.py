@@ -43,7 +43,10 @@ dim_s_extero = 1 # 1 for lpzbarrel
 dim = dim_s_proprio
 
 motors = dim
-dt = 0.1
+# dt = 0.1
+dt = 0.05
+# dt = 0.025
+# dt = 0.01
 loopblocksize = numsteps
 
 """system block
@@ -205,7 +208,7 @@ def get_systemblock_lpzbarrel(dim_s_proprio = 2, dim_s_extero = 1, dt = 0.01):
         }
     return systemblock_lpz
 
-systemblock_lpzbarrel = get_systemblock_lpzbarrel(dt = 0.1)
+systemblock_lpzbarrel = get_systemblock_lpzbarrel(dt = dt)
 
 # ROS system using the Sphero
 def get_systemblock_sphero(dim_s_proprio = 2, dim_s_extero = 1, dt = 0.05):
@@ -251,7 +254,7 @@ dim_s_proprio = systemblock['params']['dim_s_proprio']
 dim_s_extero  = systemblock['params']['dim_s_extero']
 m_mins = systemblock['params']['m_mins']
 m_maxs = systemblock['params']['m_maxs']
-lag = 3 # 2 or 3 worked with lpzbarrel
+lag = 5 # 4, 2 # 2 or 3 worked with lpzbarrel
 
 def plot_timeseries_block(l0 = 'pre_l0', l1 = "pre_l1", blocksize = 1):
     global PlotBlock2, dim, numsteps, timeseries, dim_s_extero
@@ -443,7 +446,7 @@ loopblock_model = {
                     'blockphase': [0],
                     'debug': False, # True,
                     'lag': lag,
-                    'eta': 0.3,
+                    'eta': 0.15, # 0.3,
                     'inputs': {
                         # descending prediction
                         'pre_l1': {
@@ -658,7 +661,7 @@ graph = OrderedDict([
                             'x': {'bus': 'cnt/x'},
                             # 'f': {'val': np.array([[0.2355, 0.2355]]).T * 1.0}, # good with knn and eta = 0.3
                             # 'f': {'val': np.array([[0.23538, 0.23538]]).T * 1.0}, # good with knn and eta = 0.3
-                            'f': {'val': np.array([[0.23539, 0.23539]]).T * 1.0}, # good with knn and eta = 0.3
+                            'f': {'val': np.array([[0.23539, 0.23539]]).T * 10.0 * dt}, # good with knn and eta = 0.3
                             # 'f': {'val': np.array([[0.14, 0.14]]).T * 1.0},
                             # 'f': {'val': np.array([[0.82, 0.82]]).T},
                             # 'f': {'val': np.array([[0.745, 0.745]]).T},
@@ -690,7 +693,8 @@ graph = OrderedDict([
                         'blockphase': [0],
                         'debug': False,
                         'lag': lag,
-                        'eta': 0.68,
+                        'eta': 0.3,
+                        'ros': True,
                         'inputs': {
                             # descending prediction
                             'pre_l1': {

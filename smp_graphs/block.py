@@ -30,6 +30,10 @@ from smp_graphs.common import get_input
 from smp_graphs.graph import nxgraph_from_smp_graph, nxgraph_to_smp_graph
 from smp_graphs.graph import nxgraph_node_by_id, nxgraph_node_by_id_recursive
 
+# finally, ros
+import rospy
+from std_msgs.msg import Float64MultiArray
+
 # FIXME: make it optional in core
 from hyperopt import STATUS_OK, STATUS_FAIL
 
@@ -319,7 +323,12 @@ class decStep():
                     # do logging
                     if xself.logging:
                         log.log_pd(tbl_name = v['buskey'], data = xself.bus[v['buskey']])
-                    
+
+                    if hasattr(xself, 'ros') and xself.ros:
+                        theattr = getattr(xself, k).flatten().tolist()
+                        # print "theattr", k, v, theattr
+                        xself.msgs[k].data = theattr
+                        xself.pubs[k].publish(xself.msgs[k])
             else:
                 f_out = None
             
@@ -667,6 +676,11 @@ class Block2(object):
         # format: variable: [shape]
         # new format: outkey = str: outval = {val: value, shape: shape, dst: destination, ...}
         self.oblocksize = 0
+        # ros?
+        if hasattr(self, 'ros') and self.ros:
+            self.pubs = {}
+            self.subs = {}
+            self.msgs = {}
         for k, v in self.outputs.items():
             print "%s.init_outputs: outk = %s, outv = %s" % (self.cname, k, v)
             assert type(v) is dict, "Old config of %s output %s with type %s, %s" % (self.id, k, type(v), v)
@@ -696,6 +710,11 @@ class Block2(object):
             self.bus[v['buskey']] = getattr(self, k).copy()
             # self.bus.setval(v['buskey'], getattr(self, k))
 
+            # ros?
+            if hasattr(self, 'ros') and self.ros:
+                self.msgs[k] = Float64MultiArray()
+                self.pubs[k] = rospy.Publisher(k, Float64MultiArray, queue_size = 2)
+            
             # output item initialized
             v['init'] = True
 

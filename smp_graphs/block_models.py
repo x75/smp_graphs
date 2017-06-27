@@ -270,7 +270,7 @@ def step_actinf_m1_fit(ref, pre_l1, pre_l0, meas_l0, prerr_l0):
     # eta = 0.3
     eta = ref.eta
     lag = ref.lag
-    print "Lag = %d" % (lag,)
+    # print "Lag = %d" % (lag,)
     
     # debug
     ref.debug_print(
@@ -284,10 +284,10 @@ def step_actinf_m1_fit(ref, pre_l1, pre_l0, meas_l0, prerr_l0):
         # pre_l0_ = pre_l0[...,[-lag]]
         # prerr_l0_ = prerr_l0[...,[-lag]]
         # print "blub", pre_l1[...,[-1]], ref.pre_l1_tm1
-        print "goal dist", np.sum(np.abs(pre_l1[...,[-1]] - ref.pre_l1_tm1))
+        # print "goal dist", np.sum(np.abs(pre_l1[...,[-1]] - ref.pre_l1_tm1))
         # prediction error at current layer input if goal hasn't changed
         if np.sum(np.abs(pre_l1[...,[-1]] - ref.pre_l1_tm1)) < 1e1:
-            print "goal hasn't changed"
+            # print "goal hasn't changed"
             # prerr_l0 = pre_l0 - pre_l1
             prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
             # prerr_l0_ = np.zeros_like(pre_l1[...,[-1]])
