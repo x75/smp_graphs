@@ -44,41 +44,41 @@ dt = 0.1
 lag = 1
 eta = 0.715
 
-# for sa
-dim_s_proprio = 2 # two joint angles
-dim_s_extero = 2  # 2D end-effector
-dt = 0.1
-lag = 1
-eta = 0.715
+# # for sa
+# dim_s_proprio = 2 # two joint angles
+# dim_s_extero = 2  # 2D end-effector
+# dt = 0.1
+# lag = 1
+# eta = 0.715
 
-# for bha
-dim_s_proprio = 9 # nine actuated strings
-dim_s_extero =  3 # 3D end-effector
-dt = 0.1
-lag = 1
-eta = 0.715
+# # for bha
+# dim_s_proprio = 9 # nine actuated strings
+# dim_s_extero =  3 # 3D end-effector
+# dt = 0.1
+# lag = 1
+# eta = 0.715
 
-# for stdr
-dim_s_proprio = 2 # linear, angular (twist)
-dim_s_extero =  3 # three sonar rangers?
-dt = 0.1
-lag = 2
-eta = 0.715
+# # for stdr
+# dim_s_proprio = 2 # linear, angular (twist)
+# dim_s_extero =  3 # three sonar rangers?
+# dt = 0.1
+# lag = 2
+# eta = 0.715
 
-# for lpzbarrel
-dim_s_proprio = 2 # two weight positions / strut angles
-dim_s_extero  = 1 # just zero dummy
-dt = 0.025
-lag = 6 # 5, 4
-eta = 0.15
+# # for lpzbarrel
+# dim_s_proprio = 2 # two weight positions / strut angles
+# dim_s_extero  = 1 # just zero dummy
+# dt = 0.025
+# lag = 6 # 5, 4
+# eta = 0.15
 
-# for sphero, depending on mode
-dim_s_proprio = 2 # linear, angular
-# dim_s_proprio = 2 # cartesian x, y
-# dim_s_proprio = 2 # two raw motors
-dim_s_extero  = 1 # don't know
-dt = 0.05
-lag = 4 # 2?
+# # for sphero, depending on mode
+# dim_s_proprio = 2 # linear, angular
+# # dim_s_proprio = 2 # cartesian x, y
+# # dim_s_proprio = 2 # two raw motors
+# dim_s_extero  = 1 # don't know
+# dt = 0.05
+# lag = 4 # 2?
 
 # goal func, target freq
 
@@ -287,7 +287,7 @@ algo = 'knn' # 'soesgp', 'storkgp'
 
 # systemblock   = systemblock_lpzbarrel
 # lag = 6 # 5, 4, 2 # 2 or 3 worked with lpzbarrel, dt = 0.05
-systemblock   = systemblock_sphero
+systemblock   = systemblock_pm
 # lag           = 1
 
 dim_s_proprio = systemblock['params']['dim_s_proprio']

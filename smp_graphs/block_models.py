@@ -358,7 +358,40 @@ def step_actinf_m1_predict(ref, pre_l1, pre_l0, meas_l0, prerr_l0):
 
     # return (pre_l0.T, prerr_l0, ref.y_)
     return (pre_l0_.T.copy(), )
-        
+
+################################################################################
+# selforg / playful
+def init_homoekinesis(ref, conf, mconf):
+    # params = conf['params']
+    # hi = 1
+    # for outk, outv in params['outputs'].items():
+    #     setattr(ref, outk, np.random.uniform(-hi, hi, size = outv['shape']))
+    ref.mdl = init_model(ref, conf, mconf)
+    ref.X_  = np.zeros((mconf['idim'], 1))
+    ref.y_  = np.zeros((mconf['odim'], 1))
+    ref.pre_l1_tm1 = 0
+    # # eta = 0.3
+    # eta = ref.eta
+    # lag = ref.lag
+    # # print "Lag = %d" % (lag,)
+
+def step_homeokinesis(ref):
+    # get lag
+    # lag = ref.inputs['']['val'][...,lag]
+    # lag = 0
+    # current goal[t] prediction descending from layer above
+    pre_l1   = ref.inputs['pre_l1']['val']
+    # measurement[t] at current layer input
+    meas_l0 = ref.inputs['meas_l0']['val']
+    # prediction[t-1] at current layer input
+    pre_l0   = ref.inputs['pre_l0']['val']   
+    # prediction error[t-1] at current layer input
+    prerr_l0 = ref.inputs['prerr_l0']['val']
+
+    return {
+        's_proprio': pre_l0.copy(),
+        's_extero': pre_l0.copy()}
+    
 class model(object):
     """model
 
@@ -378,6 +411,8 @@ class model(object):
         'random_uniform': {'init': init_random_uniform, 'step': step_random_uniform},
         # active inference
         'actinf_m1': {'init': init_actinf_m1, 'step': step_actinf_m1},
+        # selforg playful
+        'hk': {'init': init_homoekinesis, 'step': step_homeokinesis},
     }
     # 
     def __init__(self, ref, conf, mconf = {}):
