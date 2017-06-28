@@ -41,20 +41,31 @@ def f_sin(args):
     fu_check_required_args(args, ['x', 'f'], 'f_sin')
         
     x = args['x']['val']
+    # print "x", x.shape
     p = np.zeros_like(x)
-    p[0,0] = 0.0
-    p[1,0] = np.pi/2.0
+    # print "p", p.shape
+    for i in range(x.shape[0]):
+        # p[0,0] = 0.0
+        # p[1,0] = np.pi/2.0
+        p[i,0] = float(i)/2.0
     f = args['f']['val']
+
+    assert f.shape[0] == 1 or f.shape[0] == x.shape[0]
+    
     w = (2 * np.pi * f)
+    # print "x*w", (x * w).shape, p.shape
     # 2 * np.pi * f
     # print "w.shape", w.shape, (np.array([[0.0, 1.0/2.0]]).T * w).shape
-    return np.sin((x * w) + np.array([[0.0, 1.0/2.0]]).T * np.pi)
+    # return np.sin((x * w) + np.array([[0.0, 1.0/2.0]]).T * np.pi)
+    # return np.sin((x * w) + p * np.pi) * 0.1 + 0.25
+    return np.sin((x * w) + p * np.pi)
     # return np.sin(x * w)
 
 def f_sin_noise(args):
     fu_check_required_args(args, ['x','f','sigma'], 'f_sin_noise')
     
     x = f_sin(args)
+    # print "x", x.shape
     xn = np.random.normal(x, args['sigma']['val'], size=x.shape)
     # print "x", x, "xn", xn
     return xn
