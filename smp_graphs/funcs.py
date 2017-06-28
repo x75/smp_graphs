@@ -48,7 +48,7 @@ def f_sin(args):
     w = (2 * np.pi * f)
     # 2 * np.pi * f
     # print "w.shape", w.shape, (np.array([[0.0, 1.0/2.0]]).T * w).shape
-    return np.sin((x * w) + np.array([[0.0, 1.0/2.0]]).T * np.pi)
+    return np.sin((x * w) + np.array([[0.0, 1.0/2.0]]).T * -np.pi)
     # return np.sin(x * w)
 
 def f_sin_noise(args):

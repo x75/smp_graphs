@@ -88,8 +88,9 @@ class SimplearmBlock2(SysBlock2):
         # print "%s.step %d" % (self.cname, self.cnt,)
         for i in range(self.blocksize):
             self.u = self.inputs['u']['val'][:,[i]]
-            # print "self.u", self.u
+            print "%s-%s.step[%d] self.u = %s" % (self.cname, self.id, self.cnt, self.u)
             self.x = self.system.step(self.u)
+            print "%s-%s.step[%d] self.x = %s" % (self.cname, self.id, self.cnt, self.x)
             # real output variables defined by config
             # for k in ['s_proprio', 's_extero', 's_all']:
             for k in self.outputs.keys():

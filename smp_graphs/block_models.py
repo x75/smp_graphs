@@ -211,15 +211,15 @@ def init_actinf_m1(ref, conf, mconf):
 def step_actinf_m1(ref):
     # get lag
     # lag = ref.inputs['']['val'][...,lag]
-    lag = 0
-    # current goal, prediction descending from layer above
-    pre_l1   = ref.inputs['pre_l1']['val'] # [...,[lag]]
-    # measurement at current layer input
+    # lag = 0
+    # current goal[t] prediction descending from layer above
+    pre_l1   = ref.inputs['pre_l1']['val']
+    # measurement[t] at current layer input
     meas_l0 = ref.inputs['meas_l0']['val']
-    # prediction  at current layer input
-    pre_l0   = ref.inputs['pre_l0']['val'] # [...,[lag]] # t-1
-    # prediction  at current layer input
-    prerr_l0 = ref.inputs['prerr_l0']['val'] # [...,[lag]]
+    # prediction[t-1] at current layer input
+    pre_l0   = ref.inputs['pre_l0']['val']   
+    # prediction error[t-1] at current layer input
+    prerr_l0 = ref.inputs['prerr_l0']['val']
 
     # print "pre_l1.shape", pre_l1.shape, "pre_l0.shape", pre_l0.shape, "meas_l0.shape", meas_l0.shape
 
@@ -272,6 +272,7 @@ def step_actinf_m1(ref):
 
 def step_actinf_m1_fit(ref, pre_l1, pre_l0, meas_l0, prerr_l0):
     lag = ref.lag + 1 # because of negative indices
+    # print "Lag = %d" % (lag,)
     # debug
     ref.debug_print(
         "step_actinf_m1_single ref.X_ = %s, pre_l1 = %s, meas_l0 = %s, pre_l0 = %s",
@@ -286,14 +287,20 @@ def step_actinf_m1_fit(ref, pre_l1, pre_l0, meas_l0, prerr_l0):
         # print "blub", pre_l1[...,[-1]], ref.pre_l1_tm1
         # print "goal dist", np.sum(np.abs(pre_l1[...,[-1]] - ref.pre_l1_tm1))
         # prediction error at current layer input if goal hasn't changed
-        if np.sum(np.abs(pre_l1[...,[-1]] - ref.pre_l1_tm1)) < 1e-1:
-            # print "goal hasn't changed"
-            # prerr_l0 = pre_l0 - pre_l1
-            prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
-            # prerr_l0_ = np.zeros_like(pre_l1[...,[-1]])
-        else:
-            prerr_l0_ = np.random.uniform(-1e-3, 1e-3, pre_l1[...,[-1]].shape)
-            # prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
+        # if np.sum(np.abs(pre_l1[...,[-1]] - ref.pre_l1_tm1)) < 1e-2:
+        #     # print "goal hasn't changed"
+        #     # prerr_l0 = pre_l0 - pre_l1
+        #     prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
+        #     # prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-1]]
+        #     # prerr_l0_ = np.zeros_like(pre_l1[...,[-1]])
+        # else:
+        #     print "#"  * 80
+        #     print "goal changed"
+        #     # prerr_l0_ = np.random.uniform(-1e-3, 1e-3, pre_l1[...,[-1]].shape)
+        #     prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
+        #     # prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
+            
+        prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
 
         # print "prerr_l0", prerr_l0
         # prerr statistics / expansion
@@ -308,7 +315,7 @@ def step_actinf_m1_fit(ref, pre_l1, pre_l0, meas_l0, prerr_l0):
     
         # fit the model
         # prerr_l0_ = meas_l0_ - pre_l1_
-        X__ = np.vstack((pre_l1[...,[-lag]], prerr_l0[...,[-lag]]))
+        X__ = np.vstack((pre_l1[...,[-lag]], prerr_l0[...,[-(lag-1)]]))
         # print "X__.shape", X__.shape, "y_.shape", ref.y_, ref.y_.shape
         ref.mdl.fit(X__.T, ref.y_.T) # ref.X_[-lag]
     else:
@@ -317,7 +324,7 @@ def step_actinf_m1_fit(ref, pre_l1, pre_l0, meas_l0, prerr_l0):
 
     # remember last descending prediction
     ref.pre_l1_tm1 = pre_l1[...,[-1]].copy()
-    return (prerr_l0_, ref.y_)
+    return (prerr_l0_.copy(), ref.y_.copy())
     
 # def step_actinf_m1_single(ref, pre_l1, pre_l0, meas_l0):
 def step_actinf_m1_predict(ref, pre_l1, pre_l0, meas_l0, prerr_l0):
@@ -350,7 +357,7 @@ def step_actinf_m1_predict(ref, pre_l1, pre_l0, meas_l0, prerr_l0):
     #     print "step_actinf_m1 %s.%s = %s" % (ref.id, outk, getattr(ref, outk))
 
     # return (pre_l0.T, prerr_l0, ref.y_)
-    return (pre_l0_.T, )
+    return (pre_l0_.T.copy(), )
         
 class model(object):
     """model
