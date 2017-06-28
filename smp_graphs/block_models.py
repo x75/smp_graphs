@@ -203,6 +203,10 @@ def init_actinf_m1(ref, conf, mconf):
     ref.X_  = np.zeros((mconf['idim'], 1))
     ref.y_  = np.zeros((mconf['odim'], 1))
     ref.pre_l1_tm1 = 0
+    # # eta = 0.3
+    # eta = ref.eta
+    # lag = ref.lag
+    # # print "Lag = %d" % (lag,)
 
 def step_actinf_m1(ref):
     # get lag
@@ -213,7 +217,7 @@ def step_actinf_m1(ref):
     # measurement at current layer input
     meas_l0 = ref.inputs['meas_l0']['val']
     # prediction  at current layer input
-    pre_l0   = ref.inputs['pre_l0']['val'] # [...,[lag]]
+    pre_l0   = ref.inputs['pre_l0']['val'] # [...,[lag]] # t-1
     # prediction  at current layer input
     prerr_l0 = ref.inputs['prerr_l0']['val'] # [...,[lag]]
 
@@ -267,11 +271,7 @@ def step_actinf_m1(ref):
     setattr(ref, 'tgt', tgt_)
 
 def step_actinf_m1_fit(ref, pre_l1, pre_l0, meas_l0, prerr_l0):
-    # eta = 0.3
-    eta = ref.eta
-    lag = ref.lag
-    # print "Lag = %d" % (lag,)
-    
+    lag = ref.lag + 1 # because of negative indices
     # debug
     ref.debug_print(
         "step_actinf_m1_single ref.X_ = %s, pre_l1 = %s, meas_l0 = %s, pre_l0 = %s",
@@ -286,13 +286,14 @@ def step_actinf_m1_fit(ref, pre_l1, pre_l0, meas_l0, prerr_l0):
         # print "blub", pre_l1[...,[-1]], ref.pre_l1_tm1
         # print "goal dist", np.sum(np.abs(pre_l1[...,[-1]] - ref.pre_l1_tm1))
         # prediction error at current layer input if goal hasn't changed
-        if np.sum(np.abs(pre_l1[...,[-1]] - ref.pre_l1_tm1)) < 1e1:
+        if np.sum(np.abs(pre_l1[...,[-1]] - ref.pre_l1_tm1)) < 1e-1:
             # print "goal hasn't changed"
             # prerr_l0 = pre_l0 - pre_l1
             prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
             # prerr_l0_ = np.zeros_like(pre_l1[...,[-1]])
         else:
             prerr_l0_ = np.random.uniform(-1e-3, 1e-3, pre_l1[...,[-1]].shape)
+            # prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
 
         # print "prerr_l0", prerr_l0
         # prerr statistics / expansion
@@ -300,14 +301,14 @@ def step_actinf_m1_fit(ref, pre_l1, pre_l0, meas_l0, prerr_l0):
 
         # compute the target for the  forward model from the prediction error
         # if i % 10 == 0: # play with decreased update rates
-        ref.y_ = pre_l0[...,[-lag]] - (prerr_l0_ * eta) # pre_l0[-lag]
+        ref.y_ = pre_l0[...,[-lag]] - (prerr_l0_ * ref.eta) #
         # FIXME: suppress update when error is small enough (< threshold)
 
         # print "%s.step_actinf_m1[%d] ref.X_ = %s, ref.y_ = %s" % (ref.__class__.__name__, ref.cnt, ref.X_.shape, ref.y_.shape)
     
         # fit the model
         # prerr_l0_ = meas_l0_ - pre_l1_
-        X__ = np.vstack((pre_l1[...,[-lag]], prerr_l0[...,[-(lag-1)]]))
+        X__ = np.vstack((pre_l1[...,[-lag]], prerr_l0[...,[-lag]]))
         # print "X__.shape", X__.shape, "y_.shape", ref.y_, ref.y_.shape
         ref.mdl.fit(X__.T, ref.y_.T) # ref.X_[-lag]
     else:
@@ -405,6 +406,7 @@ class ModelBlock2(PrimBlock2):
     @decStep()
     def step(self, x = None):
         """ModelBlock2 step"""
+        # print "%s-%s.step %d" % (self.cname, self.id, self.cnt,)
         self.debug_print("%s.step:\n\tx = %s,\n\tbus = %s,\n\tinputs = %s,\n\toutputs = %s",
             (self.__class__.__name__, self.outputs.keys(), self.bus,
                  self.inputs, self.outputs))

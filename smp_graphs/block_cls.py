@@ -85,6 +85,7 @@ class SimplearmBlock2(SysBlock2):
 
     @decStep()
     def step(self, x = None):
+        # print "%s.step %d" % (self.cname, self.cnt,)
         for i in range(self.blocksize):
             self.u = self.inputs['u']['val'][:,[i]]
             # print "self.u", self.u
