@@ -33,7 +33,7 @@ showplot = True
 # experiment
 commandline_args = ['numsteps']
 randseed = 12345
-numsteps = 2000
+numsteps = 1000
 # dim = 3 # 2, 1
 # dim = 9 # bha
 
@@ -283,7 +283,7 @@ systemblock_sphero = get_systemblock_sphero()
 # - dimensions
 # - number of modalities
     
-algo = 'knn' # 'soesgp', 'storkgp'
+algo = 'homeokinesis' #  'knn' 'soesgp' 'storkgp'
 
 # systemblock   = systemblock_lpzbarrel
 # lag = 6 # 5, 4, 2 # 2 or 3 worked with lpzbarrel, dt = 0.05
@@ -732,7 +732,67 @@ graph = OrderedDict([
                         },
                     }),
                 
-                # learner: basic actinf predictor proprio space learn_proprio_base_0
+                # # dev model actinf_m1: learner is basic actinf predictor proprio space learn_proprio_base_0
+                # ('pre_l0', {
+                #     'block': ModelBlock2,
+                #     'params': {
+                #         'blocksize': 1,
+                #         'blockphase': [0],
+                #         'debug': False,
+                #         'lag': lag,
+                #         'eta': eta, # 3.7,
+                #         'ros': True,
+                #         'inputs': {
+                #             # descending prediction
+                #             'pre_l1': {
+                #                 'bus': 'pre_l1/pre',
+                #                 'shape': (dim_s_proprio, lag+1), 'lag': lag},
+                #             # ascending prediction error
+                #             'pre_l0': {
+                #                 'bus': 'pre_l0/pre',
+                #                 'shape': (dim_s_proprio, lag+1), 'lag': lag},
+                #             # ascending prediction error
+                #             'prerr_l0': {
+                #                 'bus': 'pre_l0/err',
+                #                 'shape': (dim_s_proprio, lag+1), 'lag': lag},
+                #             # measurement
+                #             'meas_l0': {
+                #                 'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, lag+1)}},
+                #         'outputs': {
+                #             'pre': {'shape': (dim_s_proprio, 1)},
+                #             'err': {'shape': (dim_s_proprio, 1)},
+                #             'tgt': {'shape': (dim_s_proprio, 1)},
+                #             },
+                #         'models': {
+                #             'fwd': {'type': 'actinf_m1', 'algo': algo, 'idim': dim_s_proprio * 2, 'odim': dim},
+                #             },
+                #         'rate': 1,
+                #         },
+                #     }),
+
+                # dev model uniform random sampler
+                # ('pre_l0', {
+                #     'block': ModelBlock2,
+                #     'params': {
+                #         'blocksize': 1,
+                #         'blockphase': [0],
+                #         'inputs': {                        
+                #             'lo': {'val': np.array([m_mins]).T, 'shape': (dim_s_proprio, 1)},
+                #             'hi': {'val': np.array([m_maxs]).T, 'shape': (dim_s_proprio, 1)},
+                #             },
+                #         'outputs': {
+                #             'pre': {'shape': (dim_s_proprio, 1)},
+                #             'err': {'val': np.zeros((dim_s_proprio, 1)), 'shape': (dim_s_proprio, 1)},
+                #             'tgt': {'val': np.zeros((dim_s_proprio, 1)), 'shape': (dim_s_proprio, 1)},
+                #             },
+                #         'models': {
+                #             'goal': {'type': 'random_uniform'}
+                #             },
+                #         'rate': 50,
+                #         },
+                #     }),
+                    
+                # dev model homeokinesis
                 ('pre_l0', {
                     'block': ModelBlock2,
                     'params': {
@@ -764,32 +824,11 @@ graph = OrderedDict([
                             'tgt': {'shape': (dim_s_proprio, 1)},
                             },
                         'models': {
-                            'fwd': {'type': 'actinf_m1', 'algo': algo, 'idim': dim_s_proprio * 2, 'odim': dim},
+                            'hk': {'type': 'homeokinesis', 'algo': algo, 'idim': dim_s_proprio, 'odim': dim_s_proprio},
                             },
                         'rate': 1,
                         },
                     }),
-
-                # ('pre_l0', {
-                #     'block': ModelBlock2,
-                #     'params': {
-                #         'blocksize': 1,
-                #         'blockphase': [0],
-                #         'inputs': {                        
-                #             'lo': {'val': np.array([m_mins]).T, 'shape': (dim_s_proprio, 1)},
-                #             'hi': {'val': np.array([m_maxs]).T, 'shape': (dim_s_proprio, 1)},
-                #             },
-                #         'outputs': {
-                #             'pre': {'shape': (dim_s_proprio, 1)},
-                #             'err': {'val': np.zeros((dim_s_proprio, 1)), 'shape': (dim_s_proprio, 1)},
-                #             'tgt': {'val': np.zeros((dim_s_proprio, 1)), 'shape': (dim_s_proprio, 1)},
-                #             },
-                #         'models': {
-                #             'goal': {'type': 'random_uniform'}
-                #             },
-                #         'rate': 50,
-                #         },
-                #     }),
                     
                 # learn_proprio_e2p2e
                 ]),

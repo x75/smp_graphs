@@ -1,10 +1,18 @@
 """smp_graphs
 
+Oswald Berthold 2012-2017
+
 smp models: models are coders, representations, predictions, inferences, associations, ...
+
+
 
 models raw (fit/predict X/Y style models)
 models sm  sensorimotor  models
 models dvl devleopmental models
+
+The model design is in progress. The current approach is to have a
+general Block wrapper for all models with particular models being
+implemented by lightewight init() and step() function definitions
 """
 
 import numpy as np
@@ -189,7 +197,9 @@ def init_model(ref, conf, mconf):
         print "unknown model algorithm %s, exiting" % (algo, )
         # import sys
         # sys.exit(1)
-        return None
+        mdl = None
+
+    assert mdl is not None, "Model (algo = %s) shouldn't be None, check your config" % (algo,)
         
     return mdl
         
@@ -360,7 +370,7 @@ def step_actinf_m1_predict(ref, pre_l1, pre_l0, meas_l0, prerr_l0):
     return (pre_l0_.T.copy(), )
 
 ################################################################################
-# selforg / playful
+# selforg / playful: hs, hk, pimax/tipi?
 def init_homoekinesis(ref, conf, mconf):
     # params = conf['params']
     # hi = 1
@@ -412,7 +422,7 @@ class model(object):
         # active inference
         'actinf_m1': {'init': init_actinf_m1, 'step': step_actinf_m1},
         # selforg playful
-        'hk': {'init': init_homoekinesis, 'step': step_homeokinesis},
+        'homeokinesis': {'init': init_homoekinesis, 'step': step_homeokinesis},
     }
     # 
     def __init__(self, ref, conf, mconf = {}):
