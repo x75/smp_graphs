@@ -443,6 +443,7 @@ class ModelBlock2(PrimBlock2):
         params = conf['params']
 
         self.top = top
+        self.lag = 1
         
         for k, v in params['models'].items():
             v['inst_'] = model(ref = self, conf = conf, mconf = v)

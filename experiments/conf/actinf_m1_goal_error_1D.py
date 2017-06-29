@@ -69,6 +69,7 @@ systemblock_pm = {
         "friction": 0.001,
         "sysnoise": 1e-2,
         'debug': False,
+        'dim_s_proprio': dim,    # motors
         'dim_s_motor': dim,    # motors
         'length_ratio': [1], # gain curve?
         'm_mins': -1,
@@ -119,8 +120,12 @@ systemblock_sa = {
 algo = 'knn' # 'knn', 'soesgp', 'storkgp'
 
 systemblock = systemblock_pm
-dim_s_motor  = systemblock['params']['dim_s_motor']
-dim_s_extero = systemblock['params']['dim_s_extero']
+dim_s_motor   = systemblock['params']['dim_s_motor']
+dim_s_proprio = systemblock['params']['dim_s_proprio']
+dim_s_extero  = systemblock['params']['dim_s_extero']
+lag = 1
+m_mins = systemblock['params']['m_mins']
+m_maxs = systemblock['params']['m_maxs']
 
 def plot_timeseries_block(l0 = 'pre_l0', l1 = "pre_l1", blocksize = 1):
     global PlotBlock2, dim, numsteps, timeseries, dim_s_extero
@@ -300,15 +305,29 @@ loopblock_model = {
                     'blocksize': sweepmdl_input_flat,
                     'blockphase': [0],
                     'debug': False, # True,
+                        'inputs': {
+                            # descending prediction
+                            'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim, lag + 1)},
+                            # ascending prediction error
+                            'pre_l0': {'bus': 'pre_l0/pre', 'shape': (dim, lag + 1)},
+                            # measurement
+                            'meas_l0': {'bus': 'robot1/s_proprio', 'shape': (dim, lag + 1)}},
+                        'outputs': {
+                            'pre': {'shape': (dim, 1)},
+                            'err': {'shape': (dim, 1)},
+                            'tgt': {'shape': (dim, 1)},
+                            },
                     'inputs': {
                         # descending prediction
                         'pre_l1': {
                             'bus': 'sweep_slice/x_goals',
                             'shape': (dim,sweepmdl_input_flat)},
                         # ascending prediction error
-                        'pre_l0': {
+                        'prerr_l0': {
                             'bus': 'sweep_slice/x_errs',
                             'shape': (dim, sweepmdl_input_flat)},
+                        # ascending prediction error
+                        'pre_l0': {'val': np.zeros((dim, sweepmdl_input_flat)), 'shape': (dim, sweepmdl_input_flat)},
                         # measurement
                         'meas_l0': {
                             'val': np.array([[-np.inf for i in range(sweepmdl_input_flat)]]),
@@ -487,8 +506,17 @@ graph = OrderedDict([
                     'params': {
                         'blocksize': 1,
                         'blockphase': [0],
-                        'inputs': {'x': {'val': 1, 'shape': (1,1)}},
-                        'outputs': {'pre': {'shape': (dim, 1)}},
+                        # 'inputs': {'x': {'val': 1, 'shape': (1,1)}},
+                        # 'outputs': {'pre': {'shape': (dim, 1)}},
+                        'inputs': {                        
+                            'lo': {'val': np.array([m_mins]).T, 'shape': (dim_s_proprio, 1)},
+                            'hi': {'val': np.array([m_maxs]).T, 'shape': (dim_s_proprio, 1)},
+                            },
+                        'outputs': {
+                            'pre': {'shape': (dim_s_proprio, 1)},
+                            'err': {'val': np.zeros((dim_s_proprio, 1)), 'shape': (dim_s_proprio, 1)},
+                            'tgt': {'val': np.zeros((dim_s_proprio, 1)), 'shape': (dim_s_proprio, 1)},
+                            },
                         'models': {
                             'goal': {'type': 'random_uniform'}
                             },
@@ -502,13 +530,17 @@ graph = OrderedDict([
                     'params': {
                         'blocksize': 1,
                         'blockphase': [0],
+                        'lag': lag,
+                        'eta': 0.7,
                         'inputs': {
                             # descending prediction
-                            'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim,1)},
+                            'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim, lag + 1)},
                             # ascending prediction error
-                            'pre_l0': {'bus': 'pre_l0/pre', 'shape': (dim, 1)},
+                            'pre_l0': {'bus': 'pre_l0/pre', 'shape': (dim, lag + 1)},
+                            # ascending prediction error
+                            'prerr_l0': {'bus': 'pre_l0/err', 'shape': (dim, lag + 1)},
                             # measurement
-                            'meas_l0': {'bus': 'robot1/s_proprio', 'shape': (dim, 1)}},
+                            'meas_l0': {'bus': 'robot1/s_proprio', 'shape': (dim, lag + 1)}},
                         'outputs': {
                             'pre': {'shape': (dim, 1)},
                             'err': {'shape': (dim, 1)},
