@@ -218,10 +218,11 @@ def init_actinf_m1(ref, conf, mconf):
     # lag = ref.lag
     # # print "Lag = %d" % (lag,)
 
-def step_actinf_m1(ref):
-    # get lag
-    # lag = ref.inputs['']['val'][...,lag]
-    # lag = 0
+def tapping(ref):
+    # maxlag == windowsize
+
+    # individual lags
+    
     # current goal[t] prediction descending from layer above
     pre_l1   = ref.inputs['pre_l1']['val']
     # measurement[t] at current layer input
@@ -231,6 +232,27 @@ def step_actinf_m1(ref):
     # prediction error[t-1] at current layer input
     prerr_l0 = ref.inputs['prerr_l0']['val']
 
+    # get lag spec: None (lag = 1), int d (lag = d), array a (lag = a)
+    pre_l1_tap_spec = ref.inputs['pre_l1']['lag']
+    pre_l1_tap = ref.inputs['pre_l1']['val'][...,]
+
+    # compute prediction error with respect to top level prediction (goal)
+    prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
+    # compute the target for the  forward model from the prediction error
+    ref.y_ = pre_l0[...,[-lag]] - (prerr_l0_ * ref.eta) #
+    X__ = np.vstack((pre_l1[...,[-lag]], prerr_l0[...,[-(lag-1)]]))
+
+    
+    return (pre_l1, pre_l0, meas_l0, prerr_l0)
+    
+def step_actinf_m1(ref):
+    # get lag
+    # lag = ref.inputs['']['val'][...,lag]
+    # lag = 0
+
+    # deal with the lag specification for each input (lag, delay, temporal characteristic)
+    (pre_l1, pre_l0, meas_l0, prerr_l0) = tapping(ref)
+    
     # print "pre_l1.shape", pre_l1.shape, "pre_l0.shape", pre_l0.shape, "meas_l0.shape", meas_l0.shape
 
     # print "ref.pre.shape", ref.pre.shape, "ref.err.shape", ref.err.shape
@@ -250,7 +272,8 @@ def step_actinf_m1(ref):
     #     err_[...,[i]] = prerr
     #     tgt_ = getattr(ref, 'tgt')
     #     tgt_[...,[i]] = y_
-        
+
+    
     # loop over block of inputs if pre_l1.shape[-1] > 0:
     (prerr, y_) = step_actinf_m1_fit(ref, pre_l1, pre_l0, meas_l0, prerr_l0)
     # (pre, )     = step_actinf_m1_predict(ref, pre_l1, pre_l0, meas_l0, prerr_l0)
@@ -443,8 +466,10 @@ class ModelBlock2(PrimBlock2):
         params = conf['params']
 
         self.top = top
-        self.lag = 1
-        
+        # self.lag = 1
+
+        # initialize model
+        # FIXME: need to associate outputs with a model for arrays of models
         for k, v in params['models'].items():
             v['inst_'] = model(ref = self, conf = conf, mconf = v)
             params['models'][k] = v

@@ -271,7 +271,7 @@ Arguments:
         dloc = log_lognodes_blockidx[tbl_name]
         pdsl = slice(dloc, dloc + log_blocksize[tbl_name] - 1)
         sl = slice(dloc, dloc + log_blocksize[tbl_name])
-        print "logging.log_pd: tbl_name = %s, log.shape at sl = %s" % (tbl_name, sl), log_lognodes[tbl_name].loc[pdsl].shape, log_logarray[tbl_name][:,sl].T.shape
+        # print "logging.log_pd: tbl_name = %s, log.shape at sl = %s" % (tbl_name, sl), log_lognodes[tbl_name].loc[pdsl].shape, log_logarray[tbl_name][:,sl].T.shape
         # log_lognodes[tbl_name].loc[sl] = data.T # data.flatten()
         log_lognodes[tbl_name].loc[pdsl] = log_logarray[tbl_name][:,sl].T # data.flatten()
         log_lognodes_blockidx[tbl_name] += log_blocksize[tbl_name]
