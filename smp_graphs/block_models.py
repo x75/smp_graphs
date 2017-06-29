@@ -234,14 +234,27 @@ def tapping(ref):
 
     # get lag spec: None (lag = 1), int d (lag = d), array a (lag = a)
     pre_l1_tap_spec = ref.inputs['pre_l1']['lag']
-    pre_l1_tap = ref.inputs['pre_l1']['val'][...,]
+    pre_l1_tap = ref.inputs['pre_l1']['val'][...,pre_l1_tap_spec]
 
+    meas_l0_tap_spec = ref.inputs['meas_l0']['lag']
+    meas_l0_tap = ref.inputs['meas_l0']['val'][...,meas_l0_tap_spec]
+
+    pre_l0_tap_spec = ref.inputs['pre_l0']['lag']
+    pre_l0_tap = ref.inputs['pre_l0']['val'][...,pre_l0_tap_spec]
+
+    prerr_l0_tap_spec = ref.inputs['prerr_l0']['lag']
+    prerr_l0_tap = ref.inputs['prerr_l0']['val'][...,prerr_l0_tap_spec]
+    
     # compute prediction error with respect to top level prediction (goal)
-    prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
+    prerr_l0_ = meas_l0_tap - pre_l1_tap # meas_l0[...,[-1]] - pre_l1[...,[-lag]]
     # compute the target for the  forward model from the prediction error
-    ref.y_ = pre_l0[...,[-lag]] - (prerr_l0_ * ref.eta) #
-    X__ = np.vstack((pre_l1[...,[-lag]], prerr_l0[...,[-(lag-1)]]))
+    ref.y_ = (pre_l0_tap - (prerr_l0_ * ref.eta)).reshape((ref.odim, 1)) # pre_l0[...,[-lag]] - (prerr_l0_ * ref.eta) #
+    # X__ = np.vstack((pre_l1[...,[-lag]], prerr_l0[...,[-(lag-1)]]))
+    X__ = np.vstack((pre_l1_tap.reshape((ref.idim/2, 1)), prerr_l0_tap.reshape(ref.idim/2)))
 
+    
+    # ref.mdl.fit(X__.T, ref.y_.T) # ref.X_[-lag]
+    
     
     return (pre_l1, pre_l0, meas_l0, prerr_l0)
     
@@ -474,6 +487,9 @@ class ModelBlock2(PrimBlock2):
             v['inst_'] = model(ref = self, conf = conf, mconf = v)
             params['models'][k] = v
 
+        self.idim = v['idim']
+        self.odim = v['odim']
+            
         # print "\n params.models = %s" % (params['models'], )
         # print "top", top.id
         

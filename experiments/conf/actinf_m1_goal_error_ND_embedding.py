@@ -43,7 +43,7 @@ numsteps = 1000
 dim_s_proprio = 2 # acc two dof
 dim_s_extero = 2  # vel two dof
 dt = 0.1
-lag = 1
+lag = 6 # 1
 eta = 0.715
 
 # # for sa
@@ -744,29 +744,32 @@ graph = OrderedDict([
                         'lag': lag,
                         'eta': eta, # 3.7,
                         'ros': True,
+                        # the shift is minlag, the length is the maxlag
                         'inputs': {
                             # descending prediction
                             'pre_l1': {
                                 'bus': 'pre_l1/pre',
-                                'shape': (dim_s_proprio, lag+1), 'lag': range(-1, -5)}, # lag},
+                                'shape': (dim_s_proprio, lag+1), 'lag': range(-5, -1)}, # lag},
                             # ascending prediction error
                             'pre_l0': {
                                 'bus': 'pre_l0/pre',
-                                'shape': (dim_s_proprio, lag+1), 'lag': lag},
+                                'shape': (dim_s_proprio, lag+1), 'lag': range(-5, -1)}, # lag},
                             # ascending prediction error
                             'prerr_l0': {
                                 'bus': 'pre_l0/err',
-                                'shape': (dim_s_proprio, lag+1), 'lag': lag},
+                                'shape': (dim_s_proprio, lag+1), 'lag': range(-4, 0)}, # lag},
                             # measurement
                             'meas_l0': {
-                                'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, lag+1)}},
+                                'bus': 'robot1/s_proprio',
+                                'shape': (dim_s_proprio, lag+1), 'lag': range(-4, 0)}
+                            },
                         'outputs': {
                             'pre': {'shape': (dim_s_proprio, 1)},
                             'err': {'shape': (dim_s_proprio, 1)},
                             'tgt': {'shape': (dim_s_proprio, 1)},
                             },
                         'models': {
-                            'fwd': {'type': 'actinf_m1', 'algo': algo, 'idim': dim_s_proprio * 2, 'odim': dim, 'eta': eta},
+                            'fwd': {'type': 'actinf_m1', 'algo': algo, 'idim': dim_s_proprio * 2 * 4, 'odim': dim * 4, 'eta': eta},
                             },
                         'rate': 1,
                         },
