@@ -250,7 +250,10 @@ def tapping(ref):
     # compute the target for the  forward model from the prediction error
     ref.y_ = (pre_l0_tap - (prerr_l0_ * ref.eta)).reshape((ref.odim, 1)) # pre_l0[...,[-lag]] - (prerr_l0_ * ref.eta) #
     # X__ = np.vstack((pre_l1[...,[-lag]], prerr_l0[...,[-(lag-1)]]))
-    X__ = np.vstack((pre_l1_tap.reshape((ref.idim/2, 1)), prerr_l0_tap.reshape(ref.idim/2)))
+
+    print "tapping pre_l1", pre_l1_tap.shape, prerr_l0_tap.shape, ref.idim
+    print "tapping reshape", pre_l1_tap.reshape((ref.idim/2, 1)), prerr_l0_tap.reshape((ref.idim/2))
+    X__ = np.vstack((pre_l1_tap.reshape((ref.idim/2, 1)), prerr_l0_tap.reshape((ref.idim/2, 1))))
 
     
     # ref.mdl.fit(X__.T, ref.y_.T) # ref.X_[-lag]
