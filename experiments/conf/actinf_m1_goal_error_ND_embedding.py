@@ -44,7 +44,10 @@ dim_s_proprio = 2 # acc two dof
 dim_s_extero = 2  # vel two dof
 dt = 0.1
 lag = 6 # 1
-eta = 0.715
+minlag = 1 # 1  # first returning measurement offset in time steps
+maxlag = 19 # 10 # last return to consider / window length
+laglen = maxlag - minlag
+eta = 0.9 # 0.715
 
 # # for sa
 # dim_s_proprio = 2 # two joint angles
@@ -285,7 +288,7 @@ systemblock_sphero = get_systemblock_sphero()
 # - dimensions
 # - number of modalities
     
-algo = 'knn' #  'homeokinesis' 'soesgp' 'storkgp'
+algo = 'knn' #  'soesgp' 'homeokinesis' 'storkgp'
 
 # systemblock   = systemblock_lpzbarrel
 # lag = 6 # 5, 4, 2 # 2 or 3 worked with lpzbarrel, dt = 0.05
@@ -749,19 +752,19 @@ graph = OrderedDict([
                             # descending prediction
                             'pre_l1': {
                                 'bus': 'pre_l1/pre',
-                                'shape': (dim_s_proprio, lag+1), 'lag': range(-5, -1)}, # lag},
+                                'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag, -minlag)}, # lag},
                             # ascending prediction error
                             'pre_l0': {
                                 'bus': 'pre_l0/pre',
-                                'shape': (dim_s_proprio, lag+1), 'lag': range(-5, -1)}, # lag},
+                                'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag, -minlag)}, # lag},
                             # ascending prediction error
                             'prerr_l0': {
                                 'bus': 'pre_l0/err',
-                                'shape': (dim_s_proprio, lag+1), 'lag': range(-4, 0)}, # lag},
+                                'shape': (dim_s_proprio, maxlag), 'lag': range(-laglen, 0)}, # lag},
                             # measurement
                             'meas_l0': {
                                 'bus': 'robot1/s_proprio',
-                                'shape': (dim_s_proprio, lag+1), 'lag': range(-4, 0)}
+                                'shape': (dim_s_proprio, maxlag), 'lag': range(-laglen, 0)}
                             },
                         'outputs': {
                             'pre': {'shape': (dim_s_proprio, 1)},
@@ -769,7 +772,7 @@ graph = OrderedDict([
                             'tgt': {'shape': (dim_s_proprio, 1)},
                             },
                         'models': {
-                            'fwd': {'type': 'actinf_m1', 'algo': algo, 'idim': dim_s_proprio * 2 * 4, 'odim': dim * 4, 'eta': eta},
+                            'fwd': {'type': 'actinf_m1', 'algo': algo, 'idim': dim_s_proprio * 2 * laglen, 'odim': dim * laglen, 'laglen': laglen, 'eta': eta},
                             },
                         'rate': 1,
                         },
@@ -811,18 +814,18 @@ graph = OrderedDict([
                 #             # descending prediction
                 #             'pre_l1': {
                 #                 'bus': 'pre_l1/pre',
-                #                 'shape': (dim_s_proprio, lag+1), 'lag': lag},
+                #                 'shape': (dim_s_proprio, maxlag), 'lag': lag},
                 #             # ascending prediction error
                 #             'pre_l0': {
                 #                 'bus': 'pre_l0/pre',
-                #                 'shape': (dim_s_proprio, lag+1), 'lag': lag},
+                #                 'shape': (dim_s_proprio, maxlag), 'lag': lag},
                 #             # ascending prediction error
                 #             'prerr_l0': {
                 #                 'bus': 'pre_l0/err',
-                #                 'shape': (dim_s_proprio, lag+1), 'lag': lag},
+                #                 'shape': (dim_s_proprio, maxlag), 'lag': lag},
                 #             # measurement
                 #             'meas_l0': {
-                #                 'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, lag+1)}},
+                #                 'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, maxlag)}},
                 #         'outputs': {
                 #             'pre': {'shape': (dim_s_proprio, 1)},
                 #             'err': {'shape': (dim_s_proprio, 1)},

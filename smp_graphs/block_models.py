@@ -213,6 +213,7 @@ def init_actinf_m1(ref, conf, mconf):
     ref.X_  = np.zeros((mconf['idim'], 1))
     ref.y_  = np.zeros((mconf['odim'], 1))
     ref.pre_l1_tm1 = 0
+    ref.laglen  = mconf['laglen']
     # # eta = 0.3
     # eta = ref.eta
     # lag = ref.lag
@@ -234,7 +235,9 @@ def tapping(ref):
 
     # get lag spec: None (lag = 1), int d (lag = d), array a (lag = a)
     pre_l1_tap_spec = ref.inputs['pre_l1']['lag']
+    print "pre_l1_tap_spec", pre_l1_tap_spec
     pre_l1_tap_full = ref.inputs['pre_l1']['val'][...,pre_l1_tap_spec]
+    print "pre_l1_tap_full", pre_l1_tap_full
     pre_l1_tap_flat = pre_l1_tap_full.reshape((ref.odim, 1))
 
     meas_l0_tap_spec = ref.inputs['meas_l0']['lag']
@@ -246,6 +249,7 @@ def tapping(ref):
     pre_l0_tap_flat = pre_l0_tap_full.reshape((ref.odim, 1))
 
     prerr_l0_tap_spec = ref.inputs['prerr_l0']['lag']
+    print "prerr_l0_tap_spec", prerr_l0_tap_spec
     prerr_l0_tap_full = ref.inputs['prerr_l0']['val'][...,prerr_l0_tap_spec]
     prerr_l0_tap_flat = prerr_l0_tap_full.reshape((ref.odim, 1))
     
@@ -309,7 +313,7 @@ def step_actinf_m1(ref):
     
     # loop over block of inputs if pre_l1.shape[-1] > 0:
     prerr = prerr_l0_
-    y_ = Y.reshape((ref.odim / 4, -1))[...,[-1]]
+    y_ = Y.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
     ref.mdl.fit(X.T, Y.T)
     
     # ref.X_ = np.vstack((pre_l1[...,[-1]], prerr_l0[...,[-1]]))
@@ -317,7 +321,7 @@ def step_actinf_m1(ref):
 
     # predict next values at current layer input
     # pre_l1_tap_spec = ref.inputs['pre_l1']['lag']
-    pre_l1_tap_full = ref.inputs['pre_l1']['val'][...,-4:]
+    pre_l1_tap_full = ref.inputs['pre_l1']['val'][...,-ref.laglen:]
     pre_l1_tap_flat = pre_l1_tap_full.reshape((ref.odim, 1))
 
     # print "ref.inputs['prerr_l0']['val'][...,-3:], prerr_l0_", ref.inputs['prerr_l0']['val'][...,-3:].shape, prerr_l0_.shape
@@ -326,9 +330,11 @@ def step_actinf_m1(ref):
 
     ref.X_ = np.vstack((pre_l1_tap_flat, prerr_l0_))
     pre_l0_ = ref.mdl.predict(ref.X_.T)
-    print "pre_l0_", pre_l0_
-    pre   = pre_l0_.reshape((ref.odim/4, -1))[...,[-1]]
-    prerr = prerr_l0_.reshape((ref.odim / 4, -1))[...,[-1]]
+    print "cnt = %s, pre_l0_" % (ref.cnt,), pre_l0_
+    pre   = pre_l0_.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
+    prerr = prerr_l0_.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
+    # pre   = pre_l0_.reshape((ref.odim / ref.laglen, -1))[...,[0]]
+    # prerr = prerr_l0_.reshape((ref.odim / ref.laglen, -1))[...,[0]]
     # pre = ref.mdl.predict()
     # (prerr, y_) = step_actinf_m1_fit(ref, pre_l1, pre_l0, meas_l0, prerr_l0)
     # (pre, )     = step_actinf_m1_predict(ref, pre_l1, pre_l0, meas_l0, prerr_l0)
