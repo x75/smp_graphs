@@ -234,32 +234,49 @@ def tapping(ref):
 
     # get lag spec: None (lag = 1), int d (lag = d), array a (lag = a)
     pre_l1_tap_spec = ref.inputs['pre_l1']['lag']
-    pre_l1_tap = ref.inputs['pre_l1']['val'][...,pre_l1_tap_spec]
+    pre_l1_tap_full = ref.inputs['pre_l1']['val'][...,pre_l1_tap_spec]
+    pre_l1_tap_flat = pre_l1_tap_full.reshape((ref.odim, 1))
 
     meas_l0_tap_spec = ref.inputs['meas_l0']['lag']
-    meas_l0_tap = ref.inputs['meas_l0']['val'][...,meas_l0_tap_spec]
+    meas_l0_tap_full = ref.inputs['meas_l0']['val'][...,meas_l0_tap_spec]
+    meas_l0_tap_flat = meas_l0_tap_full.reshape((ref.odim, 1))
 
     pre_l0_tap_spec = ref.inputs['pre_l0']['lag']
-    pre_l0_tap = ref.inputs['pre_l0']['val'][...,pre_l0_tap_spec]
+    pre_l0_tap_full = ref.inputs['pre_l0']['val'][...,pre_l0_tap_spec]
+    pre_l0_tap_flat = pre_l0_tap_full.reshape((ref.odim, 1))
 
     prerr_l0_tap_spec = ref.inputs['prerr_l0']['lag']
-    prerr_l0_tap = ref.inputs['prerr_l0']['val'][...,prerr_l0_tap_spec]
+    prerr_l0_tap_full = ref.inputs['prerr_l0']['val'][...,prerr_l0_tap_spec]
+    prerr_l0_tap_flat = prerr_l0_tap_full.reshape((ref.odim, 1))
+    
+    # # compute prediction error with respect to top level prediction (goal)
+    # prerr_l0_ = meas_l0_tap - pre_l1_tap # meas_l0[...,[-1]] - pre_l1[...,[-lag]]
+    # # compute the target for the  forward model from the prediction error
+    # Y = (pre_l0_tap - (prerr_l0_ * ref.eta)).reshape((ref.odim, 1)) # pre_l0[...,[-lag]] - (prerr_l0_ * ref.eta) #
+    # # X__ = np.vstack((pre_l1[...,[-lag]], prerr_l0[...,[-(lag-1)]]))
+
+    # print "tapping pre_l1", pre_l1_tap.shape, prerr_l0_tap.shape, ref.idim
+    # print "tapping reshape", pre_l1_tap.reshape((ref.idim/2, 1)), prerr_l0_tap.reshape((ref.idim/2, 1))
+    # X = np.vstack((pre_l1_tap.reshape((ref.idim/2, 1)), prerr_l0_tap.reshape((ref.idim/2, 1))))
+    # print "X", X.shape
     
     # compute prediction error with respect to top level prediction (goal)
-    prerr_l0_ = meas_l0_tap - pre_l1_tap # meas_l0[...,[-1]] - pre_l1[...,[-lag]]
+    prerr_l0_ = meas_l0_tap_flat - pre_l1_tap_flat # meas_l0[...,[-1]] - pre_l1[...,[-lag]]
     # compute the target for the  forward model from the prediction error
-    ref.y_ = (pre_l0_tap - (prerr_l0_ * ref.eta)).reshape((ref.odim, 1)) # pre_l0[...,[-lag]] - (prerr_l0_ * ref.eta) #
+    Y = (pre_l0_tap_flat - (prerr_l0_ * ref.eta)) # .reshape((ref.odim, 1)) # pre_l0[...,[-lag]] - (prerr_l0_ * ref.eta) #
+    # FIXME: shift target block across the now line completely and predict entire future segment
     # X__ = np.vstack((pre_l1[...,[-lag]], prerr_l0[...,[-(lag-1)]]))
-
-    print "tapping pre_l1", pre_l1_tap.shape, prerr_l0_tap.shape, ref.idim
-    print "tapping reshape", pre_l1_tap.reshape((ref.idim/2, 1)), prerr_l0_tap.reshape((ref.idim/2))
-    X__ = np.vstack((pre_l1_tap.reshape((ref.idim/2, 1)), prerr_l0_tap.reshape((ref.idim/2, 1))))
-
+    
+    print "tapping pre_l1", pre_l1_tap_flat.shape, prerr_l0_tap_flat.shape, ref.idim
+    # print "tapping reshape", pre_l1_tap.reshape((ref.idim/2, 1)), prerr_l0_tap.reshape((ref.idim/2, 1))
+    X = np.vstack((pre_l1_tap_flat, prerr_l0_tap_flat))
+    print "X", X.shape
     
     # ref.mdl.fit(X__.T, ref.y_.T) # ref.X_[-lag]
     
-    
-    return (pre_l1, pre_l0, meas_l0, prerr_l0)
+    # return (pre_l1, pre_l0, meas_l0, prerr_l0)
+    # return (pre_l1_tap, pre_l0_tap, meas_l0_tap, prerr_l0_tap, prerr_l0_, X, Y)
+    return (pre_l1_tap_flat, pre_l0_tap_flat, meas_l0_tap_flat, prerr_l0_tap_flat, prerr_l0_, X, Y)
     
 def step_actinf_m1(ref):
     # get lag
@@ -267,9 +284,9 @@ def step_actinf_m1(ref):
     # lag = 0
 
     # deal with the lag specification for each input (lag, delay, temporal characteristic)
-    (pre_l1, pre_l0, meas_l0, prerr_l0) = tapping(ref)
+    (pre_l1, pre_l0, meas_l0, prerr_l0, prerr_l0_, X, Y) = tapping(ref)
     
-    # print "pre_l1.shape", pre_l1.shape, "pre_l0.shape", pre_l0.shape, "meas_l0.shape", meas_l0.shape
+    print "pre_l1.shape", pre_l1.shape, "pre_l0.shape", pre_l0.shape, "meas_l0.shape", meas_l0.shape, "prerr_l0.shape", prerr_l0.shape, "prerr_l0_", prerr_l0_.shape, "X", X.shape, "Y", Y.shape
 
     # print "ref.pre.shape", ref.pre.shape, "ref.err.shape", ref.err.shape
     
@@ -291,9 +308,36 @@ def step_actinf_m1(ref):
 
     
     # loop over block of inputs if pre_l1.shape[-1] > 0:
-    (prerr, y_) = step_actinf_m1_fit(ref, pre_l1, pre_l0, meas_l0, prerr_l0)
+    prerr = prerr_l0_
+    y_ = Y.reshape((ref.odim / 4, -1))[...,[-1]]
+    ref.mdl.fit(X.T, Y.T)
+    
+    # ref.X_ = np.vstack((pre_l1[...,[-1]], prerr_l0[...,[-1]]))
+    ref.debug_print("step_actinf_m1_single ref.X_.shape = %s", (ref.X_.shape, ))
+
+    # predict next values at current layer input
+    # pre_l1_tap_spec = ref.inputs['pre_l1']['lag']
+    pre_l1_tap_full = ref.inputs['pre_l1']['val'][...,-4:]
+    pre_l1_tap_flat = pre_l1_tap_full.reshape((ref.odim, 1))
+
+    # print "ref.inputs['prerr_l0']['val'][...,-3:], prerr_l0_", ref.inputs['prerr_l0']['val'][...,-3:].shape, prerr_l0_.shape
+    # prerr_l0_tap_full = np.hstack((ref.inputs['prerr_l0']['val'][...,-3:], prerr_l0_))
+    # prerr_l0_tap_flat = prerr_l0_tap_full.reshape((ref.odim, 1))
+
+    ref.X_ = np.vstack((pre_l1_tap_flat, prerr_l0_))
+    pre_l0_ = ref.mdl.predict(ref.X_.T)
+    print "pre_l0_", pre_l0_
+    pre   = pre_l0_.reshape((ref.odim/4, -1))[...,[-1]]
+    prerr = prerr_l0_.reshape((ref.odim / 4, -1))[...,[-1]]
+    # pre = ref.mdl.predict()
+    # (prerr, y_) = step_actinf_m1_fit(ref, pre_l1, pre_l0, meas_l0, prerr_l0)
     # (pre, )     = step_actinf_m1_predict(ref, pre_l1, pre_l0, meas_l0, prerr_l0)
-    (pre, )     = step_actinf_m1_predict(ref, pre_l1, pre_l0, meas_l0, prerr)
+    # (pre, )     = step_actinf_m1_predict(ref, pre_l1, pre_l0, meas_l0, prerr)
+
+    # # loop over block of inputs if pre_l1.shape[-1] > 0:
+    # (prerr, y_) = step_actinf_m1_fit(ref, pre_l1, pre_l0, meas_l0, prerr_l0)
+    # # (pre, )     = step_actinf_m1_predict(ref, pre_l1, pre_l0, meas_l0, prerr_l0)
+    # (pre, )     = step_actinf_m1_predict(ref, pre_l1, pre_l0, meas_l0, prerr)
      
     # ref.debug_print(
     # print "step_actinf_m1 id = %s, pre = %s, prerr = %s, tgt = %s" % (ref.id, pre, prerr, y_)

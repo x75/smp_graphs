@@ -117,7 +117,7 @@ systemblock_pm = {
         "force_max":  1.0,
         "force_min": -1.0,
         "friction": 0.01,
-        "sysnoise": 5e-2,
+        "sysnoise": 1e-2,
         'debug': False,
         'dim_s_proprio': dim_s_proprio,
         'length_ratio': 3./2., # gain curve?
@@ -709,7 +709,7 @@ graph = OrderedDict([
                             # 'f': {'val': np.array([[0.2355, 0.2355]]).T * 1.0}, # good with knn and eta = 0.3
                             # 'f': {'val': np.array([[0.23538, 0.23538]]).T * 1.0}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.23539]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
-                            'f': {'val': np.array([[0.23539]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
+                            'f': {'val': np.array([[0.23539]]).T * 0.25 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.14, 0.14]]).T * 1.0},
                             # 'f': {'val': np.array([[0.82, 0.82]]).T},
                             # 'f': {'val': np.array([[0.745, 0.745]]).T},
@@ -744,7 +744,7 @@ graph = OrderedDict([
                         'lag': lag,
                         'eta': eta, # 3.7,
                         'ros': True,
-                        # the shift is minlag, the length is the maxlag
+                        # FIXME: relative shift = minlag, block length the maxlag
                         'inputs': {
                             # descending prediction
                             'pre_l1': {
