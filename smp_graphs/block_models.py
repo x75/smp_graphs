@@ -393,20 +393,20 @@ def step_actinf_m1_fit(ref, pre_l1, pre_l0, meas_l0, prerr_l0):
         # print "blub", pre_l1[...,[-1]], ref.pre_l1_tm1
         # print "goal dist", np.sum(np.abs(pre_l1[...,[-1]] - ref.pre_l1_tm1))
         # prediction error at current layer input if goal hasn't changed
-        # if np.sum(np.abs(pre_l1[...,[-1]] - ref.pre_l1_tm1)) < 1e-2:
-        #     # print "goal hasn't changed"
-        #     # prerr_l0 = pre_l0 - pre_l1
-        #     prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
-        #     # prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-1]]
-        #     # prerr_l0_ = np.zeros_like(pre_l1[...,[-1]])
-        # else:
-        #     print "#"  * 80
-        #     print "goal changed"
-        #     # prerr_l0_ = np.random.uniform(-1e-3, 1e-3, pre_l1[...,[-1]].shape)
-        #     prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
-        #     # prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
+        if np.sum(np.abs(pre_l1[...,[-1]] - ref.pre_l1_tm1)) > 1e-1:
+            print "#"  * 80
+            print "goal changed"
+            prerr_l0_ = np.random.uniform(-1e-3, 1e-3, pre_l1[...,[-1]].shape)
+            # prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
+            # prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
+        else:
+            # print "goal hasn't changed"
+            # prerr_l0 = pre_l0 - pre_l1
+            prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
+            # prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-1]]
+            # prerr_l0_ = np.zeros_like(pre_l1[...,[-1]])
             
-        prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
+        # prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
 
         # print "prerr_l0", prerr_l0
         # prerr statistics / expansion
