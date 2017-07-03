@@ -35,7 +35,7 @@ showplot = True
 # experiment
 commandline_args = ['numsteps']
 randseed = 12345
-numsteps = 600
+numsteps = 1000
 # dim = 3 # 2, 1
 # dim = 9 # bha
 
@@ -47,8 +47,8 @@ lag = 6 # 1
 minlag = 1 # 1  # first returning measurement offset in time steps
 maxlag = 2 # 10 # last return to consider / window length
 laglen = maxlag - minlag
-# eta = 0.92
-eta = 0.7 # 0.715
+eta = 0.92
+# eta = 0.7 # 0.715
 # eta = 0.3
 # eta = 0.1
 

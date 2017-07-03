@@ -332,7 +332,18 @@ def step_actinf_m1(ref):
     # print "ref.inputs['prerr_l0']['val'][...,-3:], prerr_l0_", ref.inputs['prerr_l0']['val'][...,-3:].shape, prerr_l0_.shape
     # prerr_l0_tap_full = np.hstack((ref.inputs['prerr_l0']['val'][...,-3:], prerr_l0_))
     # prerr_l0_tap_flat = prerr_l0_tap_full.reshape((ref.odim, 1))
-
+    
+    print "prerr_l0_", prerr_l0_.shape
+    
+    if np.sum(np.abs(ref.inputs['pre_l1']['val'][...,[-1]] - ref.pre_l1_tm1)) > 1e-1:
+        # goal changed
+        print "goal changed"
+        # prerr_l0_ = (meas_l0[...,[-1]] - ref.inputs['pre_l1']['val'][...,[-1]].reshape((ref.odim / ref.laglen, 1)))
+        # pre_l1[...,[-1]]).reshape((ref.odim, 1))
+        
+        # prerr_l0[...,[-1]] = prerr_l0_
+        prerr_l0_ = np.random.uniform(-1e-3, 1e-3, pre_l1[...,[-1]].shape)
+        
     print "prerr_l0_", prerr_l0_.shape
     
     ref.X_ = np.vstack((pre_l1_tap_flat, prerr_l0_))
@@ -375,6 +386,8 @@ def step_actinf_m1(ref):
     setattr(ref, 'pre', pre_)
     setattr(ref, 'err', err_)
     setattr(ref, 'tgt', tgt_)
+    # save
+    ref.pre_l1_tm1 = ref.inputs['pre_l1']['val'][...,[-1]].copy() # pre_l1[...,[-1]].copy()
 
 def step_actinf_m1_fit(ref, pre_l1, pre_l0, meas_l0, prerr_l0):
     lag = ref.lag + 1 # because of negative indices
@@ -391,22 +404,23 @@ def step_actinf_m1_fit(ref, pre_l1, pre_l0, meas_l0, prerr_l0):
         # pre_l0_ = pre_l0[...,[-lag]]
         # prerr_l0_ = prerr_l0[...,[-lag]]
         # print "blub", pre_l1[...,[-1]], ref.pre_l1_tm1
-        # print "goal dist", np.sum(np.abs(pre_l1[...,[-1]] - ref.pre_l1_tm1))
-        # prediction error at current layer input if goal hasn't changed
-        if np.sum(np.abs(pre_l1[...,[-1]] - ref.pre_l1_tm1)) > 1e-1:
-            print "#"  * 80
-            print "goal changed"
-            prerr_l0_ = np.random.uniform(-1e-3, 1e-3, pre_l1[...,[-1]].shape)
-            # prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
-            # prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
-        else:
-            # print "goal hasn't changed"
-            # prerr_l0 = pre_l0 - pre_l1
-            prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
-            # prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-1]]
-            # prerr_l0_ = np.zeros_like(pre_l1[...,[-1]])
+        
+        # # print "goal dist", np.sum(np.abs(pre_l1[...,[-1]] - ref.pre_l1_tm1))
+        # # prediction error at current layer input if goal hasn't changed
+        # if np.sum(np.abs(pre_l1[...,[-1]] - ref.pre_l1_tm1)) > 1e-1:
+        #     print "#"  * 80
+        #     print "goal changed"
+        #     prerr_l0_ = np.random.uniform(-1e-3, 1e-3, pre_l1[...,[-1]].shape)
+        #     # prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
+        #     # prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
+        # else:
+        #     # print "goal hasn't changed"
+        #     # prerr_l0 = pre_l0 - pre_l1
+        #     prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
+        #     # prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-1]]
+        #     # prerr_l0_ = np.zeros_like(pre_l1[...,[-1]])
             
-        # prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
+        prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
 
         # print "prerr_l0", prerr_l0
         # prerr statistics / expansion
@@ -442,13 +456,15 @@ def step_actinf_m1_predict(ref, pre_l1, pre_l0, meas_l0, prerr_l0):
     # pre_l1_ = pre_l1[...,[-lag]]
     # pre_l0_ = pre_l0[...,[-lag]]
     # prerr_l0_ = prerr_l0[...,[-lag]]
-    # # prepare new model input
-    # if np.sum(np.abs(pre_l1 - ref.pre_l1_tm1)) > 1e-6:
-    #     # goal changed
-    #     prerr_l0 = pre_l0 - pre_l1
+    
+    # prepare new model input
+    if np.sum(np.abs(pre_l1 - ref.pre_l1_tm1)) > 1e-1:
+        # goal changed
+        prerr_l0 = pre_l0 - pre_l1
             
     # m1: model input X is goal and prediction error
     # ref.X_ = np.hstack((pre_l1.T, prerr_l0.T))
+    X__ = np.vstack((pre_l1[...,[-lag]], prerr_l0[...,[-(lag-1)]]))
     ref.X_ = np.vstack((pre_l1[...,[-1]], prerr_l0[...,[-1]]))
     ref.debug_print("step_actinf_m1_single ref.X_.shape = %s", (ref.X_.shape, ))
 
