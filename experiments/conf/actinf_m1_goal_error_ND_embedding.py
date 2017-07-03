@@ -35,7 +35,7 @@ showplot = True
 # experiment
 commandline_args = ['numsteps']
 randseed = 12345
-numsteps = 1000
+numsteps = 2000
 # dim = 3 # 2, 1
 # dim = 9 # bha
 
@@ -45,9 +45,9 @@ dim_s_extero = 2  # vel two dof
 dt = 0.1
 lag = 6 # 1
 minlag = 1 # 1  # first returning measurement offset in time steps
-maxlag = 19 # 10 # last return to consider / window length
+maxlag = 3 # 10 # last return to consider / window length
 laglen = maxlag - minlag
-eta = 0.9 # 0.715
+eta = 0.7 # 0.715
 
 # # for sa
 # dim_s_proprio = 2 # two joint angles
@@ -288,7 +288,7 @@ systemblock_sphero = get_systemblock_sphero()
 # - dimensions
 # - number of modalities
     
-algo = 'knn' #  'soesgp' 'homeokinesis' 'storkgp'
+algo = 'knn' # 'soesgp' 'homeokinesis' 'storkgp'
 
 # systemblock   = systemblock_lpzbarrel
 # lag = 6 # 5, 4, 2 # 2 or 3 worked with lpzbarrel, dt = 0.05
@@ -683,7 +683,7 @@ graph = OrderedDict([
                 #         'models': {
                 #             'goal': {'type': 'random_uniform'}
                 #             },
-                #         'rate': 25,
+                #         'rate': 20,
                 #         },
                 #     }),
 
@@ -712,7 +712,7 @@ graph = OrderedDict([
                             # 'f': {'val': np.array([[0.2355, 0.2355]]).T * 1.0}, # good with knn and eta = 0.3
                             # 'f': {'val': np.array([[0.23538, 0.23538]]).T * 1.0}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.23539]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
-                            'f': {'val': np.array([[0.23539]]).T * 0.25 * dt}, # good with soesgp and eta = 0.7
+                            'f': {'val': np.array([[0.23539]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.14, 0.14]]).T * 1.0},
                             # 'f': {'val': np.array([[0.82, 0.82]]).T},
                             # 'f': {'val': np.array([[0.745, 0.745]]).T},
@@ -756,11 +756,11 @@ graph = OrderedDict([
                             # ascending prediction error
                             'pre_l0': {
                                 'bus': 'pre_l0/pre',
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag, -minlag)}, # lag},
+                                'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)}, # lag},
                             # ascending prediction error
                             'prerr_l0': {
                                 'bus': 'pre_l0/err',
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(-laglen, 0)}, # lag},
+                                'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)}, # lag},
                             # measurement
                             'meas_l0': {
                                 'bus': 'robot1/s_proprio',

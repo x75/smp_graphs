@@ -328,6 +328,8 @@ def step_actinf_m1(ref):
     # prerr_l0_tap_full = np.hstack((ref.inputs['prerr_l0']['val'][...,-3:], prerr_l0_))
     # prerr_l0_tap_flat = prerr_l0_tap_full.reshape((ref.odim, 1))
 
+    print "prerr_l0_", prerr_l0_.shape
+    
     ref.X_ = np.vstack((pre_l1_tap_flat, prerr_l0_))
     pre_l0_ = ref.mdl.predict(ref.X_.T)
     print "cnt = %s, pre_l0_" % (ref.cnt,), pre_l0_
@@ -362,8 +364,8 @@ def step_actinf_m1(ref):
     # print "tgt_", tgt_
             
     # publish model's internal state
-    # setattr(ref, 'pre', pre_l0.T)
-    # setattr(ref, 'err', prerr_l0)
+    # setattr(ref, 'pre', pre_l0.T) # 
+    # setattr(ref, 'err', prerr_l0) # x
     # setattr(ref, 'tgt', ref.y_)
     setattr(ref, 'pre', pre_)
     setattr(ref, 'err', err_)
@@ -540,8 +542,9 @@ class ModelBlock2(PrimBlock2):
             v['inst_'] = model(ref = self, conf = conf, mconf = v)
             params['models'][k] = v
 
-        self.idim = v['idim']
-        self.odim = v['odim']
+        for k in ['idim', 'odim']:
+            if v.has_key(k):
+                setattr(self, k, v[k])
             
         # print "\n params.models = %s" % (params['models'], )
         # print "top", top.id
