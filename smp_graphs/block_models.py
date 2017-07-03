@@ -27,7 +27,7 @@ from smp_graphs.block import decInit, decStep, PrimBlock2
 from smp_base.models_actinf import ActInfKNN, ActInfGMM, ActInfHebbianSOM
 
 try:
-    from smp_base.models_actinf import ActInfSOESGP, ActInfSTORKGP
+    from smp_base.models_actinf import ActInfOTLModel, ActInfSOESGP, ActInfSTORKGP
     HAVE_SOESGP = True
 except ImportError, e:
     print "couldn't import online GP models", e
@@ -314,7 +314,12 @@ def step_actinf_m1(ref):
     # loop over block of inputs if pre_l1.shape[-1] > 0:
     prerr = prerr_l0_
     y_ = Y.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
-    ref.mdl.fit(X.T, Y.T)
+    # FIXME: actually, if ref.mdl.hasmemory
+    if isinstance(ref.mdl, ActInfOTLModel):
+        print "Fitting without update"
+        ref.mdl.fit(X.T, Y.T, update = False)
+    else:
+        ref.mdl.fit(X.T, Y.T)
     
     # ref.X_ = np.vstack((pre_l1[...,[-1]], prerr_l0[...,[-1]]))
     ref.debug_print("step_actinf_m1_single ref.X_.shape = %s", (ref.X_.shape, ))

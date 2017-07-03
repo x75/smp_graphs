@@ -35,25 +35,31 @@ showplot = True
 # experiment
 commandline_args = ['numsteps']
 randseed = 12345
-numsteps = 2000
+numsteps = 600
 # dim = 3 # 2, 1
 # dim = 9 # bha
 
 # for pm
-dim_s_proprio = 2 # acc two dof
-dim_s_extero = 2  # vel two dof
+dim_s_proprio = 3 # acc two dof
+dim_s_extero = 3  # vel two dof
 dt = 0.1
 lag = 6 # 1
 minlag = 1 # 1  # first returning measurement offset in time steps
-maxlag = 3 # 10 # last return to consider / window length
+maxlag = 2 # 10 # last return to consider / window length
 laglen = maxlag - minlag
+# eta = 0.92
 eta = 0.7 # 0.715
+# eta = 0.3
+# eta = 0.1
 
 # # for sa
 # dim_s_proprio = 2 # two joint angles
 # dim_s_extero = 2  # 2D end-effector
 # dt = 0.1
 # lag = 1
+# minlag = 1 # 1  # first returning measurement offset in time steps
+# maxlag = 2 # 10 # last return to consider / window length
+# laglen = maxlag - minlag
 # eta = 0.715
 
 # # for bha
@@ -288,7 +294,7 @@ systemblock_sphero = get_systemblock_sphero()
 # - dimensions
 # - number of modalities
     
-algo = 'knn' # 'soesgp' 'homeokinesis' 'storkgp'
+algo = 'soesgp' # 'knn' 'homeokinesis' 'storkgp'
 
 # systemblock   = systemblock_lpzbarrel
 # lag = 6 # 5, 4, 2 # 2 or 3 worked with lpzbarrel, dt = 0.05
@@ -713,6 +719,7 @@ graph = OrderedDict([
                             # 'f': {'val': np.array([[0.23538, 0.23538]]).T * 1.0}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.23539]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
                             'f': {'val': np.array([[0.23539]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
+                            # 'f': {'val': np.array([[0.23539, 0.2348, 0.14]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.14, 0.14]]).T * 1.0},
                             # 'f': {'val': np.array([[0.82, 0.82]]).T},
                             # 'f': {'val': np.array([[0.745, 0.745]]).T},
