@@ -333,16 +333,18 @@ def step_actinf_m1(ref):
     # prerr_l0_tap_full = np.hstack((ref.inputs['prerr_l0']['val'][...,-3:], prerr_l0_))
     # prerr_l0_tap_flat = prerr_l0_tap_full.reshape((ref.odim, 1))
     
-    print "prerr_l0_", prerr_l0_.shape
+    # print "prerr_l0_", prerr_l0_.shape, (ref.inputs['pre_l1']['val'][...,[-1]] - ref.pre_l1_tm1).shape
     
-    if np.sum(np.abs(ref.inputs['pre_l1']['val'][...,[-1]] - ref.pre_l1_tm1)) > 1e-1:
-        # goal changed
-        print "goal changed"
-        # prerr_l0_ = (meas_l0[...,[-1]] - ref.inputs['pre_l1']['val'][...,[-1]].reshape((ref.odim / ref.laglen, 1)))
-        # pre_l1[...,[-1]]).reshape((ref.odim, 1))
+    # if np.sum(np.abs(ref.inputs['pre_l1']['val'][...,[-1]] - ref.pre_l1_tm1)) > 1e-1:
+    # dgoal = np.linalg.norm(ref.inputs['pre_l1']['val'][...,[-1]] - ref.pre_l1_tm1)
+    # if dgoal > 5e-1:
+    #     # goal changed
+    #     print "goal changed", dgoal
+    #     # prerr_l0_ = (meas_l0[...,[-1]] - ref.inputs['pre_l1']['val'][...,[-1]].reshape((ref.odim / ref.laglen, 1)))
+    #     # pre_l1[...,[-1]]).reshape((ref.odim, 1))
         
-        # prerr_l0[...,[-1]] = prerr_l0_
-        prerr_l0_ = np.random.uniform(-1e-3, 1e-3, pre_l1[...,[-1]].shape)
+    #     # prerr_l0[...,[-1]] = prerr_l0_
+    #     prerr_l0_ = np.random.uniform(-1e-3, 1e-3, pre_l1[...,[-1]].shape)
         
     print "prerr_l0_", prerr_l0_.shape
     

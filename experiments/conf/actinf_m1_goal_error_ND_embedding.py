@@ -294,7 +294,7 @@ systemblock_sphero = get_systemblock_sphero()
 # - dimensions
 # - number of modalities
     
-algo = 'soesgp' # 'knn' 'homeokinesis' 'storkgp'
+algo = 'knn' # 'soesgp' 'homeokinesis' 'storkgp'
 
 # systemblock   = systemblock_lpzbarrel
 # lag = 6 # 5, 4, 2 # 2 or 3 worked with lpzbarrel, dt = 0.05
