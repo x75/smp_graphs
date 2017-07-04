@@ -63,8 +63,12 @@ def f_sin(args):
 
 def f_sin_noise(args):
     fu_check_required_args(args, ['x','f','sigma'], 'f_sin_noise')
-    
-    x = f_sin(args)
+    print "args", args
+    if args.has_key('amp') and args.has_key('offset'):
+        x = (f_sin(args) * args['amp']['val']) + args['offset']['val']
+    else:
+        x = f_sin(args)
+
     # print "x", x.shape
     xn = np.random.normal(x, args['sigma']['val'], size=x.shape)
     # print "x", x, "xn", xn
