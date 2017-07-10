@@ -141,7 +141,8 @@ def init_random_uniform(ref, conf, mconf):
     for outk, outv in params['outputs'].items():
         lo = -np.ones(( outv['shape'] ))
         hi = np.ones(( outv['shape'] ))
-        setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
+        # setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
+        setattr(ref, outk, np.ones(outv['shape']))
 
 def step_random_uniform(ref):
     if hasattr(ref, 'rate'):
@@ -150,7 +151,10 @@ def step_random_uniform(ref):
     lo = ref.inputs['lo']['val'] # .T
     hi = ref.inputs['hi']['val'] # .T
     for outk, outv in ref.outputs.items():
-        setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
+        # setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
+        # setattr(ref, outk, np.random.choice([-1.0, 1.0], size = outv['shape']))
+        setattr(ref, outk, getattr(ref, outk) * -1.0)
+        # np.random.uniform(lo, hi, size = outv['shape']))
         # print "%s-%s[%d]model.step_random_uniform %s = %s" % (
         #     ref.cname, ref.id, ref.cnt, outk, getattr(ref, outk))
 
