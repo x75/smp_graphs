@@ -14,6 +14,7 @@ Embedding: implement embedding at block boundaries
 """
 
 import copy
+from functools import partial
 
 from smp_base.plot import histogramnd
 from smp_graphs.block_plot import SnsMatrixPlotBlock2, ImgPlotBlock2
@@ -140,7 +141,7 @@ def get_systemblock_pm(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
             'm_maxs': [ 1.] * dim_s_proprio,
             'dim_s_extero': dim_s_extero,
             'lag_min': 1,
-            'lag_max': 15, # 2, # 5
+            'lag_max': 2, # 20, # 2, # 5
             }
         }
 
@@ -351,6 +352,7 @@ eta = 0.715
 # eta = 0.15
 
 def plot_timeseries_block(l0 = 'pre_l0', l1 = "pre_l1", blocksize = 1):
+    global partial
     global PlotBlock2, numsteps, timeseries, dim_s_extero, dim_s_proprio
     return {
     'block': PlotBlock2,
@@ -367,16 +369,16 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = "pre_l1", blocksize = 1):
         'hspace': 0.2,
         'subplots': [
             [
-                {'input': ['goals', 's_proprio'], 'plot': timeseries},
+                {'input': ['goals', 's_proprio'], 'plot': partial(timeseries, marker=".")},
             ],
             [
-                {'input': ['goals', 'pre'], 'plot': timeseries},
+                {'input': ['goals', 'pre'], 'plot': partial(timeseries, marker=".")},
             ],
             # [
             #     {'input': ['pre'], 'plot': timeseries},
             # ],
             [
-                {'input': ['err',], 'plot': timeseries},
+                {'input': ['err',], 'plot': partial(timeseries, marker=".")},
             ],
             # [
             #     {'input': ['tgt'], 'plot': timeseries},

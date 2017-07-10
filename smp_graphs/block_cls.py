@@ -43,6 +43,10 @@ class PointmassBlock2(SysBlock2):
             # 's_extero':  np.zeros((self.sysdim,   self.blocksize)),
             # 's_all':     np.zeros((self.statedim, self.blocksize)),
         }
+
+        # aberration / worlds hack
+        self.mode = 1.0
+        
         # copy those into self attributes
         for k in ['s_proprio', 's_extero', 's_all']:
             setattr(self, k, self.x[k])
@@ -53,7 +57,12 @@ class PointmassBlock2(SysBlock2):
     def step(self, x = None):
         for i in range(self.blocksize):
             self.u = self.inputs['u']['val'][:,[i]]
-            self.x = self.system.step(self.u)
+            
+            # # aberration / worlds hack
+            # if self.cnt % 10 == 0:
+            #     self.mode *= -1.0
+            
+            self.x = self.system.step(self.u * self.mode)
             # print "self.u", self.u
             # real output variables defined by config
             # for k in ['s_proprio', 's_extero', 's_all']:

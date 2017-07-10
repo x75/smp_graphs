@@ -143,6 +143,7 @@ def init_random_uniform(ref, conf, mconf):
         hi = np.ones(( outv['shape'] ))
         # setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
         setattr(ref, outk, np.ones(outv['shape']))
+        print "block_models.py: random_uniform_init %s = %s" % (outk, getattr(ref, outk))
 
 def step_random_uniform(ref):
     if hasattr(ref, 'rate'):
@@ -152,11 +153,17 @@ def step_random_uniform(ref):
     hi = ref.inputs['hi']['val'] # .T
     for outk, outv in ref.outputs.items():
         # setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
+        
         # setattr(ref, outk, np.random.choice([-1.0, 1.0], size = outv['shape']))
+        
+        if np.sum(np.abs(getattr(ref, outk))) == 0.0:
+            setattr(ref, outk, np.ones(outv['shape']))
         setattr(ref, outk, getattr(ref, outk) * -1.0)
+        
         # np.random.uniform(lo, hi, size = outv['shape']))
         # print "%s-%s[%d]model.step_random_uniform %s = %s" % (
         #     ref.cname, ref.id, ref.cnt, outk, getattr(ref, outk))
+        print "block_models.py: random_uniform_step %s = %s" % (outk, getattr(ref, outk))
 
 # active inference stuff
 def init_model(ref, conf, mconf):
