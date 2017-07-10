@@ -130,7 +130,7 @@ def init_polyexp(ref, conf, mconf):
     params = conf['params']
     ref.polyexpnode = PolynomialExpansionNode(3)
     # params['outputs']['polyexp'] = {'shape': params['inputs']['x']['shape']}
-    params['outputs']['polyexp'] = {'shape': (83, 1)}
+    params['outputs']['polyexp'] = {'shape': (83, 1)} # ???
 
 def step_polyexp(ref):
     setattr(ref, 'polyexp', ref.polyexpnode.execute(ref.inputs['x']['val'].T).T)
@@ -141,11 +141,37 @@ def init_random_uniform(ref, conf, mconf):
     for outk, outv in params['outputs'].items():
         lo = -np.ones(( outv['shape'] ))
         hi = np.ones(( outv['shape'] ))
-        # setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
-        setattr(ref, outk, np.ones(outv['shape']))
+        setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
+        # setattr(ref, outk, np.ones(outv['shape']))
         print "block_models.py: random_uniform_init %s = %s" % (outk, getattr(ref, outk))
 
 def step_random_uniform(ref):
+    if hasattr(ref, 'rate'):
+        if (ref.cnt % ref.rate) not in ref.blockphase: return
+            
+    lo = ref.inputs['lo']['val'] # .T
+    hi = ref.inputs['hi']['val'] # .T
+    for outk, outv in ref.outputs.items():
+        setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
+        
+        # setattr(ref, outk, np.random.choice([-1.0, 1.0], size = outv['shape']))
+        
+        # np.random.uniform(lo, hi, size = outv['shape']))
+        # print "%s-%s[%d]model.step_random_uniform %s = %s" % (
+        #     ref.cname, ref.id, ref.cnt, outk, getattr(ref, outk))
+        print "block_models.py: random_uniform_step %s = %s" % (outk, getattr(ref, outk))
+
+# model func: alternating_sign model
+def init_alternating_sign(ref, conf, mconf):
+    params = conf['params']
+    for outk, outv in params['outputs'].items():
+        lo = -np.ones(( outv['shape'] ))
+        hi = np.ones(( outv['shape'] ))
+        # setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
+        setattr(ref, outk, np.ones(outv['shape']))
+        print "block_models.py: alternating_sign_init %s = %s" % (outk, getattr(ref, outk))
+
+def step_alternating_sign(ref):
     if hasattr(ref, 'rate'):
         if (ref.cnt % ref.rate) not in ref.blockphase: return
             
@@ -161,10 +187,10 @@ def step_random_uniform(ref):
         setattr(ref, outk, getattr(ref, outk) * -1.0)
         
         # np.random.uniform(lo, hi, size = outv['shape']))
-        # print "%s-%s[%d]model.step_random_uniform %s = %s" % (
+        # print "%s-%s[%d]model.step_alternating_sign %s = %s" % (
         #     ref.cname, ref.id, ref.cnt, outk, getattr(ref, outk))
-        print "block_models.py: random_uniform_step %s = %s" % (outk, getattr(ref, outk))
-
+        print "block_models.py: alternating_sign_step %s = %s" % (outk, getattr(ref, outk))
+        
 # active inference stuff
 def init_model(ref, conf, mconf):
     """initialize sensorimotor forward model"""
@@ -573,6 +599,8 @@ class model(object):
         'musig': {'init': init_musig, 'step': step_musig},
         'res': {'init': init_res, 'step': step_res},
         'polyexp': {'init': init_polyexp, 'step': step_polyexp},
+        # constants
+        'alternating_sign': {'init': init_alternating_sign, 'step': step_alternating_sign},        
         # active randomness
         'random_uniform': {'init': init_random_uniform, 'step': step_random_uniform},
         # active inference
