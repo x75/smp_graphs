@@ -366,7 +366,7 @@ def step_actinf_m1(ref):
         # goal changed
         m = ref.inputs['meas_l0']['val'][...,[-1]].reshape((ref.odim / ref.laglen, 1))
         p = ref.inputs['pre_l1']['val'][...,[-1]].reshape((ref.odim / ref.laglen, 1))
-        # prerr_l0_ = (m - p) * 0.1
+        # prerr_l0_ = (m - p) # * 0.1
         # prerr_l0_ = -p.copy()
         prerr_l0_ = np.random.uniform(-1e-3, 1e-3, prerr_l0_.shape)
         print "goal changed predict[%d], |dgoal| = %f, |PE| = %f" % (ref.cnt, dgoal, np.linalg.norm(prerr_l0_))

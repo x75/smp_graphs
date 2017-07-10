@@ -345,8 +345,8 @@ maxlag = systemblock['params']['lag_max']
 dt = systemblock['params']['dt']
 laglen = maxlag - minlag
 
-# eta = 0.92
-eta = 0.715
+eta = 0.95
+# eta = 0.715
 # eta = 0.3
 # eta = 0.25
 # eta = 0.15
