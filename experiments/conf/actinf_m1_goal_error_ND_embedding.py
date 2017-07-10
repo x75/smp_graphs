@@ -36,13 +36,13 @@ showplot = True
 # experiment
 commandline_args = ['numsteps']
 randseed = 12345
-numsteps = 3000/3
-sysname = 'sphero'
-# 'pm'
+numsteps = 10000/10
+# sysname = 'pm'
+# sysname = 'sa'
+# sysname = 'bha'
 # sysname = 'stdr'
-# 'bha'
-# 'sa'
-# "lpzbarrel"
+# sysname = 'lpzbarrel'
+sysname = 'sphero'
 # dim = 3 # 2, 1
 # dim = 9 # bha
 
@@ -146,7 +146,7 @@ def get_systemblock_pm(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
             'm_maxs': [ 1.] * dim_s_proprio,
             'dim_s_extero': dim_s_extero,
             'lag_min': 1,
-            'lag_max': 2, # 20, # 2, # 5
+            'lag_max': 2, # 2, # 20, # 2, # 5
             }
         }
 
@@ -225,7 +225,7 @@ def get_systemblock_bha(dim_s_proprio = 9, dim_s_extero = 3, dt = 0.1):
             's_maxs': [ 1.00] * dim_s_proprio,
             'doplot': False,
             'lag_min': 1,
-            'lag_max': 3, # 5
+            'lag_max': 3 # 5
             }
         }
     
@@ -308,7 +308,7 @@ def get_systemblock_sphero(dim_s_proprio = 2, dim_s_extero = 1, dt = 0.05):
             'dim_s_extero': dim_s_extero,   
             'outdict': {},
             'smdict': {},
-            'lag_min': 4, # 2
+            'lag_min': 4, # 2, # 4, # 2
             'lag_max': 5,
             }
         }
@@ -322,7 +322,7 @@ get_systemblock = {
     'bha': partial(get_systemblock_bha, dim_s_proprio = 9, dim_s_extero = 3, dt = 0.1),
     'lpzbarrel': partial(get_systemblock_lpzbarrel, dim_s_proprio = 2, dim_s_extero = 1, dt = 0.025),
     'stdr': partial(get_systemblock_stdr, dim_s_proprio = 2, dim_s_extero = 3, dt = 0.1),
-    'sphero': partial(get_systemblock_sphero, dim_s_proprio = 2, dim_s_extero = 1, dt = 0.05),
+    'sphero': partial(get_systemblock_sphero, dim_s_proprio = 2, dim_s_extero = 1, dt = 0.0167),
     }
     
 
@@ -334,7 +334,8 @@ get_systemblock = {
 # - dimensions
 # - number of modalities
     
-algo = 'knn' # 'soesgp' 'homeokinesis' 'storkgp'
+# algo = 'knn' # 'soesgp' 'storkgp'
+algo = 'homeokinesis'
 
 # systemblock   = systemblock_lpzbarrel
 # lag = 6 # 5, 4, 2 # 2 or 3 worked with lpzbarrel, dt = 0.05
@@ -798,52 +799,52 @@ graph = OrderedDict([
                     },
                 }),
                 
-                # dev model actinf_m1: learner is basic actinf predictor proprio space learn_proprio_base_0
-                ('pre_l0', {
-                    'block': ModelBlock2,
-                    'params': {
-                        'blocksize': 1,
-                        'blockphase': [0],
-                        'debug': False,
-                        'lag': minlag,
-                        'eta': eta, # 3.7,
-                        'ros': True,
-                        # FIXME: relative shift = minlag, block length the maxlag
-                        'inputs': {
-                            # descending prediction
-                            'pre_l1': {
-                                'bus': 'pre_l1/pre',
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag, -minlag)}, # lag},
-                            # ascending prediction error
-                            'pre_l0': {
-                                'bus': 'pre_l0/pre',
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)}, # lag},
-                            # ascending prediction error
-                            'prerr_l0': {
-                                'bus': 'pre_l0/err',
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)}, # lag},
-                            # measurement
-                            'meas_l0': {
-                                'bus': 'robot1/s_proprio',
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(-laglen, 0)}
-                            },
-                        'outputs': {
-                            'pre': {'shape': (dim_s_proprio, 1)},
-                            'err': {'shape': (dim_s_proprio, 1)},
-                            'tgt': {'shape': (dim_s_proprio, 1)},
-                            },
-                        'models': {
-                            'fwd': {
-                                'type': 'actinf_m1',
-                                'algo': algo,
-                                'idim': dim_s_proprio * laglen * 2,
-                                'odim': dim_s_proprio * laglen,
-                                'laglen': laglen,
-                                'eta': eta},
-                            },
-                        'rate': 1,
-                        },
-                    }),
+                # # dev model actinf_m1: learner is basic actinf predictor proprio space learn_proprio_base_0
+                # ('pre_l0', {
+                #     'block': ModelBlock2,
+                #     'params': {
+                #         'blocksize': 1,
+                #         'blockphase': [0],
+                #         'debug': False,
+                #         'lag': minlag,
+                #         'eta': eta, # 3.7,
+                #         'ros': True,
+                #         # FIXME: relative shift = minlag, block length the maxlag
+                #         'inputs': {
+                #             # descending prediction
+                #             'pre_l1': {
+                #                 'bus': 'pre_l1/pre',
+                #                 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag, -minlag)}, # lag},
+                #             # ascending prediction error
+                #             'pre_l0': {
+                #                 'bus': 'pre_l0/pre',
+                #                 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)}, # lag},
+                #             # ascending prediction error
+                #             'prerr_l0': {
+                #                 'bus': 'pre_l0/err',
+                #                 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)}, # lag},
+                #             # measurement
+                #             'meas_l0': {
+                #                 'bus': 'robot1/s_proprio',
+                #                 'shape': (dim_s_proprio, maxlag), 'lag': range(-laglen, 0)}
+                #             },
+                #         'outputs': {
+                #             'pre': {'shape': (dim_s_proprio, 1)},
+                #             'err': {'shape': (dim_s_proprio, 1)},
+                #             'tgt': {'shape': (dim_s_proprio, 1)},
+                #             },
+                #         'models': {
+                #             'fwd': {
+                #                 'type': 'actinf_m1',
+                #                 'algo': algo,
+                #                 'idim': dim_s_proprio * laglen * 2,
+                #                 'odim': dim_s_proprio * laglen,
+                #                 'laglen': laglen,
+                #                 'eta': eta},
+                #             },
+                #         'rate': 1,
+                #         },
+                #     }),
 
                 # dev model uniform random sampler
                 # ('pre_l0', {
@@ -867,43 +868,45 @@ graph = OrderedDict([
                 #         },
                 #     }),
                     
-                # # dev model homeokinesis
-                # ('pre_l0', {
-                #     'block': ModelBlock2,
-                #     'params': {
-                #         'blocksize': 1,
-                #         'blockphase': [0],
-                #         'debug': False,
-                #         'lag': lag,
-                #         'eta': eta, # 3.7,
-                #         'ros': True,
-                #         'inputs': {
-                #             # descending prediction
-                #             'pre_l1': {
-                #                 'bus': 'pre_l1/pre',
-                #                 'shape': (dim_s_proprio, maxlag), 'lag': lag},
-                #             # ascending prediction error
-                #             'pre_l0': {
-                #                 'bus': 'pre_l0/pre',
-                #                 'shape': (dim_s_proprio, maxlag), 'lag': lag},
-                #             # ascending prediction error
-                #             'prerr_l0': {
-                #                 'bus': 'pre_l0/err',
-                #                 'shape': (dim_s_proprio, maxlag), 'lag': lag},
-                #             # measurement
-                #             'meas_l0': {
-                #                 'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, maxlag)}},
-                #         'outputs': {
-                #             'pre': {'shape': (dim_s_proprio, 1)},
-                #             'err': {'shape': (dim_s_proprio, 1)},
-                #             'tgt': {'shape': (dim_s_proprio, 1)},
-                #             },
-                #         'models': {
-                #             'hk': {'type': 'homeokinesis', 'algo': algo, 'idim': dim_s_proprio, 'odim': dim_s_proprio},
-                #             },
-                #         'rate': 1,
-                #         },
-                #     }),
+                # dev model homeokinesis
+                ('pre_l0', {
+                    'block': ModelBlock2,
+                    'params': {
+                        'blocksize': 1,
+                        'blockphase': [0],
+                        'debug': False,
+                        'lag': minlag,
+                        'eta': eta, # 3.7,
+                        'ros': True,
+                        'inputs': {
+                            # descending prediction
+                            'pre_l1': {
+                                'bus': 'pre_l1/pre',
+                                'shape': (dim_s_proprio, maxlag), 'lag': minlag},
+                            # ascending prediction error
+                            'pre_l0': {
+                                'bus': 'pre_l0/pre',
+                                'shape': (dim_s_proprio, maxlag), 'lag': minlag},
+                            # ascending prediction error
+                            'prerr_l0': {
+                                'bus': 'pre_l0/err',
+                                'shape': (dim_s_proprio, maxlag), 'lag': minlag},
+                            # measurement
+                            'meas_l0': {
+                                'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, maxlag)}},
+                        'outputs': {
+                            'pre': {'shape': (dim_s_proprio, 1)},
+                            'err': {'shape': (dim_s_proprio, 1)},
+                            'tgt': {'shape': (dim_s_proprio, 1)},
+                            },
+                        'models': {
+                            'hk': {
+                                'type': 'homeokinesis', 'algo': algo, 'idim': dim_s_proprio, 'odim': dim_s_proprio,
+                                'minlag': minlag, 'maxlag': maxlag, 'laglen': laglen},
+                            },
+                        'rate': 1,
+                        },
+                    }),
                     
                 # learn_proprio_e2p2e
                 ]),

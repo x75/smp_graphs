@@ -63,7 +63,7 @@ def f_sin(args):
 
 def f_sin_noise(args):
     fu_check_required_args(args, ['x','f','sigma'], 'f_sin_noise')
-    print "args", args
+    # print "args", args
     if args.has_key('amp') and args.has_key('offset'):
         x = (f_sin(args) * args['amp']['val']) + args['offset']['val']
     else:

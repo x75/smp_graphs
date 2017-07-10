@@ -24,7 +24,8 @@ from reservoirs import Reservoir, res_input_matrix_random_sparse, res_input_matr
 
 from smp_graphs.graph import nxgraph_node_by_id_recursive
 from smp_graphs.block import decInit, decStep, PrimBlock2
-from smp_base.models_actinf import ActInfKNN, ActInfGMM, ActInfHebbianSOM
+from smp_base.models_actinf  import ActInfKNN, ActInfGMM, ActInfHebbianSOM
+from smp_base.models_selforg import HK
 
 try:
     from smp_base.models_actinf import ActInfOTLModel, ActInfSOESGP, ActInfSTORKGP
@@ -211,7 +212,6 @@ def init_model(ref, conf, mconf):
         mdl = ActInfSTORKGP(idim, odim)
     elif algo == 'copy':
         targetid = mconf['copyid']
-
         # # debugging
         # print "topgraph", ref.top.nxgraph.nodes()
         # print "topgraph.node[0]['block_'].nxgraph", ref.top.nxgraph.node[0]['block_'].nxgraph.nodes()
@@ -230,6 +230,8 @@ def init_model(ref, conf, mconf):
             clone = {}
             tnode = targetnode[0][1].node[targetnode[0][0]]
         mdl = tnode['block_'].mdl
+    elif algo == 'homeokinesis':
+        mdl = HK(idim, odim, minlag = mconf['minlag'], maxlag = mconf['maxlag'], laglen = mconf['laglen'], mode = 'hk')
     else:
         print "unknown model algorithm %s, exiting" % (algo, )
         # import sys
@@ -580,9 +582,22 @@ def step_homeokinesis(ref):
     # prediction error[t-1] at current layer input
     prerr_l0 = ref.inputs['prerr_l0']['val']
 
-    return {
-        's_proprio': pre_l0.copy(),
-        's_extero': pre_l0.copy()}
+    # predict next values at current layer input
+    # pre_l0_ = ref.mdl.predict(ref.X_.T)
+    # pre_l0_ = ref.mdl.step((meas_l0 - 0.2) * 10.0) # bha m_mins/m_maxs
+    pre_l0_ = ref.mdl.step(meas_l0)
+
+    # print "meas_l0", meas_l0.shape
+    # print "pre_l0_", pre_l0_.shape
+
+    # setattr(ref, 'pre', pre_l0_[:,[-1]] * 0.1 + 0.2) # bha m_mins/m_maxs
+    setattr(ref, 'pre', pre_l0_[:,[-1]])#  - pre_l1[:,[-1]])
+    # setattr(ref, 'err', err_)
+    # setattr(ref, 'tgt', tgt_)
+    # return (pre_l0_.T.copy(), )
+    # return {
+    #     's_proprio': pre_l0.copy(),
+    #     's_extero': pre_l0.copy()}
     
 class model(object):
     """model
