@@ -266,7 +266,7 @@ def tapping_SM(ref, mode = 'm1'):
     ############################################################
     # instantaneous inputs
     # current goal[t] prediction descending from layer above
-    if ref.inputs['blk_mode']['val'][0,0] == 2.0:
+    if ref.inputs.has_key('blk_mode') and ref.inputs['blk_mode']['val'][0,0] == 2.0:
         ref.pre_l1_inkey = 'e2p_l1'
     else:
         ref.pre_l1_inkey = 'pre_l1'
