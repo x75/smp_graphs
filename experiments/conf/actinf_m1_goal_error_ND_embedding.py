@@ -37,11 +37,11 @@ showplot = True
 commandline_args = ['numsteps']
 randseed = 12345
 numsteps = 10000/5
-sysname = 'pm'
+# sysname = 'pm'
 # sysname = 'sa'
 # sysname = 'bha'
 # sysname = 'stdr'
-# sysname = 'lpzbarrel'
+sysname = 'lpzbarrel'
 # sysname = 'sphero'
 # dim = 3 # 2, 1
 # dim = 9 # bha
@@ -272,8 +272,8 @@ def get_systemblock_lpzbarrel(dim_s_proprio = 2, dim_s_extero = 1, dt = 0.01):
             'dim_s_extero': dim_s_extero,   
             'outdict': {},
             'smdict': {},
-            'lag_min': 4, # 5, 4
-            'lag_max': 7,
+            'lag_min': 1, # 5, 4
+            'lag_max': 2,
             }
         }
     return systemblock_lpz
@@ -314,7 +314,7 @@ get_systemblock = {
     'pm': partial(get_systemblock_pm, dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1),
     'sa': partial(get_systemblock_sa, dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1),
     'bha': partial(get_systemblock_bha, dim_s_proprio = 9, dim_s_extero = 3, dt = 0.1),
-    'lpzbarrel': partial(get_systemblock_lpzbarrel, dim_s_proprio = 2, dim_s_extero = 1, dt = 2.0/94.0), # 0.025),
+    'lpzbarrel': partial(get_systemblock_lpzbarrel, dim_s_proprio = 2, dim_s_extero = 1, dt = 2.0/92.0), # 0.025),
     'stdr': partial(get_systemblock_stdr, dim_s_proprio = 2, dim_s_extero = 3, dt = 0.1),
     'sphero': partial(get_systemblock_sphero, dim_s_proprio = 2, dim_s_extero = 1, dt = 0.0167),
     }
@@ -328,11 +328,11 @@ get_systemblock = {
 # - dimensions
 # - number of modalities
     
-#algo = 'knn' #
+# algo = 'knn' #
 # algo = 'gmm' #
-algo = 'igmm' #
+# algo = 'igmm' #
 # algo = 'hebbsom'
-#algo = 'soesgp'
+algo = 'soesgp'
 #algo = 'storkgp'
 # algo = 'homeokinesis'
 
@@ -351,11 +351,12 @@ dt = systemblock['params']['dt']
 laglen = maxlag - minlag
 
 # eta = 0.95
-eta = 0.7
+# eta = 0.7
 # eta = 0.3
 # eta = 0.25
 # eta = 0.15
-# eta = 0.1
+eta = 0.1
+# eta = 0.05
 
 def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
     global partial
@@ -770,10 +771,10 @@ graph = OrderedDict([
                             'x': {'bus': 'cnt/x'},
                             # 'f': {'val': np.array([[0.2355, 0.2355]]).T * 1.0}, # good with knn and eta = 0.3
                             # 'f': {'val': np.array([[0.23538, 0.23538]]).T * 1.0}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.45]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
+                            'f': {'val': np.array([[0.45]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.23539]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.23539]]).T * 7.23 * dt}, # good with soesgp and eta = 0.7
-                            'f': {'val': np.array([[0.23539]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
+                            # 'f': {'val': np.array([[0.23539]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.23539, 0.2348, 0.14]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.14, 0.14]]).T * 1.0},
                             # 'f': {'val': np.array([[0.82, 0.82]]).T},
