@@ -33,11 +33,11 @@ showplot = True
 
 # experiment
 commandline_args = ['numsteps']
-randseed = 12345
+randseed = 12346
 numsteps = 10000/10
 loopblocksize = numsteps
-sysname = 'pm'
-# sysname = 'sa'
+# sysname = 'pm'
+sysname = 'sa'
 # sysname = 'bha'
 # sysname = 'stdr'
 # sysname = 'lpzbarrel'
@@ -311,29 +311,31 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             'seq_pre_l0':   {'bus': 'sequence/pre_l0_mode', 'shape': (1, blocksize)},
             'seq_pre_l1':   {'bus': 'sequence/pre_l1_mode', 'shape': (1, blocksize)},
             'seq_e2p':      {'bus': 'sequence/e2p_mode', 'shape': (1, blocksize)},
+            'goalsp':      {'bus': 'e2p/pre', 'shape': (dim_s_proprio, blocksize)},
+            'goalse':      {'bus': 'e2p/pre_ext', 'shape': (dim_s_extero, blocksize)},
             },
         'hspace': 0.2,
         'subplots': [
             [
                 {'input': ['seq_pre_l0', 'seq_pre_l1', 'seq_e2p'], 'plot': partial(timeseries, marker='.')},
+                {'input': ['err',], 'plot': partial(timeseries, marker='.')},
             ],
             [
                 {'input': ['goals', 's_proprio'], 'plot': partial(timeseries, marker='.')},
+                {'input': ['tgt'], 'plot': partial(timeseries, marker='.')},
             ],
             [
                 {'input': ['goals', 'pre'], 'plot': partial(timeseries, marker='.')},
+                {'input': ['s_extero', 'goalsp', 'goalse'], 'plot': timeseries},
             ],
             # [
             #     {'input': ['pre'], 'plot': timeseries},
             # ],
-            [
-                {'input': ['err',], 'plot': partial(timeseries, marker='.')},
-            ],
-            [
-                {'input': ['tgt'], 'plot': partial(timeseries, marker='.')},
-            ],
             # [
-            #     {'input': ['s_proprio', 's_extero'], 'plot': timeseries},
+            # ],
+            # [
+            # ],
+            # [
             # ],
             ]
         }
@@ -672,7 +674,8 @@ graph = OrderedDict([
                 'pre_l0_mode': {
                     'shape': (1,1),
                     'events': {
-                        0: np.ones((1,1)) * 1.0}},
+                        0: np.ones((1,1)) * 1.0,
+                        numsteps/2: np.ones((1,1)) * 2}},
                 'e2p_mode': {
                     'shape': (1,1),
                     'events': {
@@ -696,80 +699,81 @@ graph = OrderedDict([
         'params': {
             'graph': OrderedDict([
 
-                # # goal sampler (motivation) sample_discrete_uniform_goal
-                # ('pre_l1', {
-                #     'block': ModelBlock2,
-                #     'params': {
-                #         'blocksize': 1,
-                #         'blockphase': [0],
-                #         'inputs': {                        
-                #             'lo': {'val': m_mins, 'shape': (dim_s_proprio, 1)},
-                #             'hi': {'val': m_maxs, 'shape': (dim_s_proprio, 1)},
-                #             },
-                #         'outputs': {'pre': {'shape': (dim_s_proprio, 1)}},
-                #         'models': {
-                #             'goal': {'type': 'random_uniform'}
-                #             },
-                #         'rate': 100,
-                #         },
-                #     }),
-
-                ('cnt', {
-                    'block': CountBlock2,
+                # goal sampler (motivation) sample_discrete_uniform_goal
+                ('pre_l1', {
+                    'block': ModelBlock2,
                     'params': {
                         'blocksize': 1,
-                        'debug': False,
-                        'inputs': {},
-                        'outputs': {'x': {'shape': (dim_s_proprio, 1)}},
+                        'blockphase': [0],
+                        'inputs': {                        
+                            'blk_mode': {'bus': 'sequence/pre_l1_mode'},
+                            'lo': {'val': m_mins, 'shape': (dim_s_proprio, 1)},
+                            'hi': {'val': m_maxs, 'shape': (dim_s_proprio, 1)},
+                            },
+                        'outputs': {'pre': {'shape': (dim_s_proprio, 1)}},
+                        'models': {
+                            'goal': {'type': 'random_uniform'}
+                            },
+                        'rate': 100,
                         },
                     }),
 
-                # a random number generator, mapping const input to hi
-                ('pre_l1', {
-                    'block': FuncBlock2,
-                    'params': {
-                        'id': 'pre_l1',
-                        'outputs': {'pre': {'shape': (dim_s_proprio, 1)}},
-                        'debug': False,
-                        'blocksize': 1,
-                        # 'inputs': {'lo': [0, (3, 1)], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
-                        # recurrent connection
-                        'inputs': {
-                            'blk_mode': {'bus': 'sequence/pre_l1_mode'},
-                            'x': {'bus': 'cnt/x'},
-                            # 'f': {'val': np.array([[0.2355, 0.2355]]).T * 1.0}, # good with knn and eta = 0.3
-                            # 'f': {'val': np.array([[0.23538, 0.23538]]).T * 1.0}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.45]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.23539]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.23539]]).T * 7.23 * dt}, # good with soesgp and eta = 0.7
-                            'f': {'val': np.array([[0.23539]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.23539, 0.2348, 0.14]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.14, 0.14]]).T * 1.0},
-                            # 'f': {'val': np.array([[0.82, 0.82]]).T},
-                            # 'f': {'val': np.array([[0.745, 0.745]]).T},
-                            # 'f': {'val': np.array([[0.7, 0.7]]).T},
-                            # 'f': {'val': np.array([[0.65, 0.65]]).T},
-                            # 'f': {'val': np.array([[0.39, 0.39]]).T},
-                            # 'f': {'val': np.array([[0.37, 0.37]]).T},
-                            # 'f': {'val': np.array([[0.325, 0.325]]).T},
-                            # 'f': {'val': np.array([[0.31, 0.31]]).T},
-                            # 'f': {'val': np.array([[0.19, 0.19]]).T},
-                            # 'f': {'val': np.array([[0.18, 0.181]]).T},
-                            # 'f': {'val': np.array([[0.171, 0.171]]).T},
-                            # 'f': {'val': np.array([[0.161, 0.161]]).T},
-                            # 'f': {'val': np.array([[0.151, 0.151]]).T},
-                            # 'f': {'val': np.array([[0.141, 0.141]]).T},
-                            # stay in place
-                            # 'f': {'val': np.array([[0.1, 0.1]]).T},
-                            # 'f': {'val': np.array([[0.24, 0.24]]).T},
-                            # 'sigma': {'val': np.array([[0.001, 0.002]]).T}}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
-                            'sigma': {'val': np.random.uniform(0, 0.01, (dim_s_proprio, 1))},
-                            'offset': {'val': m_mins + (m_maxs - m_mins)/2.0},
-                            'amp': {'val': (m_maxs - m_mins)/2.0},
-                        }, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
-                        'func': f_sin_noise,
-                    },
-                }),
+                # ('cnt', {
+                #     'block': CountBlock2,
+                #     'params': {
+                #         'blocksize': 1,
+                #         'debug': False,
+                #         'inputs': {},
+                #         'outputs': {'x': {'shape': (dim_s_proprio, 1)}},
+                #         },
+                #     }),
+
+                # # a random number generator, mapping const input to hi
+                # ('pre_l1', {
+                #     'block': FuncBlock2,
+                #     'params': {
+                #         'id': 'pre_l1',
+                #         'outputs': {'pre': {'shape': (dim_s_proprio, 1)}},
+                #         'debug': False,
+                #         'blocksize': 1,
+                #         # 'inputs': {'lo': [0, (3, 1)], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+                #         # recurrent connection
+                #         'inputs': {
+                #             'blk_mode': {'bus': 'sequence/pre_l1_mode'},
+                #             'x': {'bus': 'cnt/x'},
+                #             # 'f': {'val': np.array([[0.2355, 0.2355]]).T * 1.0}, # good with knn and eta = 0.3
+                #             # 'f': {'val': np.array([[0.23538, 0.23538]]).T * 1.0}, # good with soesgp and eta = 0.7
+                #             # 'f': {'val': np.array([[0.45]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
+                #             # 'f': {'val': np.array([[0.23539]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
+                #             # 'f': {'val': np.array([[0.23539]]).T * 7.23 * dt}, # good with soesgp and eta = 0.7
+                #             'f': {'val': np.array([[0.23539]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
+                #             # 'f': {'val': np.array([[0.23539, 0.2348, 0.14]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
+                #             # 'f': {'val': np.array([[0.14, 0.14]]).T * 1.0},
+                #             # 'f': {'val': np.array([[0.82, 0.82]]).T},
+                #             # 'f': {'val': np.array([[0.745, 0.745]]).T},
+                #             # 'f': {'val': np.array([[0.7, 0.7]]).T},
+                #             # 'f': {'val': np.array([[0.65, 0.65]]).T},
+                #             # 'f': {'val': np.array([[0.39, 0.39]]).T},
+                #             # 'f': {'val': np.array([[0.37, 0.37]]).T},
+                #             # 'f': {'val': np.array([[0.325, 0.325]]).T},
+                #             # 'f': {'val': np.array([[0.31, 0.31]]).T},
+                #             # 'f': {'val': np.array([[0.19, 0.19]]).T},
+                #             # 'f': {'val': np.array([[0.18, 0.181]]).T},
+                #             # 'f': {'val': np.array([[0.171, 0.171]]).T},
+                #             # 'f': {'val': np.array([[0.161, 0.161]]).T},
+                #             # 'f': {'val': np.array([[0.151, 0.151]]).T},
+                #             # 'f': {'val': np.array([[0.141, 0.141]]).T},
+                #             # stay in place
+                #             # 'f': {'val': np.array([[0.1, 0.1]]).T},
+                #             # 'f': {'val': np.array([[0.24, 0.24]]).T},
+                #             # 'sigma': {'val': np.array([[0.001, 0.002]]).T}}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+                #             'sigma': {'val': np.random.uniform(0, 0.01, (dim_s_proprio, 1))},
+                #             'offset': {'val': m_mins + (m_maxs - m_mins)/2.0},
+                #             'amp': {'val': (m_maxs - m_mins)/2.0},
+                #         }, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+                #         'func': f_sin_noise,
+                #     },
+                # }),
                 
                 # dev model actinf_m1: learner is basic actinf predictor proprio space learn_proprio_base_0
                 ('pre_l0', {
@@ -783,7 +787,13 @@ graph = OrderedDict([
                         'ros': True,
                         # FIXME: relative shift = minlag, block length the maxlag
                         'inputs': {
+                            # 'blk_input_pre_l1_bus':
+                            'blk_mode': {'bus': 'sequence/pre_l0_mode'},
                             # descending prediction
+                            'e2p_l1': {
+                                'bus': 'e2p/pre',
+                                'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag, -minlag)}, # lag}, # m1
+                                # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)}, # lag}, # m2
                             'pre_l1': {
                                 'bus': 'pre_l1/pre',
                                 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag, -minlag)}, # lag}, # m1
@@ -834,6 +844,50 @@ graph = OrderedDict([
                             #     'laglen': laglen,
                             #     'eta': eta
                             #     },
+                                
+                            },
+                        'rate': 1,
+                        },
+                    }),
+
+                # e2p model
+                ('e2p', {
+                    'block': ModelBlock2,
+                    'params': {
+                        'blocksize': 1,
+                        'blockphase': [0],
+                        'debug': False,
+                        'lag': minlag,
+                        'eta': eta, # 3.7,
+                        'ros': True,
+                        # FIXME: relative shift = minlag, block length the maxlag
+                        'inputs': {
+                            'blk_mode': {'bus': 'sequence/e2p_mode'},
+                            # measurement proprio
+                            'meas_l0_proprio': {
+                                'bus': 'robot1/s_proprio',
+                                'shape': (dim_s_proprio, maxlag), 'lag': range(-laglen, 0)},
+                            # measurement extero
+                            'meas_l0_extero': {
+                                'bus': 'robot1/s_extero',
+                                'shape': (dim_s_extero, maxlag), 'lag': range(-laglen, 0)},
+                            },
+                        'outputs': {
+                            'pre': {'shape': (dim_s_proprio, 1)},
+                            'pre_ext': {'shape': (dim_s_extero, 1)},
+                            'err': {'shape': (dim_s_proprio, 1)},
+                            'tgt': {'shape': (dim_s_proprio, 1)},
+                            },
+                        'models': {
+                            
+                            'e2p': {
+                                'type': 'e2p',
+                                'algo': 'gmm',
+                                'idim': dim_s_extero *  laglen,
+                                'odim': dim_s_proprio * laglen,
+                                'laglen': laglen,
+                                'eta': eta
+                                },
                                 
                             },
                         'rate': 1,

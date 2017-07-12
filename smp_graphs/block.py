@@ -317,7 +317,7 @@ class decStep():
             self.process_input(xself)
 
             if hasattr(xself, 'inputs') and xself.inputs.has_key('blk_mode'):
-                print "blk_mode", xself.id, np.sum(xself.inputs['blk_mode']['val']) # xself.inputs['blk_mode']['val'], xself.inputs['blk_mode']['val'] < 0.1
+                # print "blk_mode", xself.id, np.sum(xself.inputs['blk_mode']['val']) # xself.inputs['blk_mode']['val'], xself.inputs['blk_mode']['val'] < 0.1
                 if np.sum(xself.inputs['blk_mode']['val']) < 0.1:
                     # print "blub"
                     xself.cnt += 1

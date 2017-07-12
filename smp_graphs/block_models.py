@@ -256,6 +256,7 @@ def init_model(ref, conf, mconf):
 
 # tapping, uh ah
 def tapping_SM(ref, mode = 'm1'):
+    # FIXME: rewrite in general form (ref, invariable) -> (tapped invariable)
     # tapping: tap data
     # tapping: build training set
     
@@ -265,7 +266,12 @@ def tapping_SM(ref, mode = 'm1'):
     ############################################################
     # instantaneous inputs
     # current goal[t] prediction descending from layer above
-    pre_l1   = ref.inputs['pre_l1']['val']
+    if ref.inputs['blk_mode']['val'][0,0] == 2.0:
+        ref.pre_l1_inkey = 'e2p_l1'
+    else:
+        ref.pre_l1_inkey = 'pre_l1'
+        
+    pre_l1   = ref.inputs[ref.pre_l1_inkey]['val']
     # measurement[t] at current layer input
     meas_l0 = ref.inputs['meas_l0']['val']
     # prediction[t-1] at current layer input
@@ -276,9 +282,9 @@ def tapping_SM(ref, mode = 'm1'):
     ############################################################
     # tapped inputs
     # get lag spec: None (lag = 1), int d (lag = d), array a (lag = a)
-    pre_l1_tap_spec = ref.inputs['pre_l1']['lag']
+    pre_l1_tap_spec = ref.inputs[ref.pre_l1_inkey]['lag']
     # print "pre_l1_tap_spec", pre_l1_tap_spec
-    pre_l1_tap_full = ref.inputs['pre_l1']['val'][...,pre_l1_tap_spec]
+    pre_l1_tap_full = ref.inputs[ref.pre_l1_inkey]['val'][...,pre_l1_tap_spec]
     # print "pre_l1_tap_full", pre_l1_tap_full
     pre_l1_tap_flat = pre_l1_tap_full.reshape((ref.odim, 1))
 
@@ -341,6 +347,7 @@ def init_actinf(ref, conf, mconf):
     # hi = 1
     # for outk, outv in params['outputs'].items():
     #     setattr(ref, outk, np.random.uniform(-hi, hi, size = outv['shape']))
+    ref.pre_l1_inkey = 'pre_l1'
     ref.mdl = init_model(ref, conf, mconf)
     ref.X_  = np.zeros((mconf['idim'], 1))
     ref.y_  = np.zeros((mconf['odim'], 1))
@@ -401,16 +408,16 @@ def step_actinf(ref):
     ref.debug_print("step_actinf_m2_single ref.X_.shape = %s", (ref.X_.shape, ))
 
     # predict next values at current layer input
-    # pre_l1_tap_spec = ref.inputs['pre_l1']['lag']
-    pre_l1_tap_full = ref.inputs['pre_l1']['val'][...,-ref.laglen:]
+    # pre_l1_tap_spec = ref.inputs[ref.pre_l1_inkey]['lag']
+    pre_l1_tap_full = ref.inputs[ref.pre_l1_inkey]['val'][...,-ref.laglen:]
     pre_l1_tap_flat = pre_l1_tap_full.reshape((ref.odim, 1))
     
-    dgoal = np.linalg.norm(ref.inputs['pre_l1']['val'][...,[-1]] - ref.pre_l1_tm1)
+    dgoal = np.linalg.norm(ref.inputs[ref.pre_l1_inkey]['val'][...,[-1]] - ref.pre_l1_tm1)
     if dgoal > 5e-1: # fixed threshold
     # if np.linalg.norm(dgoal) > np.linalg.norm(ref.dgoal_): #  and np.linalg.norm(prerr_l0_) > 5e-2:
         # goal changed
         m = ref.inputs['meas_l0']['val'][...,[-1]].reshape((ref.odim / ref.laglen, 1))
-        p = ref.inputs['pre_l1']['val'][...,[-1]].reshape((ref.odim / ref.laglen, 1))
+        p = ref.inputs[ref.pre_l1_inkey]['val'][...,[-1]].reshape((ref.odim / ref.laglen, 1))
         # prerr_l0_ = (m - p) # * 0.1
         # prerr_l0_ = -p.copy()
         prerr_l0_ = np.random.uniform(-1e-3, 1e-3, prerr_l0_.shape)
@@ -452,7 +459,7 @@ def step_actinf(ref):
 
     # remember stuff
     ref.pre_l1_tm2 = ref.pre_l1_tm1.copy()
-    ref.pre_l1_tm1 = ref.inputs['pre_l1']['val'][...,[-1]].copy() # pre_l1[...,[-1]].copy()
+    ref.pre_l1_tm1 = ref.inputs[ref.pre_l1_inkey]['val'][...,[-1]].copy() # pre_l1[...,[-1]].copy()
 
 # def step_actinf_prediction_errors_extended(ref):
 #     # if np.sum(np.abs(ref.goal_prop - ref.goal_prop_tm1)) > 1e-2:
@@ -558,6 +565,33 @@ def step_homeokinesis(ref):
     # return {
     #     's_proprio': pre_l0.copy(),
     #     's_extero': pre_l0.copy()}
+
+def init_e2p(ref, conf, mconf):
+    ref.mdl = init_model(ref, conf, mconf)
+    ref.X_  = np.zeros((mconf['idim'], 1))
+    ref.y_  = np.zeros((mconf['odim'], 1))
+    ref.pre = np.zeros_like(ref.y_)
+    ref.pre_l1_tm1 = 0
+
+def step_e2p(ref):
+    # current goal[t] prediction descending from layer above
+    proprio   = ref.inputs['meas_l0_proprio']['val'][...,[-1]]
+    # measurement[t] at current layer input
+    extero    = ref.inputs['meas_l0_extero']['val'][...,[-1]]
+
+    # print "proprio", proprio.shape
+    # print "extero", extero.shape
+    
+    ref.mdl.fit(extero.T, proprio.T)
+
+    # if ref.inputs['blk_mode']['val'] == 2.0:
+    if True:
+        if ref.cnt % 50 == 0:
+            extero_ = np.random.uniform(-1e-0, 1e-0, extero.shape)
+            sample = np.clip(ref.mdl.predict(extero_.T), -1, 1)
+            print "sample", sample
+            setattr(ref, 'pre', sample.T)
+            setattr(ref, 'pre_ext', extero_)
     
 class model(object):
     """model
@@ -583,6 +617,7 @@ class model(object):
         'actinf_m1': {'init': init_actinf, 'step': step_actinf},
         'actinf_m2': {'init': init_actinf, 'step': step_actinf},
         'actinf_m3': {'init': init_actinf, 'step': step_actinf},
+        'e2p':       {'init': init_e2p,    'step': step_e2p},
         # selforg playful
         'homeokinesis': {'init': init_homoekinesis, 'step': step_homeokinesis},
     }
