@@ -326,6 +326,10 @@ def init_actinf_m1(ref, conf, mconf):
     ref.laglen  = mconf['laglen']
     ref.pre_l1_tm1 = np.zeros((mconf['idim']/2/ref.laglen, 1))
     ref.pre_l1_tm2 = np.zeros((mconf['idim']/2/ref.laglen, 1))
+    # goal statistics
+    ref.dgoal_fit_ = np.linalg.norm(ref.pre_l1_tm1 - ref.pre_l1_tm2)
+    ref.dgoal_ = np.linalg.norm(-ref.pre_l1_tm1)
+    
     # # eta = 0.3
     # eta = ref.eta
     # lag = ref.lag
@@ -364,9 +368,11 @@ def step_actinf_m1(ref):
     prerr = prerr_l0_
 
     # dgoal for fitting
-    dgoal = np.linalg.norm(ref.pre_l1_tm1 - ref.pre_l1_tm2)
+    dgoal_fit = np.linalg.norm(ref.pre_l1_tm1 - ref.pre_l1_tm2)
     y_ = Y.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
-    if dgoal < 5e1: #  and np.linalg.norm(prerr_l0_) > 5e-2:
+    # if dgoal < 5e1: #  and np.linalg.norm(prerr_l0_) > 5e-2:
+    # if np.linalg.norm(dgoal_fit_ - dgoal_fit) < 2e-1: #  and np.linalg.norm(prerr_l0_) > 5e-2:
+    if np.linalg.norm(dgoal_fit) <= np.linalg.norm(ref.dgoal_fit_): #  and np.linalg.norm(prerr_l0_) > 5e-2:
         # prerr = prerr_l0_.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
         # FIXME: actually, if ref.mdl.hasmemory
         if isinstance(ref.mdl, ActInfOTLModel):
@@ -374,6 +380,7 @@ def step_actinf_m1(ref):
             ref.mdl.fit(X.T, Y.T, update = False)
         else:
             ref.mdl.fit(X.T, Y.T)
+    ref.dgoal_fit_ = 0.9 * ref.dgoal_fit_ + 0.1 * dgoal_fit
             
     # ref.X_ = np.vstack((pre_l1[...,[-1]], prerr_l0[...,[-1]]))
     ref.debug_print("step_actinf_m1_single ref.X_.shape = %s", (ref.X_.shape, ))
@@ -395,7 +402,8 @@ def step_actinf_m1(ref):
     # print "ref.pre_l1_tm2", ref.pre_l1_tm2.shape
     
     dgoal = np.linalg.norm(ref.inputs['pre_l1']['val'][...,[-1]] - ref.pre_l1_tm1)
-    if dgoal > 5e1: # replace that with running estimate of dgoal
+    # if dgoal > 5e1: # replace that with running estimate of dgoal
+    if np.linalg.norm(dgoal) > np.linalg.norm(ref.dgoal_): #  and np.linalg.norm(prerr_l0_) > 5e-2:
         # goal changed
         m = ref.inputs['meas_l0']['val'][...,[-1]].reshape((ref.odim / ref.laglen, 1))
         p = ref.inputs['pre_l1']['val'][...,[-1]].reshape((ref.odim / ref.laglen, 1))
@@ -414,6 +422,7 @@ def step_actinf_m1(ref):
         # prerr_l0_ = np.random.uniform(-1e-3, 1e-3, pre_l1[...,[-1]].shape)
         # prerr_l0_ = np.random.uniform(-dgoal * 1e-3, dgoal * 1e-3, pre_l1[...,[-1]].shape)
         prerr = prerr_l0_.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
+    ref.dgoal_ = 0.9 * ref.dgoal_ + 0.1 * dgoal
 
     # print "prerr_l0__", prerr_l0__.shape
         
@@ -571,6 +580,9 @@ def init_actinf_m2(ref, conf, mconf):
     ref.pre = np.zeros((mconf['idim']/ref.laglen, 1))
     ref.pre_l1_tm1 = np.zeros((mconf['idim']/ref.laglen, 1))
     ref.pre_l1_tm2 = np.zeros((mconf['idim']/ref.laglen, 1))
+    # goal statistics
+    ref.dgoal_fit_ = np.linalg.norm(ref.pre_l1_tm1 - ref.pre_l1_tm2)
+    ref.dgoal_ = np.linalg.norm(-ref.pre_l1_tm1)
     # # eta = 0.3
     # eta = ref.eta
     # lag = ref.lag
@@ -611,9 +623,10 @@ def step_actinf_m2(ref):
     # print "prerr", prerr.shape
 
     # dgoal for fitting #lag additional time step back
-    dgoal = np.linalg.norm(ref.pre_l1_tm1 - ref.pre_l1_tm2)
+    dgoal_fit = np.linalg.norm(ref.pre_l1_tm1 - ref.pre_l1_tm2)
     y_ = Y.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
-    if dgoal < 5e-1: #  and np.linalg.norm(prerr_l0_) > 5e-2:
+    # if dgoal < 5e-1: #  and np.linalg.norm(prerr_l0_) > 5e-2:
+    if np.linalg.norm(dgoal_fit) <= np.linalg.norm(ref.dgoal_fit_): #  and np.linalg.norm(prerr_l0_) > 5e-2:
         # prerr = prerr_l0_.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
         # FIXME: actually, if ref.mdl.hasmemory
         if isinstance(ref.mdl, ActInfOTLModel):
@@ -621,6 +634,7 @@ def step_actinf_m2(ref):
             ref.mdl.fit(X.T, Y.T, update = False)
         else:
             ref.mdl.fit(X.T, Y.T)
+    ref.dgoal_fit_ = 0.9 * ref.dgoal_fit_ + 0.1 * dgoal_fit
             
     # ref.X_ = np.vstack((pre_l1[...,[-1]], prerr_l0[...,[-1]]))
     ref.debug_print("step_actinf_m2_single ref.X_.shape = %s", (ref.X_.shape, ))
@@ -642,7 +656,8 @@ def step_actinf_m2(ref):
     # print "ref.pre_l1_tm2", ref.pre_l1_tm2.shape
     
     dgoal = np.linalg.norm(ref.inputs['pre_l1']['val'][...,[-1]] - ref.pre_l1_tm1)
-    if dgoal > 5e1: # FIXME: replace that with running estimate of dgoal
+    # if dgoal > 5e1: # FIXME: replace that with running estimate of dgoal
+    if np.linalg.norm(dgoal) > np.linalg.norm(ref.dgoal_): #  and np.linalg.norm(prerr_l0_) > 5e-2:
         # goal changed
         m = ref.inputs['meas_l0']['val'][...,[-1]].reshape((ref.odim / ref.laglen, 1))
         p = ref.inputs['pre_l1']['val'][...,[-1]].reshape((ref.odim / ref.laglen, 1))
@@ -661,6 +676,8 @@ def step_actinf_m2(ref):
         # prerr_l0_ = np.random.uniform(-1e-3, 1e-3, pre_l1[...,[-1]].shape)
         # prerr_l0_ = np.random.uniform(-dgoal * 1e-3, dgoal * 1e-3, pre_l1[...,[-1]].shape)
         prerr = prerr_l0_.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
+        
+    ref.dgoal_ = 0.9 * ref.dgoal_ + 0.1 * dgoal
 
     # print "prerr_l0__", prerr_l0__.shape
 
