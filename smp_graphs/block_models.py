@@ -244,10 +244,14 @@ def init_model(ref, conf, mconf):
 
 # tapping, uh ah
 def tapping(ref, mode = 'm1'):
-    # maxlag == windowsize
-
-    # individual lags
+    # tapping: tap data
+    # tapping: build training set
     
+    # maxlag == windowsize
+    # individual lags as array
+
+    ############################################################
+    # instantaneous inputs
     # current goal[t] prediction descending from layer above
     pre_l1   = ref.inputs['pre_l1']['val']
     # measurement[t] at current layer input
@@ -257,6 +261,8 @@ def tapping(ref, mode = 'm1'):
     # prediction error[t-1] at current layer input
     prerr_l0 = ref.inputs['prerr_l0']['val']
 
+    ############################################################
+    # tapped inputs
     # get lag spec: None (lag = 1), int d (lag = d), array a (lag = a)
     pre_l1_tap_spec = ref.inputs['pre_l1']['lag']
     # print "pre_l1_tap_spec", pre_l1_tap_spec
@@ -277,24 +283,15 @@ def tapping(ref, mode = 'm1'):
     prerr_l0_tap_full = ref.inputs['prerr_l0']['val'][...,prerr_l0_tap_spec]
     prerr_l0_tap_flat = prerr_l0_tap_full.reshape((ref.odim, 1))
     
-    # # compute prediction error with respect to top level prediction (goal)
-    # prerr_l0_ = meas_l0_tap - pre_l1_tap # meas_l0[...,[-1]] - pre_l1[...,[-lag]]
-    # # compute the target for the  forward model from the prediction error
-    # Y = (pre_l0_tap - (prerr_l0_ * ref.eta)).reshape((ref.odim, 1)) # pre_l0[...,[-lag]] - (prerr_l0_ * ref.eta) #
-    # # X__ = np.vstack((pre_l1[...,[-lag]], prerr_l0[...,[-(lag-1)]]))
-
-    # print "tapping pre_l1", pre_l1_tap.shape, prerr_l0_tap.shape, ref.idim
-    # print "tapping reshape", pre_l1_tap.reshape((ref.idim/2, 1)), prerr_l0_tap.reshape((ref.idim/2, 1))
-    # X = np.vstack((pre_l1_tap.reshape((ref.idim/2, 1)), prerr_l0_tap.reshape((ref.idim/2, 1))))
-    # print "X", X.shape
+    # print "meas", meas_l0[...,[-1]], "prel1", pre_l1[...,[pre_l1_tap_spec[-1]]]
     
     # compute prediction error PE with respect to top level prediction (goal)
     # momentary PE
-    # print "meas", meas_l0[...,[-1]], "prel1", pre_l1[...,[pre_l1_tap_spec[-1]]]
     prerr_l0_  = meas_l0[...,[-1]] - pre_l1[...,[pre_l1_tap_spec[-1]]]
     # embedding PE
     prerr_l0__ = meas_l0_tap_flat - pre_l1_tap_flat # meas_l0[...,[-1]] - pre_l1[...,[-lag]]
-    # FIXME: shift target block across the now line completely and predict entire future segment
+    
+    # FIXME: future > 1, shift target block across the now line completely and predict entire future segment
     # X__ = np.vstack((pre_l1[...,[-lag]], prerr_l0[...,[-(lag-1)]]))
     
     # print "tapping pre_l1", pre_l1_tap_flat.shape, prerr_l0_tap_flat.shape, ref.idim
@@ -310,12 +307,10 @@ def tapping(ref, mode = 'm1'):
     
     # ref.mdl.fit(X__.T, ref.y_.T) # ref.X_[-lag]
     
-    # return (pre_l1, pre_l0, meas_l0, prerr_l0)
-    # return (pre_l1_tap, pre_l0_tap, meas_l0_tap, prerr_l0_tap, prerr_l0_, X, Y)
     return (pre_l1_tap_flat, pre_l0_tap_flat, meas_l0_tap_flat, prerr_l0_tap_flat, prerr_l0_, X, Y, prerr_l0__)
 
-# model func: actinf_m1
-def init_actinf_m1(ref, conf, mconf):
+# model func: actinf_m2
+def init_actinf(ref, conf, mconf):
     # params = conf['params']
     # hi = 1
     # for outk, outv in params['outputs'].items():
@@ -326,275 +321,18 @@ def init_actinf_m1(ref, conf, mconf):
     ref.laglen  = mconf['laglen']
     ref.pre_l1_tm1 = np.zeros((mconf['idim']/2/ref.laglen, 1))
     ref.pre_l1_tm2 = np.zeros((mconf['idim']/2/ref.laglen, 1))
+    if mconf['type'] == 'actinf_m1':
+        ref.type = 'm1'
+    elif mconf['type'] == 'actinf_m2':
+        ref.type = 'm2'
     # goal statistics
     ref.dgoal_fit_ = np.linalg.norm(ref.pre_l1_tm1 - ref.pre_l1_tm2)
     ref.dgoal_ = np.linalg.norm(-ref.pre_l1_tm1)
     
-    # # eta = 0.3
-    # eta = ref.eta
-    # lag = ref.lag
-    # # print "Lag = %d" % (lag,)
-
-def step_actinf_m1(ref):
-    # get lag
-    # lag = ref.inputs['']['val'][...,lag]
-    # lag = 0
+def step_actinf(ref):
 
     # deal with the lag specification for each input (lag, delay, temporal characteristic)
-    (pre_l1, pre_l0, meas_l0, prerr_l0, prerr_l0_, X, Y, prerr_l0__) = tapping(ref)
-    
-    # print "pre_l1.shape", pre_l1.shape, "pre_l0.shape", pre_l0.shape, "meas_l0.shape", meas_l0.shape, "prerr_l0.shape", prerr_l0.shape, "prerr_l0_", prerr_l0_.shape, "X", X.shape, "Y", Y.shape
-
-    # print "ref.pre.shape", ref.pre.shape, "ref.err.shape", ref.err.shape
-    
-    assert pre_l1.shape[-1] == pre_l0.shape[-1] == meas_l0.shape[-1], "step_actinf_m1: input shapes need to agree"
-
-    # # loop over block of inputs if pre_l1.shape[-1] > 0:
-    # for i in range(pre_l1.shape[-1]):
-    #     (pre, prerr, y_) = step_actinf_m1_single(ref, pre_l1[...,[i]], pre_l0[...,[i]], meas_l0[...,[i]])
-    #     ref.debug_print(
-    #         "step_actinf_m1 id = %s, pre = %s, prerr = %s, tgt = %s",
-    #         (ref.id, pre, prerr, y_))
-            
-    #     pre_ = getattr(ref, 'pre')
-    #     pre_[...,[i]] = pre
-    #     err_ = getattr(ref, 'err')
-    #     err_[...,[i]] = prerr
-    #     tgt_ = getattr(ref, 'tgt')
-    #     tgt_[...,[i]] = y_
-
-    
-    # loop over block of inputs if pre_l1.shape[-1] > 0:
-    prerr = prerr_l0_
-
-    # dgoal for fitting
-    dgoal_fit = np.linalg.norm(ref.pre_l1_tm1 - ref.pre_l1_tm2)
-    y_ = Y.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
-    # if dgoal < 5e1: #  and np.linalg.norm(prerr_l0_) > 5e-2:
-    # if np.linalg.norm(dgoal_fit_ - dgoal_fit) < 2e-1: #  and np.linalg.norm(prerr_l0_) > 5e-2:
-    if np.linalg.norm(dgoal_fit) <= np.linalg.norm(ref.dgoal_fit_): #  and np.linalg.norm(prerr_l0_) > 5e-2:
-        # prerr = prerr_l0_.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
-        # FIXME: actually, if ref.mdl.hasmemory
-        if isinstance(ref.mdl, ActInfOTLModel):
-            # print "Fitting without update"
-            ref.mdl.fit(X.T, Y.T, update = False)
-        else:
-            ref.mdl.fit(X.T, Y.T)
-    ref.dgoal_fit_ = 0.9 * ref.dgoal_fit_ + 0.1 * dgoal_fit
-            
-    # ref.X_ = np.vstack((pre_l1[...,[-1]], prerr_l0[...,[-1]]))
-    ref.debug_print("step_actinf_m1_single ref.X_.shape = %s", (ref.X_.shape, ))
-
-    # predict next values at current layer input
-    # pre_l1_tap_spec = ref.inputs['pre_l1']['lag']
-    pre_l1_tap_full = ref.inputs['pre_l1']['val'][...,-ref.laglen:]
-    pre_l1_tap_flat = pre_l1_tap_full.reshape((ref.odim, 1))
-
-    # print "ref.inputs['prerr_l0']['val'][...,-3:], prerr_l0_", ref.inputs['prerr_l0']['val'][...,-3:].shape, prerr_l0_.shape
-    # prerr_l0_tap_full = np.hstack((ref.inputs['prerr_l0']['val'][...,-3:], prerr_l0_))
-    # prerr_l0_tap_flat = prerr_l0_tap_full.reshape((ref.odim, 1))
-    
-    # print "prerr_l0_", prerr_l0_.shape, (ref.inputs['pre_l1']['val'][...,[-1]] - ref.pre_l1_tm1).shape
-    
-    # if np.sum(np.abs(ref.inputs['pre_l1']['val'][...,[-1]] - ref.pre_l1_tm1)) > 1e-1:
-    # print "ref.inputs['pre_l1']['val'][...,[-1]]", ref.inputs['pre_l1']['val'][...,[-1]].shape
-    # print "ref.pre_l1_tm1", ref.pre_l1_tm1.shape
-    # print "ref.pre_l1_tm2", ref.pre_l1_tm2.shape
-    
-    dgoal = np.linalg.norm(ref.inputs['pre_l1']['val'][...,[-1]] - ref.pre_l1_tm1)
-    # if dgoal > 5e1: # replace that with running estimate of dgoal
-    if np.linalg.norm(dgoal) > np.linalg.norm(ref.dgoal_): #  and np.linalg.norm(prerr_l0_) > 5e-2:
-        # goal changed
-        m = ref.inputs['meas_l0']['val'][...,[-1]].reshape((ref.odim / ref.laglen, 1))
-        p = ref.inputs['pre_l1']['val'][...,[-1]].reshape((ref.odim / ref.laglen, 1))
-        # prerr_l0_ = (m - p) # * 0.1
-        # prerr_l0_ = -p.copy()
-        prerr_l0_ = np.random.uniform(-1e-3, 1e-3, prerr_l0_.shape)
-        print "goal changed predict[%d], |dgoal| = %f, |PE| = %f" % (ref.cnt, dgoal, np.linalg.norm(prerr_l0_))
-
-        # prerr_l0__ = meas_l0 - pre_l1_tap_flat
-        tmp = prerr_l0__.reshape((ref.odim / ref.laglen, -1))
-        tmp[...,[-1]] = prerr_l0_.copy()
-        prerr_l0__ = tmp.reshape((ref.odim, 1)) # meas_l0_tap_flat - pre_l1_tap_flat # meas_l0[...,[-1]] - pre_l1[...,[-lag]]
-        # pre_l1[...,[-1]]).reshape((ref.odim, 1))
-        
-        # prerr_l0[...,[-1]] = prerr_l0_
-        # prerr_l0_ = np.random.uniform(-1e-3, 1e-3, pre_l1[...,[-1]].shape)
-        # prerr_l0_ = np.random.uniform(-dgoal * 1e-3, dgoal * 1e-3, pre_l1[...,[-1]].shape)
-        prerr = prerr_l0_.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
-    ref.dgoal_ = 0.9 * ref.dgoal_ + 0.1 * dgoal
-
-    # print "prerr_l0__", prerr_l0__.shape
-        
-    ref.X_ = np.vstack((pre_l1_tap_flat, prerr_l0__))
-    pre_l0_ = ref.mdl.predict(ref.X_.T)
-    # print "cnt = %s, pre_l0_" % (ref.cnt,), pre_l0_, "prerr_l0_", prerr_l0_.shape
-    pre   = pre_l0_.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
-    # prerr = prerr_l0_.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
-    
-    # pre   = pre_l0_.reshape((ref.odim / ref.laglen, -1))[...,[0]]
-    # prerr = prerr_l0_.reshape((ref.odim / ref.laglen, -1))[...,[0]]
-    # pre = ref.mdl.predict()
-    # (prerr, y_) = step_actinf_m1_fit(ref, pre_l1, pre_l0, meas_l0, prerr_l0)
-    # (pre, )     = step_actinf_m1_predict(ref, pre_l1, pre_l0, meas_l0, prerr_l0)
-    # (pre, )     = step_actinf_m1_predict(ref, pre_l1, pre_l0, meas_l0, prerr)
-
-    # # loop over block of inputs if pre_l1.shape[-1] > 0:
-    # (prerr, y_) = step_actinf_m1_fit(ref, pre_l1, pre_l0, meas_l0, prerr_l0)
-    # # (pre, )     = step_actinf_m1_predict(ref, pre_l1, pre_l0, meas_l0, prerr_l0)
-    # (pre, )     = step_actinf_m1_predict(ref, pre_l1, pre_l0, meas_l0, prerr)
-     
-    # ref.debug_print(
-    # print "step_actinf_m1 id = %s, pre = %s, prerr = %s, tgt = %s" % (ref.id, pre, prerr, y_)
-            
-    pre_ = getattr(ref, 'pre')
-    pre_[...,[-1]] = pre
-    err_ = getattr(ref, 'err')
-    err_[...,[-1]] = prerr
-    tgt_ = getattr(ref, 'tgt')
-    tgt_[...,[-1]] = y_
-    # prerr_ = getattr(ref, 'prerr')
-    # prerr_[...,[i]] = y_
-
-    # print "pre_", pre_
-    # print "err_", err_
-    # print "tgt_", tgt_
-            
-    # publish model's internal state
-    # setattr(ref, 'pre', pre_l0.T) # 
-    # setattr(ref, 'err', prerr_l0) # x
-    # setattr(ref, 'tgt', ref.y_)
-    setattr(ref, 'pre', pre_)
-    setattr(ref, 'err', err_)
-    setattr(ref, 'tgt', tgt_)
-    # save
-    # print "ref.inputs['pre_l1']['val'][...,[-1]]", ref.inputs['pre_l1']['val'][...,[-1]].shape
-    # print "ref.pre_l1_tm1", ref.pre_l1_tm1.shape
-    # print "ref.pre_l1_tm2", ref.pre_l1_tm2.shape
-    
-    ref.pre_l1_tm2 = ref.pre_l1_tm1.copy()
-    ref.pre_l1_tm1 = ref.inputs['pre_l1']['val'][...,[-1]].copy() # pre_l1[...,[-1]].copy()
-
-def step_actinf_m1_fit(ref, pre_l1, pre_l0, meas_l0, prerr_l0):
-    lag = ref.lag + 1 # because of negative indices
-    # print "Lag = %d" % (lag,)
-    # debug
-    ref.debug_print(
-        "step_actinf_m1_single ref.X_ = %s, pre_l1 = %s, meas_l0 = %s, pre_l0 = %s",
-        (ref.X_.shape, pre_l1.shape, meas_l0.shape, pre_l0.shape))
-
-    prerr_l0_ = prerr_l0[...,[-1]] # np.zeros_like(pre_l1[...,[-1]])
-    
-    if not np.any(np.isinf(meas_l0)):
-        # pre_l1_ = pre_l1[...,[-lag]]
-        # pre_l0_ = pre_l0[...,[-lag]]
-        # prerr_l0_ = prerr_l0[...,[-lag]]
-        # print "blub", pre_l1[...,[-1]], ref.pre_l1_tm1
-        
-        # # print "goal dist", np.sum(np.abs(pre_l1[...,[-1]] - ref.pre_l1_tm1))
-        # # prediction error at current layer input if goal hasn't changed
-        # if np.sum(np.abs(pre_l1[...,[-1]] - ref.pre_l1_tm1)) > 1e-1:
-        #     print "#"  * 80
-        #     print "goal changed"
-        #     prerr_l0_ = np.random.uniform(-1e-3, 1e-3, pre_l1[...,[-1]].shape)
-        #     # prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
-        #     # prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
-        # else:
-        #     # print "goal hasn't changed"
-        #     # prerr_l0 = pre_l0 - pre_l1
-        #     prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
-        #     # prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-1]]
-        #     # prerr_l0_ = np.zeros_like(pre_l1[...,[-1]])
-            
-        prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
-
-        # print "prerr_l0", prerr_l0
-        # prerr statistics / expansion
-        # self.prediction_errors_extended()
-
-        # compute the target for the  forward model from the prediction error
-        # if i % 10 == 0: # play with decreased update rates
-        ref.y_ = pre_l0[...,[-lag]] - (prerr_l0_ * ref.eta) #
-        # FIXME: suppress update when error is small enough (< threshold)
-
-        # print "%s.step_actinf_m1[%d] ref.X_ = %s, ref.y_ = %s" % (ref.__class__.__name__, ref.cnt, ref.X_.shape, ref.y_.shape)
-    
-        # fit the model
-        # prerr_l0_ = meas_l0_ - pre_l1_
-        X__ = np.vstack((pre_l1[...,[-lag]], prerr_l0[...,[-(lag-1)]]))
-        # print "X__.shape", X__.shape, "y_.shape", ref.y_, ref.y_.shape
-        ref.mdl.fit(X__.T, ref.y_.T) # ref.X_[-lag]
-    else:
-        # FIXME: for model testing
-        prerr_l0_ = pre_l0[...,[-1]].copy()
-
-    # remember last descending prediction
-    ref.pre_l1_tm1 = pre_l1[...,[-1]].copy()
-    return (prerr_l0_.copy(), ref.y_.copy())
-    
-# def step_actinf_m1_single(ref, pre_l1, pre_l0, meas_l0):
-def step_actinf_m1_predict(ref, pre_l1, pre_l0, meas_l0, prerr_l0):
-    # FIXME: this doesn't work, need to return proper tuple
-    if hasattr(ref, 'rate'):
-        if (ref.cnt % ref.rate) not in ref.blockphase: return # return pre, prerr, y_
-
-    # pre_l1 = 
-    # pre_l1_ = pre_l1[...,[-lag]]
-    # pre_l0_ = pre_l0[...,[-lag]]
-    # prerr_l0_ = prerr_l0[...,[-lag]]
-    
-    # prepare new model input
-    if np.sum(np.abs(pre_l1 - ref.pre_l1_tm1)) > 1e-1:
-        # goal changed
-        prerr_l0 = pre_l0 - pre_l1
-            
-    # m1: model input X is goal and prediction error
-    # ref.X_ = np.hstack((pre_l1.T, prerr_l0.T))
-    X__ = np.vstack((pre_l1[...,[-lag]], prerr_l0[...,[-(lag-1)]]))
-    ref.X_ = np.vstack((pre_l1[...,[-1]], prerr_l0[...,[-1]]))
-    ref.debug_print("step_actinf_m1_single ref.X_.shape = %s", (ref.X_.shape, ))
-
-    # predict next values at current layer input
-    pre_l0_ = ref.mdl.predict(ref.X_.T)
-
-    # print "pre_l0", pre_l0
-    
-    ref.debug_print("step_actinf_m1_single ref.X_ = %s, pre_l0 = %s", (ref.X_.shape, pre_l0_.shape))
-    # for outk, outv in ref.outputs.items():
-    #     setattr(ref, outk, pre_l0)
-    #     print "step_actinf_m1 %s.%s = %s" % (ref.id, outk, getattr(ref, outk))
-
-    # return (pre_l0.T, prerr_l0, ref.y_)
-    return (pre_l0_.T.copy(), )
-
-# model func: actinf_m1
-def init_actinf_m2(ref, conf, mconf):
-    # params = conf['params']
-    # hi = 1
-    # for outk, outv in params['outputs'].items():
-    #     setattr(ref, outk, np.random.uniform(-hi, hi, size = outv['shape']))
-    ref.mdl = init_model(ref, conf, mconf)
-    ref.X_  = np.zeros((mconf['idim'], 1))
-    ref.y_  = np.zeros((mconf['odim'], 1))
-    ref.laglen  = mconf['laglen']
-    ref.pre = np.zeros((mconf['idim']/ref.laglen, 1))
-    ref.pre_l1_tm1 = np.zeros((mconf['idim']/ref.laglen, 1))
-    ref.pre_l1_tm2 = np.zeros((mconf['idim']/ref.laglen, 1))
-    # goal statistics
-    ref.dgoal_fit_ = np.linalg.norm(ref.pre_l1_tm1 - ref.pre_l1_tm2)
-    ref.dgoal_ = np.linalg.norm(-ref.pre_l1_tm1)
-    # # eta = 0.3
-    # eta = ref.eta
-    # lag = ref.lag
-    # # print "Lag = %d" % (lag,)
-
-def step_actinf_m2(ref):
-    # get lag
-    # lag = ref.inputs['']['val'][...,lag]
-    # lag = 0
-
-    # deal with the lag specification for each input (lag, delay, temporal characteristic)
-    (pre_l1, pre_l0, meas_l0, prerr_l0, prerr_l0_, X, Y, prerr_l0__) = tapping(ref, mode = 'm2')
+    (pre_l1, pre_l0, meas_l0, prerr_l0, prerr_l0_, X, Y, prerr_l0__) = tapping(ref, mode = ref.type)
     
     # print "pre_l1.shape", pre_l1.shape, "pre_l0.shape", pre_l0.shape, "meas_l0.shape", meas_l0.shape, "prerr_l0.shape", prerr_l0.shape, "prerr_l0_", prerr_l0_.shape, "X", X.shape, "Y", Y.shape
 
@@ -602,27 +340,10 @@ def step_actinf_m2(ref):
     
     assert pre_l1.shape[-1] == pre_l0.shape[-1] == meas_l0.shape[-1], "step_actinf_m2: input shapes need to agree"
 
-    # # loop over block of inputs if pre_l1.shape[-1] > 0:
-    # for i in range(pre_l1.shape[-1]):
-    #     (pre, prerr, y_) = step_actinf_m2_single(ref, pre_l1[...,[i]], pre_l0[...,[i]], meas_l0[...,[i]])
-    #     ref.debug_print(
-    #         "step_actinf_m2 id = %s, pre = %s, prerr = %s, tgt = %s",
-    #         (ref.id, pre, prerr, y_))
-            
-    #     pre_ = getattr(ref, 'pre')
-    #     pre_[...,[i]] = pre
-    #     err_ = getattr(ref, 'err')
-    #     err_[...,[i]] = prerr
-    #     tgt_ = getattr(ref, 'tgt')
-    #     tgt_[...,[i]] = y_
-
-    
     # loop over block of inputs if pre_l1.shape[-1] > 0:
     prerr = prerr_l0_
-    # prerr = prerr_l0__
-    # print "prerr", prerr.shape
 
-    # dgoal for fitting #lag additional time step back
+    # dgoal for fitting lag additional time steps back
     dgoal_fit = np.linalg.norm(ref.pre_l1_tm1 - ref.pre_l1_tm2)
     y_ = Y.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
     # if dgoal < 5e-1: #  and np.linalg.norm(prerr_l0_) > 5e-2:
@@ -634,7 +355,10 @@ def step_actinf_m2(ref):
             ref.mdl.fit(X.T, Y.T, update = False)
         else:
             ref.mdl.fit(X.T, Y.T)
-    ref.dgoal_fit_ = 0.9 * ref.dgoal_fit_ + 0.1 * dgoal_fit
+    else:
+        print "not fit[%d], dgoal_fit = %s, dgoal_fit_ = %s" % (ref.cnt, dgoal_fit, ref.dgoal_fit_)
+
+    ref.dgoal_fit_ = 0.99 * ref.dgoal_fit_ + 0.01 * dgoal_fit
             
     # ref.X_ = np.vstack((pre_l1[...,[-1]], prerr_l0[...,[-1]]))
     ref.debug_print("step_actinf_m2_single ref.X_.shape = %s", (ref.X_.shape, ))
@@ -643,20 +367,9 @@ def step_actinf_m2(ref):
     # pre_l1_tap_spec = ref.inputs['pre_l1']['lag']
     pre_l1_tap_full = ref.inputs['pre_l1']['val'][...,-ref.laglen:]
     pre_l1_tap_flat = pre_l1_tap_full.reshape((ref.odim, 1))
-
-    # print "ref.inputs['prerr_l0']['val'][...,-3:], prerr_l0_", ref.inputs['prerr_l0']['val'][...,-3:].shape, prerr_l0_.shape
-    # prerr_l0_tap_full = np.hstack((ref.inputs['prerr_l0']['val'][...,-3:], prerr_l0_))
-    # prerr_l0_tap_flat = prerr_l0_tap_full.reshape((ref.odim, 1))
-    
-    # print "prerr_l0_", prerr_l0_.shape, (ref.inputs['pre_l1']['val'][...,[-1]] - ref.pre_l1_tm1).shape
-    
-    # if np.sum(np.abs(ref.inputs['pre_l1']['val'][...,[-1]] - ref.pre_l1_tm1)) > 1e-1:
-    # print "ref.inputs['pre_l1']['val'][...,[-1]]", ref.inputs['pre_l1']['val'][...,[-1]].shape
-    # print "ref.pre_l1_tm1", ref.pre_l1_tm1.shape
-    # print "ref.pre_l1_tm2", ref.pre_l1_tm2.shape
     
     dgoal = np.linalg.norm(ref.inputs['pre_l1']['val'][...,[-1]] - ref.pre_l1_tm1)
-    # if dgoal > 5e1: # FIXME: replace that with running estimate of dgoal
+    # if dgoal > 5e-1: # fixed threshold
     if np.linalg.norm(dgoal) > np.linalg.norm(ref.dgoal_): #  and np.linalg.norm(prerr_l0_) > 5e-2:
         # goal changed
         m = ref.inputs['meas_l0']['val'][...,[-1]].reshape((ref.odim / ref.laglen, 1))
@@ -672,156 +385,67 @@ def step_actinf_m2(ref):
         prerr_l0__ = tmp.reshape((ref.odim, 1)) # meas_l0_tap_flat - pre_l1_tap_flat # meas_l0[...,[-1]] - pre_l1[...,[-lag]]
         # pre_l1[...,[-1]]).reshape((ref.odim, 1))
         
-        # prerr_l0[...,[-1]] = prerr_l0_
-        # prerr_l0_ = np.random.uniform(-1e-3, 1e-3, pre_l1[...,[-1]].shape)
-        # prerr_l0_ = np.random.uniform(-dgoal * 1e-3, dgoal * 1e-3, pre_l1[...,[-1]].shape)
         prerr = prerr_l0_.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
         
-    ref.dgoal_ = 0.9 * ref.dgoal_ + 0.1 * dgoal
+    ref.dgoal_ = 0.5 * ref.dgoal_ + 0.5 * dgoal
 
     # print "prerr_l0__", prerr_l0__.shape
 
-    ref.X_ = np.vstack((prerr_l0__, ))
+    if ref.type == 'm1':
+        ref.X_ = np.vstack((pre_l1_tap_flat, prerr_l0__))
+    elif ref.type == 'm2':
+        ref.X_ = np.vstack((prerr_l0__, ))
+        
     pre_l0_ = ref.mdl.predict(ref.X_.T)
     # print "cnt = %s, pre_l0_" % (ref.cnt,), pre_l0_, "prerr_l0_", prerr_l0_.shape
     pre = pre_l0_.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
     # prerr = prerr_l0_.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
-    
-    # pre   = pre_l0_.reshape((ref.odim / ref.laglen, -1))[...,[0]]
-    # prerr = prerr_l0_.reshape((ref.odim / ref.laglen, -1))[...,[0]]
-    # pre = ref.mdl.predict()
-    # (prerr, y_) = step_actinf_m2_fit(ref, pre_l1, pre_l0, meas_l0, prerr_l0)
-    # (pre, )     = step_actinf_m2_predict(ref, pre_l1, pre_l0, meas_l0, prerr_l0)
-    # (pre, )     = step_actinf_m2_predict(ref, pre_l1, pre_l0, meas_l0, prerr)
-
-    # # loop over block of inputs if pre_l1.shape[-1] > 0:
-    # (prerr, y_) = step_actinf_m2_fit(ref, pre_l1, pre_l0, meas_l0, prerr_l0)
-    # # (pre, )     = step_actinf_m2_predict(ref, pre_l1, pre_l0, meas_l0, prerr_l0)
-    # (pre, )     = step_actinf_m2_predict(ref, pre_l1, pre_l0, meas_l0, prerr)
-     
-    # ref.debug_print(
-    # print "step_actinf_m2 id = %s, pre = %s, prerr = %s, tgt = %s" % (ref.id, pre, prerr, y_)
-            
+                
     pre_ = getattr(ref, 'pre')
-    pre_[...,[-1]] = np.clip(pre_[...,[-1]] + pre, -1, 1)
+    if ref.type == 'm1':
+        pre_[...,[-1]] = pre
+    elif ref.type == 'm2':
+        pre_[...,[-1]] = np.clip(pre_[...,[-1]] + pre, -1, 1)
     err_ = getattr(ref, 'err')
     err_[...,[-1]] = prerr
     tgt_ = getattr(ref, 'tgt')
     tgt_[...,[-1]] = y_
-    # prerr_ = getattr(ref, 'prerr')
-    # prerr_[...,[i]] = y_
 
-    # print "pre_", pre_
-    # print "err_", err_
-    # print "tgt_", tgt_
-            
     # publish model's internal state
-    # setattr(ref, 'pre', pre_l0.T) # 
-    # setattr(ref, 'err', prerr_l0) # x
-    # setattr(ref, 'tgt', ref.y_)
     setattr(ref, 'pre', pre_)
     setattr(ref, 'err', err_)
     setattr(ref, 'tgt', tgt_)
-    # save
-    # print "ref.inputs['pre_l1']['val'][...,[-1]]", ref.inputs['pre_l1']['val'][...,[-1]].shape
-    # print "ref.pre_l1_tm1", ref.pre_l1_tm1.shape
-    # print "ref.pre_l1_tm2", ref.pre_l1_tm2.shape
-    
+
+    # remember stuff
     ref.pre_l1_tm2 = ref.pre_l1_tm1.copy()
     ref.pre_l1_tm1 = ref.inputs['pre_l1']['val'][...,[-1]].copy() # pre_l1[...,[-1]].copy()
 
-def step_actinf_m2_fit(ref, pre_l1, pre_l0, meas_l0, prerr_l0):
-    lag = ref.lag + 1 # because of negative indices
-    # print "Lag = %d" % (lag,)
-    # debug
-    ref.debug_print(
-        "step_actinf_m2_single ref.X_ = %s, pre_l1 = %s, meas_l0 = %s, pre_l0 = %s",
-        (ref.X_.shape, pre_l1.shape, meas_l0.shape, pre_l0.shape))
+# def step_actinf_prediction_errors_extended(ref):
+#     # if np.sum(np.abs(ref.goal_prop - ref.goal_prop_tm1)) > 1e-2:
+#     #     ref.E_prop_pred_fast = np.random.uniform(-1e-5, 1e-5, ref.E_prop_pred_fast.shape)
+#     #     ref.E_prop_pred_slow = np.random.uniform(-1e-5, 1e-5, ref.E_prop_pred_slow.shape)
+#     #     # recompute error
+#     #     # ref.E_prop_pred = ref.M_prop_pred - ref.goal_prop
+#     #     # ref.E_prop_pred[:] = np.random.uniform(-1e-5, 1e-5, ref.E_prop_pred.shape)
+#     #     #else:            
+                
+#     E_prop_pred_tm1 = ref.E_prop_pred.copy()
 
-    prerr_l0_ = prerr_l0[...,[-1]] # np.zeros_like(pre_l1[...,[-1]])
-    
-    if not np.any(np.isinf(meas_l0)):
-        # pre_l1_ = pre_l1[...,[-lag]]
-        # pre_l0_ = pre_l0[...,[-lag]]
-        # prerr_l0_ = prerr_l0[...,[-lag]]
-        # print "blub", pre_l1[...,[-1]], ref.pre_l1_tm1
+#     # prediction error's
+#     ref.E_prop_pred_state = ref.S_prop_pred - ref.M_prop_pred
+#     ref.E_prop_pred_goal  = ref.M_prop_pred - ref.goal_prop
+#     ref.E_prop_pred = ref.E_prop_pred_goal
         
-        # # print "goal dist", np.sum(np.abs(pre_l1[...,[-1]] - ref.pre_l1_tm1))
-        # # prediction error at current layer input if goal hasn't changed
-        # if np.sum(np.abs(pre_l1[...,[-1]] - ref.pre_l1_tm1)) > 1e-1:
-        #     print "#"  * 80
-        #     print "goal changed"
-        #     prerr_l0_ = np.random.uniform(-1e-3, 1e-3, pre_l1[...,[-1]].shape)
-        #     # prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
-        #     # prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
-        # else:
-        #     # print "goal hasn't changed"
-        #     # prerr_l0 = pre_l0 - pre_l1
-        #     prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
-        #     # prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-1]]
-        #     # prerr_l0_ = np.zeros_like(pre_l1[...,[-1]])
-            
-        prerr_l0_ = meas_l0[...,[-1]] - pre_l1[...,[-lag]]
+#     ref.E_prop_pred__fast = ref.E_prop_pred_fast.copy()
+#     ref.E_prop_pred_fast  = ref.coef_smooth_fast * ref.E_prop_pred_fast + (1 - ref.coef_smooth_fast) * ref.E_prop_pred
 
-        # print "prerr_l0", prerr_l0
-        # prerr statistics / expansion
-        # self.prediction_errors_extended()
+#     ref.E_prop_pred__slow = ref.E_prop_pred_slow.copy()
+#     ref.E_prop_pred_slow  = ref.coef_smooth_slow * ref.E_prop_pred_slow + (1 - ref.coef_smooth_slow) * ref.E_prop_pred
+                
+#     ref.dE_prop_pred_fast = ref.E_prop_pred_fast - ref.E_prop_pred__fast
+#     ref.d_E_prop_pred_ = ref.coef_smooth_slow * ref.d_E_prop_pred_ + (1 - ref.coef_smooth_slow) * ref.dE_prop_pred_fast
 
-        # compute the target for the  forward model from the prediction error
-        # if i % 10 == 0: # play with decreased update rates
-        ref.y_ = pre_l0[...,[-lag]] - (prerr_l0_ * ref.eta) #
-        # FIXME: suppress update when error is small enough (< threshold)
-
-        # print "%s.step_actinf_m2[%d] ref.X_ = %s, ref.y_ = %s" % (ref.__class__.__name__, ref.cnt, ref.X_.shape, ref.y_.shape)
     
-        # fit the model
-        # prerr_l0_ = meas_l0_ - pre_l1_
-        X__ = np.vstack((pre_l1[...,[-lag]], prerr_l0[...,[-(lag-1)]]))
-        # print "X__.shape", X__.shape, "y_.shape", ref.y_, ref.y_.shape
-        ref.mdl.fit(X__.T, ref.y_.T) # ref.X_[-lag]
-    else:
-        # FIXME: for model testing
-        prerr_l0_ = pre_l0[...,[-1]].copy()
-
-    # remember last descending prediction
-    ref.pre_l1_tm1 = pre_l1[...,[-1]].copy()
-    return (prerr_l0_.copy(), ref.y_.copy())
-    
-# def step_actinf_m2_single(ref, pre_l1, pre_l0, meas_l0):
-def step_actinf_m2_predict(ref, pre_l1, pre_l0, meas_l0, prerr_l0):
-    # FIXME: this doesn't work, need to return proper tuple
-    if hasattr(ref, 'rate'):
-        if (ref.cnt % ref.rate) not in ref.blockphase: return # return pre, prerr, y_
-
-    # pre_l1 = 
-    # pre_l1_ = pre_l1[...,[-lag]]
-    # pre_l0_ = pre_l0[...,[-lag]]
-    # prerr_l0_ = prerr_l0[...,[-lag]]
-    
-    # prepare new model input
-    if np.sum(np.abs(pre_l1 - ref.pre_l1_tm1)) > 1e-1:
-        # goal changed
-        prerr_l0 = pre_l0 - pre_l1
-            
-    # m1: model input X is goal and prediction error
-    # ref.X_ = np.hstack((pre_l1.T, prerr_l0.T))
-    X__ = np.vstack((pre_l1[...,[-lag]], prerr_l0[...,[-(lag-1)]]))
-    ref.X_ = np.vstack((pre_l1[...,[-1]], prerr_l0[...,[-1]]))
-    ref.debug_print("step_actinf_m2_single ref.X_.shape = %s", (ref.X_.shape, ))
-
-    # predict next values at current layer input
-    pre_l0_ = ref.mdl.predict(ref.X_.T)
-
-    # print "pre_l0", pre_l0
-    
-    ref.debug_print("step_actinf_m2_single ref.X_ = %s, pre_l0 = %s", (ref.X_.shape, pre_l0_.shape))
-    # for outk, outv in ref.outputs.items():
-    #     setattr(ref, outk, pre_l0)
-    #     print "step_actinf_m2 %s.%s = %s" % (ref.id, outk, getattr(ref, outk))
-
-    # return (pre_l0.T, prerr_l0, ref.y_)
-    return (pre_l0_.T.copy(), )    
-
 ################################################################################
 # selforg / playful: hs, hk, pimax/tipi?
 def init_homoekinesis(ref, conf, mconf):
@@ -895,8 +519,8 @@ class model(object):
         # active randomness
         'random_uniform': {'init': init_random_uniform, 'step': step_random_uniform},
         # active inference
-        'actinf_m1': {'init': init_actinf_m1, 'step': step_actinf_m1},
-        'actinf_m2': {'init': init_actinf_m2, 'step': step_actinf_m2},
+        'actinf_m1': {'init': init_actinf, 'step': step_actinf},
+        'actinf_m2': {'init': init_actinf, 'step': step_actinf},
         # selforg playful
         'homeokinesis': {'init': init_homoekinesis, 'step': step_homeokinesis},
     }
