@@ -199,13 +199,25 @@ class decInit():
     """!@brief Block.init wrapper"""
     def __call__(self, f):
         def wrap(xself, *args, **kwargs):
+
+            # # print "decInit", kwargs['conf']
+            # if not kwargs['conf'].has_key('inputs'):
+            #     kwargs['conf']['inputs'] = {}
+            # if not kwargs['conf']['inputs'].has_key('blk_mode'):
+            #     kwargs['conf']['inputs']['blk_mode'] = 1.0 # enabled
+                
             f(xself, *args, **kwargs)
+
+            # print "decInit", xself.id, xself.inputs.keys()
         return wrap
 
 ################################################################################
 # Block decorator step
 class decStep():
-    """!@brief Block.step wrapper"""
+    """decStep
+
+    Block.step wrapper
+    """
 
     def process_input(self, xself):
         sname  = self.__class__.__name__
@@ -299,7 +311,18 @@ class decStep():
     def __call__(self, f):
         def wrap(xself, *args, **kwargs):
 
+            # print "xself", xself.__dict__.keys()
+            # print xself.id, xself.inputs
+            # if not xself.topblock and hasattr(xself, 'inputs') and xself.inputs['blk_mode'] == 0.0:
             self.process_input(xself)
+
+            if hasattr(xself, 'inputs') and xself.inputs.has_key('blk_mode'):
+                print "blk_mode", xself.id, np.sum(xself.inputs['blk_mode']['val']) # xself.inputs['blk_mode']['val'], xself.inputs['blk_mode']['val'] < 0.1
+                if np.sum(xself.inputs['blk_mode']['val']) < 0.1:
+                    # print "blub"
+                    xself.cnt += 1
+                    return None
+            
             # call the function on blocksize boundaries
             # FIXME: might not be the best idea to control that on the wrapper level as some
             #        blocks might need to be called every step nonetheless?
@@ -362,6 +385,7 @@ class Block2(object):
         'phase': [0],
     }
 
+    @decInit()
     def __init__(self, conf = {}, paren = None, top = None, blockid = None):
         # general stuff
         self.conf = conf
@@ -1314,6 +1338,7 @@ class SeqLoopBlock2(Block2):
     
 class PrimBlock2(Block2):
     """!@brief Base class for primitive blocks"""
+    @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
         Block2.__init__(self, conf = conf, paren = paren, top = top)
 

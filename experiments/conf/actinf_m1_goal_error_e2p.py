@@ -1,16 +1,13 @@
 """actinf_m1_goal_error_ND.py
 
-smp_graphs config for experiment
+smp_graphs config for experiment: active inference m1 e2p
 
-    active inference
-    model type 1 (goal error)
-    simple n-dimensioal system (point mass, simple n-joint arm)
+    proprio model type 1 (goal error)
+    using two explicit proprio and extero models to demonstrate the principle
+    set of systems
 
-from actinf/active_inference_basic.py --mode m1_goal_error_nd
+    schedule: 1) train proprio model goal directed, 2) fit e2p to the proprio episode, 3) predict extero to drive proprio
 
-Model variant M1, n-dimensional data, proprioceptive space
-
-Embedding: implement embedding at block boundaries
 """
 
 import copy
@@ -24,6 +21,7 @@ from smp_graphs.block_meas_infth import JHBlock2, MIBlock2, InfoDistBlock2, TEBl
 from smp_graphs.block_models import ModelBlock2
 from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2, BhasimulatedBlock2
 from smp_graphs.block_cls_ros import STDRCircularBlock2, LPZBarrelBlock2, SpheroBlock2
+from smp_graphs.block_ols import SequencerBlock2
 
 from smp_graphs.funcs import f_meshgrid, f_meshgrid_mdl, f_random_uniform, f_sin_noise
 
@@ -36,16 +34,14 @@ showplot = True
 # experiment
 commandline_args = ['numsteps']
 randseed = 12345
-numsteps = 10000/5
+numsteps = 10000/10
 loopblocksize = numsteps
-# sysname = 'pm'
+sysname = 'pm'
 # sysname = 'sa'
 # sysname = 'bha'
 # sysname = 'stdr'
-sysname = 'lpzbarrel'
+# sysname = 'lpzbarrel'
 # sysname = 'sphero'
-# dim = 3 # 2, 1
-# dim = 9 # bha
 
 """system block
  - a robot
@@ -291,11 +287,11 @@ dt = systemblock['params']['dt']
 laglen = maxlag - minlag
 
 # eta = 0.95
-# eta = 0.7
+eta = 0.7
 # eta = 0.3
 # eta = 0.25
 # eta = 0.15
-eta = 0.1
+# eta = 0.1
 # eta = 0.05
 
 def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
@@ -312,9 +308,15 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             'tgt':   {'bus': '%s/tgt' % (l0,), 'shape': (dim_s_proprio, blocksize)},
             's_proprio':    {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, blocksize)},
             's_extero':     {'bus': 'robot1/s_extero',  'shape': (dim_s_extero, blocksize)},
+            'seq_pre_l0':   {'bus': 'sequence/pre_l0_mode', 'shape': (1, blocksize)},
+            'seq_pre_l1':   {'bus': 'sequence/pre_l1_mode', 'shape': (1, blocksize)},
+            'seq_e2p':      {'bus': 'sequence/e2p_mode', 'shape': (1, blocksize)},
             },
         'hspace': 0.2,
         'subplots': [
+            [
+                {'input': ['seq_pre_l0', 'seq_pre_l1', 'seq_e2p'], 'plot': partial(timeseries, marker='.')},
+            ],
             [
                 {'input': ['goals', 's_proprio'], 'plot': partial(timeseries, marker='.')},
             ],
@@ -660,6 +662,31 @@ graph = OrderedDict([
     #         }
     #     }),
 
+    # trying a new way of sequencing: the sequencer :)
+    ('sequence', {
+        'block': SequencerBlock2,
+        'params': {
+            'id': 'sequence',
+            'blocksize': 1,
+            'sequences': {
+                'pre_l0_mode': {
+                    'shape': (1,1),
+                    'events': {
+                        0: np.ones((1,1)) * 1.0}},
+                'e2p_mode': {
+                    'shape': (1,1),
+                    'events': {
+                        0: np.ones((1,1)) * 1,
+                        numsteps/2: np.ones((1,1)) * 2}},
+                'pre_l1_mode': {
+                    'shape': (1,1),
+                    'events': {
+                        0: np.ones((1,1)) * 1,
+                        numsteps/2: np.zeros((1,1))}},
+                }
+            }
+        }),
+    
     # system block from definition elsewhere
     ('robot1', systemblock),
     
@@ -708,13 +735,14 @@ graph = OrderedDict([
                         # 'inputs': {'lo': [0, (3, 1)], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
                         # recurrent connection
                         'inputs': {
+                            'blk_mode': {'bus': 'sequence/pre_l1_mode'},
                             'x': {'bus': 'cnt/x'},
                             # 'f': {'val': np.array([[0.2355, 0.2355]]).T * 1.0}, # good with knn and eta = 0.3
                             # 'f': {'val': np.array([[0.23538, 0.23538]]).T * 1.0}, # good with soesgp and eta = 0.7
-                            'f': {'val': np.array([[0.45]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
+                            # 'f': {'val': np.array([[0.45]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.23539]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.23539]]).T * 7.23 * dt}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.23539]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
+                            'f': {'val': np.array([[0.23539]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.23539, 0.2348, 0.14]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.14, 0.14]]).T * 1.0},
                             # 'f': {'val': np.array([[0.82, 0.82]]).T},

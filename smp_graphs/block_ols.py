@@ -6,6 +6,7 @@ import pandas as pd
 
 from smp_graphs.common import read_puppy_hk_pickles
 from smp_graphs.block  import Block2, decInit, decStep
+from smp_graphs.block  import PrimBlock2
 
 class FileBlock2(Block2):
     """!@brief File block: read some log or data file and output blocksize lines each step"""
@@ -264,6 +265,38 @@ class FileBlock2(Block2):
                 if k.startswith('conf'):
                     print "%s = %s\n" % (k, self.store.get_storer(k).attrs.conf,)
 
+
+class SequencerBlock2(PrimBlock2):
+    """SequencerBlock2
+
+    Emit a predefined sequence of values, usually slowly changing constants
+    specified by dict sequences of key (time): value: dict
+    """
+    @decInit()
+    def __init__(self, conf = {}, paren = None, top = None):
+
+        self.sequences = conf['params']['sequences']
+        conf['params']['outputs'] = {}
+
+        for k, v in self.sequences.items():
+            if v['events'].has_key(0):
+                val = v['events'][0]
+            else:
+                val = np.zeros(v['shape'])
+            setattr(self, k, val)
+            conf['params']['outputs'][k] = {'shape': v['shape']}
+            
+        PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
+        
+    @decStep()
+    def step(self, x = None):
+        for k, v in self.sequences.items():
+            # print "k", k, "v", self.id
+            if self.cnt in v['events'].keys():
+                val = np.ones(v['shape']) * v['events'][self.cnt]
+                print "Sequencer out = %s changed to %s @%d" % (k, val, self.cnt)
+                setattr(self, k, val)
+    
 
 # class sweepBlock2(PrimBlock2):
 #     """sweepBlock2
