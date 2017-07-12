@@ -36,7 +36,7 @@ showplot = True
 # experiment
 commandline_args = ['numsteps']
 randseed = 12345
-numsteps = 10000/4
+numsteps = 10000/5
 sysname = 'pm'
 # sysname = 'sa'
 # sysname = 'bha'
@@ -328,7 +328,12 @@ get_systemblock = {
 # - dimensions
 # - number of modalities
     
-algo = 'knn' # 'soesgp' 'storkgp'
+#algo = 'knn' #
+# algo = 'gmm' #
+algo = 'igmm' #
+# algo = 'hebbsom'
+#algo = 'soesgp'
+#algo = 'storkgp'
 # algo = 'homeokinesis'
 
 # systemblock   = systemblock_lpzbarrel
@@ -722,6 +727,7 @@ graph = OrderedDict([
         'block': Block2,
         'params': {
             'graph': OrderedDict([
+
                 # # goal sampler (motivation) sample_discrete_uniform_goal
                 # ('pre_l1', {
                 #     'block': ModelBlock2,
@@ -833,7 +839,7 @@ graph = OrderedDict([
                             },
                         'models': {
                             
-                            'fwd': {
+                            'm1': {
                                 'type': 'actinf_m1',
                                 'algo': algo,
                                 'idim': dim_s_proprio * laglen * 2,
@@ -842,7 +848,7 @@ graph = OrderedDict([
                                 'eta': eta
                                 },
                                 
-                            # 'fwd_m2': {
+                            # 'm2': {
                             #     'type': 'actinf_m2',
                             #     'algo': algo,
                             #     'idim': dim_s_proprio * laglen,
@@ -851,6 +857,15 @@ graph = OrderedDict([
                             #     'eta': eta
                             #     },
                             
+                            # 'm3': {
+                            #     'type': 'actinf_m3',
+                            #     'algo': algo,
+                            #     'idim': dim_s_proprio * laglen * 2,
+                            #     'odim': dim_s_proprio * laglen,
+                            #     'laglen': laglen,
+                            #     'eta': eta
+                            #     },
+                                
                             },
                         'rate': 1,
                         },

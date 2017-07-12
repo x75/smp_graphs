@@ -704,7 +704,8 @@ class Block2(object):
                 v['logging'] = True
                 
             # set self attribute to that shape
-            setattr(self, k, np.zeros(v['shape']))
+            if not hasattr(self, k) or getattr(self, k).shape != v['shape']:
+                setattr(self, k, np.zeros(v['shape']))
             
             # print "%s.init_outputs: %s.bus[%s] = %s" % (self.cname, self.id, v['buskey'], getattr(self, k).shape)
             self.bus[v['buskey']] = getattr(self, k).copy()

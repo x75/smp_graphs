@@ -15,16 +15,22 @@ general Block wrapper for all models with particular models being
 implemented by lightewight init() and step() function definitions
 """
 
+from functools import partial
+
 import numpy as np
 
 from mdp.nodes import PolynomialExpansionNode
+
+# import sklearn
+from sklearn import linear_model, kernel_ridge
+            
 
 # reservoir lib from smp_base
 from reservoirs import Reservoir, res_input_matrix_random_sparse, res_input_matrix_disjunct_proj
 
 from smp_graphs.graph import nxgraph_node_by_id_recursive
 from smp_graphs.block import decInit, decStep, PrimBlock2
-from smp_base.models_actinf  import ActInfKNN, ActInfGMM, ActInfHebbianSOM
+from smp_base.models_actinf  import ActInfKNN, ActInfGMM, ActInfIGMM, ActInfHebbianSOM
 from smp_base.models_selforg import HK
 
 try:
@@ -206,6 +212,12 @@ def init_model(ref, conf, mconf):
     if algo == "knn":
         # mdl = KNeighborsRegressor(n_neighbors=5)
         mdl = ActInfKNN(idim, odim)
+    elif algo == "gmm":
+        mdl = ActInfGMM(idim, odim)
+    elif algo == "igmm":
+        mdl = ActInfIGMM(idim, odim)
+    elif algo == "hebbsom":
+        mdl = ActInfHebbianSOM(idim, odim, numepisodes = 10)
     elif algo == "soesgp":
         mdl = ActInfSOESGP(idim, odim)
     elif algo == "storkgp":
@@ -243,7 +255,7 @@ def init_model(ref, conf, mconf):
     return mdl
 
 # tapping, uh ah
-def tapping(ref, mode = 'm1'):
+def tapping_SM(ref, mode = 'm1'):
     # tapping: tap data
     # tapping: build training set
     
@@ -294,20 +306,34 @@ def tapping(ref, mode = 'm1'):
     # FIXME: future > 1, shift target block across the now line completely and predict entire future segment
     # X__ = np.vstack((pre_l1[...,[-lag]], prerr_l0[...,[-(lag-1)]]))
     
+    # return (pre_l1_tap_flat, pre_l0_tap_flat, meas_l0_tap_flat, prerr_l0_tap_flat, prerr_l0_, X, Y, prerr_l0__)
+    return (pre_l1_tap_flat, pre_l0_tap_flat, meas_l0_tap_flat, prerr_l0_tap_flat, prerr_l0_, prerr_l0__)
+
+def tapping_XY(ref, pre_l1_tap_flat, pre_l0_tap_flat, prerr_l0_tap_flat, prerr_l0__, mode = 'm1'):
     # print "tapping pre_l1", pre_l1_tap_flat.shape, prerr_l0_tap_flat.shape, ref.idim
     # print "tapping reshape", pre_l1_tap.reshape((ref.idim/2, 1)), prerr_l0_tap.reshape((ref.idim/2, 1))
-    if mode == 'm1':
+    if ref.type == 'm1' or ref.type == 'm3':
         X = np.vstack((pre_l1_tap_flat, prerr_l0_tap_flat))
         # compute the target for the  forward model from the embedding PE
         Y = (pre_l0_tap_flat - (prerr_l0__ * ref.eta)) # .reshape((ref.odim, 1)) # pre_l0[...,[-lag]] - (prerr_l0_ * ref.eta) #
-    elif mode == 'm2':
+    elif ref.type == 'm2':
         X = np.vstack((prerr_l0_tap_flat, ))
         Y = -prerr_l0__ * ref.eta # .reshape((ref.odim, 1)) # pre_l0[...,[-lag]] - (prerr_l0_ * ref.eta) #
+    else:
+        return None
     # print "X", X.shape
     
     # ref.mdl.fit(X__.T, ref.y_.T) # ref.X_[-lag]
     
-    return (pre_l1_tap_flat, pre_l0_tap_flat, meas_l0_tap_flat, prerr_l0_tap_flat, prerr_l0_, X, Y, prerr_l0__)
+    return (X, Y)
+
+def tapping_X(ref, pre_l1_tap_flat, prerr_l0__):
+    if ref.type == 'm1' or ref.type == 'm3':
+        X = np.vstack((pre_l1_tap_flat, prerr_l0__))
+    elif ref.type == 'm2':
+        X = np.vstack((prerr_l0__, ))
+
+    return X
 
 # model func: actinf_m2
 def init_actinf(ref, conf, mconf):
@@ -321,10 +347,19 @@ def init_actinf(ref, conf, mconf):
     ref.laglen  = mconf['laglen']
     ref.pre_l1_tm1 = np.zeros((mconf['idim']/2/ref.laglen, 1))
     ref.pre_l1_tm2 = np.zeros((mconf['idim']/2/ref.laglen, 1))
+
     if mconf['type'] == 'actinf_m1':
         ref.type = 'm1'
     elif mconf['type'] == 'actinf_m2':
         ref.type = 'm2'
+    elif mconf['type'] == 'actinf_m3':
+        ref.type = 'm3'
+
+    if mconf['type'].startswith('actinf'):
+        ref.tapping_SM = partial(tapping_SM, mode = ref.type)
+        ref.tapping_XY = partial(tapping_XY, mode = ref.type)
+        ref.tapping_X = partial(tapping_X)
+        
     # goal statistics
     ref.dgoal_fit_ = np.linalg.norm(ref.pre_l1_tm1 - ref.pre_l1_tm2)
     ref.dgoal_ = np.linalg.norm(-ref.pre_l1_tm1)
@@ -332,7 +367,8 @@ def init_actinf(ref, conf, mconf):
 def step_actinf(ref):
 
     # deal with the lag specification for each input (lag, delay, temporal characteristic)
-    (pre_l1, pre_l0, meas_l0, prerr_l0, prerr_l0_, X, Y, prerr_l0__) = tapping(ref, mode = ref.type)
+    (pre_l1, pre_l0, meas_l0, prerr_l0, prerr_l0_, prerr_l0__) = ref.tapping_SM(ref) # tapping_SM(ref, mode = ref.type)
+    (X, Y) = ref.tapping_XY(ref, pre_l1, pre_l0, prerr_l0, prerr_l0__)
     
     # print "pre_l1.shape", pre_l1.shape, "pre_l0.shape", pre_l0.shape, "meas_l0.shape", meas_l0.shape, "prerr_l0.shape", prerr_l0.shape, "prerr_l0_", prerr_l0_.shape, "X", X.shape, "Y", Y.shape
 
@@ -391,18 +427,15 @@ def step_actinf(ref):
 
     # print "prerr_l0__", prerr_l0__.shape
 
-    if ref.type == 'm1':
-        ref.X_ = np.vstack((pre_l1_tap_flat, prerr_l0__))
-    elif ref.type == 'm2':
-        ref.X_ = np.vstack((prerr_l0__, ))
-        
+    ref.X_ = tapping_X(ref, pre_l1_tap_flat, prerr_l0__)
+
     pre_l0_ = ref.mdl.predict(ref.X_.T)
     # print "cnt = %s, pre_l0_" % (ref.cnt,), pre_l0_, "prerr_l0_", prerr_l0_.shape
     pre = pre_l0_.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
     # prerr = prerr_l0_.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
                 
     pre_ = getattr(ref, 'pre')
-    if ref.type == 'm1':
+    if ref.type == 'm1' or ref.type == 'm3':
         pre_[...,[-1]] = pre
     elif ref.type == 'm2':
         pre_[...,[-1]] = np.clip(pre_[...,[-1]] + pre, -1, 1)
@@ -445,6 +478,32 @@ def step_actinf(ref):
 #     ref.dE_prop_pred_fast = ref.E_prop_pred_fast - ref.E_prop_pred__fast
 #     ref.d_E_prop_pred_ = ref.coef_smooth_slow * ref.d_E_prop_pred_ + (1 - ref.coef_smooth_slow) * ref.dE_prop_pred_fast
 
+# def step_actinf_sample_error_gradient(ref):
+#     # sample error gradient
+#     numsamples = 20
+#     # was @ 50
+#     lm = linear_model.Ridge(alpha = 0.0)
+            
+#     S_ = []
+#     M_ = []
+#     for i in range(numsamples):
+#         # S_.append(np.random.normal(self.S_prop_pred, 0.01 * self.environment.conf.m_maxs, self.S_prop_pred.shape))
+#         # larger sampling range
+#         S_.append(np.random.normal(self.S_prop_pred, 0.3 * self.environment.conf.m_maxs, self.S_prop_pred.shape))
+#         # print "S_[-1]", S_[-1]
+#         M_.append(self.environment.compute_motor_command(S_[-1]))
+#         S_ext_ = self.environment.compute_sensori_effect(M_[-1]).reshape((1, self.dim_ext))
+#     S_ = np.array(S_).reshape((numsamples, self.S_prop_pred.shape[1]))
+#     M_ = np.array(M_).reshape((numsamples, self.S_prop_pred.shape[1]))
+#     print "S_", S_.shape, "M_", M_.shape
+#     # print "S_", S_, "M_", M_
+
+#     lm.fit(S_, M_)
+#     self.grad = np.diag(lm.coef_)
+#     print "grad", np.sign(self.grad), self.grad
+            
+#     # pl.plot(S_, M_, "ko", alpha=0.4)
+#     # pl.show()
     
 ################################################################################
 # selforg / playful: hs, hk, pimax/tipi?
@@ -518,9 +577,11 @@ class model(object):
         'alternating_sign': {'init': init_alternating_sign, 'step': step_alternating_sign},        
         # active randomness
         'random_uniform': {'init': init_random_uniform, 'step': step_random_uniform},
+        # closed-loop models
         # active inference
         'actinf_m1': {'init': init_actinf, 'step': step_actinf},
         'actinf_m2': {'init': init_actinf, 'step': step_actinf},
+        'actinf_m3': {'init': init_actinf, 'step': step_actinf},
         # selforg playful
         'homeokinesis': {'init': init_homoekinesis, 'step': step_homeokinesis},
     }
@@ -558,7 +619,7 @@ class ModelBlock2(PrimBlock2):
             
         # print "\n params.models = %s" % (params['models'], )
         # print "top", top.id
-        
+
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
         # print "\n self.models = %s" % (self.models, )

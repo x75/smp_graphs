@@ -56,7 +56,7 @@ optimized to allow very terse formulations.
 
 Depends on 
 
-- External: numpy, scipy, networkx, pandas, matplotlib, sklearn, seaborn, rlspy, jpype/infodynamics.jar, mdp/Oger, ros, pyunicorn, hyperopt, cma
+- External: numpy, scipy, networkx, pandas, matplotlib, sklearn, seaborn, rlspy, jpype/infodynamics.jar, mdp/Oger, ros, pyunicorn, hyperopt, cma, igmm
 
 - smp world: smp\_base, smp\_sys
 
