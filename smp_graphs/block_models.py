@@ -366,7 +366,7 @@ def step_actinf_m1(ref):
     # dgoal for fitting
     dgoal = np.linalg.norm(ref.pre_l1_tm1 - ref.pre_l1_tm2)
     y_ = Y.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
-    if dgoal < 5e-1: #  and np.linalg.norm(prerr_l0_) > 5e-2:
+    if dgoal < 5e1: #  and np.linalg.norm(prerr_l0_) > 5e-2:
         # prerr = prerr_l0_.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
         # FIXME: actually, if ref.mdl.hasmemory
         if isinstance(ref.mdl, ActInfOTLModel):
@@ -395,7 +395,7 @@ def step_actinf_m1(ref):
     # print "ref.pre_l1_tm2", ref.pre_l1_tm2.shape
     
     dgoal = np.linalg.norm(ref.inputs['pre_l1']['val'][...,[-1]] - ref.pre_l1_tm1)
-    if dgoal > 5e-1: # replace that with running estimate of dgoal
+    if dgoal > 5e1: # replace that with running estimate of dgoal
         # goal changed
         m = ref.inputs['meas_l0']['val'][...,[-1]].reshape((ref.odim / ref.laglen, 1))
         p = ref.inputs['pre_l1']['val'][...,[-1]].reshape((ref.odim / ref.laglen, 1))
@@ -608,7 +608,7 @@ def step_actinf_m2(ref):
     # loop over block of inputs if pre_l1.shape[-1] > 0:
     prerr = prerr_l0_
     # prerr = prerr_l0__
-    print "prerr", prerr.shape
+    # print "prerr", prerr.shape
 
     # dgoal for fitting #lag additional time step back
     dgoal = np.linalg.norm(ref.pre_l1_tm1 - ref.pre_l1_tm2)
@@ -642,7 +642,7 @@ def step_actinf_m2(ref):
     # print "ref.pre_l1_tm2", ref.pre_l1_tm2.shape
     
     dgoal = np.linalg.norm(ref.inputs['pre_l1']['val'][...,[-1]] - ref.pre_l1_tm1)
-    if dgoal > 5e-1: # FIXME: replace that with running estimate of dgoal
+    if dgoal > 5e1: # FIXME: replace that with running estimate of dgoal
         # goal changed
         m = ref.inputs['meas_l0']['val'][...,[-1]].reshape((ref.odim / ref.laglen, 1))
         p = ref.inputs['pre_l1']['val'][...,[-1]].reshape((ref.odim / ref.laglen, 1))
@@ -686,7 +686,7 @@ def step_actinf_m2(ref):
     # print "step_actinf_m2 id = %s, pre = %s, prerr = %s, tgt = %s" % (ref.id, pre, prerr, y_)
             
     pre_ = getattr(ref, 'pre')
-    pre_[...,[-1]] += pre
+    pre_[...,[-1]] = np.clip(pre_[...,[-1]] + pre, -1, 1)
     err_ = getattr(ref, 'err')
     err_[...,[-1]] = prerr
     tgt_ = getattr(ref, 'tgt')
