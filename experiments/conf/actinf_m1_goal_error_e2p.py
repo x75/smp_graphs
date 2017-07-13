@@ -34,7 +34,7 @@ showplot = True
 # experiment
 commandline_args = ['numsteps']
 randseed = 12346
-numsteps = 10000/10
+numsteps = 10000/2
 loopblocksize = numsteps
 # sysname = 'pm'
 sysname = 'sa'
@@ -267,8 +267,8 @@ get_systemblock = {
 # algo = 'knn' #
 # algo = 'gmm' #
 # algo = 'igmm' #
-# algo = 'hebbsom'
-algo = 'soesgp'
+algo = 'hebbsom'
+# algo = 'soesgp'
 #algo = 'storkgp'
 # algo = 'homeokinesis'
 
@@ -321,12 +321,12 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
                 {'input': ['err',], 'plot': partial(timeseries, marker='.')},
             ],
             [
-                {'input': ['goals', 's_proprio'], 'plot': partial(timeseries, marker='.')},
+                {'input': ['goals', 's_proprio', 'goalsp', ], 'plot': partial(timeseries, marker='.')},
                 {'input': ['tgt'], 'plot': partial(timeseries, marker='.')},
             ],
             [
                 {'input': ['goals', 'pre'], 'plot': partial(timeseries, marker='.')},
-                {'input': ['s_extero', 'goalsp', 'goalse'], 'plot': timeseries},
+                {'input': ['s_extero', 'goalse'], 'plot': timeseries},
             ],
             # [
             #     {'input': ['pre'], 'plot': timeseries},
@@ -882,7 +882,7 @@ graph = OrderedDict([
                             
                             'e2p': {
                                 'type': 'e2p',
-                                'algo': 'gmm',
+                                'algo': 'hebbsom', # 'gmm',
                                 'idim': dim_s_extero *  laglen,
                                 'odim': dim_s_proprio * laglen,
                                 'laglen': laglen,

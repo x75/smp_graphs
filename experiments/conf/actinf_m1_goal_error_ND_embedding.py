@@ -212,8 +212,8 @@ def get_systemblock_lpzbarrel(dim_s_proprio = 2, dim_s_extero = 1, dt = 0.01):
             'dim_s_extero': dim_s_extero,   
             'outdict': {},
             'smdict': {},
-            'lag_min': 1, # 5, 4
-            'lag_max': 2,
+            'lag_min': 2, # 1, # 5, 4
+            'lag_max': 6, # 2,
             }
         }
     return systemblock_lpz
@@ -271,9 +271,9 @@ get_systemblock = {
 # algo = 'knn' #
 # algo = 'gmm' #
 # algo = 'igmm' #
-# algo = 'hebbsom'
-algo = 'soesgp'
-#algo = 'storkgp'
+algo = 'hebbsom'
+# algo = 'soesgp'
+# algo = 'storkgp'
 # algo = 'homeokinesis'
 
 # systemblock   = systemblock_lpzbarrel
@@ -294,8 +294,8 @@ laglen = maxlag - minlag
 # eta = 0.7
 # eta = 0.3
 # eta = 0.25
-# eta = 0.15
-eta = 0.1
+eta = 0.15
+# eta = 0.1
 # eta = 0.05
 
 def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
@@ -711,7 +711,8 @@ graph = OrderedDict([
                             'x': {'bus': 'cnt/x'},
                             # 'f': {'val': np.array([[0.2355, 0.2355]]).T * 1.0}, # good with knn and eta = 0.3
                             # 'f': {'val': np.array([[0.23538, 0.23538]]).T * 1.0}, # good with soesgp and eta = 0.7
-                            'f': {'val': np.array([[0.45]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
+                            # 'f': {'val': np.array([[0.45]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
+                            'f': {'val': np.array([[0.225]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.23539]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.23539]]).T * 7.23 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.23539]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
