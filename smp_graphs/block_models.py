@@ -26,7 +26,7 @@ from sklearn import linear_model, kernel_ridge
             
 
 # reservoir lib from smp_base
-from reservoirs import Reservoir, res_input_matrix_random_sparse, res_input_matrix_disjunct_proj
+from smp_base.reservoirs import Reservoir, res_input_matrix_random_sparse, res_input_matrix_disjunct_proj
 
 from smp_graphs.graph import nxgraph_node_by_id_recursive
 from smp_graphs.block import decInit, decStep, PrimBlock2
@@ -217,7 +217,8 @@ def init_model(ref, conf, mconf):
     elif algo == "igmm":
         mdl = ActInfIGMM(idim, odim)
     elif algo == "hebbsom":
-        mdl = ActInfHebbianSOM(idim, odim, numepisodes = 1, mapsize_e = 200, mapsize_p = 100, som_lr = 1e-1)
+        mdl = ActInfHebbianSOM(idim, odim, numepisodes = 1, mapsize_e = 100, mapsize_p = 100, som_lr = 1e-1)
+        # mdl = ActInfHebbianSOM(idim, odim, numepisodes = 1, mapsize_e = 1000, mapsize_p = 100, som_lr = 1e-1)
     elif algo == "soesgp":
         mdl = ActInfSOESGP(idim, odim)
     elif algo == "storkgp":
