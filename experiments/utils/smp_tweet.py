@@ -6,6 +6,14 @@ Tweet an image and text given on the command line
 import argparse, os, sys
 import tweepy
 
+def post_tweet_image(api, status, image):
+    print "Pushing img = '%s', status = '%s'" %( args.image, args.status)
+    api.update_with_media(args.image, args.status)
+
+# def post_tweet_paper(api, status, image):
+#     print "Pushing img = '%s', status = '%s'" %( args.image, args.status)
+#     api.update_with_media(args.image, args.status)
+    
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--image',  type = str, help = 'Path to image to use in the tweet', default = None)
@@ -41,8 +49,7 @@ if __name__ == '__main__':
     # img = 'temp_c.png'
     # status = 'temp_c.png'
 
-    # img = 'inverted/plot_nodes_over_data_scattermatrix_hexbin_ActInfHebbianSOM.jpg'
+    # img = 'inverted/plot_nodes_over_data_scattermatrix_hexbin_smpHebbianSOM.jpg'
     # status = 'hebbian connected SOMs with 3K timesteps of online learning on inverted sine, #smp_base'
 
-    print "Pushing img = '%s', status = '%s'" %( args.image, args.status)
-    api.update_with_media(args.image, args.status)
+    post_tweet_image(api, args.status, args.image)

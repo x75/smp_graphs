@@ -30,11 +30,11 @@ from smp_base.reservoirs import Reservoir, res_input_matrix_random_sparse, res_i
 
 from smp_graphs.graph import nxgraph_node_by_id_recursive
 from smp_graphs.block import decInit, decStep, PrimBlock2
-from smp_base.models_actinf  import ActInfKNN, ActInfGMM, ActInfIGMM, ActInfHebbianSOM
+from smp_base.models_actinf  import smpKNN, smpGMM, smpIGMM, smpHebbianSOM
 from smp_base.models_selforg import HK
 
 try:
-    from smp_base.models_actinf import ActInfOTLModel, ActInfSOESGP, ActInfSTORKGP
+    from smp_base.models_actinf import smpOTLModel, smpSOESGP, smpSTORKGP
     HAVE_SOESGP = True
 except ImportError, e:
     print "couldn't import online GP models", e
@@ -211,18 +211,18 @@ def init_model(ref, conf, mconf):
             
     if algo == "knn":
         # mdl = KNeighborsRegressor(n_neighbors=5)
-        mdl = ActInfKNN(idim, odim)
+        mdl = smpKNN(idim, odim)
     elif algo == "gmm":
-        mdl = ActInfGMM(idim, odim)
+        mdl = smpGMM(idim, odim)
     elif algo == "igmm":
-        mdl = ActInfIGMM(idim, odim)
+        mdl = smpIGMM(idim, odim)
     elif algo == "hebbsom":
-        mdl = ActInfHebbianSOM(idim, odim, numepisodes = 1, mapsize_e = 100, mapsize_p = 100, som_lr = 1e-0)
-        # mdl = ActInfHebbianSOM(idim, odim, numepisodes = 1, mapsize_e = 1000, mapsize_p = 100, som_lr = 1e-1)
+        mdl = smpHebbianSOM(idim, odim, numepisodes = 1, mapsize_e = 140, mapsize_p = 60, som_lr = 1e-0, visualize = True)
+        # mdl = smpHebbianSOM(idim, odim, numepisodes = 1, mapsize_e = 1000, mapsize_p = 100, som_lr = 1e-1)
     elif algo == "soesgp":
-        mdl = ActInfSOESGP(idim, odim)
+        mdl = smpSOESGP(idim, odim)
     elif algo == "storkgp":
-        mdl = ActInfSTORKGP(idim, odim)
+        mdl = smpSTORKGP(idim, odim)
     elif algo == 'copy':
         targetid = mconf['copyid']
         # # debugging
@@ -394,7 +394,7 @@ def step_actinf(ref):
     # if np.linalg.norm(dgoal_fit) <= np.linalg.norm(ref.dgoal_fit_): #  and np.linalg.norm(prerr_l0_) > 5e-2:
         # prerr = prerr_l0_.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
         # FIXME: actually, if ref.mdl.hasmemory
-        if isinstance(ref.mdl, ActInfOTLModel):
+        if isinstance(ref.mdl, smpOTLModel):
             # print "Fitting without update"
             ref.mdl.fit(X.T, Y.T, update = False)
         else:
@@ -674,3 +674,6 @@ class ModelBlock2(PrimBlock2):
         if self.cnt % self.blocksize == 0:
             for mk, mv in self.models.items():
                 mv['inst_'].predict(self)
+
+        # if rospy.is_shutdown():
+        #     sys.exit()
