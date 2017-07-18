@@ -217,7 +217,7 @@ def init_model(ref, conf, mconf):
     elif algo == "igmm":
         mdl = ActInfIGMM(idim, odim)
     elif algo == "hebbsom":
-        mdl = ActInfHebbianSOM(idim, odim, numepisodes = 1, mapsize_e = 100, mapsize_p = 100, som_lr = 1e-1)
+        mdl = ActInfHebbianSOM(idim, odim, numepisodes = 1, mapsize_e = 100, mapsize_p = 100, som_lr = 1e-0)
         # mdl = ActInfHebbianSOM(idim, odim, numepisodes = 1, mapsize_e = 1000, mapsize_p = 100, som_lr = 1e-1)
     elif algo == "soesgp":
         mdl = ActInfSOESGP(idim, odim)

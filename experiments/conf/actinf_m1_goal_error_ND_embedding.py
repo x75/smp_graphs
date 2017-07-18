@@ -36,7 +36,7 @@ showplot = True
 # experiment
 commandline_args = ['numsteps']
 randseed = 12345
-numsteps = int(10000/2.5)
+numsteps = int(10000/1.25)
 loopblocksize = numsteps
 sysname = 'pm'
 # sysname = 'sa'
@@ -290,11 +290,11 @@ maxlag = systemblock['params']['lag_max']
 dt = systemblock['params']['dt']
 laglen = maxlag - minlag
 
-# eta = 0.95
+eta = 0.95
 # eta = 0.7
 # eta = 0.3
 # eta = 0.25
-eta = 0.15
+# eta = 0.15
 # eta = 0.1
 # eta = 0.05
 
