@@ -204,7 +204,7 @@ def init_model(ref, conf, mconf):
     algo = mconf['algo']
     idim = mconf['idim']
     odim = mconf['odim']
-    
+
     if not HAVE_SOESGP:
         algo = "knn"
         print "soesgp/storkgp not available, defaulting to knn"
@@ -217,7 +217,9 @@ def init_model(ref, conf, mconf):
     elif algo == "igmm":
         mdl = smpIGMM(idim, odim)
     elif algo == "hebbsom":
-        mdl = smpHebbianSOM(idim, odim, numepisodes = 1, mapsize_e = 140, mapsize_p = 60, som_lr = 1e-0, visualize = True)
+        mconf.update({'numepisodes': 1, 'mapsize_e': 140, 'mapsize_p': 60, 'som_lr': 1e-1, 'visualize': False})
+        print "mconf", mconf
+        mdl = smpHebbianSOM(conf = mconf)
         # mdl = smpHebbianSOM(idim, odim, numepisodes = 1, mapsize_e = 1000, mapsize_p = 100, som_lr = 1e-1)
     elif algo == "soesgp":
         mdl = smpSOESGP(idim, odim)
