@@ -3,6 +3,8 @@ import traceback
 import sys
 import pickle
 
+from smp_base.common import set_attr_from_dict
+
 ################################################################################
 # static config templates
 conf_header = """from smp_graphs.experiment import make_expr_id
@@ -102,11 +104,6 @@ def get_input(inputs, inkey):
     assert inkey is not None
     assert inputs.has_key(inkey)
     return inputs[inkey]['val']
-
-def set_attr_from_dict(obj, dictionary):
-    """set object attribute k = v from a dictionary's k, v for all dict items"""
-    for k,v in dictionary.items():
-        setattr(obj, k, v)
 
 def dict_search_recursive(d, k):
     """dict_search_recursive
