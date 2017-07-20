@@ -215,18 +215,18 @@ def init_model(ref, conf, mconf):
         # mdl = smpKNN(idim, odim)
         mdl = smpKNN(conf = mconf)
     elif algo == "gmm":
-        mdl = smpGMM(idim, odim)
+        mdl = smpGMM(conf = mconf)
     elif algo == "igmm":
-        mdl = smpIGMM(idim, odim)
+        mdl = smpIGMM(conf = mconf)
     elif algo == "hebbsom":
         mconf.update({'numepisodes': 1, 'mapsize_e': 140, 'mapsize_p': 60, 'som_lr': 1e-1, 'visualize': False})
         print "mconf", mconf
         mdl = smpHebbianSOM(conf = mconf)
         # mdl = smpHebbianSOM(idim, odim, numepisodes = 1, mapsize_e = 1000, mapsize_p = 100, som_lr = 1e-1)
     elif algo == "soesgp":
-        mdl = smpSOESGP(idim, odim)
+        mdl = smpSOESGP(conf = mconf)
     elif algo == "storkgp":
-        mdl = smpSTORKGP(idim, odim)
+        mdl = smpSTORKGP(conf = mconf)
     elif algo == 'resrls':
         mconf.update(smpSHL.defaults)
         # mconf.update({'numepisodes': 1, 'mapsize_e': 140, 'mapsize_p': 60, 'som_lr': 1e-1, 'visualize': False})
