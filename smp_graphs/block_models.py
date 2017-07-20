@@ -32,6 +32,7 @@ from smp_graphs.graph import nxgraph_node_by_id_recursive
 from smp_graphs.block import decInit, decStep, PrimBlock2
 from smp_base.models_actinf  import smpKNN, smpGMM, smpIGMM, smpHebbianSOM
 from smp_base.models_selforg import HK
+from smp_base.learners import smpSHL
 
 try:
     from smp_base.models_actinf import smpOTLModel, smpSOESGP, smpSTORKGP
@@ -211,7 +212,8 @@ def init_model(ref, conf, mconf):
             
     if algo == "knn":
         # mdl = KNeighborsRegressor(n_neighbors=5)
-        mdl = smpKNN(idim, odim)
+        # mdl = smpKNN(idim, odim)
+        mdl = smpKNN(conf = mconf)
     elif algo == "gmm":
         mdl = smpGMM(idim, odim)
     elif algo == "igmm":
@@ -225,6 +227,11 @@ def init_model(ref, conf, mconf):
         mdl = smpSOESGP(idim, odim)
     elif algo == "storkgp":
         mdl = smpSTORKGP(idim, odim)
+    elif algo == 'resrls':
+        mconf.update(smpSHL.defaults)
+        # mconf.update({'numepisodes': 1, 'mapsize_e': 140, 'mapsize_p': 60, 'som_lr': 1e-1, 'visualize': False})
+        mconf.update({'idim': idim, 'odim': odim})
+        mdl = smpSHL(conf = mconf)
     elif algo == 'copy':
         targetid = mconf['copyid']
         # # debugging

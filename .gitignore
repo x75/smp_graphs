@@ -7,4 +7,4 @@ doc/doxygen_sqlite3.db
 experiments/data/*.pdf
 experiments/data/*.jpg
 experiments/data/*.npz
-
+experiments/data/*.wav
