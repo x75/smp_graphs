@@ -27,6 +27,13 @@ from smp_graphs.block_cls_ros import STDRCircularBlock2, LPZBarrelBlock2, Sphero
 
 from smp_graphs.funcs import f_meshgrid, f_meshgrid_mdl, f_random_uniform, f_sin_noise
 
+# robustness
+# fix: target properties like frequency matched to body (attainable / not attainable)
+# fix: eta
+# fix: motor / sensor limits, how does the model learn the limits
+
+# priors: timing, limits
+
 # execution
 saveplot = False
 recurrent = True
@@ -36,7 +43,7 @@ showplot = True
 # experiment
 commandline_args = ['numsteps']
 randseed = 12345
-numsteps = int(10000/1)
+numsteps = int(10000/4)
 loopblocksize = numsteps
 sysname = 'pm'
 # sysname = 'sa'
