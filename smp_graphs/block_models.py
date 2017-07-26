@@ -598,14 +598,20 @@ def step_e2p(ref):
     # if ref.inputs['blk_mode']['val'] == 2.0:
     # if True:
     if ref.inputs.has_key('blk_mode') and ref.inputs['blk_mode']['val'][0,0] == 2.0:
-        if ref.cnt % 100 == 0:
+        if ref.cnt % 200 == 0:
             # uniform prior
-            extero_ = np.random.uniform(-1e-1, 1e-1, extero.shape)
+            # extero_ = np.random.uniform(-1e-1, 1e-1, extero.shape)
             # model prior?
             extero_ = ref.mdl.sample_prior()
             # print "extero_", extero_.shape
-            sample = np.clip(ref.mdl.predict(extero_.T), -1, 1)
             # print "sample", sample.shape
+            sample = np.clip(ref.mdl.predict(extero_.T), -3, 3)
+        elif ref.cnt % 200 == 100:
+            # resting state
+            extero_ = np.random.uniform(-1e-3, 1e-3, extero.shape)
+
+        if ref.cnt % 200 in [0, 100]:
+            sample = np.clip(ref.mdl.predict(extero_.T), -3, 3)
             setattr(ref, 'pre', sample.T)
             setattr(ref, 'pre_ext', extero_)
     
