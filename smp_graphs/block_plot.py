@@ -432,8 +432,8 @@ class ImgPlotBlock2(FigPlotBlock2):
 
                         # Linv = np.log(inv + 1)
                         Linv = inv
-                        print "Linv.shape", Linv.shape
-                        print "Linv", np.sum(np.abs(Linv))
+                        # print "Linv.shape", Linv.shape
+                        # print "Linv", np.sum(np.abs(Linv))
                         plotfunc = "pcolorfast"
                         plot_img(ax = ax, data = Linv, plotfunc = plotfunc,
                                      vmin = vmin, vmax = vmax, cmap = cmap,
