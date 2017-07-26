@@ -1,6 +1,6 @@
 """smp_graphs config
 
-plot the sensorimotor manifold / pointcloud, example data from andi gerken's puppy
+plot the sensorimotor delays using mutual information scans for felix' seqs data
 """
 
 from smp_base.plot import histogramnd

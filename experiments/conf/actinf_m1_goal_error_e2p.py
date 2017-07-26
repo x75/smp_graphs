@@ -34,7 +34,7 @@ showplot = True
 # experiment
 commandline_args = ['numsteps']
 randseed = 12346
-numsteps = 10000/5
+numsteps = int(10000/1)
 loopblocksize = numsteps
 sysname = 'pm'
 # sysname = 'sa'
@@ -67,7 +67,7 @@ def get_systemblock_pm(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
             'mass': 1.0,
             'force_max':  1.0,
             'force_min': -1.0,
-            'friction': 0.01,
+            'friction': 0.05, # 0.01,
             'sysnoise': 1e-2,
             'debug': False,
             'dim_s_proprio': dim_s_proprio,
@@ -247,7 +247,7 @@ def get_systemblock_sphero(dim_s_proprio = 2, dim_s_extero = 1, dt = 0.05):
 # systemblock_sphero = get_systemblock_sphero()
 
 get_systemblock = {
-    'pm': partial(get_systemblock_pm, dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1),
+    'pm': partial(get_systemblock_pm, dim_s_proprio = 2, dim_s_extero = 2, dt = 0.005),
     'sa': partial(get_systemblock_sa, dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1),
     'bha': partial(get_systemblock_bha, dim_s_proprio = 9, dim_s_extero = 3, dt = 0.1),
     'lpzbarrel': partial(get_systemblock_lpzbarrel, dim_s_proprio = 2, dim_s_extero = 1, dt = 2.0/92.0), # 0.025),
@@ -300,7 +300,7 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
     return {
     'block': PlotBlock2,
     'params': {
-        'blocksize': blocksize,
+        'blocksize': 1000, # blocksize,
         'inputs': {
             'goals': {'bus': '%s/pre' % (l1,), 'shape': (dim_s_proprio, blocksize)},
             'pre':   {'bus': '%s/pre' % (l0,), 'shape': (dim_s_proprio, blocksize)},
@@ -675,17 +675,17 @@ graph = OrderedDict([
                     'shape': (1,1),
                     'events': {
                         0: np.ones((1,1)) * 1.0,
-                        numsteps/2: np.ones((1,1)) * 2}},
+                        numsteps/10: np.ones((1,1)) * 2}},
                 'e2p_mode': {
                     'shape': (1,1),
                     'events': {
                         0: np.ones((1,1)) * 1,
-                        numsteps/2: np.ones((1,1)) * 2}},
+                        numsteps/10: np.ones((1,1)) * 2}},
                 'pre_l1_mode': {
                     'shape': (1,1),
                     'events': {
                         0: np.ones((1,1)) * 1,
-                        numsteps/2: np.zeros((1,1))}},
+                        numsteps/10: np.zeros((1,1))}},
                 }
             }
         }),

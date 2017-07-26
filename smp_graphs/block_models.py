@@ -167,7 +167,7 @@ def step_random_uniform(ref):
         # np.random.uniform(lo, hi, size = outv['shape']))
         # print "%s-%s[%d]model.step_random_uniform %s = %s" % (
         #     ref.cname, ref.id, ref.cnt, outk, getattr(ref, outk))
-        print "block_models.py: random_uniform_step %s = %s" % (outk, getattr(ref, outk))
+        # print "block_models.py: random_uniform_step %s = %s" % (outk, getattr(ref, outk))
 
 # model func: alternating_sign model
 def init_alternating_sign(ref, conf, mconf):
@@ -277,6 +277,7 @@ def tapping_SM(ref, mode = 'm1'):
     # instantaneous inputs
     # current goal[t] prediction descending from layer above
     if ref.inputs.has_key('blk_mode') and ref.inputs['blk_mode']['val'][0,0] == 2.0:
+        # that's a wild HACK
         ref.pre_l1_inkey = 'e2p_l1'
     else:
         ref.pre_l1_inkey = 'pre_l1'
@@ -595,11 +596,16 @@ def step_e2p(ref):
     ref.mdl.fit(extero.T, proprio.T)
 
     # if ref.inputs['blk_mode']['val'] == 2.0:
-    if True:
-        if ref.cnt % 50 == 0:
-            extero_ = np.random.uniform(-1e-0, 1e-0, extero.shape)
+    # if True:
+    if ref.inputs.has_key('blk_mode') and ref.inputs['blk_mode']['val'][0,0] == 2.0:
+        if ref.cnt % 100 == 0:
+            # uniform prior
+            extero_ = np.random.uniform(-1e-1, 1e-1, extero.shape)
+            # model prior?
+            extero_ = ref.mdl.sample_prior()
+            # print "extero_", extero_.shape
             sample = np.clip(ref.mdl.predict(extero_.T), -1, 1)
-            print "sample", sample
+            # print "sample", sample.shape
             setattr(ref, 'pre', sample.T)
             setattr(ref, 'pre_ext', extero_)
     
