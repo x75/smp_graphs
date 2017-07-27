@@ -160,7 +160,10 @@ def step_random_uniform(ref):
     lo = ref.inputs['lo']['val'] # .T
     hi = ref.inputs['hi']['val'] # .T
     for outk, outv in ref.outputs.items():
-        setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
+        if ref.cnt % (ref.rate * 4) == 0:
+            setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
+        else:
+            setattr(ref, outk, np.random.uniform(-1e-3, 1e-3, size = outv['shape']))
         
         # setattr(ref, outk, np.random.choice([-1.0, 1.0], size = outv['shape']))
         
@@ -598,7 +601,7 @@ def step_e2p(ref):
     # if ref.inputs['blk_mode']['val'] == 2.0:
     # if True:
     if ref.inputs.has_key('blk_mode') and ref.inputs['blk_mode']['val'][0,0] == 2.0:
-        if ref.cnt % 200 == 0:
+        if ref.cnt % 400 == 0:
             # uniform prior
             # extero_ = np.random.uniform(-1e-1, 1e-1, extero.shape)
             # model prior?
@@ -606,7 +609,7 @@ def step_e2p(ref):
             # print "extero_", extero_.shape
             # print "sample", sample.shape
             sample = np.clip(ref.mdl.predict(extero_.T), -3, 3)
-        elif ref.cnt % 200 == 100:
+        elif ref.cnt % 400 in [100, 200, 300]:
             # resting state
             extero_ = np.random.uniform(-1e-3, 1e-3, extero.shape)
 
