@@ -10,7 +10,7 @@ TODO
 import numpy as np
 
 from smp_graphs.block import decStep, PrimBlock2
-from smp_sys.systems import PointmassSys
+from smp_sys.systems import PointmassSys, Pointmass2Sys
 from smp_sys.systems import SimplearmSys
 from smp_sys.systems_bhasim import BhaSimulatedSys
 # BHA / mathias
@@ -33,7 +33,10 @@ class PointmassBlock2(SysBlock2):
         SysBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
         self.debug_print("init: conf = %s", (conf,))
-        self.system = PointmassSys(conf['params'])
+        if self.systype == 2:
+            self.system = Pointmass2Sys(conf['params'])
+        elif self.systype == 1:
+            self.system = PointmassSys(conf['params'])
         # latent output variables defined by pointmass system
         self.x = {
             's_proprio': np.zeros((self.dim_s_proprio,  self.blocksize)),
