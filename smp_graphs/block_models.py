@@ -32,7 +32,7 @@ from smp_graphs.graph import nxgraph_node_by_id_recursive
 from smp_graphs.block import decInit, decStep, PrimBlock2
 from smp_base.models_actinf  import smpKNN, smpGMM, smpIGMM, smpHebbianSOM
 from smp_base.models_selforg import HK
-from smp_base.learners import smpSHL
+from smp_base.learners import smpSHL, learnerReward, Eligibility
 
 try:
     from smp_base.models_actinf import smpOTLModel, smpSOESGP, smpSTORKGP
@@ -160,7 +160,7 @@ def step_random_uniform(ref):
     lo = ref.inputs['lo']['val'] # .T
     hi = ref.inputs['hi']['val'] # .T
     for outk, outv in ref.outputs.items():
-        if ref.cnt % (ref.rate * 4) == 0:
+        if ref.cnt % (ref.rate * 1) == 0:
             setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
         else:
             setattr(ref, outk, np.random.uniform(-1e-3, 1e-3, size = outv['shape']))
@@ -617,7 +617,117 @@ def step_e2p(ref):
             sample = np.clip(ref.mdl.predict(extero_.T), -3, 3)
             setattr(ref, 'pre', sample.T)
             setattr(ref, 'pre_ext', extero_)
-    
+
+# model func: reservoir expansion
+def init_eh(ref, conf, mconf):
+    params = conf['params']
+    ref.oversampling = mconf['oversampling']
+    # ref.res = Reservoir(
+    #     N = mconf['N'],
+    #     input_num = mconf['res_input_num'],
+    #     output_num = mconf['res_output_num'],
+    #     input_scale = mconf['input_scale'], # 0.03,
+    #     bias_scale = mconf['bias_scale'], # 0.0,
+    #     feedback_scale = 0.0,
+    #     g = 0.99,
+    #     tau = 0.05,
+    # )
+
+    ref.res = Reservoir(
+        N = mconf['N'],
+        p = mconf['p'],
+        input_num = mconf['res_input_num'],
+        output_num = mconf['res_output_num'],
+        g = mconf['g'],
+        tau = mconf['tau'],
+        eta_init = 0,
+        feedback_scale = mconf['res_feedback_scaling'],
+        input_scale = mconf['res_input_scaling'],
+        bias_scale = mconf['res_bias_scaling'],
+        nonlin_func = mconf['nonlin_func'], # np.tanh, # lambda x: x,
+        sparse = True, ip=bool(mconf['use_ip']),
+        theta = mconf['res_theta'],
+        theta_state = mconf['res_theta_state'],
+        coeff_a = mconf['coeff_a']
+    )
+    ref.res.wi = res_input_matrix_random_sparse(mconf['res_input_num'], mconf['N'], density = 0.2) * mconf['res_input_scaling']
+    params['outputs']['x_res'] = {'shape': (mconf['N'], 1)}
+        
+    # ref.res = Reservoir2(N = mconf['N'],
+    #                       p = mconf['p'],
+    #                       input_num = mconf['idim'],
+    #                       output_num = mconf['odim'],
+    #                       g = mconf['g'],
+    #                       tau = mconf['tau'],
+    #                       eta_init = 0.,
+    #                       feedback_scale = mconf['res_feedback_scaling'],
+    #                       input_scale = mconf['res_input_scaling'],
+    #                       bias_scale = mconf['res_bias_scaling'],
+    #                       nonlin_func = mconf['nonlin_func'], # np.tanh, # lambda x: x,
+    #                       sparse = True, ip=bool(mconf['use_ip']),
+    #                       theta = mconf['res_theta'],
+    #                       theta_state = mconf['res_theta_state'],
+    #                       coeff_a = mconf['coeff_a'])
+    # # myidentity, np.tanh
+                              
+    # counting
+    ref.cnt_main = 0
+
+    # # input / output / state variables and memory for synchronous logging
+    # ref.iosm = learnerIOSMem(
+    #     mconf['idim'], mconf['odim'], mconf['N'],
+    #     memlen = mconf['len_episode'])
+    # reward
+    ref.rew = learnerReward(
+        mconf['idim'], mconf['odim'], memlen = mconf['len_episode'],
+        coeff_a = mconf['coeff_a'])
+
+    # FIXME: parameter configuration post-processing
+    # expand input coupling matrix from specification
+    ref.use_icm = True
+    ref.input_coupling_mtx = np.zeros((mconf['idim'], mconf['idim']))
+    for k,v in mconf['input_coupling_mtx_spec'].items():
+        ref.input_coupling_mtx[k] = v
+    # print ("input coupling matrix", ref.input_coupling_mtx)
+
+    # eligibility traces
+    ref.ewin_off = 0
+    ref.ewin = mconf['et_winsize']
+    # print "ewin", ref.ewin
+    ref.ewin_inv = 1./ref.ewin
+    funcindex = 0 # rectangular
+    # funcindex = 3 # double_exponential
+    ref.etf = Eligibility(ref.ewin, funcindex)
+    ref.et_corr = np.zeros((1, mconf['et_winsize']))
+
+    # predictors
+    if mconf['use_pre']:
+        ref.pre = PredictorReservoir(
+            mconf['pre_inputs'],
+            mconf['pre_delay'],
+            mconf['len_episode'],
+            mconf['N'])
+
+    # use weight bounding
+    if mconf['use_wb']:
+        self.bound_weight_fit(mconf['wb_thr'])
+    # density estimators
+
+def step_eh(ref):
+    print 'inputs', ref.inputs # ['x']['val'].shape
+    # x = ref.inputs['x']['val']
+    err = ref.inputs['pre_l1']['val'][...,-1] - ref.inputs['pre_l0']['val'][...,-1]
+    print "err", err.shape
+    x = np.hstack((
+        ref.inputs['pre_l0']['val'][...,-1],
+        err,
+        ref.inputs['meas_l0']['val'][...,-1]
+        )).T
+    for i in range(ref.oversampling):
+        ref.res.execute(x)
+    # print ref.res.r.shape
+    setattr(ref, 'pre', ref.res.zn)
+            
 class model(object):
     """model
 
@@ -643,6 +753,9 @@ class model(object):
         'actinf_m2': {'init': init_actinf, 'step': step_actinf},
         'actinf_m3': {'init': init_actinf, 'step': step_actinf},
         'e2p':       {'init': init_e2p,    'step': step_e2p},
+        # direct forward model learning
+        # direct inverse model learning
+        'eh':        {'init': init_eh,     'step': step_eh},
         # selforg playful
         'homeokinesis': {'init': init_homoekinesis, 'step': step_homeokinesis},
     }

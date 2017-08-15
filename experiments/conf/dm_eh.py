@@ -91,8 +91,8 @@ def get_systemblock_pm(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
             # pm2sys params
             'lag': 1,
             'order': 2,
-            'coupling_sigma': 2.5e-1,
-            'transfer': 1,
+            'coupling_sigma': 2.5e-2,
+            'transfer': 0, # 1
             'anoise_mean': 0.0,
             'anoise_std': 1e-3,
             }
@@ -282,7 +282,7 @@ get_systemblock = {
 # - dimensions
 # - number of modalities
     
-algo = 'knn' #
+# algo = 'knn' #
 # algo = 'gmm' #
 # algo = 'igmm' #
 # algo = 'hebbsom'
@@ -290,6 +290,7 @@ algo = 'knn' #
 # algo = 'storkgp'
 # algo = 'resrls'
 # algo = 'homeokinesis'
+algo = 'reseh'
 
 # systemblock   = systemblock_lpzbarrel
 # lag = 6 # 5, 4, 2 # 2 or 3 worked with lpzbarrel, dt = 0.05
@@ -767,74 +768,74 @@ graph = OrderedDict([
                 #     },
                 # }),
                 
-                # dev model actinf_m1: learner is basic actinf predictor proprio space learn_proprio_base_0
-                ('pre_l0', {
-                    'block': ModelBlock2,
-                    'params': {
-                        'blocksize': 1,
-                        'blockphase': [0],
-                        'debug': False,
-                        'lag': minlag,
-                        'eta': eta, # 3.7,
-                        'ros': True,
-                        # FIXME: relative shift = minlag, block length the maxlag
-                        'inputs': {
-                            # descending prediction
-                            'pre_l1': {
-                                'bus': 'pre_l1/pre',
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag, -minlag)}, # lag}, # m1
-                                # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)}, # lag}, # m2
-                            # ascending prediction error
-                            'pre_l0': {
-                                'bus': 'pre_l0/pre',
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)}, # lag},
-                            # ascending prediction error
-                            'prerr_l0': {
-                                'bus': 'pre_l0/err',
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)}, # lag},
-                            # measurement
-                            'meas_l0': {
-                                'bus': 'robot1/s_proprio',
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(-laglen, 0)}
-                            },
-                        'outputs': {
-                            'pre': {'shape': (dim_s_proprio, 1)},
-                            'err': {'shape': (dim_s_proprio, 1)},
-                            'tgt': {'shape': (dim_s_proprio, 1)},
-                            },
-                        'models': {
+                # # dev model actinf_m1: learner is basic actinf predictor proprio space learn_proprio_base_0
+                # ('pre_l0', {
+                #     'block': ModelBlock2,
+                #     'params': {
+                #         'blocksize': 1,
+                #         'blockphase': [0],
+                #         'debug': False,
+                #         'lag': minlag,
+                #         'eta': eta, # 3.7,
+                #         'ros': True,
+                #         # FIXME: relative shift = minlag, block length the maxlag
+                #         'inputs': {
+                #             # descending prediction
+                #             'pre_l1': {
+                #                 'bus': 'pre_l1/pre',
+                #                 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag, -minlag)}, # lag}, # m1
+                #                 # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)}, # lag}, # m2
+                #             # ascending prediction error
+                #             'pre_l0': {
+                #                 'bus': 'pre_l0/pre',
+                #                 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)}, # lag},
+                #             # ascending prediction error
+                #             'prerr_l0': {
+                #                 'bus': 'pre_l0/err',
+                #                 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)}, # lag},
+                #             # measurement
+                #             'meas_l0': {
+                #                 'bus': 'robot1/s_proprio',
+                #                 'shape': (dim_s_proprio, maxlag), 'lag': range(-laglen, 0)}
+                #             },
+                #         'outputs': {
+                #             'pre': {'shape': (dim_s_proprio, 1)},
+                #             'err': {'shape': (dim_s_proprio, 1)},
+                #             'tgt': {'shape': (dim_s_proprio, 1)},
+                #             },
+                #         'models': {
                             
-                            'm1': {
-                                'type': 'actinf_m1',
-                                'algo': algo,
-                                'idim': dim_s_proprio * laglen * 2,
-                                'odim': dim_s_proprio * laglen,
-                                'laglen': laglen,
-                                'eta': eta
-                                },
+                #             'm1': {
+                #                 'type': 'actinf_m1',
+                #                 'algo': algo,
+                #                 'idim': dim_s_proprio * laglen * 2,
+                #                 'odim': dim_s_proprio * laglen,
+                #                 'laglen': laglen,
+                #                 'eta': eta
+                #                 },
                                 
-                            # 'm2': {
-                            #     'type': 'actinf_m2',
-                            #     'algo': algo,
-                            #     'idim': dim_s_proprio * laglen,
-                            #     'odim': dim_s_proprio * laglen,
-                            #     'laglen': laglen,
-                            #     'eta': eta
-                            #     },
+                #             # 'm2': {
+                #             #     'type': 'actinf_m2',
+                #             #     'algo': algo,
+                #             #     'idim': dim_s_proprio * laglen,
+                #             #     'odim': dim_s_proprio * laglen,
+                #             #     'laglen': laglen,
+                #             #     'eta': eta
+                #             #     },
                             
-                            # 'm3': {
-                            #     'type': 'actinf_m3',
-                            #     'algo': algo,
-                            #     'idim': dim_s_proprio * laglen * 2,
-                            #     'odim': dim_s_proprio * laglen,
-                            #     'laglen': laglen,
-                            #     'eta': eta
-                            #     },
+                #             # 'm3': {
+                #             #     'type': 'actinf_m3',
+                #             #     'algo': algo,
+                #             #     'idim': dim_s_proprio * laglen * 2,
+                #             #     'odim': dim_s_proprio * laglen,
+                #             #     'laglen': laglen,
+                #             #     'eta': eta
+                #             #     },
                                 
-                            },
-                        'rate': 1,
-                        },
-                    }),
+                #             },
+                #         'rate': 1,
+                #         },
+                #     }),
 
                 # dev model uniform random sampler
                 # ('pre_l0', {
@@ -899,6 +900,81 @@ graph = OrderedDict([
                 #         },
                 #     }),
                     
+                # dev model EH: direct inverse model learning with reward modulated hebbian updates and locally gaussian exploration
+                ('pre_l0', {
+                    'block': ModelBlock2,
+                    'params': {
+                        'blocksize': 1,
+                        'blockphase': [0],
+                        'debug': False,
+                        'lag': minlag,
+                        'eta': eta, # 3.7,
+                        'ros': True,
+                        # FIXME: relative shift = minlag, block length the maxlag
+                        'inputs': {
+                            # descending prediction
+                            'pre_l1': {
+                                'bus': 'pre_l1/pre',
+                                'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag, -minlag)}, # lag}, # m1
+                                # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)}, # lag}, # m2
+                            # ascending prediction error
+                            'pre_l0': {
+                                'bus': 'pre_l0/pre',
+                                'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)}, # lag},
+                            # ascending prediction error
+                            'prerr_l0': {
+                                'bus': 'pre_l0/err',
+                                'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)}, # lag},
+                            # measurement
+                            'meas_l0': {
+                                'bus': 'robot1/s_proprio',
+                                'shape': (dim_s_proprio, maxlag), 'lag': range(-laglen, 0)}
+                            },
+                        'outputs': {
+                            'pre': {'shape': (dim_s_proprio, 1)},
+                            'err': {'shape': (dim_s_proprio, 1)},
+                            'tgt': {'shape': (dim_s_proprio, 1)},
+                            },
+                        'models': {
+                            
+                            'm1': {
+                                'type': 'eh',
+                                'algo': algo,
+                                'idim': dim_s_proprio * laglen * 3,
+                                'odim': dim_s_proprio * laglen,
+                                'laglen': laglen,
+                                'eta': 1e-3,
+                                'N': 200,
+                                'p': 0.1,
+                                'g': 0.999,
+                                'tau': 0.1,
+                                'res_input_num': dim_s_proprio * laglen * 3,
+                                'res_output_num': dim_s_proprio * laglen,
+                                'res_feedback_scaling': 0.0,
+                                'res_input_scaling': 1.0,
+                                'res_bias_scaling': 0.9,
+                                'res_output_scaling': 1.0,
+                                'nonlin_func': np.tanh,
+                                'use_ip': 0,
+                                'res_theta': 5e-1,
+                                'res_theta_state': 1e-1,
+                                'coeff_a': 0.2,
+                                'len_episode': numsteps,
+                                'input_coupling_mtx_spec': {0: 1., 1: 1.},
+                                'use_et': 0,
+                                'et_winsize': 20,
+                                'use_pre': 0,
+                                'pre_inputs': [2],
+                                'pre_delay': [10, 50, 100],
+                                'use_wb': 0,
+                                'wb_thr': 1.5,
+                                'oversampling': 1,
+                                },
+                                                                
+                            },
+                        'rate': 1,
+                        },
+                    }),
                 # learn_proprio_e2p2e
                 ]),
             }
