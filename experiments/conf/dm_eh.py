@@ -42,7 +42,7 @@ showplot = True
 # experiment
 commandline_args = ['numsteps']
 randseed = 12347
-numsteps = int(10000/1)
+numsteps = int(10000/2)
 loopblocksize = numsteps
 sysname = 'pm'
 # sysname = 'sa'
@@ -343,7 +343,7 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
                 {'input': ['goals', 's_proprio'], 'plot': partial(timeseries, marker='.')},
             ],
             [
-                {'input': ['pre'], 'plot': partial(timeseries, marker='.')},
+                {'input': ['pre', 's_proprio'], 'plot': partial(timeseries, marker='.')},
             ],
             # [
             #     {'input': ['pre'], 'plot': timeseries},
@@ -707,7 +707,7 @@ graph = OrderedDict([
                         'models': {
                             'goal': {'type': 'random_uniform'}
                             },
-                        'rate': int(numsteps/10), # 1000,
+                        'rate': int(numsteps/20), # 1000,
                         },
                     }),
 
@@ -909,7 +909,7 @@ graph = OrderedDict([
                         'blockphase': [0],
                         'debug': False,
                         'lag': minlag,
-                        'eta': 2e-3, # eta, # 3.7,
+                        'eta': 5e-4, # 2e-3, # eta, # 3.7,
                         'ros': True,
                         # FIXME: relative shift = minlag, block length the maxlag
                         'inputs': {

@@ -368,8 +368,10 @@ def tapping_XY(ref, pre_l1_tap_flat, pre_l0_tap_flat, prerr_l0_tap_flat, prerr_l
     elif ref.type == 'm2':
         X = np.vstack((prerr_l0_tap_flat, ))
         Y = -prerr_l0__ * ref.eta # .reshape((ref.odim, 1)) # pre_l0[...,[-lag]] - (prerr_l0_ * ref.eta) #
+    # elif ref.type == 'eh':
+        
     else:
-        return None
+        return (None, None)
     # print "X", X.shape
     
     # ref.mdl.fit(X__.T, ref.y_.T) # ref.X_[-lag]
@@ -432,7 +434,7 @@ def step_actinf(ref):
     # dgoal for fitting lag additional time steps back
     dgoal_fit = np.linalg.norm(ref.pre_l1_tm1 - ref.pre_l1_tm2)
     y_ = Y.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
-    if dgoal_fit < 5e-1: #  and np.linalg.norm(prerr_l0_) > 5e-2:
+    if dgoal_fit < 5e-1: #  and np.linalg.norm(prerr_l0_) > 5e-2:        
     # if np.linalg.norm(dgoal_fit) <= np.linalg.norm(ref.dgoal_fit_): #  and np.linalg.norm(prerr_l0_) > 5e-2:
         # prerr = prerr_l0_.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
         # FIXME: actually, if ref.mdl.hasmemory
@@ -654,6 +656,9 @@ def init_eh(ref, conf, mconf):
     # reservoir oversampling
     ref.oversampling = mconf['oversampling']
 
+    # model/algo type
+    ref.type = mconf['type']
+    
     # reservoir network
     ref.res = Reservoir(
         N = mconf['N'],
@@ -675,16 +680,17 @@ def init_eh(ref, conf, mconf):
     # reservoir sparse random input weight matrix
     ref.res.wi = res_input_matrix_random_sparse(mconf['res_input_num'], mconf['N'], density = 0.2) * mconf['res_input_scaling']
     # update output shape
-    params['outputs']['x_res'] = {'shape': (mconf['N'], 1)}
+    # params['outputs']['x_res'] = {'shape': (mconf['N'], 1)}
                                   
     # counting
-    ref.cnt_main = 0
+    # ref.cnt_main = 0
 
     # learning rule
     print "conf", conf.keys()
     print "mconf", mconf.keys()
-    ref.eta = params['models']['m1']['eta'] # mconf['eta']
+    ref.eta = params['eta'] # params['models']['m1']['eta'] # mconf['eta']
     ref.lr = LearningRules(ndim_out = mconf['odim'], dim = mconf['odim'])
+    ref.laglen  = mconf['laglen']
     
     # reward (legacy approach from point_mass_learner_offline.py/OfflineLearner
     ref.rew = learnerReward(
@@ -698,10 +704,10 @@ def init_eh(ref, conf, mconf):
 
     # FIXME: parameter configuration post-processing
     # expand input coupling matrix from specification
-    ref.use_icm = True
-    ref.input_coupling_mtx = np.zeros((mconf['idim'], mconf['idim']))
-    for k,v in mconf['input_coupling_mtx_spec'].items():
-        ref.input_coupling_mtx[k] = v
+    # ref.use_icm = True
+    # ref.input_coupling_mtx = np.zeros((mconf['idim'], mconf['idim']))
+    # for k,v in mconf['input_coupling_mtx_spec'].items():
+    #     ref.input_coupling_mtx[k] = v
     # print ("input coupling matrix", ref.input_coupling_mtx)
 
     # eligibility traces
@@ -728,13 +734,33 @@ def init_eh(ref, conf, mconf):
     # density estimators?
     print "params.eta = %f, model.eta = %f, ref.eta = %f" % (params['eta'], params['models']['m1']['eta'], ref.eta, )
 
+    # initialize tapping
+    ref.tapping_SM = partial(tapping_SM, mode = ref.type)
+    ref.tapping_XY = partial(tapping_XY, mode = ref.type)
+    ref.tapping_X = partial(tapping_X)
+    
+
 def step_eh(ref):
     # new measurements
-    goal = array_fix(ref.inputs['pre_l1']['val'][...,-1])
-    meas = array_fix(ref.inputs['meas_l0']['val'][...,-1])
-    err = goal - meas
-    pre = array_fix(ref.inputs['pre_l0']['val'][...,-1])
 
+    # deal with the lag specification for each input (lag, delay, temporal characteristic)
+    (pre_l1, pre_l0, meas_l0, prerr_l0, prerr_l0_, prerr_l0__) = ref.tapping_SM(ref)
+    (X, Y) = ref.tapping_XY(ref, pre_l1, pre_l0, prerr_l0, prerr_l0__)
+    
+    # print "tapped pre_l1 = %s" % (pre_l1.shape,)
+
+    # goal = array_fix(ref.inputs['pre_l1']['val'][...,-1])
+    # meas = array_fix(ref.inputs['meas_l0']['val'][...,-1])
+    # err = goal - meas
+    pre__ = array_fix(ref.inputs['pre_l0']['val'][...,-1])
+
+    goal = pre_l1
+    meas = meas_l0
+    pre = pre_l0
+    err = goal - meas
+
+    # print "pre", pre, pre__
+    
     r = ref.res.r
 
     # two funcs
@@ -776,8 +802,23 @@ def step_eh(ref):
     for i in range(ref.oversampling):
         ref.res.execute(x)
     # print ref.res.r.shape
-    setattr(ref, 'pre', ref.res.zn)
-    setattr(ref, 'err', err)
+
+    # pre_ = getattr(ref, 'pre_')
+    # if ref.type == 'm1' or ref.type == 'm3':
+    #     pre_[...,[-1]] = pre
+    # elif ref.type == 'm2':
+    #     pre_[...,[-1]] = np.clip(pre_[...,[-1]] + pre, -1, 1)
+    # err_ = getattr(ref, 'err')
+    # err_[...,[-1]] = prerr
+    # tgt_ = getattr(ref, 'tgt')
+    # tgt_[...,[-1]] = y_
+
+    pre_ = ref.res.zn.reshape((-1, ref.laglen))
+    err_ = err.reshape((-1, ref.laglen))
+    # print "pre_", pre_
+    # print "err_", err_
+    setattr(ref, 'pre', pre_[:,[-1]])
+    setattr(ref, 'err', err_[:,[-1]])
 
     if ref.cnt % 500 == 0:
         print "iter[%d]: |W_o| = %f, eta = %f" % (ref.cnt, np.linalg.norm(ref.res.wo), ref.eta, )

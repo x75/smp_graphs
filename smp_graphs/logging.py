@@ -254,7 +254,7 @@ Arguments:
 
     # always copy current data into array
     sl = slice(sl1, sl2)
-
+    # print "sl", sl
     # assert len(data.shape) == 2, "data of %s is multidimensional array with shape %s, not fully supported yet" % (tbl_name, data.shape)
     
     # print "%s log_pd sl = %s, data.shape = %s" % (tbl_name, sl, data.shape)
@@ -264,6 +264,9 @@ Arguments:
     # print "tbl_name", tbl_name, "log_pd data.shape", data.shape
     tmplogdata = data.copy().reshape((-1, blocksize))
     # print "tmplogdata.sh", tmplogdata.shape
+    
+    # assert log_logarray[tbl_name][:,sl].shape == tmplogdata.shape, "logging.log_pd: Block output shape for %s doesn't agree with logging shape %s/%s" % (tbl_name, log_logarray[tbl_name][:,sl].shape, tmplogdata.shape, sl1, sl2)
+    
     log_logarray[tbl_name][:,sl] = tmplogdata # to copy or not to copy?
 
     # if logging blocksize aligns with count
