@@ -27,12 +27,15 @@ from sklearn import linear_model, kernel_ridge
 
 # reservoir lib from smp_base
 from smp_base.reservoirs import Reservoir, res_input_matrix_random_sparse, res_input_matrix_disjunct_proj
-
-from smp_graphs.graph import nxgraph_node_by_id_recursive
-from smp_graphs.block import decInit, decStep, PrimBlock2
+from smp_base.reservoirs import LearningRules
+from smp_base.models import iir_fo
 from smp_base.models_actinf  import smpKNN, smpGMM, smpIGMM, smpHebbianSOM
 from smp_base.models_selforg import HK
 from smp_base.learners import smpSHL, learnerReward, Eligibility
+
+# from smp_graphs.common import array_fix
+from smp_graphs.graph import nxgraph_node_by_id_recursive
+from smp_graphs.block import decInit, decStep, PrimBlock2
 
 try:
     from smp_base.models_actinf import smpOTLModel, smpSOESGP, smpSTORKGP
@@ -41,6 +44,32 @@ except ImportError, e:
     print "couldn't import online GP models", e
     HAVE_SOESGP = False
 
+
+def array_fix(a = None, col = True):
+    """smp_graphs.common.array_fix
+
+    Fix arrays once and forever.
+    - if scalar or list convert to array
+    - if one-dimensional add single second dimension / axis (atleast_2d)
+    - if no col-type shape, transpose
+    """
+    assert a is not None, "array_fix needs argument a"
+    if type(a) is list:
+        a = np.array(a)
+    if len(a.shape) == 1:
+        a = np.atleast_2d(a)
+
+    if a.shape[0] > a.shape[1]:
+        if col:
+            return a
+        else:
+            return a.T
+    else:
+        if col:
+            return a.T
+        else:
+            return a
+    
 class CodingBlock2(PrimBlock2):
     """CodingBlock2
 
@@ -620,19 +649,12 @@ def step_e2p(ref):
 
 # model func: reservoir expansion
 def init_eh(ref, conf, mconf):
+    # params variable shortcut
     params = conf['params']
+    # reservoir oversampling
     ref.oversampling = mconf['oversampling']
-    # ref.res = Reservoir(
-    #     N = mconf['N'],
-    #     input_num = mconf['res_input_num'],
-    #     output_num = mconf['res_output_num'],
-    #     input_scale = mconf['input_scale'], # 0.03,
-    #     bias_scale = mconf['bias_scale'], # 0.0,
-    #     feedback_scale = 0.0,
-    #     g = 0.99,
-    #     tau = 0.05,
-    # )
 
+    # reservoir network
     ref.res = Reservoir(
         N = mconf['N'],
         p = mconf['p'],
@@ -650,37 +672,29 @@ def init_eh(ref, conf, mconf):
         theta_state = mconf['res_theta_state'],
         coeff_a = mconf['coeff_a']
     )
+    # reservoir sparse random input weight matrix
     ref.res.wi = res_input_matrix_random_sparse(mconf['res_input_num'], mconf['N'], density = 0.2) * mconf['res_input_scaling']
+    # update output shape
     params['outputs']['x_res'] = {'shape': (mconf['N'], 1)}
-        
-    # ref.res = Reservoir2(N = mconf['N'],
-    #                       p = mconf['p'],
-    #                       input_num = mconf['idim'],
-    #                       output_num = mconf['odim'],
-    #                       g = mconf['g'],
-    #                       tau = mconf['tau'],
-    #                       eta_init = 0.,
-    #                       feedback_scale = mconf['res_feedback_scaling'],
-    #                       input_scale = mconf['res_input_scaling'],
-    #                       bias_scale = mconf['res_bias_scaling'],
-    #                       nonlin_func = mconf['nonlin_func'], # np.tanh, # lambda x: x,
-    #                       sparse = True, ip=bool(mconf['use_ip']),
-    #                       theta = mconf['res_theta'],
-    #                       theta_state = mconf['res_theta_state'],
-    #                       coeff_a = mconf['coeff_a'])
-    # # myidentity, np.tanh
-                              
+                                  
     # counting
     ref.cnt_main = 0
 
-    # # input / output / state variables and memory for synchronous logging
-    # ref.iosm = learnerIOSMem(
-    #     mconf['idim'], mconf['odim'], mconf['N'],
-    #     memlen = mconf['len_episode'])
-    # reward
+    # learning rule
+    print "conf", conf.keys()
+    print "mconf", mconf.keys()
+    ref.eta = params['models']['m1']['eta'] # mconf['eta']
+    ref.lr = LearningRules(ndim_out = mconf['odim'], dim = mconf['odim'])
+    
+    # reward (legacy approach from point_mass_learner_offline.py/OfflineLearner
     ref.rew = learnerReward(
         mconf['idim'], mconf['odim'], memlen = mconf['len_episode'],
         coeff_a = mconf['coeff_a'])
+
+    # low pass filter models
+    ref.perf_model = iir_fo(a = 0.2, dim = mconf['odim'])
+    ref.pre_model = iir_fo(a = 0.2, dim = mconf['odim'])
+    ref.pre_lp = np.zeros((mconf['odim'], 1))
 
     # FIXME: parameter configuration post-processing
     # expand input coupling matrix from specification
@@ -711,22 +725,64 @@ def init_eh(ref, conf, mconf):
     # use weight bounding
     if mconf['use_wb']:
         self.bound_weight_fit(mconf['wb_thr'])
-    # density estimators
+    # density estimators?
+    print "params.eta = %f, model.eta = %f, ref.eta = %f" % (params['eta'], params['models']['m1']['eta'], ref.eta, )
 
 def step_eh(ref):
-    print 'inputs', ref.inputs # ['x']['val'].shape
-    # x = ref.inputs['x']['val']
-    err = ref.inputs['pre_l1']['val'][...,-1] - ref.inputs['pre_l0']['val'][...,-1]
-    print "err", err.shape
-    x = np.hstack((
-        ref.inputs['pre_l0']['val'][...,-1],
+    # new measurements
+    goal = array_fix(ref.inputs['pre_l1']['val'][...,-1])
+    meas = array_fix(ref.inputs['meas_l0']['val'][...,-1])
+    err = goal - meas
+    pre = array_fix(ref.inputs['pre_l0']['val'][...,-1])
+
+    r = ref.res.r
+
+    # two funcs
+    # 1: fix_array_dims_(column|row)
+    # 2: recursive low-pass filter class, replace all _lp's with that, use as expansion
+    
+    # ref.rew.perf_accel_sum(err.T, meas.T)
+    # ref.rew.perf_accel(err.T, meas.T)
+    ref.rew.perf_pos(-np.square(err).T, meas.T)
+    ref.rew.perf = np.reshape(ref.rew.perf, (ref.odim, 1))
+    # print "perf", ref.rew.perf
+
+    # learning / update
+    dw = ref.lr.learnEH(
+        target = goal,
+        r = ref.res.r,
+        pred = pre,
+        pred_lp = ref.pre_lp,
+        perf = ref.rew.perf,
+        perf_lp = ref.rew.perf_lp,
+        eta = ref.eta
+    )
+
+    # print "dw", dw
+    ref.res.wo += dw
+    
+    # recent performance
+    ref.rew.perf_lp = ref.perf_model.predict(ref.rew.perf) # ref.rew.perf_lp * (1 - ref.rew.coeff_a) + ref.rew.perf * ref.rew.coeff_a
+    ref.pre_lp  = ref.pre_model.predict(pre) # ref.rew.perf_lp * (1 - ref.rew.coeff_a) + ref.rew.perf * ref.rew.coeff_a
+                
+    # new input
+    x = np.vstack((
+        pre,
         err,
-        ref.inputs['meas_l0']['val'][...,-1]
-        )).T
+        meas * 0.0
+        ))
+
+    # new prediction
     for i in range(ref.oversampling):
         ref.res.execute(x)
     # print ref.res.r.shape
     setattr(ref, 'pre', ref.res.zn)
+    setattr(ref, 'err', err)
+
+    if ref.cnt % 500 == 0:
+        print "iter[%d]: |W_o| = %f, eta = %f" % (ref.cnt, np.linalg.norm(ref.res.wo), ref.eta, )
+    
+    # exit to execute on system and wait for new measurement
             
 class model(object):
     """model

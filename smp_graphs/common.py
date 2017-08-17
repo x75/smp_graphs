@@ -49,19 +49,27 @@ conf = {
 
 
 def get_config_raw(conf, confvar = 'conf'):
-    """open config file, read it and call get_config_raw_from_string on that string"""
-    # open and read config file containing a dictionary spec of the graph
+    """base.common.py
+
+    open config file, read it and call get_config_raw_from_string on that string
+    """
+    # open and read config file containing a python dictionary
     try:
         s_ = open(conf, "r").read()
     except Exception, e:
         print e
         sys.exit(1)
 
+    # compile and evaluate the dictionary code string and return the dict object
     return get_config_raw_from_string(s_, confvar = confvar)
 
 def get_config_raw_from_string(conf, confvar = 'conf'):
-    """compile the 'conf' string and return the resulting 'confvar' variable"""
+    """base.common.get_config_raw_from_string
+
+    Compile the 'conf' string and return the resulting 'confvar' variable
+    """
     # prepend / append header and footer
+    # FIXME: this is smp_graphs specific
     lineoffset = 0
     lineoffset += conf_header.count('\n')
     lineoffset += conf_footer.count('\n')
@@ -96,9 +104,9 @@ def get_config_raw_from_string(conf, confvar = 'conf'):
     return local_vars[confvar]
 
 def get_input(inputs, inkey):
-    """common.get_input
+    """smp_graphs.common.get_input
 
-    return the 'val' field of the inputs' item at 'inkey'
+    An smp_graphs bus operation: return the 'val' field of the inputs' item at 'inkey'
     """
     assert type(inputs) is dict
     assert inkey is not None
@@ -106,10 +114,11 @@ def get_input(inputs, inkey):
     return inputs[inkey]['val']
 
 def dict_search_recursive(d, k):
-    """dict_search_recursive
+    """smp_graphs.common.dict_search_recursive
 
-    search for the presence of the key k recursively over a nested smp_graph config dicts
+    Search for the presence of key k recursively over nested smp_graph config dicts
     """
+    # FIXME: make it generic recursive search over nested graphs and move to smp_base
     # print "d", d, "k", k
     print "#" * 80
     print "searching k = %s " % (k,),
@@ -127,9 +136,9 @@ def dict_search_recursive(d, k):
     return None
 
 def dict_replace_idstr_recursive(d, cid, xid):
-    """dict_replace_idstr_recursive
+    """smp_graphs.common.dict_replace_idstr_recursive
 
-    replace all id references in the dict with id + parent information
+    Replace all id references in the dict with id + parent information
     """
     assert d.has_key('params')
     # assert d['params'].has_key('id')
@@ -146,7 +155,7 @@ def dict_replace_idstr_recursive(d, cid, xid):
     return d
 
 def dict_replace_nodekeys(d, xid, idmap = {}):
-    """dict_replace_nodekeys
+    """smp_graphs.common.dict_replace_nodekeys
 
     replace all keys in d by a copy with xid appended (looping) and store key/replacement in idmap
 
@@ -186,7 +195,7 @@ def dict_replace_nodekeys(d, xid, idmap = {}):
     return d, idmap
 
 def dict_replace_nodekeyrefs(d, xid, idmap):
-    """dict_replace_nodekeyrefs
+    """smp_graphs.common.dict_replace_nodekeyrefs
 
     replace all references to ids in idmap.keys with corresponding idmap.values
 
@@ -251,7 +260,7 @@ def dict_replace_nodekeyrefs(d, xid, idmap):
     return d, idmap
 
 def dict_replace_idstr_recursive2(d, xid, idmap = {}):
-    """dict_replace_idstr_recursive2
+    """smp_graphs.common.dict_replace_idstr_recursive2
 
     replace occurences of an 'id' string with a numbered version for looping
 
@@ -275,7 +284,7 @@ def dict_replace_idstr_recursive2(d, xid, idmap = {}):
     return d
             
 def read_puppy_hk_pickles(lfile, key = None):
-    """read pickled log dicts from andi's puppy experiments"""
+    """smp_graphs.common.read pickled log dicts from andi's puppy experiments"""
     d = pickle.load(open(lfile, 'rb'))
     # print "d.keys", d.keys()
     # data = d["y"][:,0,0] # , d["y"]
@@ -291,3 +300,4 @@ def read_puppy_hk_pickles(lfile, key = None):
     data['y'] = y[:,:,0]
     # print "x.shape", data.keys()
     return (data, rate, offset, d['x'].shape[0])
+

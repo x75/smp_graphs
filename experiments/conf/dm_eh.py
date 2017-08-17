@@ -42,7 +42,7 @@ showplot = True
 # experiment
 commandline_args = ['numsteps']
 randseed = 12347
-numsteps = int(10000/4)
+numsteps = int(10000/1)
 loopblocksize = numsteps
 sysname = 'pm'
 # sysname = 'sa'
@@ -306,7 +306,7 @@ maxlag = systemblock['params']['lag_max']
 dt = systemblock['params']['dt']
 laglen = maxlag - minlag
 
-eta = 0.99
+# eta = 0.99
 # eta = 0.95
 # eta = 0.7
 # eta = 0.3
@@ -314,6 +314,7 @@ eta = 0.99
 # eta = 0.15
 # eta = 0.1
 # eta = 0.05
+eta = 3e-3
 
 def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
     global partial
@@ -706,7 +707,7 @@ graph = OrderedDict([
                         'models': {
                             'goal': {'type': 'random_uniform'}
                             },
-                        'rate': 40,
+                        'rate': int(numsteps/10), # 1000,
                         },
                     }),
 
@@ -908,7 +909,7 @@ graph = OrderedDict([
                         'blockphase': [0],
                         'debug': False,
                         'lag': minlag,
-                        'eta': eta, # 3.7,
+                        'eta': 2e-3, # eta, # 3.7,
                         'ros': True,
                         # FIXME: relative shift = minlag, block length the maxlag
                         'inputs': {
@@ -951,12 +952,12 @@ graph = OrderedDict([
                                 'res_input_num': dim_s_proprio * laglen * 3,
                                 'res_output_num': dim_s_proprio * laglen,
                                 'res_feedback_scaling': 0.0,
-                                'res_input_scaling': 1.0,
-                                'res_bias_scaling': 0.9,
+                                'res_input_scaling': 3.0,
+                                'res_bias_scaling': 1.0,
                                 'res_output_scaling': 1.0,
                                 'nonlin_func': np.tanh,
                                 'use_ip': 0,
-                                'res_theta': 5e-1,
+                                'res_theta': 1e-1,
                                 'res_theta_state': 1e-1,
                                 'coeff_a': 0.2,
                                 'len_episode': numsteps,
