@@ -38,6 +38,7 @@ saveplot = False
 recurrent = True
 debug = False
 showplot = True
+ros = False
 
 # experiment
 commandline_args = ['numsteps']
@@ -910,7 +911,7 @@ graph = OrderedDict([
                         'debug': False,
                         'lag': minlag,
                         'eta': 5e-4, # 2e-3, # eta, # 3.7,
-                        'ros': True,
+                        'ros': False,
                         # FIXME: relative shift = minlag, block length the maxlag
                         'inputs': {
                             # descending prediction
