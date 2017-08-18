@@ -17,6 +17,21 @@ def main_graphviz(args):
     experiment.run()
     
 if __name__ == "__main__":
+    
+    import signal
+    def handler(signum, frame):
+        print ('Signal handler called with signal', signum)
+        # al.savelogs()
+        # l.isrunning = False
+        # if not args.batch:
+        import rospy
+        rospy.signal_shutdown("ending")
+        sys.exit(0)
+        # raise IOError("Couldn't open device!")
+
+    signal.signal(signal.SIGINT, handler)
+
+    
     args = get_args()
     modes = {
         'run': main,

@@ -26,8 +26,8 @@ from sklearn import linear_model, kernel_ridge
             
 
 # reservoir lib from smp_base
-from smp_base.reservoirs import Reservoir, res_input_matrix_random_sparse, res_input_matrix_disjunct_proj
-from smp_base.reservoirs import LearningRules
+from smp_base.reservoirs import res_input_matrix_random_sparse, res_input_matrix_disjunct_proj
+from smp_base.reservoirs import Reservoir, LearningRules
 from smp_base.models import iir_fo
 from smp_base.models_actinf  import smpKNN, smpGMM, smpIGMM, smpHebbianSOM
 from smp_base.models_selforg import HK
@@ -162,7 +162,7 @@ def step_res(ref):
     # print ref.res.r.shape
     setattr(ref, 'x_res', ref.res.r)
 
-# model func: polynomial expansion via mdp
+# model func: polynomial expansion using mdp
 def init_polyexp(ref, conf, mconf):
     params = conf['params']
     ref.polyexpnode = PolynomialExpansionNode(3)
@@ -231,7 +231,7 @@ def step_alternating_sign(ref):
         #     ref.cname, ref.id, ref.cnt, outk, getattr(ref, outk))
         print "block_models.py: alternating_sign_step %s = %s" % (outk, getattr(ref, outk))
         
-# active inference stuff
+# used in actinf and homeokinesis
 def init_model(ref, conf, mconf):
     """initialize sensorimotor forward model"""
     algo = mconf['algo']
@@ -296,24 +296,28 @@ def init_model(ref, conf, mconf):
         
     return mdl
 
+################################################################################
 # tapping, uh ah
 def tapping_SM(ref, mode = 'm1'):
+    """block_models.tapping_SM
+
+    Tap the incoming sensorimotor data stream as specified by each input's lag configuration
+    
     # FIXME: rewrite in general form (ref, invariable) -> (tapped invariable)
-    # tapping: tap data
-    # tapping: build training set
     
     # maxlag == windowsize
     # individual lags as array
-
-    ############################################################
-    # instantaneous inputs
+    """
+    
     # current goal[t] prediction descending from layer above
     if ref.inputs.has_key('blk_mode') and ref.inputs['blk_mode']['val'][0,0] == 2.0:
-        # that's a wild HACK
+        # that's a wild HACK for switching the top down goal input of the current predictor
         ref.pre_l1_inkey = 'e2p_l1'
     else:
         ref.pre_l1_inkey = 'pre_l1'
         
+    ############################################################
+    # instantaneous inputs: the full input buffer as specified by the minlag-maxlag range
     pre_l1   = ref.inputs[ref.pre_l1_inkey]['val']
     # measurement[t] at current layer input
     meas_l0 = ref.inputs['meas_l0']['val']
@@ -323,7 +327,7 @@ def tapping_SM(ref, mode = 'm1'):
     prerr_l0 = ref.inputs['prerr_l0']['val']
 
     ############################################################
-    # tapped inputs
+    # tapped inputs: a buffer containing only selected (receptive field, kernel, ...) dimensions and times
     # get lag spec: None (lag = 1), int d (lag = d), array a (lag = a)
     pre_l1_tap_spec = ref.inputs[ref.pre_l1_inkey]['lag']
     # print "pre_l1_tap_spec", pre_l1_tap_spec
@@ -359,6 +363,12 @@ def tapping_SM(ref, mode = 'm1'):
     return (pre_l1_tap_flat, pre_l0_tap_flat, meas_l0_tap_flat, prerr_l0_tap_flat, prerr_l0_, prerr_l0__)
 
 def tapping_XY(ref, pre_l1_tap_flat, pre_l0_tap_flat, prerr_l0_tap_flat, prerr_l0__, mode = 'm1'):
+    """block_models.tapping_XY
+
+    Tap data from the sensorimotor data stream and build a supervised
+    training set of inputs X and targets Y suitable for machine
+    learning algorithms.
+    """
     # print "tapping pre_l1", pre_l1_tap_flat.shape, prerr_l0_tap_flat.shape, ref.idim
     # print "tapping reshape", pre_l1_tap.reshape((ref.idim/2, 1)), prerr_l0_tap.reshape((ref.idim/2, 1))
     if ref.type == 'm1' or ref.type == 'm3':
@@ -379,6 +389,12 @@ def tapping_XY(ref, pre_l1_tap_flat, pre_l0_tap_flat, prerr_l0_tap_flat, prerr_l
     return (X, Y)
 
 def tapping_X(ref, pre_l1_tap_flat, prerr_l0__):
+    """block_models.tapping_X
+
+    Tap data from the sensorimotor data stream and build an
+    unsupervised training set of inputs X suitable for machine
+    learning algorithms.
+    """
     if ref.type == 'm1' or ref.type == 'm3':
         X = np.vstack((pre_l1_tap_flat, prerr_l0__))
     elif ref.type == 'm2':
@@ -386,6 +402,8 @@ def tapping_X(ref, pre_l1_tap_flat, prerr_l0__):
 
     return X
 
+################################################################################
+# active inference model
 # model func: actinf_m2
 def init_actinf(ref, conf, mconf):
     # params = conf['params']
@@ -651,6 +669,19 @@ def step_e2p(ref):
 
 # model func: reservoir expansion
 def init_eh(ref, conf, mconf):
+    """init_eh
+
+    Reward modulated exploratory Hebbian learning initialization
+
+    TODO
+    - x Base version ported from point_mass_learner_offline.py and learners.py
+    - Integrate and merge tapping with earlier Eligibility / learnEHE approach
+    - Use tapping to build a supervised learning version of the algorithm?
+    - Implement and compare CACLA
+    - Tapping past/future cleanup and evaluate -1/0, -n:-1/0, -mask/0, -n/k, -mask/mask, -n/n
+    """
+    # FIXME: definition of all variables of this model (eh) for logging / publishing
+    
     # params variable shortcut
     params = conf['params']
     # reservoir oversampling
@@ -741,8 +772,12 @@ def init_eh(ref, conf, mconf):
     
 
 def step_eh(ref):
-    # new measurements
+    """step_eh
 
+    Reward modulated exploratory Hebbian learning predict/update step
+    """
+    # new measurements
+    print "refs power =", dir(ref)
     # deal with the lag specification for each input (lag, delay, temporal characteristic)
     (pre_l1, pre_l0, meas_l0, prerr_l0, prerr_l0_, prerr_l0__) = ref.tapping_SM(ref)
     (X, Y) = ref.tapping_XY(ref, pre_l1, pre_l0, prerr_l0, prerr_l0__)
@@ -757,9 +792,11 @@ def step_eh(ref):
     goal = pre_l1
     meas = meas_l0
     pre = pre_l0
-    err = goal - meas
+    err_local = goal - meas
 
-    # print "pre", pre, pre__
+    # print "err", err.shape
+    # print "prerr_l0_", prerr_l0_.shape
+    # print "prerr_l0__", prerr_l0__.shape
     
     r = ref.res.r
 
@@ -769,9 +806,22 @@ def step_eh(ref):
     
     # ref.rew.perf_accel_sum(err.T, meas.T)
     # ref.rew.perf_accel(err.T, meas.T)
-    ref.rew.perf_pos(-np.square(err).T, meas.T)
+    # FIXME: perf: element-wise, coupled, all
+    # FIXME: perf: order 0, 1, 2, -1, -2 (expansions)
+    # FIXME: perf: error, goal reached, mi, pi, novelty, ...
+    # FIXME: perf: learn perf from sparse and coarse reward aka Q-learning ;)
+    # ref.rew.perf_pos(-np.square(prerr_l0_).T, meas.T)
+    err_ = np.sum(np.abs(prerr_l0__))
+    # print "err", err
+    err__ = np.ones_like(err_local) * np.sum(np.abs(err_local)) # err_
+    # print "err__", err__.shape
+    err = err__.copy()
+    # ref.rew.perf_pos(-np.square(err__).T, meas.T)
+    ref.rew.perf_pos(err.T, meas.T)
+    # ref.rew.perf_pos(-np.square(err).T, meas.T)
+    # print "ref.rew.perf", ref.rew.perf
     ref.rew.perf = np.reshape(ref.rew.perf, (ref.odim, 1))
-    # print "perf", ref.rew.perf
+    # print "ref.rew.perf", ref.rew.perf.shape
 
     # learning / update
     dw = ref.lr.learnEH(
@@ -850,10 +900,10 @@ class model(object):
         'actinf_m2': {'init': init_actinf, 'step': step_actinf},
         'actinf_m3': {'init': init_actinf, 'step': step_actinf},
         'e2p':       {'init': init_e2p,    'step': step_e2p},
-        # direct forward model learning
-        # direct inverse model learning
+        # direct forward/inverse model pair learning
+        # reward based learning
         'eh':        {'init': init_eh,     'step': step_eh},
-        # selforg playful
+        # self-organization of behaviour: hk, pimax/tipi, infth_pi, infth_ais, ...
         'homeokinesis': {'init': init_homoekinesis, 'step': step_homeokinesis},
     }
     # 
