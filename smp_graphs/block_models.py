@@ -259,7 +259,8 @@ def init_model(ref, conf, mconf):
         mdl = smpSOESGP(conf = mconf)
     elif algo == "storkgp":
         mdl = smpSTORKGP(conf = mconf)
-    elif algo == 'resrls':
+    elif algo in ['resrls', 'res_eh']:
+        # only copy unset fields from the source
         mconf.update(smpSHL.defaults)
         # mconf.update({'numepisodes': 1, 'mapsize_e': 140, 'mapsize_p': 60, 'som_lr': 1e-1, 'visualize': False})
         mconf.update({'idim': idim, 'odim': odim})
@@ -684,15 +685,20 @@ def init_eh(ref, conf, mconf):
     
     # params variable shortcut
     params = conf['params']
+
+    # parameter aliases: algo -> type -> lrname, N -> modelsize, g -> spectral_radius, p -> density
+    
     # reservoir oversampling
     ref.oversampling = mconf['oversampling']
 
     # model/algo type
     ref.type = mconf['type']
     
+    # ref.mdl = init_model(ref, conf, mconf)
+    
     # reservoir network
     ref.res = Reservoir(
-        N = mconf['N'],
+        N = mconf['modelsize'],
         p = mconf['p'],
         input_num = mconf['res_input_num'],
         output_num = mconf['res_output_num'],
@@ -709,9 +715,9 @@ def init_eh(ref, conf, mconf):
         coeff_a = mconf['coeff_a']
     )
     # reservoir sparse random input weight matrix
-    ref.res.wi = res_input_matrix_random_sparse(mconf['res_input_num'], mconf['N'], density = 0.2) * mconf['res_input_scaling']
+    ref.res.wi = res_input_matrix_random_sparse(mconf['res_input_num'], mconf['modelsize'], density = 0.2) * mconf['res_input_scaling']
     # update output shape
-    # params['outputs']['x_res'] = {'shape': (mconf['N'], 1)}
+    # params['outputs']['x_res'] = {'shape': (mconf['modelsize'], 1)}
                                   
     # counting
     # ref.cnt_main = 0
@@ -757,7 +763,7 @@ def init_eh(ref, conf, mconf):
             mconf['pre_inputs'],
             mconf['pre_delay'],
             mconf['len_episode'],
-            mconf['N'])
+            mconf['modelsize'])
 
     # use weight bounding
     if mconf['use_wb']:
@@ -777,7 +783,7 @@ def step_eh(ref):
     Reward modulated exploratory Hebbian learning predict/update step
     """
     # new measurements
-    print "refs power =", dir(ref)
+    # print "ref's power =", dir(ref)
     # deal with the lag specification for each input (lag, delay, temporal characteristic)
     (pre_l1, pre_l0, meas_l0, prerr_l0, prerr_l0_, prerr_l0__) = ref.tapping_SM(ref)
     (X, Y) = ref.tapping_XY(ref, pre_l1, pre_l0, prerr_l0, prerr_l0__)
@@ -792,33 +798,35 @@ def step_eh(ref):
     goal = pre_l1
     meas = meas_l0
     pre = pre_l0
-    err_local = goal - meas
-
-    # print "err", err.shape
-    # print "prerr_l0_", prerr_l0_.shape
-    # print "prerr_l0__", prerr_l0__.shape
+    err = goal - meas
     
     r = ref.res.r
 
-    # two funcs
-    # 1: fix_array_dims_(column|row)
-    # 2: recursive low-pass filter class, replace all _lp's with that, use as expansion
-    
-    # ref.rew.perf_accel_sum(err.T, meas.T)
-    # ref.rew.perf_accel(err.T, meas.T)
-    # FIXME: perf: element-wise, coupled, all
-    # FIXME: perf: order 0, 1, 2, -1, -2 (expansions)
-    # FIXME: perf: error, goal reached, mi, pi, novelty, ...
+    # error / performance: different variations
+    # FIXME: perf: element-wise, global, partially coupled, ...
+    # FIXME: perf: order 0, 1, 2, -1, -2, differential relation between output and measurement, e.g. use int/diff expansions 
+    # FIXME: perf: fine-grained error, binary goal reached, selforg via mi, pi, novelty, ...
     # FIXME: perf: learn perf from sparse and coarse reward aka Q-learning ;)
-    # ref.rew.perf_pos(-np.square(prerr_l0_).T, meas.T)
-    err_ = np.sum(np.abs(prerr_l0__))
-    # print "err", err
-    err__ = np.ones_like(err_local) * np.sum(np.abs(err_local)) # err_
-    # print "err__", err__.shape
-    err = err__.copy()
-    # ref.rew.perf_pos(-np.square(err__).T, meas.T)
-    ref.rew.perf_pos(err.T, meas.T)
-    # ref.rew.perf_pos(-np.square(err).T, meas.T)
+    
+    # FIXME: all of this should now go into measures an be called from there, e.g. dict of funcs
+
+    err_square = np.square(err)    
+    err_abs    = np.abs(err)
+    
+    err_sumabs = np.sum(np.abs(err))
+    err_sumsquare = np.sum(np.square(err))
+    err_sumsqrt = np.sum(np.sqrt(err_abs))
+    
+    perf = -np.ones_like(err) * err_square
+    perf = -np.ones_like(err) * err_abs
+    
+    # perf = -np.ones_like(err) * err_sumabs
+    # perf = -np.ones_like(err) * err_sumsquare
+    # perf = -np.ones_like(err) * err_sumsqrt
+    
+    # ref.rew.perf_accel_sum(perf.T, meas.T)
+    # ref.rew.perf_accel(perf.T, meas.T)
+    ref.rew.perf_pos(perf.T, meas.T)
     # print "ref.rew.perf", ref.rew.perf
     ref.rew.perf = np.reshape(ref.rew.perf, (ref.odim, 1))
     # print "ref.rew.perf", ref.rew.perf.shape
@@ -844,27 +852,17 @@ def step_eh(ref):
     # new input
     x = np.vstack((
         pre,
-        err,
-        meas * 0.0
+        perf,
+        meas,
         ))
 
     # new prediction
     for i in range(ref.oversampling):
         ref.res.execute(x)
-    # print ref.res.r.shape
 
-    # pre_ = getattr(ref, 'pre_')
-    # if ref.type == 'm1' or ref.type == 'm3':
-    #     pre_[...,[-1]] = pre
-    # elif ref.type == 'm2':
-    #     pre_[...,[-1]] = np.clip(pre_[...,[-1]] + pre, -1, 1)
-    # err_ = getattr(ref, 'err')
-    # err_[...,[-1]] = prerr
-    # tgt_ = getattr(ref, 'tgt')
-    # tgt_[...,[-1]] = y_
-
+    # prepare outputs
     pre_ = ref.res.zn.reshape((-1, ref.laglen))
-    err_ = err.reshape((-1, ref.laglen))
+    err_ = perf.reshape((-1, ref.laglen))
     # print "pre_", pre_
     # print "err_", err_
     setattr(ref, 'pre', pre_[:,[-1]])
