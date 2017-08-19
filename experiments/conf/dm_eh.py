@@ -43,10 +43,10 @@ ros = False
 # experiment
 commandline_args = ['numsteps']
 randseed = 12348
-numsteps = int(10000/(2))
+numsteps = int(10000/(1))
 loopblocksize = numsteps
-# sysname = 'pm'
-sysname = 'sa'
+sysname = 'pm'
+# sysname = 'sa'
 # sysname = 'bha'
 # sysname = 'stdr'
 # sysname = 'lpzbarrel'

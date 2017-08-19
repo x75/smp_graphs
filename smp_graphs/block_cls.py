@@ -33,9 +33,9 @@ class PointmassBlock2(SysBlock2):
         SysBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
         self.debug_print("init: conf = %s", (conf,))
-        if self.systype == 2:
+        if hasattr(self, 'systype') and self.systype == 2:
             self.system = Pointmass2Sys(conf['params'])
-        elif self.systype == 1:
+        else:
             self.system = PointmassSys(conf['params'])
         # latent output variables defined by pointmass system
         self.x = {

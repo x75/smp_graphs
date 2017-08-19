@@ -254,6 +254,10 @@ def init_model(ref, conf, mconf):
     Compute a prediction of the model given an input X.
 
     Y_ = predict(X)
+
+    TODO
+    - dim1: number of variables
+    - dim2: number of representatives of single variable (e.g. mean coding, mixture coding, ...)
     """
     algo = mconf['algo']
     idim = mconf['idim']
@@ -281,6 +285,8 @@ def init_model(ref, conf, mconf):
     elif algo == "storkgp":
         mdl = smpSTORKGP(conf = mconf)
     elif algo in ['resrls', 'res_eh']:
+        if algo == 'resrls':
+            mconf['lrname'] = 'RLS'
         # only copy unset fields from the source
         # mconf.update(smpSHL.defaults)
         # mconf.update({'numepisodes': 1, 'mapsize_e': 140, 'mapsize_p': 60, 'som_lr': 1e-1, 'visualize': False})
@@ -542,6 +548,7 @@ def step_actinf(ref):
 
     ref.X_ = tapping_X(ref, pre_l1_tap_flat, prerr_l0__)
 
+    print "step_actinf X[%d] = %s" % (ref.cnt, ref.X_.shape)
     pre_l0_ = ref.mdl.predict(ref.X_.T)
     # print "cnt = %s, pre_l0_" % (ref.cnt,), pre_l0_, "prerr_l0_", prerr_l0_.shape
     pre = pre_l0_.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
@@ -717,6 +724,7 @@ def init_eh(ref, conf, mconf):
 
     TODO
     - x Base version ported from point_mass_learner_offline.py and learners.py
+    - Consolidate: step_eh, smpSHL, learnEH and learn*, tappings, eligibility, dev-model vs. smpSHL vs. LearningRules vs. Explorer
     - Integrate and merge tapping with earlier Eligibility / learnEHE approach
     - Use tapping to build a supervised learning version of the algorithm?
     - Implement and compare CACLA
@@ -727,7 +735,11 @@ def init_eh(ref, conf, mconf):
     # params variable shortcut
     params = conf['params']
 
-    # parameter aliases: algo -> type -> lrname, N -> modelsize, g -> spectral_radius, p -> density
+    # parameter aliases
+    # algo -> type -> lrname
+    # N -> modelsize
+    # g -> spectral_radius
+    # p -> density
     
     # reservoir oversampling
     ref.oversampling = mconf['oversampling']
@@ -735,45 +747,43 @@ def init_eh(ref, conf, mconf):
     # model/algo type
     ref.type = mconf['type']
 
-    print "init_eh mconf[lrname]", mconf['lrname']
+    # print "init_eh mconf[lrname]", mconf['lrname']
     # print "init_eh mconf[theta]", mconf['theta']
     mconf['theta'] = mconf['res_theta']
     
     # reservoir network
     ref.mdl = init_model(ref, conf, mconf)
-    # short term memory ring buffer
+    # short term memory for hidden activations ring buffer
     ref.r_buf = np.zeros((mconf['modelsize'], mconf['maxlag']))
     
-    ref.res = Reservoir(
-        N = mconf['modelsize'],
-        p = mconf['p'],
-        input_num = mconf['res_input_num'],
-        output_num = mconf['res_output_num'],
-        g = mconf['g'],
-        tau = mconf['tau'],
-        eta_init = 0,
-        feedback_scale = mconf['res_feedback_scaling'],
-        input_scale = mconf['res_input_scaling'],
-        bias_scale = mconf['res_bias_scaling'],
-        nonlin_func = mconf['nonlin_func'], # np.tanh, # lambda x: x,
-        sparse = True, ip=bool(mconf['use_ip']),
-        theta = mconf['res_theta'],
-        theta_state = mconf['res_theta_state'],
-        coeff_a = mconf['coeff_a']
-    )
-    # reservoir sparse random input weight matrix
-    ref.res.wi = res_input_matrix_random_sparse(mconf['res_input_num'], mconf['modelsize'], density = 0.2) * mconf['res_input_scaling']
+    # ref.res = Reservoir(
+    #     N = mconf['modelsize'],
+    #     p = mconf['p'],
+    #     input_num = mconf['res_input_num'],
+    #     output_num = mconf['res_output_num'],
+    #     g = mconf['g'],
+    #     tau = mconf['tau'],
+    #     eta_init = 0,
+    #     feedback_scale = mconf['res_feedback_scaling'],
+    #     input_scale = mconf['res_input_scaling'],
+    #     bias_scale = mconf['res_bias_scaling'],
+    #     nonlin_func = mconf['nonlin_func'], # np.tanh, # lambda x: x,
+    #     sparse = True, ip=bool(mconf['use_ip']),
+    #     theta = mconf['res_theta'],
+    #     theta_state = mconf['res_theta_state'],
+    #     coeff_a = mconf['coeff_a']
+    # )
     
-    ref.mdl.wi = res_input_matrix_random_sparse(mconf['res_input_num'], mconf['modelsize'], density = 0.2) * mconf['res_input_scaling']
-    # update output shape
-    # params['outputs']['x_res'] = {'shape': (mconf['modelsize'], 1)}
-                                  
-    # counting
-    # ref.cnt_main = 0
-
+    # # reservoir sparse random input weight matrix
+    # ref.res.wi = res_input_matrix_random_sparse(mconf['res_input_num'], mconf['modelsize'], density = 0.2) * mconf['res_input_scaling']
+    
+    # reservoir sparse random input weight matrix
+    ref.mdl.wi = res_input_matrix_random_sparse(
+        mconf['res_input_num'],
+        mconf['modelsize'],
+        density = 0.2) * mconf['res_input_scaling']
+    
     # learning rule
-    print "conf", conf.keys()
-    print "mconf", mconf.keys()
     ref.eta = params['eta'] # params['models']['m1']['eta'] # mconf['eta']
     ref.lr = LearningRules(ndim_out = mconf['odim'], dim = mconf['odim'])
     ref.laglen  = mconf['laglen']
@@ -854,8 +864,8 @@ def step_eh(ref):
     # shift buffer
     ref.r_buf = np.roll(ref.r_buf, -1, axis = 1)
     # new value
-    ref.r_buf[...,[-1]] = ref.res.r
-    # r = ref.mdl.model.r
+    # ref.r_buf[...,[-1]] = ref.res.r
+    ref.r_buf[...,[-1]] = ref.mdl.model.r
 
     # error / performance: different variations
     # FIXME: perf: element-wise, global, partially coupled, ...
@@ -865,7 +875,7 @@ def step_eh(ref):
     
     # FIXME: all of this should now go into measures an be called from there, e.g. dict of funcs
 
-    err_square = np.square(err)    
+    err_square = np.square(err)
     err_abs    = np.abs(err)
     
     err_sumabs = np.sum(np.abs(err))
@@ -886,20 +896,20 @@ def step_eh(ref):
     ref.rew.perf = np.reshape(ref.rew.perf, (ref.odim, 1))
     # print "ref.rew.perf", ref.rew.perf.shape
 
-    # learning / update
-    dw = ref.lr.learnEH(
-        target = goal,
-        r = ref.r_buf[...,[-1]], # @lag
-        pred = pre,
-        pred_lp = ref.pre_lp,
-        perf = ref.rew.perf,
-        perf_lp = ref.rew.perf_lp,
-        eta = ref.eta
-    )
+    # # learning / update
+    # dw = ref.lr.learnEH(
+    #     target = goal,
+    #     r = ref.r_buf[...,[-1]], # @lag
+    #     pred = pre,
+    #     pred_lp = ref.pre_lp,
+    #     perf = ref.rew.perf,
+    #     perf_lp = ref.rew.perf_lp,
+    #     eta = ref.eta
+    # )
 
-    # print "dw", dw
-    ref.res.wo += dw
-    # ref.mdl.wo += dw
+    # # print "dw", dw
+    # ref.res.wo += dw
+    # # ref.mdl.wo += dw
     
     # new input
     x = np.vstack((
@@ -908,9 +918,9 @@ def step_eh(ref):
         meas,
         ))
 
-    # new prediction
-    for i in range(ref.oversampling):
-        ref.res.execute(x)
+    # # new prediction
+    # for i in range(ref.oversampling):
+    #     ref.res.execute(x)
 
     # step = fit + predict
     # print "x", x.shape
@@ -921,7 +931,7 @@ def step_eh(ref):
     
     # y_mdl_ = ref.mdl.step(x, np.zeros((ref.odim, 1)))
     y_mdl_ = ref.mdl.step(
-        X = x,
+        X = x.T,
         Y = np.zeros((ref.odim, 1)),
         r = ref.mdl.model.r, # FIXME: also tap
         pred = pre,
@@ -929,7 +939,7 @@ def step_eh(ref):
         perf = ref.rew.perf,
         perf_lp = ref.rew.perf_lp,
         eta = ref.eta
-        )
+    )
     # print "y_mdl_", y_mdl_
     
     # recent performance
@@ -949,7 +959,7 @@ def step_eh(ref):
     setattr(ref, 'err', err_[:,[-1]])
 
     if ref.cnt % 500 == 0:
-        print "iter[%d]: |W_o| = %f, eta = %f" % (ref.cnt, np.linalg.norm(ref.res.wo), ref.eta, )
+        print "iter[%d]: |W_o| = %f, eta = %f" % (ref.cnt, np.linalg.norm(ref.mdl.model.wo), ref.eta, )
     
     # exit to execute on system and wait for new measurement
             
@@ -984,8 +994,19 @@ class model(object):
         # self-organization of behaviour: hk, pimax/tipi, infth_pi, infth_ais, ...
         'homeokinesis': {'init': init_homoekinesis, 'step': step_homeokinesis},
     }
-    # 
+
     def __init__(self, ref, conf, mconf = {}):
+        """model.init
+
+        Initialize the core model of a ModelBlock2.
+
+        Uses configuration dict from block config and implements many
+        model variants.
+        
+        Arguments
+        - conf: Block configuration
+        - mconf: model configuration
+        """
         assert mconf['type'] in self.models.keys(), "in %s.init: unknown model type, %s not in %s" % (self.__class__.__name__, mconf['type'], self.models.keys())
         # FIXME: ignoring multiple entries taking 'last' one, in dictionary order
         self.modelstr = mconf['type']
