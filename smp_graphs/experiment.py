@@ -111,23 +111,24 @@ Load a config from the file in args.conf
 
         # plot the computation graph and the bus
         set_interactive(True)
-        graph_fig = makefig(rows = 1, cols = 3, wspace = 0.1, hspace = 0.0,
-                            axesspec = [(0, 0), (0, slice(1, None))], title = "Nxgraph and Bus")
-        # nxgraph_plot(self.topblock.nxgraph, ax = graph_fig.axes[0])
-        # flatten for drawing, quick hack
-        G = nxgraph_flatten(self.topblock.nxgraph)
-        # for node,noded in G.nodes_iter(data=True):
-        #     print "node", node, G.node[node], noded
-        G = nxgraph_add_edges(G)
-        # for edge in G.edges_iter():
-        #     print "edge", edge
-        nxgraph_plot(G, ax = graph_fig.axes[0], layout_type = "spring", node_size = 300)
-        # recursive_draw(self.topblock.nxgraph, ax = graph_fig.axes[0], node_size = 300, currentscalefactor = 0.1)
-        self.topblock.bus.plot(graph_fig.axes[1])
-        if self.conf['params']['saveplot']:
-            filename = "data/%s_%s.%s" % (self.topblock.id, "graph_bus", 'jpg')
-            graph_fig.savefig(filename, dpi=300, bbox_inches="tight")
-        # print self.conf['params']
+        
+        # graph_fig = makefig(rows = 1, cols = 3, wspace = 0.1, hspace = 0.0,
+        #                     axesspec = [(0, 0), (0, slice(1, None))], title = "Nxgraph and Bus")
+        # # nxgraph_plot(self.topblock.nxgraph, ax = graph_fig.axes[0])
+        # # flatten for drawing, quick hack
+        # G = nxgraph_flatten(self.topblock.nxgraph)
+        # # for node,noded in G.nodes_iter(data=True):
+        # #     print "node", node, G.node[node], noded
+        # G = nxgraph_add_edges(G)
+        # # for edge in G.edges_iter():
+        # #     print "edge", edge
+        # nxgraph_plot(G, ax = graph_fig.axes[0], layout_type = "spring", node_size = 300)
+        # # recursive_draw(self.topblock.nxgraph, ax = graph_fig.axes[0], node_size = 300, currentscalefactor = 0.1)
+        # self.topblock.bus.plot(graph_fig.axes[1])
+        # if self.conf['params']['saveplot']:
+        #     filename = "data/%s_%s.%s" % (self.topblock.id, "graph_bus", 'jpg')
+        #     graph_fig.savefig(filename, dpi=300, bbox_inches="tight")
+        # # print self.conf['params']
         
         # print "print_dict\n", print_dict(self.conf)
     

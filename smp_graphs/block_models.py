@@ -231,9 +231,30 @@ def step_alternating_sign(ref):
         #     ref.cname, ref.id, ref.cnt, outk, getattr(ref, outk))
         print "block_models.py: alternating_sign_step %s = %s" % (outk, getattr(ref, outk))
         
-# used in actinf and homeokinesis
+# used by: actinf, homeokinesis, e2p, eh (FIXME: rename reward)
 def init_model(ref, conf, mconf):
-    """initialize sensorimotor forward model"""
+    """block_models.init_model
+
+    Initialize an smp model for use in an agent self-exploration and
+    learning model.
+
+    Model interface:
+
+    Init with one dictionary parameter holding the configuration
+    composed from smpModel.defaults and model configuration in the
+    BlockModel params.
+
+    init(conf = mconf)
+
+    Fit the model to some supervised training data input X, target Y
+    or unsupervised training data input X, target = None.
+
+    fit(X, Y)
+
+    Compute a prediction of the model given an input X.
+
+    Y_ = predict(X)
+    """
     algo = mconf['algo']
     idim = mconf['idim']
     odim = mconf['odim']
@@ -261,9 +282,9 @@ def init_model(ref, conf, mconf):
         mdl = smpSTORKGP(conf = mconf)
     elif algo in ['resrls', 'res_eh']:
         # only copy unset fields from the source
-        mconf.update(smpSHL.defaults)
+        # mconf.update(smpSHL.defaults)
         # mconf.update({'numepisodes': 1, 'mapsize_e': 140, 'mapsize_p': 60, 'som_lr': 1e-1, 'visualize': False})
-        mconf.update({'idim': idim, 'odim': odim})
+        # mconf.update({'idim': idim, 'odim': odim})
         mdl = smpSHL(conf = mconf)
     elif algo == 'copy':
         targetid = mconf['copyid']
@@ -402,6 +423,26 @@ def tapping_X(ref, pre_l1_tap_flat, prerr_l0__):
         X = np.vstack((prerr_l0__, ))
 
     return X
+
+def tapping_EH(
+        ref, pre_l1_tap_flat, pre_l0_tap_flat, meas_l0_tap_flat,
+        prerr_l0_tap_flat, prerr_l0_, prerr_l0__):
+    """block_models.tapping_EH
+
+    Tap data from the sensorimotor data stream and build a reward
+    modulated training set of inputs X and targets Y suitable for RL.
+    """
+    # print "tapping pre_l1", pre_l1_tap_flat.shape, prerr_l0_tap_flat.shape, ref.idim
+    # print "tapping reshape", pre_l1_tap.reshape((ref.idim/2, 1)), prerr_l0_tap.reshape((ref.idim/2, 1))
+    if ref.type == 'eh':
+        X = np.vstack((pre_l0_tap_flat, prerr_l0_tap_flat, meas_l0_tap_flat))
+        # compute the target for the forward model from the embedding PE
+        Y = (pre_l0_tap_flat - (prerr_l0__ * ref.eta))
+
+    else:
+        return (None, None)
+    
+    return (X, Y)
 
 ################################################################################
 # active inference model
@@ -693,10 +734,16 @@ def init_eh(ref, conf, mconf):
 
     # model/algo type
     ref.type = mconf['type']
-    
-    # ref.mdl = init_model(ref, conf, mconf)
+
+    print "init_eh mconf[lrname]", mconf['lrname']
+    # print "init_eh mconf[theta]", mconf['theta']
+    mconf['theta'] = mconf['res_theta']
     
     # reservoir network
+    ref.mdl = init_model(ref, conf, mconf)
+    # short term memory ring buffer
+    ref.r_buf = np.zeros((mconf['modelsize'], mconf['maxlag']))
+    
     ref.res = Reservoir(
         N = mconf['modelsize'],
         p = mconf['p'],
@@ -716,6 +763,8 @@ def init_eh(ref, conf, mconf):
     )
     # reservoir sparse random input weight matrix
     ref.res.wi = res_input_matrix_random_sparse(mconf['res_input_num'], mconf['modelsize'], density = 0.2) * mconf['res_input_scaling']
+    
+    ref.mdl.wi = res_input_matrix_random_sparse(mconf['res_input_num'], mconf['modelsize'], density = 0.2) * mconf['res_input_scaling']
     # update output shape
     # params['outputs']['x_res'] = {'shape': (mconf['modelsize'], 1)}
                                   
@@ -773,9 +822,8 @@ def init_eh(ref, conf, mconf):
 
     # initialize tapping
     ref.tapping_SM = partial(tapping_SM, mode = ref.type)
-    ref.tapping_XY = partial(tapping_XY, mode = ref.type)
+    ref.tapping_EH = partial(tapping_EH)
     ref.tapping_X = partial(tapping_X)
-    
 
 def step_eh(ref):
     """step_eh
@@ -786,21 +834,28 @@ def step_eh(ref):
     # print "ref's power =", dir(ref)
     # deal with the lag specification for each input (lag, delay, temporal characteristic)
     (pre_l1, pre_l0, meas_l0, prerr_l0, prerr_l0_, prerr_l0__) = ref.tapping_SM(ref)
-    (X, Y) = ref.tapping_XY(ref, pre_l1, pre_l0, prerr_l0, prerr_l0__)
-    
+    # (X, Y) = ref.tapping_XY(ref, pre_l1, pre_l0, prerr_l0, prerr_l0__)
+    (X, Y) = ref.tapping_EH(
+        ref, pre_l1, pre_l0, meas_l0,
+        prerr_l0, prerr_l0_, prerr_l0__)
+     
     # print "tapped pre_l1 = %s" % (pre_l1.shape,)
 
-    # goal = array_fix(ref.inputs['pre_l1']['val'][...,-1])
-    # meas = array_fix(ref.inputs['meas_l0']['val'][...,-1])
-    # err = goal - meas
-    pre__ = array_fix(ref.inputs['pre_l0']['val'][...,-1])
-
+    ############################################################
+    # eh learning
+    
     goal = pre_l1
     meas = meas_l0
     pre = pre_l0
     err = goal - meas
-    
-    r = ref.res.r
+
+    # print "err == pre_l0__", err == pre_l0__
+
+    # shift buffer
+    ref.r_buf = np.roll(ref.r_buf, -1, axis = 1)
+    # new value
+    ref.r_buf[...,[-1]] = ref.res.r
+    # r = ref.mdl.model.r
 
     # error / performance: different variations
     # FIXME: perf: element-wise, global, partially coupled, ...
@@ -817,7 +872,7 @@ def step_eh(ref):
     err_sumsquare = np.sum(np.square(err))
     err_sumsqrt = np.sum(np.sqrt(err_abs))
     
-    perf = -np.ones_like(err) * err_square
+    # perf = -np.ones_like(err) * err_square
     perf = -np.ones_like(err) * err_abs
     
     # perf = -np.ones_like(err) * err_sumabs
@@ -834,7 +889,7 @@ def step_eh(ref):
     # learning / update
     dw = ref.lr.learnEH(
         target = goal,
-        r = ref.res.r,
+        r = ref.r_buf[...,[-1]], # @lag
         pred = pre,
         pred_lp = ref.pre_lp,
         perf = ref.rew.perf,
@@ -844,14 +899,11 @@ def step_eh(ref):
 
     # print "dw", dw
     ref.res.wo += dw
+    # ref.mdl.wo += dw
     
-    # recent performance
-    ref.rew.perf_lp = ref.perf_model.predict(ref.rew.perf) # ref.rew.perf_lp * (1 - ref.rew.coeff_a) + ref.rew.perf * ref.rew.coeff_a
-    ref.pre_lp  = ref.pre_model.predict(pre) # ref.rew.perf_lp * (1 - ref.rew.coeff_a) + ref.rew.perf * ref.rew.coeff_a
-                
     # new input
     x = np.vstack((
-        pre,
+        goal,
         perf,
         meas,
         ))
@@ -860,9 +912,37 @@ def step_eh(ref):
     for i in range(ref.oversampling):
         ref.res.execute(x)
 
+    # step = fit + predict
+    # print "x", x.shape
+    ref.mdl.zn_lp = ref.pre_lp
+    ref.mdl.perf = perf
+    # ref.mdl.perf_lp = ref.rew.perf_lp
+    ref.mdl.eta_init = ref.eta
+    
+    # y_mdl_ = ref.mdl.step(x, np.zeros((ref.odim, 1)))
+    y_mdl_ = ref.mdl.step(
+        X = x,
+        Y = np.zeros((ref.odim, 1)),
+        r = ref.mdl.model.r, # FIXME: also tap
+        pred = pre,
+        pred_lp = ref.pre_lp,
+        perf = ref.rew.perf,
+        perf_lp = ref.rew.perf_lp,
+        eta = ref.eta
+        )
+    # print "y_mdl_", y_mdl_
+    
+    # recent performance
+    ref.rew.perf_lp = ref.perf_model.predict(ref.rew.perf) # ref.rew.perf_lp * (1 - ref.rew.coeff_a) + ref.rew.perf * ref.rew.coeff_a
+    ref.pre_lp  = ref.pre_model.predict(pre) # ref.rew.perf_lp * (1 - ref.rew.coeff_a) + ref.rew.perf * ref.rew.coeff_a
+                
     # prepare outputs
-    pre_ = ref.res.zn.reshape((-1, ref.laglen))
+    # pre_ = ref.res.zn.reshape((-1, ref.laglen))
+    # err_ = perf.reshape((-1, ref.laglen))
+
+    pre_ = y_mdl_.reshape((-1, ref.laglen))
     err_ = perf.reshape((-1, ref.laglen))
+    # err_ = 
     # print "pre_", pre_
     # print "err_", err_
     setattr(ref, 'pre', pre_[:,[-1]])
