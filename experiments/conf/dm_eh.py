@@ -911,7 +911,7 @@ graph = OrderedDict([
                         'blockphase': [0],
                         'debug': False,
                         'lag': minlag,
-                        'eta': 8e-4, # 2e-3, # eta, # 3.7,
+                        'eta': 1e-3, # 2e-3, # eta, # 3.7,
                         'ros': False,
                         # FIXME: relative shift = minlag, block length the maxlag
                         'inputs': {
@@ -949,7 +949,7 @@ graph = OrderedDict([
                                 'laglen': laglen,
                                 'minlag': minlag,
                                 'maxlag': maxlag,
-                                'eta': 1e-3,
+                                'eta': 8e-4,
                                 'eta_init': 1e-3,
                                 'modelsize': 200,
                                 'N': 200,
@@ -969,6 +969,7 @@ graph = OrderedDict([
                                 'coeff_a': 0.2,
                                 'len_episode': numsteps,
                                 'input_coupling_mtx_spec': {0: 1., 1: 1.},
+                                'input_coupling': 'sparse_normal', # uniform, normal, sparse_uniform, sparse_normal, disjunct
                                 'use_et': 0,
                                 'et_winsize': 20,
                                 'use_pre': 0,

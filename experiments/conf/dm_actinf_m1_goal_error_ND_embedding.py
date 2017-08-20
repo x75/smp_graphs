@@ -811,7 +811,7 @@ graph = OrderedDict([
                                 'idim': dim_s_proprio * laglen * 2,
                                 'odim': dim_s_proprio * laglen,
                                 'laglen': laglen,
-                                'eta': eta
+                                'eta': eta,
                                 },
                                 
                             # 'm2': {

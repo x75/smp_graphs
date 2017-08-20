@@ -406,8 +406,8 @@ def tapping_XY(ref, pre_l1_tap_flat, pre_l0_tap_flat, prerr_l0_tap_flat, prerr_l
     elif ref.type == 'm2':
         X = np.vstack((prerr_l0_tap_flat, ))
         Y = -prerr_l0__ * ref.eta # .reshape((ref.odim, 1)) # pre_l0[...,[-lag]] - (prerr_l0_ * ref.eta) #
-    # elif ref.type == 'eh':
-        
+    elif ref.type == 'eh':
+        return (None, None)
     else:
         return (None, None)
     # print "X", X.shape
@@ -730,73 +730,37 @@ def init_eh(ref, conf, mconf):
     - Implement and compare CACLA
     - Tapping past/future cleanup and evaluate -1/0, -n:-1/0, -mask/0, -n/k, -mask/mask, -n/n
     """
-    # FIXME: definition of all variables of this model (eh) for logging / publishing
+
+    print "mconf", mconf.keys()
+    print "mconf.eta", mconf['eta']
+    print "mconf.eta_init", mconf['eta_init']
     
     # params variable shortcut
     params = conf['params']
 
-    # parameter aliases
+    # FIXME: definition of all variables of this model (eh) for logging / publishing
+    # parameter aliasing
     # algo -> type -> lrname
     # N -> modelsize
     # g -> spectral_radius
     # p -> density
     
-    # reservoir oversampling
-    ref.oversampling = mconf['oversampling']
-
-    # model/algo type
+    # model type / algo / lrname
     ref.type = mconf['type']
 
-    # print "init_eh mconf[lrname]", mconf['lrname']
-    # print "init_eh mconf[theta]", mconf['theta']
     mconf['theta'] = mconf['res_theta']
     
     # reservoir network
     ref.mdl = init_model(ref, conf, mconf)
-    # short term memory for hidden activations ring buffer
+    
+    # short term memory for hidden activations ring buffer (devmdl)
     ref.r_buf = np.zeros((mconf['modelsize'], mconf['maxlag']))
-    
-    # ref.res = Reservoir(
-    #     N = mconf['modelsize'],
-    #     p = mconf['p'],
-    #     input_num = mconf['res_input_num'],
-    #     output_num = mconf['res_output_num'],
-    #     g = mconf['g'],
-    #     tau = mconf['tau'],
-    #     eta_init = 0,
-    #     feedback_scale = mconf['res_feedback_scaling'],
-    #     input_scale = mconf['res_input_scaling'],
-    #     bias_scale = mconf['res_bias_scaling'],
-    #     nonlin_func = mconf['nonlin_func'], # np.tanh, # lambda x: x,
-    #     sparse = True, ip=bool(mconf['use_ip']),
-    #     theta = mconf['res_theta'],
-    #     theta_state = mconf['res_theta_state'],
-    #     coeff_a = mconf['coeff_a']
-    # )
-    
-    # # reservoir sparse random input weight matrix
-    # ref.res.wi = res_input_matrix_random_sparse(mconf['res_input_num'], mconf['modelsize'], density = 0.2) * mconf['res_input_scaling']
-    
-    # reservoir sparse random input weight matrix
-    ref.mdl.wi = res_input_matrix_random_sparse(
-        mconf['res_input_num'],
-        mconf['modelsize'],
-        density = 0.2) * mconf['res_input_scaling']
-    
-    # learning rule
-    ref.eta = params['eta'] # params['models']['m1']['eta'] # mconf['eta']
-    ref.lr = LearningRules(ndim_out = mconf['odim'], dim = mconf['odim'])
-    ref.laglen  = mconf['laglen']
-    
-    # reward (legacy approach from point_mass_learner_offline.py/OfflineLearner
-    ref.rew = learnerReward(
-        mconf['idim'], mconf['odim'], memlen = mconf['len_episode'],
-        coeff_a = mconf['coeff_a'])
-
-    # low pass filter models
-    ref.perf_model = iir_fo(a = 0.2, dim = mconf['odim'])
-    ref.pre_model = iir_fo(a = 0.2, dim = mconf['odim'])
-    ref.pre_lp = np.zeros((mconf['odim'], 1))
+        
+    # # reservoir sparse random input weight matrix (smmdl)
+    # ref.mdl.wi = res_input_matrix_random_sparse(
+    #     mconf['res_input_num'],
+    #     mconf['modelsize'],
+    #     density = 0.2) * mconf['res_input_scaling']
 
     # FIXME: parameter configuration post-processing
     # expand input coupling matrix from specification
@@ -805,8 +769,25 @@ def init_eh(ref, conf, mconf):
     # for k,v in mconf['input_coupling_mtx_spec'].items():
     #     ref.input_coupling_mtx[k] = v
     # print ("input coupling matrix", ref.input_coupling_mtx)
+    
+    # learning rule (smmdl)
+    # ref.eta = params['eta'] # params['models']['m1']['eta']
+    # ref.eta = mconf['eta'] # this will get overwritten by Block.init
+    # ref.lr = LearningRules(ndim_out = mconf['odim'], dim = mconf['odim'])
+    ref.laglen  = mconf['laglen']
+    
+    # reward aka performance aka measure (smmdl)
+    #   (legacy approach from point_mass_learner_offline.py/OfflineLearner
+    ref.rew = learnerReward(
+        mconf['idim'], mconf['odim'], memlen = mconf['len_episode'],
+        coeff_a = mconf['coeff_a'])
 
-    # eligibility traces
+    # low pass filter models (smmdl)
+    ref.perf_model = iir_fo(a = 0.2, dim = mconf['odim'])
+    ref.pre_model = iir_fo(a = 0.2, dim = mconf['odim'])
+    ref.pre_lp = np.zeros((mconf['odim'], 1))
+
+    # eligibility traces (devmdl)
     ref.ewin_off = 0
     ref.ewin = mconf['et_winsize']
     # print "ewin", ref.ewin
@@ -816,7 +797,7 @@ def init_eh(ref, conf, mconf):
     ref.etf = Eligibility(ref.ewin, funcindex)
     ref.et_corr = np.zeros((1, mconf['et_winsize']))
 
-    # predictors
+    # predictors (unclear)
     if mconf['use_pre']:
         ref.pre = PredictorReservoir(
             mconf['pre_inputs'],
@@ -824,13 +805,11 @@ def init_eh(ref, conf, mconf):
             mconf['len_episode'],
             mconf['modelsize'])
 
-    # use weight bounding
+    # use weight bounding (smmdl)
     if mconf['use_wb']:
         self.bound_weight_fit(mconf['wb_thr'])
-    # density estimators?
-    print "params.eta = %f, model.eta = %f, ref.eta = %f" % (params['eta'], params['models']['m1']['eta'], ref.eta, )
 
-    # initialize tapping
+    # initialize tapping (devmdl)
     ref.tapping_SM = partial(tapping_SM, mode = ref.type)
     ref.tapping_EH = partial(tapping_EH)
     ref.tapping_X = partial(tapping_X)
@@ -896,21 +875,7 @@ def step_eh(ref):
     ref.rew.perf = np.reshape(ref.rew.perf, (ref.odim, 1))
     # print "ref.rew.perf", ref.rew.perf.shape
 
-    # # learning / update
-    # dw = ref.lr.learnEH(
-    #     target = goal,
-    #     r = ref.r_buf[...,[-1]], # @lag
-    #     pred = pre,
-    #     pred_lp = ref.pre_lp,
-    #     perf = ref.rew.perf,
-    #     perf_lp = ref.rew.perf_lp,
-    #     eta = ref.eta
-    # )
-
-    # # print "dw", dw
-    # ref.res.wo += dw
-    # # ref.mdl.wo += dw
-    
+    # learning / update
     # new input
     x = np.vstack((
         goal,
@@ -918,18 +883,13 @@ def step_eh(ref):
         meas,
         ))
 
-    # # new prediction
-    # for i in range(ref.oversampling):
-    #     ref.res.execute(x)
-
     # step = fit + predict
-    # print "x", x.shape
     ref.mdl.zn_lp = ref.pre_lp
     ref.mdl.perf = perf
     # ref.mdl.perf_lp = ref.rew.perf_lp
-    ref.mdl.eta_init = ref.eta
-    
-    # y_mdl_ = ref.mdl.step(x, np.zeros((ref.odim, 1)))
+    # ref.mdl.eta_init = ref.eta
+
+    # step the model
     y_mdl_ = ref.mdl.step(
         X = x.T,
         Y = np.zeros((ref.odim, 1)),
@@ -938,7 +898,7 @@ def step_eh(ref):
         pred_lp = ref.pre_lp,
         perf = ref.rew.perf,
         perf_lp = ref.rew.perf_lp,
-        eta = ref.eta
+        eta = ref.mdl.eta
     )
     # print "y_mdl_", y_mdl_
     
@@ -952,14 +912,14 @@ def step_eh(ref):
 
     pre_ = y_mdl_.reshape((-1, ref.laglen))
     err_ = perf.reshape((-1, ref.laglen))
-    # err_ = 
+
     # print "pre_", pre_
     # print "err_", err_
     setattr(ref, 'pre', pre_[:,[-1]])
     setattr(ref, 'err', err_[:,[-1]])
 
     if ref.cnt % 500 == 0:
-        print "iter[%d]: |W_o| = %f, eta = %f" % (ref.cnt, np.linalg.norm(ref.mdl.model.wo), ref.eta, )
+        print "iter[%d]: |W_o| = %f, eta = %f" % (ref.cnt, np.linalg.norm(ref.mdl.model.wo), ref.mdl.eta, )
     
     # exit to execute on system and wait for new measurement
             
