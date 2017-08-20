@@ -946,6 +946,7 @@ graph = OrderedDict([
                                 'algo': algo,
                                 'idim': dim_s_proprio * laglen * 3,
                                 'odim': dim_s_proprio * laglen,
+                                'memory': 3,
                                 'laglen': laglen,
                                 'minlag': minlag,
                                 'maxlag': maxlag,
@@ -969,7 +970,7 @@ graph = OrderedDict([
                                 'coeff_a': 0.2,
                                 'len_episode': numsteps,
                                 'input_coupling_mtx_spec': {0: 1., 1: 1.},
-                                'input_coupling': 'sparse_normal', # uniform, normal, sparse_uniform, sparse_normal, disjunct
+                                'input_coupling': 'normal', # uniform, normal, sparse_uniform, sparse_normal, disjunct
                                 'use_et': 0,
                                 'et_winsize': 20,
                                 'use_pre': 0,

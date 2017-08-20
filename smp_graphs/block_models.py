@@ -755,13 +755,7 @@ def init_eh(ref, conf, mconf):
     
     # short term memory for hidden activations ring buffer (devmdl)
     ref.r_buf = np.zeros((mconf['modelsize'], mconf['maxlag']))
-        
-    # # reservoir sparse random input weight matrix (smmdl)
-    # ref.mdl.wi = res_input_matrix_random_sparse(
-    #     mconf['res_input_num'],
-    #     mconf['modelsize'],
-    #     density = 0.2) * mconf['res_input_scaling']
-
+    
     # FIXME: parameter configuration post-processing
     # expand input coupling matrix from specification
     # ref.use_icm = True
@@ -787,15 +781,15 @@ def init_eh(ref, conf, mconf):
     ref.pre_model = iir_fo(a = 0.2, dim = mconf['odim'])
     ref.pre_lp = np.zeros((mconf['odim'], 1))
 
-    # eligibility traces (devmdl)
-    ref.ewin_off = 0
-    ref.ewin = mconf['et_winsize']
-    # print "ewin", ref.ewin
-    ref.ewin_inv = 1./ref.ewin
-    funcindex = 0 # rectangular
-    # funcindex = 3 # double_exponential
-    ref.etf = Eligibility(ref.ewin, funcindex)
-    ref.et_corr = np.zeros((1, mconf['et_winsize']))
+    # # eligibility traces (devmdl)
+    # ref.ewin_off = 0
+    # ref.ewin = mconf['et_winsize']
+    # # print "ewin", ref.ewin
+    # ref.ewin_inv = 1./ref.ewin
+    # funcindex = 0 # rectangular
+    # # funcindex = 3 # double_exponential
+    # ref.etf = Eligibility(ref.ewin, funcindex)
+    # ref.et_corr = np.zeros((1, mconf['et_winsize']))
 
     # predictors (unclear)
     if mconf['use_pre']:
