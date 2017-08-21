@@ -362,20 +362,24 @@ def tapping_SM(ref, mode = 'm1'):
     # print "pre_l1_tap_spec", pre_l1_tap_spec
     pre_l1_tap_full = ref.inputs[ref.pre_l1_inkey]['val'][...,pre_l1_tap_spec]
     # print "pre_l1_tap_full", pre_l1_tap_full.shape
-    pre_l1_tap_flat = pre_l1_tap_full.reshape((ref.odim, 1))
+    pre_l1_tap_flat = pre_l1_tap_full.reshape((-1, 1))
+    pre_l1_tap_full_target = ref.inputs[ref.pre_l1_inkey]['val'][...,range(-ref.laglen_future - 1, -1)]
+    pre_l1_tap_flat_target = pre_l1_tap_full_target.reshape((-1, 1))
 
     meas_l0_tap_spec = ref.inputs['meas_l0']['lag']
     meas_l0_tap_full = ref.inputs['meas_l0']['val'][...,meas_l0_tap_spec]
     meas_l0_tap_flat = meas_l0_tap_full.reshape((ref.odim, 1))
+    meas_l0_tap_full_input = ref.inputs['meas_l0']['val'][...,range(-ref.laglen_past, 0)]
+    meas_l0_tap_flat_input = meas_l0_tap_full_input.reshape((-1, 1))
 
     pre_l0_tap_spec = ref.inputs['pre_l0']['lag']
     pre_l0_tap_full = ref.inputs['pre_l0']['val'][...,pre_l0_tap_spec]
-    pre_l0_tap_flat = pre_l0_tap_full.reshape((ref.odim, 1))
+    pre_l0_tap_flat = pre_l0_tap_full.reshape((-1, 1))
 
     prerr_l0_tap_spec = ref.inputs['prerr_l0']['lag']
     # print "prerr_l0_tap_spec", prerr_l0_tap_spec
     prerr_l0_tap_full = ref.inputs['prerr_l0']['val'][...,prerr_l0_tap_spec]
-    prerr_l0_tap_flat = prerr_l0_tap_full.reshape((ref.odim, 1))
+    prerr_l0_tap_flat = prerr_l0_tap_full.reshape((-1, 1))
     
     # print "meas", meas_l0[...,[-1]], "prel1", pre_l1[...,[pre_l1_tap_spec[-1]]]
     
@@ -383,13 +387,15 @@ def tapping_SM(ref, mode = 'm1'):
     # momentary PE
     prerr_l0_  = meas_l0[...,[-1]] - pre_l1[...,[pre_l1_tap_spec[-1]]]
     # embedding PE
-    prerr_l0__ = meas_l0_tap_flat - pre_l1_tap_flat # meas_l0[...,[-1]] - pre_l1[...,[-lag]]
+    prerr_l0__ = meas_l0_tap_flat_input - pre_l1_tap_flat # meas_l0[...,[-1]] - pre_l1[...,[-lag]]
+    prerr_l0___ = meas_l0_tap_flat - pre_l1_tap_flat_target # meas_l0[...,[-1]] - pre_l1[...,[-lag]]
+    # prerr_l0__ = (meas_l0_tap_full - pre_l1_tap_full[...,[-1]]).reshape((-1, 1))
     
     # FIXME: future > 1, shift target block across the now line completely and predict entire future segment
     # X__ = np.vstack((pre_l1[...,[-lag]], prerr_l0[...,[-(lag-1)]]))
     
     # return (pre_l1_tap_flat, pre_l0_tap_flat, meas_l0_tap_flat, prerr_l0_tap_flat, prerr_l0_, X, Y, prerr_l0__)
-    return (pre_l1_tap_flat, pre_l0_tap_flat, meas_l0_tap_flat, prerr_l0_tap_flat, prerr_l0_, prerr_l0__)
+    return (pre_l1_tap_flat, pre_l0_tap_flat, meas_l0_tap_flat, prerr_l0_tap_flat, prerr_l0_, prerr_l0__, prerr_l0___)
 
 def tapping_XY(ref, pre_l1_tap_flat, pre_l0_tap_flat, prerr_l0_tap_flat, prerr_l0__, mode = 'm1'):
     """block_models.tapping_XY
@@ -400,10 +406,15 @@ def tapping_XY(ref, pre_l1_tap_flat, pre_l0_tap_flat, prerr_l0_tap_flat, prerr_l
     """
     # print "tapping pre_l1", pre_l1_tap_flat.shape, prerr_l0_tap_flat.shape, ref.idim
     # print "tapping reshape", pre_l1_tap.reshape((ref.idim/2, 1)), prerr_l0_tap.reshape((ref.idim/2, 1))
+    
+    tmp = ref.inputs['pre_l0']['val'][...,ref.inputs['pre_l0']['lag']]
+    tmp_ = tmp[...,ref.inputs['meas_l0']['lag']].reshape((-1, 1))
+    
     if ref.type == 'm1' or ref.type == 'm3':
         X = np.vstack((pre_l1_tap_flat, prerr_l0_tap_flat))
         # compute the target for the  forward model from the embedding PE
-        Y = (pre_l0_tap_flat - (prerr_l0__ * ref.eta)) # .reshape((ref.odim, 1)) # pre_l0[...,[-lag]] - (prerr_l0_ * ref.eta) #
+        # Y = (pre_l0_tap_flat - (prerr_l0__ * ref.eta)) # .reshape((ref.odim, 1)) # pre_l0[...,[-lag]] - (prerr_l0_ * ref.eta) #
+        Y = (tmp_ - (prerr_l0__ * ref.eta)) # .reshape((ref.odim, 1)) # pre_l0[...,[-lag]] - (prerr_l0_ * ref.eta) #
     elif ref.type == 'm2':
         X = np.vstack((prerr_l0_tap_flat, ))
         Y = -prerr_l0__ * ref.eta # .reshape((ref.odim, 1)) # pre_l0[...,[-lag]] - (prerr_l0_ * ref.eta) #
@@ -424,6 +435,7 @@ def tapping_X(ref, pre_l1_tap_flat, prerr_l0__):
     unsupervised training set of inputs X suitable for machine
     learning algorithms.
     """
+    # print prerr_l0__.shape
     if ref.type == 'm1' or ref.type == 'm3':
         X = np.vstack((pre_l1_tap_flat, prerr_l0__))
     elif ref.type == 'm2':
@@ -519,8 +531,13 @@ def init_actinf(ref, conf, mconf):
     ref.X_  = np.zeros((mconf['idim'], 1))
     ref.y_  = np.zeros((mconf['odim'], 1))
     ref.laglen  = mconf['laglen']
-    ref.pre_l1_tm1 = np.zeros((mconf['idim']/2/ref.laglen, 1))
-    ref.pre_l1_tm2 = np.zeros((mconf['idim']/2/ref.laglen, 1))
+    ref.lag_past  = mconf['algo_lag_past']
+    ref.lag_future  = mconf['algo_lag_future']
+
+    ref.laglen_past = ref.lag_past[1] - ref.lag_past[0]
+    ref.laglen_future = ref.lag_future[1] - ref.lag_future[0]
+    ref.pre_l1_tm1 = np.zeros((mconf['idim']/2/ref.laglen_past, 1))
+    ref.pre_l1_tm2 = np.zeros((mconf['idim']/2/ref.laglen_past, 1))
 
     if mconf['type'] == 'actinf_m1':
         ref.type = 'm1'
@@ -541,10 +558,10 @@ def init_actinf(ref, conf, mconf):
 def step_actinf(ref):
 
     # deal with the lag specification for each input (lag, delay, temporal characteristic)
-    (pre_l1, pre_l0, meas_l0, prerr_l0, prerr_l0_, prerr_l0__) = ref.tapping_SM(ref) # tapping_SM(ref, mode = ref.type)
-    (X, Y) = ref.tapping_XY(ref, pre_l1, pre_l0, prerr_l0, prerr_l0__)
+    (pre_l1, pre_l0, meas_l0, prerr_l0, prerr_l0_, prerr_l0__, prerr_l0___) = ref.tapping_SM(ref) # tapping_SM(ref, mode = ref.type)
+    (X, Y) = ref.tapping_XY(ref, pre_l1, pre_l0, prerr_l0, prerr_l0___)
     
-    # print "pre_l1.shape", pre_l1.shape, "pre_l0.shape", pre_l0.shape, "meas_l0.shape", meas_l0.shape, "prerr_l0.shape", prerr_l0.shape, "prerr_l0_", prerr_l0_.shape, "X", X.shape, "Y", Y.shape
+    # print "cnt", ref.cnt, "pre_l1.shape", pre_l1.shape, "pre_l0.shape", pre_l0.shape, "meas_l0.shape", meas_l0.shape, "prerr_l0.shape", prerr_l0.shape, "prerr_l0_", prerr_l0_.shape, "X", X.shape, "Y", Y.shape
 
     # print "ref.pre.shape", ref.pre.shape, "ref.err.shape", ref.err.shape
     
@@ -555,7 +572,7 @@ def step_actinf(ref):
 
     # dgoal for fitting lag additional time steps back
     dgoal_fit = np.linalg.norm(ref.pre_l1_tm1 - ref.pre_l1_tm2)
-    y_ = Y.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
+    y_ = Y.reshape((ref.odim / ref.laglen_future, -1))[...,[-1]]
     if dgoal_fit < 5e-1: #  and np.linalg.norm(prerr_l0_) > 5e-2:        
     # if np.linalg.norm(dgoal_fit) <= np.linalg.norm(ref.dgoal_fit_): #  and np.linalg.norm(prerr_l0_) > 5e-2:
         # prerr = prerr_l0_.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
@@ -576,38 +593,47 @@ def step_actinf(ref):
 
     # predict next values at current layer input
     # pre_l1_tap_spec = ref.inputs[ref.pre_l1_inkey]['lag']
-    pre_l1_tap_full = ref.inputs[ref.pre_l1_inkey]['val'][...,-ref.laglen:]
-    pre_l1_tap_flat = pre_l1_tap_full.reshape((ref.odim, 1))
+    pre_l1_tap_full = ref.inputs[ref.pre_l1_inkey]['val'][...,-ref.laglen_past:]
+    pre_l1_tap_flat = pre_l1_tap_full.reshape((-1, 1))
     
     dgoal = np.linalg.norm(ref.inputs[ref.pre_l1_inkey]['val'][...,[-1]] - ref.pre_l1_tm1)
     if dgoal > 5e-1: # fixed threshold
     # if np.linalg.norm(dgoal) > np.linalg.norm(ref.dgoal_): #  and np.linalg.norm(prerr_l0_) > 5e-2:
         # goal changed
-        m = ref.inputs['meas_l0']['val'][...,[-1]].reshape((ref.odim / ref.laglen, 1))
-        p = ref.inputs[ref.pre_l1_inkey]['val'][...,[-1]].reshape((ref.odim / ref.laglen, 1))
+        # m = ref.inputs['meas_l0']['val'][...,[-1]].reshape((ref.odim / ref.laglen, 1))
+        # p = ref.inputs[ref.pre_l1_inkey]['val'][...,[-1]].reshape((ref.odim / ref.laglen, 1))
         # prerr_l0_ = (m - p) # * 0.1
         # prerr_l0_ = -p.copy()
         prerr_l0_ = np.random.uniform(-1e-3, 1e-3, prerr_l0_.shape)
         # print "goal changed predict[%d], |dgoal| = %f, |PE| = %f" % (ref.cnt, dgoal, np.linalg.norm(prerr_l0_))
 
         # prerr_l0__ = meas_l0 - pre_l1_tap_flat
-        tmp = prerr_l0__.reshape((ref.odim / ref.laglen, -1))
+        tmp = prerr_l0__.reshape((-1, ref.laglen_past))
         tmp[...,[-1]] = prerr_l0_.copy()
-        prerr_l0__ = tmp.reshape((ref.odim, 1)) # meas_l0_tap_flat - pre_l1_tap_flat # meas_l0[...,[-1]] - pre_l1[...,[-lag]]
+        prerr_l0__ = tmp.reshape((-1, 1)) # meas_l0_tap_flat - pre_l1_tap_flat # meas_l0[...,[-1]] - pre_l1[...,[-lag]]
         # pre_l1[...,[-1]]).reshape((ref.odim, 1))
         
-        prerr = prerr_l0_.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
+        prerr = prerr_l0_.reshape((ref.odim / ref.laglen_future, -1))[...,[-1]]
         
     ref.dgoal_ = 0.9 * ref.dgoal_ + 0.1 * dgoal
 
     # print "prerr_l0__", prerr_l0__.shape
-
+    # print "pre_l1_tap_flat", pre_l1_tap_flat.shape
     ref.X_ = tapping_X(ref, pre_l1_tap_flat, prerr_l0__)
-
+    
     # print "step_actinf X[%d] = %s" % (ref.cnt, ref.X_.shape)
     pre_l0_ = ref.mdl.predict(ref.X_.T)
     # print "cnt = %s, pre_l0_" % (ref.cnt,), pre_l0_, "prerr_l0_", prerr_l0_.shape
-    pre = pre_l0_.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
+    
+    # compute the final single time-step output from the multi-step prediction
+    # FIXME: put that mapping into config?
+    # fetch the logically latest prediction
+    pre = pre_l0_.reshape((ref.odim / ref.laglen_future, -1))[...,[-1]]
+    # fetch the logically earliest prediction, might already refer to a past state
+    pre = pre_l0_.reshape((ref.odim / ref.laglen_future, -1))[...,[-ref.laglen_future]]
+    # fetch the minimally delayed prediction from multi step prediction
+    pre = pre_l0_.reshape((ref.odim / ref.laglen_future, -1))[...,[max(-ref.laglen_future, ref.lag_past[1])]]
+    # pre = np.mean(pre_l0_.reshape((ref.odim / ref.laglen_future, -1))[...,-3:], axis = 1).reshape((-1, 1))
     # prerr = prerr_l0_.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
                 
     pre_ = getattr(ref, 'pre')
@@ -862,7 +888,7 @@ def step_eh(ref):
     # new incoming measurements
     
     # deal with the lag specification for each input (lag, delay, temporal characteristic)
-    (pre_l1, pre_l0, meas_l0, prerr_l0, prerr_l0_, prerr_l0__) = ref.tapping_SM(ref)
+    (pre_l1, pre_l0, meas_l0, prerr_l0, prerr_l0_, prerr_l0__, prerr_l0___) = ref.tapping_SM(ref)
     # (pre_l1, pre_l0, meas_l0, prerr_l0, prerr_l0_, prerr_l0__) = tapping_EH2(ref)
     # (X, Y) = ref.tapping_XY(ref, pre_l1, pre_l0, prerr_l0, prerr_l0__)
     (X, Y) = ref.tapping_EH(

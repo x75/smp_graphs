@@ -88,8 +88,8 @@ def get_systemblock_pm(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
             'm_mins': [-1.] * dim_s_proprio,
             'm_maxs': [ 1.] * dim_s_proprio,
             'dim_s_extero': dim_s_extero,
-            'lag_min': 1,
-            'lag_max': 4, # 2, # 20, # 2, # 5
+            'minlag': 1,
+            'maxlag': 4, # 2, # 20, # 2, # 5
             'lag': 3,
             'order': 2,
             'coupling_sigma': 1e-1,
@@ -132,8 +132,8 @@ def get_systemblock_sa(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
             # 'm_mins': -1,
             # 'm_maxs': 1,
             'dim_s_extero': dim_s_extero,
-            'lag_min': 1,
-            'lag_max': 2, # 5
+            'minlag': 1,
+            'maxlag': 2, # 5
             }
         }
 
@@ -173,8 +173,8 @@ def get_systemblock_bha(dim_s_proprio = 9, dim_s_extero = 3, dt = 0.1):
             's_mins': [ 0.10] * dim_s_proprio, # fixme all sensors
             's_maxs': [ 0.30] * dim_s_proprio,
             'doplot': False,
-            'lag_min': 1,
-            'lag_max': 3 # 5
+            'minlag': 1,
+            'maxlag': 3 # 5
             }
         }
     
@@ -200,8 +200,8 @@ def get_systemblock_stdr(dim_s_proprio = 2, dim_s_extero = 3, dt = 0.1):
             'dim_s_extero': dim_s_extero,   
             'outdict': {},
             'smdict': {},
-            'lag_min': 1, # ha
-            'lag_max': 4, # 5
+            'minlag': 1, # ha
+            'maxlag': 4, # 5
             }
         }
 
@@ -227,8 +227,8 @@ def get_systemblock_lpzbarrel(dim_s_proprio = 2, dim_s_extero = 1, dt = 0.01):
             'dim_s_extero': dim_s_extero,   
             'outdict': {},
             'smdict': {},
-            'lag_min': 2, # 1, # 5, 4
-            'lag_max': 6, # 2,
+            'minlag': 2, # 1, # 5, 4
+            'maxlag': 6, # 2,
             }
         }
     return systemblock_lpz
@@ -257,8 +257,8 @@ def get_systemblock_sphero(dim_s_proprio = 2, dim_s_extero = 1, dt = 0.05):
             'dim_s_extero': dim_s_extero,   
             'outdict': {},
             'smdict': {},
-            'lag_min': 2, # 2, # 4, # 2
-            'lag_max': 5,
+            'minlag': 2, # 2, # 4, # 2
+            'maxlag': 5,
             }
         }
     return systemblock_sphero
@@ -283,15 +283,6 @@ get_systemblock = {
 # - dimensions
 # - number of modalities
     
-algo = 'knn' #
-# algo = 'gmm' #
-# algo = 'igmm' #
-# algo = 'hebbsom'
-# algo = 'soesgp'
-# algo = 'storkgp'
-# algo = 'resrls'
-# algo = 'homeokinesis'
-
 # systemblock   = systemblock_lpzbarrel
 # lag = 6 # 5, 4, 2 # 2 or 3 worked with lpzbarrel, dt = 0.05
 systemblock   = get_systemblock[sysname]()
@@ -301,9 +292,26 @@ dim_s_proprio = systemblock['params']['dim_s_proprio']
 dim_s_extero  = systemblock['params']['dim_s_extero']
 m_mins = np.array([systemblock['params']['m_mins']]).T
 m_maxs = np.array([systemblock['params']['m_maxs']]).T
-minlag = systemblock['params']['lag_min']
-maxlag = systemblock['params']['lag_max']
+
+minlag = systemblock['params']['minlag']
+maxlag = systemblock['params']['maxlag']
+
 dt = systemblock['params']['dt']
+
+algo = 'knn' #
+# algo = 'gmm' #
+# algo = 'igmm' #
+# algo = 'hebbsom'
+# algo = 'soesgp'
+# algo = 'storkgp'
+# algo = 'resrls'
+# algo = 'homeokinesis'
+
+algo_lag_past = (-11, -3)
+algo_lag_future = (-5, 0)
+
+minlag = 1
+maxlag = -algo_lag_past[0] + algo_lag_future[1]
 laglen = maxlag - minlag
 
 eta = 0.99
@@ -783,20 +791,23 @@ graph = OrderedDict([
                             # descending prediction
                             'pre_l1': {
                                 'bus': 'pre_l1/pre',
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag, -minlag)}, # lag}, # m1
-                                # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)}, # lag}, # m2
+                                # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag, -minlag)},
+                                'shape': (dim_s_proprio, maxlag), 'lag': range(algo_lag_past[0], algo_lag_past[1])},
                             # ascending prediction error
                             'pre_l0': {
                                 'bus': 'pre_l0/pre',
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)}, # lag},
+                                # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)},
+                                'shape': (dim_s_proprio, maxlag), 'lag': range(algo_lag_past[0] + 1, algo_lag_past[1] + 1)},
                             # ascending prediction error
                             'prerr_l0': {
                                 'bus': 'pre_l0/err',
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)}, # lag},
+                                # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)},
+                                'shape': (dim_s_proprio, maxlag), 'lag': range(algo_lag_past[0] + 1, algo_lag_past[1] + 1)},
                             # measurement
                             'meas_l0': {
                                 'bus': 'robot1/s_proprio',
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(-laglen, 0)}
+                                # 'shape': (dim_s_proprio, maxlag), 'lag': range(-laglen, 0)}
+                                'shape': (dim_s_proprio, maxlag), 'lag': range(algo_lag_future[0], algo_lag_future[1])}
                             },
                         'outputs': {
                             'pre': {'shape': (dim_s_proprio, 1)},
@@ -808,9 +819,13 @@ graph = OrderedDict([
                             'm1': {
                                 'type': 'actinf_m1',
                                 'algo': algo,
-                                'idim': dim_s_proprio * laglen * 2,
-                                'odim': dim_s_proprio * laglen,
+                                'algo_lag_past': algo_lag_past,
+                                'algo_lag_future': algo_lag_future,
+                                'idim': dim_s_proprio * (algo_lag_past[1] - algo_lag_past[0]) * 2, # laglen
+                                'odim': dim_s_proprio * (algo_lag_future[1] - algo_lag_future[0]), # laglen,
                                 'laglen': laglen,
+                                # 'laglen_past': algo_lag_past[1] - algo_lag_past[0],
+                                # 'laglen_future': algo_lag_future[1] - algo_lag_future[0],
                                 'eta': eta,
                                 },
                                 
