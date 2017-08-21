@@ -361,7 +361,7 @@ def tapping_SM(ref, mode = 'm1'):
     pre_l1_tap_spec = ref.inputs[ref.pre_l1_inkey]['lag']
     # print "pre_l1_tap_spec", pre_l1_tap_spec
     pre_l1_tap_full = ref.inputs[ref.pre_l1_inkey]['val'][...,pre_l1_tap_spec]
-    # print "pre_l1_tap_full", pre_l1_tap_full
+    # print "pre_l1_tap_full", pre_l1_tap_full.shape
     pre_l1_tap_flat = pre_l1_tap_full.reshape((ref.odim, 1))
 
     meas_l0_tap_spec = ref.inputs['meas_l0']['lag']
@@ -450,6 +450,61 @@ def tapping_EH(
         return (None, None)
     
     return (X, Y)
+
+# def tapping_EH2():
+    
+#     # current goal[t] prediction descending from layer above
+#     if ref.inputs.has_key('blk_mode') and ref.inputs['blk_mode']['val'][0,0] == 2.0:
+#         # that's a wild HACK for switching the top down goal input of the current predictor
+#         ref.pre_l1_inkey = 'e2p_l1'
+#     else:
+#         ref.pre_l1_inkey = 'pre_l1'
+        
+#     ############################################################
+#     # instantaneous inputs: the full input buffer as specified by the minlag-maxlag range
+#     pre_l1   = ref.inputs[ref.pre_l1_inkey]['val']
+#     # measurement[t] at current layer input
+#     meas_l0 = ref.inputs['meas_l0']['val']
+#     # prediction[t-1] at current layer input
+#     pre_l0   = ref.inputs['pre_l0']['val']   
+#     # prediction error[t-1] at current layer input
+#     prerr_l0 = ref.inputs['prerr_l0']['val']
+
+#     ############################################################
+#     # tapped inputs: a buffer containing only selected (receptive field, kernel, ...) dimensions and times
+#     # get lag spec: None (lag = 1), int d (lag = d), array a (lag = a)
+#     pre_l1_tap_spec = ref.inputs[ref.pre_l1_inkey]['lag']
+#     # print "pre_l1_tap_spec", pre_l1_tap_spec
+#     pre_l1_tap_full = ref.inputs[ref.pre_l1_inkey]['val'][...,pre_l1_tap_spec]
+#     # print "pre_l1_tap_full", pre_l1_tap_full
+#     pre_l1_tap_flat = pre_l1_tap_full.reshape((ref.odim, 1))
+
+#     meas_l0_tap_spec = ref.inputs['meas_l0']['lag']
+#     meas_l0_tap_full = ref.inputs['meas_l0']['val'][...,meas_l0_tap_spec]
+#     meas_l0_tap_flat = meas_l0_tap_full.reshape((ref.odim, 1))
+
+#     pre_l0_tap_spec = ref.inputs['pre_l0']['lag']
+#     pre_l0_tap_full = ref.inputs['pre_l0']['val'][...,pre_l0_tap_spec]
+#     pre_l0_tap_flat = pre_l0_tap_full.reshape((ref.odim, 1))
+
+#     prerr_l0_tap_spec = ref.inputs['prerr_l0']['lag']
+#     # print "prerr_l0_tap_spec", prerr_l0_tap_spec
+#     prerr_l0_tap_full = ref.inputs['prerr_l0']['val'][...,prerr_l0_tap_spec]
+#     prerr_l0_tap_flat = prerr_l0_tap_full.reshape((ref.odim, 1))
+    
+#     # print "meas", meas_l0[...,[-1]], "prel1", pre_l1[...,[pre_l1_tap_spec[-1]]]
+    
+#     # compute prediction error PE with respect to top level prediction (goal)
+#     # momentary PE
+#     prerr_l0_  = meas_l0[...,[-1]] - pre_l1[...,[pre_l1_tap_spec[-1]]]
+#     # embedding PE
+#     prerr_l0__ = meas_l0_tap_flat - pre_l1_tap_flat # meas_l0[...,[-1]] - pre_l1[...,[-lag]]
+    
+#     # FIXME: future > 1, shift target block across the now line completely and predict entire future segment
+#     # X__ = np.vstack((pre_l1[...,[-lag]], prerr_l0[...,[-(lag-1)]]))
+    
+#     # return (pre_l1_tap_flat, pre_l0_tap_flat, meas_l0_tap_flat, prerr_l0_tap_flat, prerr_l0_, X, Y, prerr_l0__)
+#     return (pre_l1_tap_flat, pre_l0_tap_flat, meas_l0_tap_flat, prerr_l0_tap_flat, prerr_l0_, prerr_l0__)
 
 ################################################################################
 # active inference model
@@ -549,7 +604,7 @@ def step_actinf(ref):
 
     ref.X_ = tapping_X(ref, pre_l1_tap_flat, prerr_l0__)
 
-    print "step_actinf X[%d] = %s" % (ref.cnt, ref.X_.shape)
+    # print "step_actinf X[%d] = %s" % (ref.cnt, ref.X_.shape)
     pre_l0_ = ref.mdl.predict(ref.X_.T)
     # print "cnt = %s, pre_l0_" % (ref.cnt,), pre_l0_, "prerr_l0_", prerr_l0_.shape
     pre = pre_l0_.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
@@ -808,6 +863,7 @@ def step_eh(ref):
     
     # deal with the lag specification for each input (lag, delay, temporal characteristic)
     (pre_l1, pre_l0, meas_l0, prerr_l0, prerr_l0_, prerr_l0__) = ref.tapping_SM(ref)
+    # (pre_l1, pre_l0, meas_l0, prerr_l0, prerr_l0_, prerr_l0__) = tapping_EH2(ref)
     # (X, Y) = ref.tapping_XY(ref, pre_l1, pre_l0, prerr_l0, prerr_l0__)
     (X, Y) = ref.tapping_EH(
         ref, pre_l1, pre_l0, meas_l0,

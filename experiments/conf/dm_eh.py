@@ -947,7 +947,7 @@ graph = OrderedDict([
                                 'algo': algo,
                                 'perf_measure': meas.square, # abs, square, sum_abs, sum_square, sum_sqrt
                                 'idim': dim_s_proprio * laglen * 3,
-                                'odim': dim_s_proprio * laglen,
+                                'odim': dim_s_proprio * laglen, # laglen becomes neglag, prediction horizon into the future
                                 'memory': maxlag,
                                 'laglen': laglen,
                                 'minlag': minlag,
