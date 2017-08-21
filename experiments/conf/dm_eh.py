@@ -16,6 +16,7 @@ import copy
 from functools import partial
 
 from smp_base.plot import histogramnd
+from smp_base.measures import meas
 from smp_graphs.block_plot import SnsMatrixPlotBlock2, ImgPlotBlock2
 from smp_graphs.block import dBlock2, IBlock2, SliceBlock2, DelayBlock2, StackBlock2
 from smp_graphs.block_meas import XCorrBlock2
@@ -944,6 +945,7 @@ graph = OrderedDict([
                                 'type': 'eh',
                                 'lrname': 'eh',
                                 'algo': algo,
+                                'perf_measure': meas.sum_sqrt, # abs, square, sum_abs, sum_square, sum_sqrt
                                 'idim': dim_s_proprio * laglen * 3,
                                 'odim': dim_s_proprio * laglen,
                                 'memory': 3,

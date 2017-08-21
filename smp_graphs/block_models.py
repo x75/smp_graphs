@@ -32,6 +32,7 @@ from smp_base.models import iir_fo
 from smp_base.models_actinf  import smpKNN, smpGMM, smpIGMM, smpHebbianSOM
 from smp_base.models_selforg import HK
 from smp_base.learners import smpSHL, learnerReward, Eligibility
+from smp_base.measures import meas as measf
 
 # from smp_graphs.common import array_fix
 from smp_graphs.graph import nxgraph_node_by_id_recursive
@@ -747,11 +748,15 @@ def init_eh(ref, conf, mconf):
     
     # model type / algo / lrname
     ref.type = mconf['type']
+    ref.perf_measure = mconf['perf_measure']
 
     mconf['theta'] = mconf['res_theta']
     
     # reservoir network
     ref.mdl = init_model(ref, conf, mconf)
+
+    # performance measures
+    # ref.meas = meas()
     
     # short term memory for hidden activations ring buffer (devmdl)
     ref.r_buf = np.zeros((mconf['modelsize'], mconf['maxlag']))
@@ -820,8 +825,7 @@ def step_eh(ref):
     pre = pre_l0
 
     # use model specific error func
-    # FIXME: use measures
-    err = goal - meas
+    err = goal - meas # component-wise error
 
     # print "err == pre_l0__", err == pre_l0__
 
@@ -840,44 +844,32 @@ def step_eh(ref):
     err_sumabs = np.sum(np.abs(err))
     err_sumsquare = np.sum(np.square(err))
     err_sumsqrt = np.sum(np.sqrt(err_abs))
-    
+
     # perf = -np.ones_like(err) * err_square
-    perf = -np.ones_like(err) * err_abs
+    # perf = -np.ones_like(err) * err_abs
     
     # perf = -np.ones_like(err) * err_sumabs
     # perf = -np.ones_like(err) * err_sumsquare
     # perf = -np.ones_like(err) * err_sumsqrt
-        
-    # update model
-    ref.mdl.learnEH_prepare(perf = perf)
-    # new network input
+
+    # prepare model update set perf
+    # ref.mdl.learnEH_prepare(perf = measf.abs(err))
+    ref.mdl.learnEH_prepare(perf = ref.perf_measure(err))
+    perf = ref.mdl.perf
+    # compose new network input
     x = np.vstack((
         goal,
-        perf,
+        ref.mdl.perf,
         meas,
         ))
-
-    # step = fit + predict
-    
-    # step the model
-    # y_mdl_ = ref.mdl.step(
-    #     X = x.T,
-    #     Y = np.zeros((ref.odim, 1)),
-    #     r = ref.mdl.model.r, # FIXME: also tap
-    #     pred = pre,
-    #     pred_lp = ref.pre_lp,
-    #     perf = ref.rew.perf,
-    #     perf_lp = ref.rew.perf_lp,
-    #     eta = ref.mdl.eta
-    # )
-
+    # update model
     y_mdl_ = ref.mdl.step(
         X = x.T,
         Y = pre
     )
     # print "y_mdl_", y_mdl_
     
-    # prepare outputs
+    # prepare block outputs
     pre_ = y_mdl_.reshape((-1, ref.laglen))
     # err_ = perf.reshape((-1, ref.laglen))
     err_ = perf.reshape((-1, ref.laglen)) # ref.mdl.perf
