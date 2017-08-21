@@ -831,7 +831,7 @@ def init_eh(ref, conf, mconf):
     # ref.type = mconf['type']
     # ref.perf_measure = mconf['perf_measure']
     # ref.minlag = mconf['minlag']
-    for k in ['type', 'perf_measure', 'minlag', 'maxlag', 'laglen']:
+    for k in ['type', 'perf_measure', 'minlag', 'maxlag', 'lag_future', 'lag_past']:
         setattr(ref, k, mconf[k])
 
     mconf['theta'] = mconf['res_theta']
@@ -852,6 +852,8 @@ def init_eh(ref, conf, mconf):
     # ref.eta = mconf['eta'] # this will get overwritten by Block.init
     # ref.lr = LearningRules(ndim_out = mconf['odim'], dim = mconf['odim'])
     ref.laglen  = mconf['laglen']
+    ref.laglen_past = ref.lag_past[1] - ref.lag_past[0]
+    ref.laglen_future = ref.lag_future[1] - ref.lag_future[0]
     
     # # eligibility traces (devmdl)
     # ref.ewin_off = 0
@@ -906,7 +908,7 @@ def step_eh(ref):
     # use model specific error func
     # err = goal - meas # component-wise error
     err = prerr_l0_
-    
+
     # print "err == pre_l0__", err == pre_l0__
 
     # prepare model update
