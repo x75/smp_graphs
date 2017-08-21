@@ -747,20 +747,17 @@ def init_eh(ref, conf, mconf):
     # p -> density
     
     # model type / algo / lrname
-    ref.type = mconf['type']
-    ref.perf_measure = mconf['perf_measure']
+    # ref.type = mconf['type']
+    # ref.perf_measure = mconf['perf_measure']
+    # ref.minlag = mconf['minlag']
+    for k in ['type', 'perf_measure', 'minlag', 'maxlag', 'laglen']:
+        setattr(ref, k, mconf[k])
 
     mconf['theta'] = mconf['res_theta']
     
     # reservoir network
     ref.mdl = init_model(ref, conf, mconf)
 
-    # performance measures
-    # ref.meas = meas()
-    
-    # short term memory for hidden activations ring buffer (devmdl)
-    ref.r_buf = np.zeros((mconf['modelsize'], mconf['maxlag']))
-    
     # FIXME: parameter configuration post-processing
     # expand input coupling matrix from specification
     # ref.use_icm = True
@@ -825,35 +822,20 @@ def step_eh(ref):
     pre = pre_l0
 
     # use model specific error func
-    err = goal - meas # component-wise error
-
+    # err = goal - meas # component-wise error
+    err = prerr_l0_
+    
     # print "err == pre_l0__", err == pre_l0__
 
+    # prepare model update
+    
     # error / performance: different variations
-    # FIXME: perf: element-wise, global, partially coupled, ...
     # FIXME: perf: order 0, 1, 2, -1, -2, differential relation between output and measurement, e.g. use int/diff expansions 
     # FIXME: perf: fine-grained error, binary goal reached, selforg via mi, pi, novelty, ...
     # FIXME: perf: learn perf from sparse and coarse reward aka Q-learning ;)
-    
-    # FIXME: all of this should now go into measures an be called from there, e.g. dict of funcs
+    # x: perf: element-wise, global, partially coupled, ...
 
-    # convert into EH specific perf (neg error with perf = 0 optimal performance)
-    err_square = np.square(err)
-    err_abs    = np.abs(err)
-    
-    err_sumabs = np.sum(np.abs(err))
-    err_sumsquare = np.sum(np.square(err))
-    err_sumsqrt = np.sum(np.sqrt(err_abs))
-
-    # perf = -np.ones_like(err) * err_square
-    # perf = -np.ones_like(err) * err_abs
-    
-    # perf = -np.ones_like(err) * err_sumabs
-    # perf = -np.ones_like(err) * err_sumsquare
-    # perf = -np.ones_like(err) * err_sumsqrt
-
-    # prepare model update set perf
-    # ref.mdl.learnEH_prepare(perf = measf.abs(err))
+    # set perf to EH specific perf (neg error with perf = 0 optimal performance)
     ref.mdl.learnEH_prepare(perf = ref.perf_measure(err))
     perf = ref.mdl.perf
     # compose new network input
@@ -871,11 +853,10 @@ def step_eh(ref):
     
     # prepare block outputs
     pre_ = y_mdl_.reshape((-1, ref.laglen))
-    # err_ = perf.reshape((-1, ref.laglen))
-    err_ = perf.reshape((-1, ref.laglen)) # ref.mdl.perf
+    err_ = ref.mdl.perf.reshape((-1, ref.laglen))
 
-    # print "pre_", pre_
-    # print "err_", err_
+    # print "block_models.step_eh: pre_", pre_
+    # print "block_models.step_eh: err_", err_
     setattr(ref, 'pre', pre_[:,[-1]])
     setattr(ref, 'err', err_[:,[-1]])
 
