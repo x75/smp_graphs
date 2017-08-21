@@ -893,22 +893,46 @@ def step_eh(ref):
     (pre_l1, pre_l0, meas_l0, prerr_l0, prerr_l0_, prerr_l0__, prerr_l0___) = ref.tapping_SM(ref)
     # (pre_l1, pre_l0, meas_l0, prerr_l0, prerr_l0_, prerr_l0__) = tapping_EH2(ref)
     # (X, Y) = ref.tapping_XY(ref, pre_l1, pre_l0, prerr_l0, prerr_l0__)
-    (X, Y) = ref.tapping_EH(
-        ref, pre_l1, pre_l0, meas_l0,
-        prerr_l0, prerr_l0_, prerr_l0__)
+    
+    # (X, Y) = ref.tapping_EH(
+    #     ref, pre_l1, pre_l0, meas_l0,
+    #     prerr_l0, prerr_l0_, prerr_l0__)
+
+    # tapping_EH_input:  pre_l1, prerr_l0, meas_l0
+    def tapping_EH_input(ref):
+        pre_l1 = ref.inputs['pre_l1']['val'][...,ref.inputs['pre_l1']['lag']]
+        prerr_l0 = ref.inputs['prerr_l0']['val'][...,ref.inputs['prerr_l0']['lag']]
+        meas_l0 = ref.inputs['meas_l0']['val'][...,np.array(ref.inputs['pre_l1']['lag'])+1]
+        return (pre_l1, prerr_l0, meas_l0)
+    (pre_l1, prerr_l0, meas_l0) = tapping_EH_input(ref)
      
+    # tapping_EH_target: pre_l1, meas_l0
+    def tapping_EH_target(ref):
+        pre_l1 = ref.inputs['pre_l1']['val'][...,np.array(ref.inputs['meas_l0']['lag'])-1]
+        meas_l0 = ref.inputs['meas_l0']['val'][...,ref.inputs['meas_l0']['lag']]
+        return(pre_l1, meas_l0)
+
+    (pre_l1_t, meas_l0_t) = tapping_EH_target(ref)
+    
+    print "tap input ", pre_l1, prerr_l0, meas_l0
+    print "tap target", pre_l1_t, meas_l0_t
     # print "tapped pre_l1 = %s" % (pre_l1.shape,)
 
     ############################################################
     # shorthands for inputs
-    goal = pre_l1
-    meas = meas_l0
-    pre = pre_l0
+    goal = pre_l1.reshape((-1, 1))
+    meas = meas_l0.reshape((-1, 1))
+    pre = pre_l0.reshape((-1, 1))
 
+    goal_t = pre_l1_t.reshape((-1, 1))
+    meas_t = meas_l0_t.reshape((-1, 1))
     # use model specific error func
     # err = goal - meas # component-wise error
-    err = prerr_l0_
-
+    # err = prerr_l0_
+    # err = prerr_l0___
+    # print "prerr_l0___", prerr_l0___.shape
+    err = goal_t - meas_t
+    
     # print "err == pre_l0__", err == pre_l0__
 
     # prepare model update
@@ -922,12 +946,15 @@ def step_eh(ref):
     # set perf to EH specific perf (neg error with perf = 0 optimal performance)
     ref.mdl.learnEH_prepare(perf = ref.perf_measure(err))
     perf = ref.mdl.perf
+    perf_i = np.ones_like(goal) * ref.perf_measure(goal - meas)
+    print "perf", perf.shape, "perf_i", perf_i.shape
     # compose new network input
     x = np.vstack((
         goal,
-        ref.mdl.perf,
+        perf_i,
         meas,
         ))
+    print "x", x
     # update model
     y_mdl_ = ref.mdl.step(
         X = x.T,
@@ -936,12 +963,15 @@ def step_eh(ref):
     # print "y_mdl_", y_mdl_
     
     # prepare block outputs
-    pre_ = y_mdl_.reshape((-1, ref.laglen))
-    err_ = ref.mdl.perf.reshape((-1, ref.laglen))
+    # print "ref.laglen", ref.laglen
+    pre_ = y_mdl_.reshape((-1, ref.laglen_future))
+    err_ = ref.mdl.perf.reshape((-1, ref.laglen_future))
 
     # print "block_models.step_eh: pre_", pre_
     # print "block_models.step_eh: err_", err_
+    # setattr(ref, 'pre', np.sum(pre_[:,-3:]) * np.ones_like(ref.pre))
     setattr(ref, 'pre', pre_[:,[-1]])
+    # setattr(ref, 'pre', pre_[:,[-2]])
     setattr(ref, 'err', err_[:,[-1]])
 
     if ref.cnt % 500 == 0:
