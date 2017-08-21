@@ -884,15 +884,20 @@ def step_eh(ref):
     # ref.mdl.eta_init = ref.eta
 
     # step the model
+    # y_mdl_ = ref.mdl.step(
+    #     X = x.T,
+    #     Y = np.zeros((ref.odim, 1)),
+    #     r = ref.mdl.model.r, # FIXME: also tap
+    #     pred = pre,
+    #     pred_lp = ref.pre_lp,
+    #     perf = ref.rew.perf,
+    #     perf_lp = ref.rew.perf_lp,
+    #     eta = ref.mdl.eta
+    # )
+
     y_mdl_ = ref.mdl.step(
         X = x.T,
-        Y = np.zeros((ref.odim, 1)),
-        r = ref.mdl.model.r, # FIXME: also tap
-        pred = pre,
-        pred_lp = ref.pre_lp,
-        perf = ref.rew.perf,
-        perf_lp = ref.rew.perf_lp,
-        eta = ref.mdl.eta
+        Y = pre
     )
     # print "y_mdl_", y_mdl_
     
@@ -905,7 +910,8 @@ def step_eh(ref):
     # err_ = perf.reshape((-1, ref.laglen))
 
     pre_ = y_mdl_.reshape((-1, ref.laglen))
-    err_ = perf.reshape((-1, ref.laglen))
+    # err_ = perf.reshape((-1, ref.laglen))
+    err_ = ref.mdl.perf.reshape((-1, ref.laglen))
 
     # print "pre_", pre_
     # print "err_", err_
