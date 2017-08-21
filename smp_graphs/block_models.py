@@ -770,17 +770,6 @@ def init_eh(ref, conf, mconf):
     # ref.lr = LearningRules(ndim_out = mconf['odim'], dim = mconf['odim'])
     ref.laglen  = mconf['laglen']
     
-    # reward aka performance aka measure (smmdl)
-    #   (legacy approach from point_mass_learner_offline.py/OfflineLearner
-    ref.rew = learnerReward(
-        mconf['idim'], mconf['odim'], memlen = mconf['len_episode'],
-        coeff_a = mconf['coeff_a'])
-
-    # low pass filter models (smmdl)
-    ref.perf_model = iir_fo(a = 0.2, dim = mconf['odim'])
-    ref.pre_model = iir_fo(a = 0.2, dim = mconf['odim'])
-    ref.pre_lp = np.zeros((mconf['odim'], 1))
-
     # # eligibility traces (devmdl)
     # ref.ewin_off = 0
     # ref.ewin = mconf['et_winsize']
@@ -813,8 +802,8 @@ def step_eh(ref):
 
     Reward modulated exploratory Hebbian learning predict/update step
     """
-    # new measurements
-    # print "ref's power =", dir(ref)
+    # new incoming measurements
+    
     # deal with the lag specification for each input (lag, delay, temporal characteristic)
     (pre_l1, pre_l0, meas_l0, prerr_l0, prerr_l0_, prerr_l0__) = ref.tapping_SM(ref)
     # (X, Y) = ref.tapping_XY(ref, pre_l1, pre_l0, prerr_l0, prerr_l0__)
@@ -825,20 +814,16 @@ def step_eh(ref):
     # print "tapped pre_l1 = %s" % (pre_l1.shape,)
 
     ############################################################
-    # eh learning
-    
+    # shorthands for inputs
     goal = pre_l1
     meas = meas_l0
     pre = pre_l0
+
+    # use model specific error func
+    # FIXME: use measures
     err = goal - meas
 
     # print "err == pre_l0__", err == pre_l0__
-
-    # shift buffer
-    ref.r_buf = np.roll(ref.r_buf, -1, axis = 1)
-    # new value
-    # ref.r_buf[...,[-1]] = ref.res.r
-    ref.r_buf[...,[-1]] = ref.mdl.model.r
 
     # error / performance: different variations
     # FIXME: perf: element-wise, global, partially coupled, ...
@@ -848,6 +833,7 @@ def step_eh(ref):
     
     # FIXME: all of this should now go into measures an be called from there, e.g. dict of funcs
 
+    # convert into EH specific perf (neg error with perf = 0 optimal performance)
     err_square = np.square(err)
     err_abs    = np.abs(err)
     
@@ -861,16 +847,10 @@ def step_eh(ref):
     # perf = -np.ones_like(err) * err_sumabs
     # perf = -np.ones_like(err) * err_sumsquare
     # perf = -np.ones_like(err) * err_sumsqrt
-    
-    # ref.rew.perf_accel_sum(perf.T, meas.T)
-    # ref.rew.perf_accel(perf.T, meas.T)
-    ref.rew.perf_pos(perf.T, meas.T)
-    # print "ref.rew.perf", ref.rew.perf
-    ref.rew.perf = np.reshape(ref.rew.perf, (ref.odim, 1))
-    # print "ref.rew.perf", ref.rew.perf.shape
-
-    # learning / update
-    # new input
+        
+    # update model
+    ref.mdl.learnEH_prepare(perf = perf)
+    # new network input
     x = np.vstack((
         goal,
         perf,
@@ -878,11 +858,7 @@ def step_eh(ref):
         ))
 
     # step = fit + predict
-    ref.mdl.zn_lp = ref.pre_lp
-    ref.mdl.perf = perf
-    # ref.mdl.perf_lp = ref.rew.perf_lp
-    # ref.mdl.eta_init = ref.eta
-
+    
     # step the model
     # y_mdl_ = ref.mdl.step(
     #     X = x.T,
@@ -901,17 +877,10 @@ def step_eh(ref):
     )
     # print "y_mdl_", y_mdl_
     
-    # recent performance
-    ref.rew.perf_lp = ref.perf_model.predict(ref.rew.perf) # ref.rew.perf_lp * (1 - ref.rew.coeff_a) + ref.rew.perf * ref.rew.coeff_a
-    ref.pre_lp  = ref.pre_model.predict(pre) # ref.rew.perf_lp * (1 - ref.rew.coeff_a) + ref.rew.perf * ref.rew.coeff_a
-                
     # prepare outputs
-    # pre_ = ref.res.zn.reshape((-1, ref.laglen))
-    # err_ = perf.reshape((-1, ref.laglen))
-
     pre_ = y_mdl_.reshape((-1, ref.laglen))
     # err_ = perf.reshape((-1, ref.laglen))
-    err_ = ref.mdl.perf.reshape((-1, ref.laglen))
+    err_ = perf.reshape((-1, ref.laglen)) # ref.mdl.perf
 
     # print "pre_", pre_
     # print "err_", err_
@@ -921,7 +890,7 @@ def step_eh(ref):
     if ref.cnt % 500 == 0:
         print "iter[%d]: |W_o| = %f, eta = %f" % (ref.cnt, np.linalg.norm(ref.mdl.model.wo), ref.mdl.eta, )
     
-    # exit to execute on system and wait for new measurement
+    # return to execute prediction on system and wait for new measurement
             
 class model(object):
     """model
