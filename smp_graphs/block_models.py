@@ -958,7 +958,7 @@ def step_eh(ref):
     # update model
     y_mdl_ = ref.mdl.step(
         X = x.T,
-        Y = pre
+        Y = pre.T
     )
     # print "y_mdl_", y_mdl_
     

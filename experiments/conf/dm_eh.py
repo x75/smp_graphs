@@ -43,8 +43,8 @@ ros = False
 
 # experiment
 commandline_args = ['numsteps']
-randseed = 12354
-numsteps = int(10000/(1/3.))
+randseed = 12355
+numsteps = int(10000/(1/2.))
 loopblocksize = numsteps
 sysname = 'pm'
 # sysname = 'sa'
@@ -93,7 +93,7 @@ def get_systemblock_pm(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
             # pm2sys params
             'lag': 1,
             'order': 2,
-            'coupling_sigma': 1e-1, # 2.5e-2,
+            'coupling_sigma': 1e-2, # 2.5e-2,
             'transfer': 1, # 1
             'anoise_mean': 0.0,
             'anoise_std': 1e-3,
@@ -306,7 +306,7 @@ dt = systemblock['params']['dt']
 # algo = 'resrls'
 # algo = 'homeokinesis'
 algo = 'res_eh'
-algo_lag_past = (-2, -1) # 
+algo_lag_past = (-2, -1) #
 algo_lag_future = (-1, 0)
 
 minlag = 1
