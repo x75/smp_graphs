@@ -43,12 +43,12 @@ ros = False
 
 # experiment
 commandline_args = ['numsteps']
-randseed = 12356
+randseed = 12357
 numsteps = int(10000/(1/2.))
 loopblocksize = numsteps
 # sysname = 'pm'
-sysname = 'sa'
-# sysname = 'bha'
+# sysname = 'sa'
+sysname = 'bha'
 # sysname = 'stdr'
 # sysname = 'lpzbarrel'
 # sysname = 'sphero'
@@ -118,6 +118,7 @@ def get_systemblock_sa(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
                 }, # , 's_all': [(9, 1)]},
             'statedim': dim_s_proprio * 3,
             'dt': dt,
+            'lag': 3,
             'mass': 1.0/3.0,
             'force_max':  1.0,
             'force_min': -1.0,
@@ -173,7 +174,7 @@ def get_systemblock_bha(dim_s_proprio = 9, dim_s_extero = 3, dt = 0.1):
             'm_maxs': [ 0.30] * dim_s_proprio,
             's_mins': [ 0.10] * dim_s_proprio, # fixme all sensors
             's_maxs': [ 0.30] * dim_s_proprio,
-            'doplot': False,
+            'doplot': False, # True,
             'minlag': 1,
             'maxlag': 3 # 5
             }
@@ -307,8 +308,9 @@ dt = systemblock['params']['dt']
 # algo = 'homeokinesis'
 algo = 'res_eh'
 # eh model in principle only needs current goal prediction (pre_l1), measurement (meas_l0) on the input
-# lag past -lag-laglen+1 up to -lag+1
-lag_past = (-1, 0) #
+# lag past -lag-laglen+1 up to -lag+1, this goes directly and only into smpSHL.learnEH and not into smpModel
+# lag_past = (-3, -2) #
+lag_past = (-1, -0) #
 # lag future is a single time step now, multi-step prediction is difficult in the eh context
 lag_future = (-1, 0)
 
@@ -757,7 +759,7 @@ graph = OrderedDict([
                             # 'f': {'val': np.array([[0.23539]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.23539]]).T * 0.2 * dt}, # good with soesgp and eta = 0.7
                             'f': {'val': np.array([[0.23539]]).T * 0.05 * dt}, # good with soesgp and eta = 0.7
-                            'f': {'val': np.array([[0.23539, 0.3148]]).T * 0.05 * dt}, # good with soesgp and eta = 0.7
+                            # 'f': {'val': np.array([[0.23539, 0.3148]]).T * 0.05 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.14, 0.14]]).T * 1.0},
                             # 'f': {'val': np.array([[0.82, 0.82]]).T},
                             # 'f': {'val': np.array([[0.745, 0.745]]).T},
@@ -981,13 +983,15 @@ graph = OrderedDict([
                                 # 'res_input_num': dim_s_proprio * laglen * 3,
                                 # 'res_output_num': dim_s_proprio * laglen,
                                 'res_feedback_scaling': 0.0,
-                                'res_input_scaling': 1.0,
+                                # 'w_input': 1.0, # pm, sa
+                                'w_input': 3.0, # bha
                                 'res_bias_scaling': 0.5,
                                 'res_output_scaling': 1.0,
                                 'nonlin_func': np.tanh,
                                 'use_ip': 0,
-                                'theta': 1e-1,
-                                'theta_state': 1e-1,
+                                # 'theta': 1e-1, # pm, sa
+                                'theta': 3e-2, # bha
+                                'theta_state': 1e-2,
                                 'coeff_a': 0.2,
                                 'len_episode': numsteps,
                                 'input_coupling_mtx_spec': {0: 1., 1: 1.},

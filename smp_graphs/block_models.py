@@ -980,7 +980,7 @@ def step_eh(ref):
     # print "block_models.step_eh: pre_", pre_
     # print "block_models.step_eh: err_", err_
     # setattr(ref, 'pre', np.sum(pre_[:,-3:]) * np.ones_like(ref.pre))
-    setattr(ref, 'pre', pre_[:,[-1]])
+    setattr(ref, 'pre', pre_[:,[-1]] * 0.5 + 0.2)
     # setattr(ref, 'pre', pre_[:,[-2]])
     setattr(ref, 'err', err_[:,[-1]])
 
