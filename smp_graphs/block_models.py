@@ -531,8 +531,8 @@ def init_actinf(ref, conf, mconf):
     ref.X_  = np.zeros((mconf['idim'], 1))
     ref.y_  = np.zeros((mconf['odim'], 1))
     ref.laglen  = mconf['laglen']
-    ref.lag_past  = mconf['algo_lag_past']
-    ref.lag_future  = mconf['algo_lag_future']
+    ref.lag_past  = mconf['lag_past']
+    ref.lag_future  = mconf['lag_future']
 
     ref.laglen_past = ref.lag_past[1] - ref.lag_past[0]
     ref.laglen_future = ref.lag_future[1] - ref.lag_future[0]
@@ -577,8 +577,8 @@ def step_actinf(ref):
     # if np.linalg.norm(dgoal_fit) <= np.linalg.norm(ref.dgoal_fit_): #  and np.linalg.norm(prerr_l0_) > 5e-2:
         # prerr = prerr_l0_.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
         # FIXME: actually, if ref.mdl.hasmemory
-        if isinstance(ref.mdl, smpOTLModel):
-            # print "Fitting without update"
+        if isinstance(ref.mdl, smpOTLModel) or isinstance(ref.mdl, smpSHL):
+            print "Fitting without update"
             ref.mdl.fit(X.T, Y.T, update = False)
         else:
             ref.mdl.fit(X.T, Y.T)
@@ -629,10 +629,11 @@ def step_actinf(ref):
     # FIXME: put that mapping into config?
     # fetch the logically latest prediction
     pre = pre_l0_.reshape((ref.odim / ref.laglen_future, -1))[...,[-1]]
-    # fetch the logically earliest prediction, might already refer to a past state
-    pre = pre_l0_.reshape((ref.odim / ref.laglen_future, -1))[...,[-ref.laglen_future]]
-    # fetch the minimally delayed prediction from multi step prediction
-    pre = pre_l0_.reshape((ref.odim / ref.laglen_future, -1))[...,[max(-ref.laglen_future, ref.lag_past[1])]]
+    # # fetch the logically earliest prediction, might already refer to a past state
+    # pre = pre_l0_.reshape((ref.odim / ref.laglen_future, -1))[...,[-ref.laglen_future]]
+    # # fetch the minimally delayed prediction from multi step prediction
+    # pre = pre_l0_.reshape((ref.odim / ref.laglen_future, -1))[...,[max(-ref.laglen_future, ref.lag_past[1])]]
+    
     # pre = np.mean(pre_l0_.reshape((ref.odim / ref.laglen_future, -1))[...,-3:], axis = 1).reshape((-1, 1))
     # prerr = prerr_l0_.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
                 

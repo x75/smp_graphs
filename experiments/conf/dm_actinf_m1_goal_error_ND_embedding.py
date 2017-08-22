@@ -92,8 +92,8 @@ def get_systemblock_pm(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
             'maxlag': 4, # 2, # 20, # 2, # 5
             'lag': 3,
             'order': 2,
-            'coupling_sigma': 1e-1,
-            'transfer': 1,
+            'coupling_sigma': 1e-2,
+            'transfer': 0,
             'anoise_mean': 0.0,
             'anoise_std': 1e-2,
             }
@@ -298,20 +298,22 @@ maxlag = systemblock['params']['maxlag']
 
 dt = systemblock['params']['dt']
 
-algo = 'knn' #
+# algo = 'knn' #
 # algo = 'gmm' #
 # algo = 'igmm' #
 # algo = 'hebbsom'
 # algo = 'soesgp'
 # algo = 'storkgp'
-# algo = 'resrls'
+algo = 'resrls'
 # algo = 'homeokinesis'
 
-algo_lag_past = (-11, -3)
-algo_lag_future = (-5, 0)
+lag_past = (-11, -3)
+lag_future = (-5, 0)
+# lag_past = (-4, -3)
+# lag_future = (-1, 0)
 
 minlag = 1
-maxlag = -algo_lag_past[0] + algo_lag_future[1]
+maxlag = -lag_past[0] + lag_future[1]
 laglen = maxlag - minlag
 
 eta = 0.99
@@ -340,18 +342,18 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             },
         'hspace': 0.2,
         'subplots': [
-            # [
-            #     {'input': ['goals', 's_proprio'], 'plot': partial(timeseries, marker='.')},
-            # ],
-            # [
-            #     {'input': ['goals', 'pre'], 'plot': partial(timeseries, marker='.')},
-            # ],
             [
-                {'input': ['s_proprio'], 'plot': partial(timeseries, marker='.')},
+                {'input': ['goals', 's_proprio'], 'plot': partial(timeseries, marker='.')},
             ],
             [
-                {'input': ['pre'], 'plot': partial(timeseries, marker='.')},
+                {'input': ['goals', 'pre'], 'plot': partial(timeseries, marker='.')},
             ],
+            # [
+            #     {'input': ['s_proprio'], 'plot': partial(timeseries, marker='.')},
+            # ],
+            # [
+            #     {'input': ['pre'], 'plot': partial(timeseries, marker='.')},
+            # ],
             # [
             #     {'input': ['pre'], 'plot': timeseries},
             # ],
@@ -792,22 +794,22 @@ graph = OrderedDict([
                             'pre_l1': {
                                 'bus': 'pre_l1/pre',
                                 # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag, -minlag)},
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(algo_lag_past[0], algo_lag_past[1])},
+                                'shape': (dim_s_proprio, maxlag), 'lag': range(lag_past[0], lag_past[1])},
                             # ascending prediction error
                             'pre_l0': {
                                 'bus': 'pre_l0/pre',
                                 # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)},
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(algo_lag_past[0] + 1, algo_lag_past[1] + 1)},
+                                'shape': (dim_s_proprio, maxlag), 'lag': range(lag_past[0] + 1, lag_past[1] + 1)},
                             # ascending prediction error
                             'prerr_l0': {
                                 'bus': 'pre_l0/err',
                                 # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)},
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(algo_lag_past[0] + 1, algo_lag_past[1] + 1)},
+                                'shape': (dim_s_proprio, maxlag), 'lag': range(lag_past[0] + 1, lag_past[1] + 1)},
                             # measurement
                             'meas_l0': {
                                 'bus': 'robot1/s_proprio',
                                 # 'shape': (dim_s_proprio, maxlag), 'lag': range(-laglen, 0)}
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(algo_lag_future[0], algo_lag_future[1])}
+                                'shape': (dim_s_proprio, maxlag), 'lag': range(lag_future[0], lag_future[1])}
                             },
                         'outputs': {
                             'pre': {'shape': (dim_s_proprio, 1)},
@@ -819,13 +821,13 @@ graph = OrderedDict([
                             'm1': {
                                 'type': 'actinf_m1',
                                 'algo': algo,
-                                'algo_lag_past': algo_lag_past,
-                                'algo_lag_future': algo_lag_future,
-                                'idim': dim_s_proprio * (algo_lag_past[1] - algo_lag_past[0]) * 2, # laglen
-                                'odim': dim_s_proprio * (algo_lag_future[1] - algo_lag_future[0]), # laglen,
+                                'lag_past': lag_past,
+                                'lag_future': lag_future,
+                                'idim': dim_s_proprio * (lag_past[1] - lag_past[0]) * 2, # laglen
+                                'odim': dim_s_proprio * (lag_future[1] - lag_future[0]), # laglen,
                                 'laglen': laglen,
-                                # 'laglen_past': algo_lag_past[1] - algo_lag_past[0],
-                                # 'laglen_future': algo_lag_future[1] - algo_lag_future[0],
+                                # 'laglen_past': lag_past[1] - lag_past[0],
+                                # 'laglen_future': lag_future[1] - lag_future[0],
                                 'eta': eta,
                                 },
                                 
