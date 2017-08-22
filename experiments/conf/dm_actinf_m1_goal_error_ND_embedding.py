@@ -46,11 +46,11 @@ commandline_args = ['numsteps']
 randseed = 12348
 numsteps = int(10000/5)
 loopblocksize = numsteps
-sysname = 'pm'
+# sysname = 'pm'
 # sysname = 'sa'
 # sysname = 'bha'
 # sysname = 'stdr'
-# sysname = 'lpzbarrel'
+sysname = 'lpzbarrel'
 # sysname = 'sphero'
 # dim = 3 # 2, 1
 # dim = 9 # bha
@@ -298,30 +298,33 @@ maxlag = systemblock['params']['maxlag']
 
 dt = systemblock['params']['dt']
 
-# algo = 'knn' #
+algo = 'knn' #
 # algo = 'gmm' #
 # algo = 'igmm' #
 # algo = 'hebbsom'
 # algo = 'soesgp'
 # algo = 'storkgp'
-algo = 'resrls'
+# algo = 'resrls'
 # algo = 'homeokinesis'
 
-lag_past = (-11, -3)
-lag_future = (-5, 0)
+# lag_past = (-11, -3)
+# lag_future = (-5, 0)
 # lag_past = (-4, -3)
 # lag_future = (-1, 0)
+# lpzbarrel non-overlapping seems important
+lag_past = (-6, -2)
+lag_future = (-1, 0)
 
 minlag = 1
 maxlag = -lag_past[0] + lag_future[1]
 laglen = maxlag - minlag
 
-eta = 0.99
+# eta = 0.99
 # eta = 0.95
 # eta = 0.7
 # eta = 0.3
 # eta = 0.25
-# eta = 0.15
+eta = 0.15
 # eta = 0.1
 # eta = 0.05
 
@@ -746,10 +749,12 @@ graph = OrderedDict([
                             # 'f': {'val': np.array([[0.23538, 0.23538]]).T * 1.0}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.45]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.225]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.23539]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
+                            'f': {'val': np.array([[0.23539]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.23539]]).T * 7.23 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.23539]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
-                            'f': {'val': np.array([[0.23539]]).T * 0.2 * dt}, # good with soesgp and eta = 0.7
+                            
+                            # 'f': {'val': np.array([[0.23539]]).T * 0.2 * dt}, # good with soesgp and eta = 0.7
+                            
                             # 'f': {'val': np.array([[0.23539, 0.2348, 0.14]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.14, 0.14]]).T * 1.0},
                             # 'f': {'val': np.array([[0.82, 0.82]]).T},

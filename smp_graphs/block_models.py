@@ -840,6 +840,8 @@ def init_eh(ref, conf, mconf):
     # compute the tapping lengths for past and future
     ref.laglen_past = ref.lag_past[1] - ref.lag_past[0]
     ref.laglen_future = ref.lag_future[1] - ref.lag_future[0]
+
+    mconf['visualize'] = False
     
     # reservoir network
     ref.mdl = init_model(ref, conf, mconf)
@@ -927,7 +929,7 @@ def step_eh(ref):
     pre_i = pre_l0.reshape((-1, 1))
     err_i = goal_i - meas_i
     perf_i = -ref.perf_measure(err_i)
-
+    
     # shorthands for target
     goal_t = pre_l1_t.reshape((-1, 1))
     meas_t = meas_l0_t.reshape((-1, 1))
@@ -980,7 +982,7 @@ def step_eh(ref):
     # print "block_models.step_eh: pre_", pre_
     # print "block_models.step_eh: err_", err_
     # setattr(ref, 'pre', np.sum(pre_[:,-3:]) * np.ones_like(ref.pre))
-    setattr(ref, 'pre', pre_[:,[-1]] * 0.5 + 0.2)
+    setattr(ref, 'pre', pre_[:,[-1]]) # FIXME: output scaling, e.g. bha * 0.5 + 0.2)
     # setattr(ref, 'pre', pre_[:,[-2]])
     setattr(ref, 'err', err_[:,[-1]])
 

@@ -738,7 +738,7 @@ class Block2(object):
             # ros?
             if hasattr(self, 'ros') and self.ros:
                 self.msgs[k] = Float64MultiArray()
-                self.pubs[k] = rospy.Publisher(k, Float64MultiArray, queue_size = 2)
+                self.pubs[k] = rospy.Publisher('%s/%s' % (self.id, k, ), Float64MultiArray, queue_size = 2)
             
             # output item initialized
             v['init'] = True
