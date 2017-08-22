@@ -43,7 +43,7 @@ ros = False
 
 # experiment
 commandline_args = ['numsteps']
-randseed = 12355
+randseed = 12356
 numsteps = int(10000/(1/2.))
 loopblocksize = numsteps
 sysname = 'pm'
@@ -93,7 +93,7 @@ def get_systemblock_pm(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
             # pm2sys params
             'lag': 1,
             'order': 2,
-            'coupling_sigma': 1e-2, # 2.5e-2,
+            'coupling_sigma': 5e-1, # 2.5e-2,
             'transfer': 1, # 1
             'anoise_mean': 0.0,
             'anoise_std': 1e-3,
@@ -306,12 +306,19 @@ dt = systemblock['params']['dt']
 # algo = 'resrls'
 # algo = 'homeokinesis'
 algo = 'res_eh'
-algo_lag_past = (-2, -1) #
-algo_lag_future = (-1, 0)
+# eh model in principle only needs current goal prediction (pre_l1), measurement (meas_l0) on the input
+# lag past -lag-laglen+1 up to -lag+1
+lag_past = (-1, 0) #
+# lag future is a single time step now, multi-step prediction is difficult in the eh context
+lag_future = (-1, 0)
 
-minlag = 1
-maxlag = max(-algo_lag_past[0], -algo_lag_future[0])
+# minlag = 1
+# maxlag = max(-lag_past[0], -lag_future[0])
+minlag = max(1, -max(lag_past[1], lag_future[1]))
+maxlag = 1 - min(lag_past[0], lag_future[0])
 laglen = maxlag - minlag
+
+# print "minlag", minlag, "maxlag", maxlag
 
 # eta = 0.99
 # eta = 0.95
@@ -750,7 +757,7 @@ graph = OrderedDict([
                             # 'f': {'val': np.array([[0.23539]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.23539]]).T * 0.2 * dt}, # good with soesgp and eta = 0.7
                             'f': {'val': np.array([[0.23539]]).T * 0.05 * dt}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.23539, 0.2348, 0.14]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
+                            'f': {'val': np.array([[0.23539, 0.3148]]).T * 0.05 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.14, 0.14]]).T * 1.0},
                             # 'f': {'val': np.array([[0.82, 0.82]]).T},
                             # 'f': {'val': np.array([[0.745, 0.745]]).T},
@@ -926,22 +933,22 @@ graph = OrderedDict([
                             'pre_l1': {
                                 'bus': 'pre_l1/pre',
                                 # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag, -minlag)},
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(algo_lag_past[0], algo_lag_past[1])},
+                                'shape': (dim_s_proprio, maxlag), 'lag': range(lag_past[0], lag_past[1])},
                             # ascending prediction error
                             'pre_l0': {
                                 'bus': 'pre_l0/pre',
                                 # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)},
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(algo_lag_past[0] + 1, algo_lag_past[1] + 1)},
+                                'shape': (dim_s_proprio, maxlag), 'lag': range(lag_past[0] + 1, lag_past[1] + 1)},
                             # ascending prediction error
                             'prerr_l0': {
                                 'bus': 'pre_l0/err',
                                 # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)},
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(algo_lag_past[0] + 1, algo_lag_past[1] + 1)},
+                                'shape': (dim_s_proprio, maxlag), 'lag': range(lag_past[0] + 1, lag_past[1] + 1)},
                             # measurement
                             'meas_l0': {
                                 'bus': 'robot1/s_proprio',
                                 # 'shape': (dim_s_proprio, maxlag), 'lag': range(-laglen, 0)}
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(algo_lag_future[0], algo_lag_future[1])}
+                                'shape': (dim_s_proprio, maxlag), 'lag': range(lag_future[0], lag_future[1])}
                             },
                         'outputs': {
                             'pre': {'shape': (dim_s_proprio, 1)},
@@ -954,17 +961,16 @@ graph = OrderedDict([
                                 'type': 'eh',
                                 'lrname': 'eh',
                                 'algo': algo,
-                                'perf_measure': meas.sum_abs, # abs, square, sum_abs, sum_square, sum_sqrt
-                                # 'idim': dim_s_proprio * laglen * 3,
-                                # 'odim': dim_s_proprio * laglen, # laglen becomes neglag, prediction horizon into the future
+                                'perf_measure': meas.abs, # abs, square, sum_abs, sum_square, sum_sqrt
                                 'memory': maxlag,
                                 'laglen': laglen,
                                 'minlag': minlag,
                                 'maxlag': maxlag,
-                                'lag_past': algo_lag_past,
-                                'lag_future': algo_lag_future,
-                                'idim': dim_s_proprio * (algo_lag_past[1] - algo_lag_past[0]) * 3, # laglen
-                                'odim': dim_s_proprio * (algo_lag_future[1] - algo_lag_future[0]), # laglen,
+                                # model need's to know about past/future embedding
+                                'lag_past': lag_past,
+                                'lag_future': lag_future,
+                                'idim': dim_s_proprio * 3, #* (lag_past[1] - lag_past[0]) * 3, # laglen
+                                'odim': dim_s_proprio * (lag_future[1] - lag_future[0]), # laglen,
                                 'eta': 8e-4,
                                 'eta_init': 1e-3,
                                 'modelsize': 200,
@@ -980,8 +986,8 @@ graph = OrderedDict([
                                 'res_output_scaling': 1.0,
                                 'nonlin_func': np.tanh,
                                 'use_ip': 0,
-                                'res_theta': 1e-1,
-                                'res_theta_state': 1e-1,
+                                'theta': 1e-1,
+                                'theta_state': 1e-1,
                                 'coeff_a': 0.2,
                                 'len_episode': numsteps,
                                 'input_coupling_mtx_spec': {0: 1., 1: 1.},

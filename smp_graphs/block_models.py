@@ -806,11 +806,13 @@ def init_eh(ref, conf, mconf):
 
     TODO
     - x Base version ported from point_mass_learner_offline.py and learners.py
-    - Consolidate: step_eh, smpSHL, learnEH and learn*, tappings, eligibility, dev-model vs. smpSHL vs. LearningRules vs. Explorer
+    - x Consolidate: step_eh, smpSHL, learnEH and learn*
+    - Tappings, eligibility, dev-model vs. smpSHL vs. LearningRules vs. Explorer
     - Integrate and merge tapping with earlier Eligibility / learnEHE approach
     - Use tapping to build a supervised learning version of the algorithm?
     - Implement and compare CACLA
     - Tapping past/future cleanup and evaluate -1/0, -n:-1/0, -mask/0, -n/k, -mask/mask, -n/n
+    - Stabilization: error thresholding, weight bounding, decaying eta, IP + mean removal + moment coding
     """
 
     print "mconf", mconf.keys()
@@ -834,7 +836,9 @@ def init_eh(ref, conf, mconf):
     for k in ['type', 'perf_measure', 'minlag', 'maxlag', 'lag_future', 'lag_past']:
         setattr(ref, k, mconf[k])
 
-    mconf['theta'] = mconf['res_theta']
+    # compute the tapping lengths for past and future
+    ref.laglen_past = ref.lag_past[1] - ref.lag_past[0]
+    ref.laglen_future = ref.lag_future[1] - ref.lag_future[0]
     
     # reservoir network
     ref.mdl = init_model(ref, conf, mconf)
@@ -846,15 +850,7 @@ def init_eh(ref, conf, mconf):
     # for k,v in mconf['input_coupling_mtx_spec'].items():
     #     ref.input_coupling_mtx[k] = v
     # print ("input coupling matrix", ref.input_coupling_mtx)
-    
-    # learning rule (smmdl)
-    # ref.eta = params['eta'] # params['models']['m1']['eta']
-    # ref.eta = mconf['eta'] # this will get overwritten by Block.init
-    # ref.lr = LearningRules(ndim_out = mconf['odim'], dim = mconf['odim'])
-    ref.laglen  = mconf['laglen']
-    ref.laglen_past = ref.lag_past[1] - ref.lag_past[0]
-    ref.laglen_future = ref.lag_future[1] - ref.lag_future[0]
-    
+        
     # # eligibility traces (devmdl)
     # ref.ewin_off = 0
     # ref.ewin = mconf['et_winsize']
@@ -890,7 +886,7 @@ def step_eh(ref):
     # new incoming measurements
     
     # deal with the lag specification for each input (lag, delay, temporal characteristic)
-    (pre_l1, pre_l0, meas_l0, prerr_l0, prerr_l0_, prerr_l0__, prerr_l0___) = ref.tapping_SM(ref)
+    # (pre_l1, pre_l0, meas_l0, prerr_l0, prerr_l0_, prerr_l0__, prerr_l0___) = ref.tapping_SM(ref)
     # (pre_l1, pre_l0, meas_l0, prerr_l0, prerr_l0_, prerr_l0__) = tapping_EH2(ref)
     # (X, Y) = ref.tapping_XY(ref, pre_l1, pre_l0, prerr_l0, prerr_l0__)
     
@@ -900,39 +896,48 @@ def step_eh(ref):
 
     # tapping_EH_input:  pre_l1, prerr_l0, meas_l0
     def tapping_EH_input(ref):
-        pre_l1 = ref.inputs['pre_l1']['val'][...,ref.inputs['pre_l1']['lag']]
-        prerr_l0 = ref.inputs['prerr_l0']['val'][...,ref.inputs['prerr_l0']['lag']]
-        meas_l0 = ref.inputs['meas_l0']['val'][...,np.array(ref.inputs['pre_l1']['lag'])+1]
-        return (pre_l1, prerr_l0, meas_l0)
-    (pre_l1, prerr_l0, meas_l0) = tapping_EH_input(ref)
+        # pre_l1 = ref.inputs['pre_l1']['val'][...,ref.inputs['pre_l1']['lag']]
+        # prerr_l0 = ref.inputs['prerr_l0']['val'][...,ref.inputs['prerr_l0']['lag']]
+        # meas_l0 = ref.inputs['meas_l0']['val'][...,np.array(ref.inputs['pre_l1']['lag'])+1]
+        pre_l1 = ref.inputs['pre_l1']['val'][...,[-1]] # most recent goal prediction
+        pre_l0 = ref.inputs['pre_l0']['val'][...,[-1]] # most recent goal prediction
+        prerr_l0 = ref.inputs['prerr_l0']['val'][...,[-1]] # our own most recent prediction error
+        meas_l0 = ref.inputs['meas_l0']['val'][...,[-1]] # most recent measurement
+        return (pre_l1, pre_l0, prerr_l0, meas_l0)
+    (pre_l1, pre_l0, prerr_l0, meas_l0) = tapping_EH_input(ref)
      
     # tapping_EH_target: pre_l1, meas_l0
     def tapping_EH_target(ref):
-        pre_l1 = ref.inputs['pre_l1']['val'][...,np.array(ref.inputs['meas_l0']['lag'])-1]
-        meas_l0 = ref.inputs['meas_l0']['val'][...,ref.inputs['meas_l0']['lag']]
+        # pre_l1 = ref.inputs['pre_l1']['val'][...,np.array(ref.inputs['meas_l0']['lag'])-1]
+        # meas_l0 = ref.inputs['meas_l0']['val'][...,ref.inputs['meas_l0']['lag']]
+        pre_l1 = ref.inputs['pre_l1']['val'][...,range(ref.lag_future[0]-1, ref.lag_future[1]-1)]
+        meas_l0 = ref.inputs['meas_l0']['val'][...,range(ref.lag_future[0], ref.lag_future[1])]
         return(pre_l1, meas_l0)
 
     (pre_l1_t, meas_l0_t) = tapping_EH_target(ref)
     
-    print "tap input ", pre_l1, prerr_l0, meas_l0
-    print "tap target", pre_l1_t, meas_l0_t
-    # print "tapped pre_l1 = %s" % (pre_l1.shape,)
+    # print "tap input pre_l1 = %s, prerr_l0 = %s, meas_l0 = %s" % (pre_l1.shape, prerr_l0.shape, meas_l0.shape)
+    # print "tap target pre_l1_t = %s, meas_l0_t = %s" % (pre_l1_t.shape, meas_l0_t.shape)
 
     ############################################################
     # shorthands for inputs
-    goal = pre_l1.reshape((-1, 1))
-    meas = meas_l0.reshape((-1, 1))
-    pre = pre_l0.reshape((-1, 1))
+    goal_i = pre_l1.reshape((-1, 1))
+    meas_i = meas_l0.reshape((-1, 1))
+    pre_i = pre_l0.reshape((-1, 1))
+    err_i = goal_i - meas_i
+    perf_i = -ref.perf_measure(err_i)
 
+    # shorthands for target
     goal_t = pre_l1_t.reshape((-1, 1))
     meas_t = meas_l0_t.reshape((-1, 1))
+    
     # use model specific error func
     # err = goal - meas # component-wise error
     # err = prerr_l0_
     # err = prerr_l0___
     # print "prerr_l0___", prerr_l0___.shape
-    err = goal_t - meas_t
-    
+    err_t = goal_t - meas_t
+    # err = pre_l1_t[...,[-1]] - meas_l0_t[...,[-1]]
     # print "err == pre_l0__", err == pre_l0__
 
     # prepare model update
@@ -944,27 +949,31 @@ def step_eh(ref):
     # x: perf: element-wise, global, partially coupled, ...
 
     # set perf to EH specific perf (neg error with perf = 0 optimal performance)
-    ref.mdl.learnEH_prepare(perf = ref.perf_measure(err))
+    ref.mdl.learnEH_prepare(perf = ref.perf_measure(err_t))
     perf = ref.mdl.perf
-    perf_i = np.ones_like(goal) * ref.perf_measure(goal - meas)
-    print "perf", perf.shape, "perf_i", perf_i.shape
+    # perf_i = np.ones_like(goal) * ref.perf_measure(goal - meas)
+    # print "perf", perf.shape, "perf_i", perf_i.shape
+    
     # compose new network input
     x = np.vstack((
-        goal,
+        goal_i,
         perf_i,
-        meas,
+        meas_i,
         ))
-    print "x", x
+    # print "x", x.shape
+    y = pre_i
     # update model
     y_mdl_ = ref.mdl.step(
         X = x.T,
-        Y = pre.T
+        Y = y.T # dummy
     )
+    # print "y_mdl_", y_mdl_.shape
     # print "y_mdl_", y_mdl_
     
     # prepare block outputs
     # print "ref.laglen", ref.laglen
     pre_ = y_mdl_.reshape((-1, ref.laglen_future))
+    # print "pre_", pre_
     err_ = ref.mdl.perf.reshape((-1, ref.laglen_future))
 
     # print "block_models.step_eh: pre_", pre_
