@@ -211,6 +211,7 @@ def init_random_uniform_pi_2(ref, conf, mconf):
         setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
         # setattr(ref, outk, np.ones(outv['shape']))
         print "block_models.py: random_uniform_pi_2_init %s = %s" % (outk, getattr(ref, outk))
+    ref.prerr_ = np.ones((ref.prerr.shape[0], 100))
 
 def step_random_uniform_pi_2(ref):
     if hasattr(ref, 'rate'):
@@ -226,7 +227,16 @@ def step_random_uniform_pi_2(ref):
             # pred = np.random.uniform(lo, hi, size = outv['shape'])
             # pred[1,0] = pred[0,0] - 0.5
             # print meas_l0.shape
-            pred = np.random.normal(meas_l0, scale = 0.001) # , size = outv['shape']) # * 1e-3
+            prerr = ref.pre - meas_l0
+            np.roll(ref.prerr_, -1, axis = 1)
+            ref.prerr_[...,[-1]] = prerr.copy()
+            if np.mean(np.abs(ref.prerr_)) < 0.1:
+                print "uniform_pi_2 small error"
+                pred = np.random.normal(meas_l0, scale = np.mean(np.abs(ref.prerr_))) # , size = outv['shape']) # * 1e-3
+            else:
+                pred = np.random.normal(meas_l0, scale = 0.001) # , size = outv['shape']) # * 1e-3
+                
+            
             # pred = np.zeros(outv['shape'])
             setattr(ref, outk, pred)
             print "step_random_uniform_pi_2 ref.outk", getattr(ref, outk)
