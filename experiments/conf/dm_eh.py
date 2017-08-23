@@ -233,17 +233,17 @@ def get_systemblock_lpzbarrel(dim_s_proprio = 2, dim_s_extero = 1, dt = 0.01):
             'smdict': {},
             'minlag': 2, # 1, # 5, 4
             'maxlag': 6, # 2,
-            'mdl_w_input': 2.0,
-            'mdl_w_bias': 0.5,
+            'mdl_w_input': 1.0,
+            'mdl_w_bias': 0.4,
             # 'mdl_theta': 5e-3, # 2.5e-1,
-            # 'mdl_theta': 1e-1, # 2.5e-1,
+            'mdl_theta': 1e-1, # 2.5e-1,
+            'mdl_eta': 1e-3, # 5e-4,
+            
+            'mdl_theta': 5e-2, # 2.5e-1,
             # 'mdl_eta': 5e-4, # 5e-4,
             
-            # 'mdl_theta': 5e-2, # 2.5e-1,
-            # 'mdl_eta': 5e-4, # 5e-4,
-            
-            'mdl_theta': 1e-2, # 2.5e-1,
-            'mdl_eta': 3e-4, # 5e-4,
+            # 'mdl_theta': 1e-2, # 2.5e-1,
+            # 'mdl_eta': 3e-4, # 5e-4,
             
             # 'mdl_eta': 1e-4, # 5e-4,
             'mdl_spectral_radius': 0.999,
@@ -362,10 +362,11 @@ lag_future = (-1, 0)
 # lpzbarrel
 # lag_past = (-6, -2) #
 # lag_past = (-2, -1) # good
-# lag_past = (-3, -2) # good
-lag_past = (-4, -3) # best
+lag_past = (-3, -2) # good
+# lag_past = (-4, -3) # best
 # lag_past = (-5, -4) not good
 # lag_past = (-5, -1)
+# lag_past = (-20, -1)
 # minlag = 1
 # maxlag = max(-lag_past[0], -lag_future[0])
 minlag = max(1, -max(lag_past[1], lag_future[1]))
@@ -800,7 +801,7 @@ graph = OrderedDict([
                         'models': {
                             'goal': {'type': 'random_uniform_pi_2'}
                             },
-                        'rate': 100, # int(numsteps/30), # 1000,
+                        'rate': 2000, # int(numsteps/30), # 1000,
                         },
                     }),
                     
@@ -1083,7 +1084,7 @@ graph = OrderedDict([
                                 'coeff_a': 0.3,
                                 'len_episode': numsteps,
                                 'input_coupling_mtx_spec': {0: 1., 1: 1.},
-                                'input_coupling': 'normal', # uniform, normal, sparse_uniform, sparse_normal, disjunct
+                                'input_coupling': 'sparse_normal', # uniform, normal, sparse_uniform, sparse_normal, disjunct
                                 'use_et': 0,
                                 'et_winsize': 20,
                                 'use_pre': 0,

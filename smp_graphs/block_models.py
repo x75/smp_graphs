@@ -221,12 +221,12 @@ def step_random_uniform_pi_2(ref):
     meas_l0 = ref.inputs['meas_l0']['val'][...,[-1]]
     for outk, outv in ref.outputs.items():
         if ref.cnt % (ref.rate * 1) == 0:
-            pred = np.random.normal(0, 0.05, size = outv['shape'])
-            pred[1,0] = pred[0,0]
+            # pred = np.random.normal(0, 0.05, size = outv['shape'])
+            # pred[1,0] = pred[0,0]
             # pred = np.random.uniform(lo, hi, size = outv['shape'])
             # pred[1,0] = pred[0,0] - 0.5
-            print meas_l0.shape
-            # pred = np.random.normal(meas_l0, scale = 0.1, size = outv['shape']) # * 1e-3
+            # print meas_l0.shape
+            pred = np.random.normal(meas_l0, scale = 0.001) # , size = outv['shape']) # * 1e-3
             # pred = np.zeros(outv['shape'])
             setattr(ref, outk, pred)
             print "step_random_uniform_pi_2 ref.outk", getattr(ref, outk)
@@ -1031,7 +1031,7 @@ def step_eh(ref):
     # compose new network input
     x = np.vstack((
         goal_i,
-        perf_i * 0.25,
+        perf_i * 1.0, # 0.25,
         meas_i,
         ))
     # print "x", x.shape
@@ -1052,7 +1052,7 @@ def step_eh(ref):
     perf_lp_fancy = ref.mdl.perf_model_fancy.step(X = X_perf, Y = Y_perf)
     # print "perf pred", ref.mdl.perf_lp, perf_lp_fancy
     perf_lp_m1 = ref.mdl.perf_lp.copy()
-    # ref.mdl.perf_lp = perf_lp_fancy.T.copy()
+    ref.mdl.perf_lp = perf_lp_fancy.T.copy()
     
     # prepare block outputs
     # print "ref.laglen", ref.laglen
