@@ -918,7 +918,17 @@ def step_eh(ref):
         return(pre_l1, meas_l0)
 
     (pre_l1_t, meas_l0_t) = tapping_EH_target(ref)
-    
+
+    def tapping_EH_target_corr(ref):
+        # pre_l1 = ref.inputs['pre_l1']['val'][...,np.array(ref.inputs['meas_l0']['lag'])-1]
+        # meas_l0 = ref.inputs['meas_l0']['val'][...,ref.inputs['meas_l0']['lag']]
+        lag_error = (-100, 0)
+        pre_l1 = ref.inputs['pre_l1']['val'][...,range(lag_error[0]-1, lag_error[1]-1)]
+        meas_l0 = ref.inputs['meas_l0']['val'][...,range(lag_error[0], lag_error[1])]
+        return(pre_l1, meas_l0)
+
+    (pre_l1_t_corr, meas_l0_t_corr) = tapping_EH_target_corr(ref)
+     
     # print "tap input pre_l1 = %s, prerr_l0 = %s, meas_l0 = %s" % (pre_l1.shape, prerr_l0.shape, meas_l0.shape)
     # print "tap target pre_l1_t = %s, meas_l0_t = %s" % (pre_l1_t.shape, meas_l0_t.shape)
 
@@ -940,6 +950,28 @@ def step_eh(ref):
     # err = prerr_l0___
     # print "prerr_l0___", prerr_l0___.shape
     err_t = goal_t - meas_t
+    # err_t1 = np.corrcoef(pre_l1_t_corr, meas_l0_t_corr)
+    
+    # # compute correlation
+    # err_t1 = np.array([
+    #     np.array([
+    #         np.correlate(np.roll(pre_l1_t_corr[j,:], shift = i), meas_l0_t_corr[j,:]) for i in range(-200, 0)
+    #     ]) for j in range(2)
+    # ])
+    
+    # # print "err_t1 0", np.argmax(np.abs(err_t1[0].T[0]))
+    # # print "err_t1 1", np.argmax(np.abs(err_t1[1].T[0]))
+    # err_t = np.array([
+    #     [
+    #         # np.abs(err_t1[0].T[0][np.argmax(np.abs(err_t1[0].T[0]))])
+    #         np.argmax(np.abs(err_t1[0].T[0]))
+    #     ],
+    #     [
+    #         # np.abs(err_t1[1].T[0][np.argmax(np.abs(err_t1[1].T[0]))])
+    #         np.argmax(np.abs(err_t1[1].T[0]))
+    #     ]
+    # ])
+    
     # err = pre_l1_t[...,[-1]] - meas_l0_t[...,[-1]]
     # print "err == pre_l0__", err == pre_l0__
 
@@ -972,6 +1004,15 @@ def step_eh(ref):
     )
     # print "y_mdl_", y_mdl_.shape
     # print "y_mdl_", y_mdl_
+
+    # update perf prediction
+    X_perf = np.vstack((goal_i, meas_i, perf_i, y_mdl_.T)).T
+    Y_perf = perf_i.T
+    # print "X_perf", X_perf.shape
+    # print "Y_perf", Y_perf.shape
+    perf_lp_fancy = ref.mdl.perf_model_fancy.step(X = X_perf, Y = Y_perf)
+    # print "perf pred", ref.mdl.perf_lp, perf_lp_fancy
+    ref.mdl.perf_lp = perf_lp_fancy.T
     
     # prepare block outputs
     # print "ref.laglen", ref.laglen
