@@ -202,6 +202,44 @@ def step_random_uniform(ref):
         #     ref.cname, ref.id, ref.cnt, outk, getattr(ref, outk))
         # print "block_models.py: random_uniform_step %s = %s" % (outk, getattr(ref, outk))
 
+# model func: random_uniform_pi_2 model
+def init_random_uniform_pi_2(ref, conf, mconf):
+    params = conf['params']
+    for outk, outv in params['outputs'].items():
+        lo = -np.ones(( outv['shape'] ))
+        hi = np.ones(( outv['shape'] ))
+        setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
+        # setattr(ref, outk, np.ones(outv['shape']))
+        print "block_models.py: random_uniform_pi_2_init %s = %s" % (outk, getattr(ref, outk))
+
+def step_random_uniform_pi_2(ref):
+    if hasattr(ref, 'rate'):
+        if (ref.cnt % ref.rate) not in ref.blockphase: return
+            
+    lo = ref.inputs['lo']['val'] # .T
+    hi = ref.inputs['hi']['val'] # .T
+    meas_l0 = ref.inputs['meas_l0']['val'][...,[-1]]
+    for outk, outv in ref.outputs.items():
+        if ref.cnt % (ref.rate * 1) == 0:
+            pred = np.random.normal(0, 0.05, size = outv['shape'])
+            pred[1,0] = pred[0,0]
+            # pred = np.random.uniform(lo, hi, size = outv['shape'])
+            # pred[1,0] = pred[0,0] - 0.5
+            print meas_l0.shape
+            # pred = np.random.normal(meas_l0, scale = 0.1, size = outv['shape']) # * 1e-3
+            # pred = np.zeros(outv['shape'])
+            setattr(ref, outk, pred)
+            print "step_random_uniform_pi_2 ref.outk", getattr(ref, outk)
+        else:
+            setattr(ref, outk, np.random.uniform(-1e-3, 1e-3, size = outv['shape']))
+        
+        # setattr(ref, outk, np.random.choice([-1.0, 1.0], size = outv['shape']))
+        
+        # np.random.uniform(lo, hi, size = outv['shape']))
+        # print "%s-%s[%d]model.step_random_uniform_pi_2 %s = %s" % (
+        #     ref.cname, ref.id, ref.cnt, outk, getattr(ref, outk))
+        # print "block_models.py: random_uniform_pi_2_step %s = %s" % (outk, getattr(ref, outk))
+
 # model func: alternating_sign model
 def init_alternating_sign(ref, conf, mconf):
     params = conf['params']
@@ -925,6 +963,7 @@ def step_eh(ref):
         lag_error = (-100, 0)
         pre_l1 = ref.inputs['pre_l1']['val'][...,range(lag_error[0]-1, lag_error[1]-1)]
         meas_l0 = ref.inputs['meas_l0']['val'][...,range(lag_error[0], lag_error[1])]
+        # meas_l0
         return(pre_l1, meas_l0)
 
     (pre_l1_t_corr, meas_l0_t_corr) = tapping_EH_target_corr(ref)
@@ -992,7 +1031,7 @@ def step_eh(ref):
     # compose new network input
     x = np.vstack((
         goal_i,
-        perf_i,
+        perf_i * 0.25,
         meas_i,
         ))
     # print "x", x.shape
@@ -1006,13 +1045,14 @@ def step_eh(ref):
     # print "y_mdl_", y_mdl_
 
     # update perf prediction
-    X_perf = np.vstack((goal_i, meas_i, perf_i, y_mdl_.T)).T
+    X_perf = np.vstack((goal_i, meas_i, perf_i)).T # , y_mdl_.T)).T
     Y_perf = perf_i.T
     # print "X_perf", X_perf.shape
     # print "Y_perf", Y_perf.shape
     perf_lp_fancy = ref.mdl.perf_model_fancy.step(X = X_perf, Y = Y_perf)
     # print "perf pred", ref.mdl.perf_lp, perf_lp_fancy
-    ref.mdl.perf_lp = perf_lp_fancy.T
+    perf_lp_m1 = ref.mdl.perf_lp.copy()
+    # ref.mdl.perf_lp = perf_lp_fancy.T.copy()
     
     # prepare block outputs
     # print "ref.laglen", ref.laglen
@@ -1026,6 +1066,8 @@ def step_eh(ref):
     setattr(ref, 'pre', pre_[:,[-1]]) # FIXME: output scaling, e.g. bha * 0.5 + 0.2)
     # setattr(ref, 'pre', pre_[:,[-2]])
     setattr(ref, 'err', err_[:,[-1]])
+    setattr(ref, 'perflp', ref.mdl.perf_lp)
+    # setattr(ref, 'perflp', perf_lp_m1)
 
     if ref.cnt % 500 == 0:
         print "iter[%d]: |W_o| = %f, eta = %f" % (ref.cnt, np.linalg.norm(ref.mdl.model.wo), ref.mdl.eta, )
@@ -1051,6 +1093,7 @@ class model(object):
         'alternating_sign': {'init': init_alternating_sign, 'step': step_alternating_sign},        
         # active randomness
         'random_uniform': {'init': init_random_uniform, 'step': step_random_uniform},
+        'random_uniform_pi_2': {'init': init_random_uniform_pi_2, 'step': step_random_uniform_pi_2},
         # closed-loop models
         # active inference
         'actinf_m1': {'init': init_actinf, 'step': step_actinf},
