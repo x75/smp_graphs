@@ -43,7 +43,7 @@ ros = True
 
 # experiment
 commandline_args = ['numsteps']
-randseed = 12358
+randseed = 12359
 numsteps = int(10000/(1/2.))
 loopblocksize = numsteps
 # sysname = 'pm'
@@ -52,12 +52,8 @@ loopblocksize = numsteps
 # sysname = 'stdr'
 sysname = 'lpzbarrel'
 # sysname = 'sphero'
-# dim = 3 # 2, 1
-# dim = 9 # bha
 
-"""system block
- - a robot
-"""
+"""system block, the robot"""
 def get_systemblock_pm(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
     global np, PointmassBlock2
     return {
@@ -88,8 +84,6 @@ def get_systemblock_pm(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
             'm_mins': [-1.0] * dim_s_proprio,
             'm_maxs': [ 1.0] * dim_s_proprio,
             'dim_s_extero': dim_s_extero,
-            'minlag': 1,
-            'maxlag': 2, # 2, # 20, # 2, # 5
             # pm2sys params
             'lag': 1,
             'order': 2,
@@ -97,6 +91,13 @@ def get_systemblock_pm(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
             'transfer': 1, # 1
             'anoise_mean': 0.0,
             'anoise_std': 1e-3,
+            # tapping
+            'minlag': 1,
+            'maxlag': 2, # 2, # 20, # 2, # 5
+            'lag_past': (-1, 0),
+            'lag_future': (-1, 0),
+            # model params
+            'mdl_w_input': 1.0,
             }
         }
 
@@ -136,6 +137,8 @@ def get_systemblock_sa(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
             'dim_s_extero': dim_s_extero,
             'minlag': 1,
             'maxlag': 2, # 5
+            'lag_past': (-1, 0),
+            'lag_future': (-1, 0),
             }
         }
 
@@ -179,6 +182,8 @@ def get_systemblock_bha(dim_s_proprio = 9, dim_s_extero = 3, dt = 0.1):
             'maxlag': 3, # 5
             'mdl_w_input': 3.0,
             'mdl_theta': 3e-2,
+            'lag_past': (-1, 0),
+            'lag_future': (-1, 0),
             }
         }
     
@@ -206,6 +211,8 @@ def get_systemblock_stdr(dim_s_proprio = 2, dim_s_extero = 3, dt = 0.1):
             'smdict': {},
             'minlag': 1, # ha
             'maxlag': 4, # 5
+            'lag_past': (-1, 0),
+            'lag_future': (-1, 0),
             }
         }
 
@@ -233,13 +240,14 @@ def get_systemblock_lpzbarrel(dim_s_proprio = 2, dim_s_extero = 1, dt = 0.01):
             'smdict': {},
             'minlag': 2, # 1, # 5, 4
             'maxlag': 6, # 2,
+            # model parameter
             'mdl_w_input': 1.0,
             'mdl_w_bias': 0.4,
             # 'mdl_theta': 5e-3, # 2.5e-1,
             'mdl_theta': 1e-1, # 2.5e-1,
             'mdl_eta': 1e-3, # 5e-4,
             
-            'mdl_theta': 5e-2, # 2.5e-1,
+            # 'mdl_theta': 5e-2, # 2.5e-1,
             # 'mdl_eta': 5e-4, # 5e-4,
             
             # 'mdl_theta': 1e-2, # 2.5e-1,
@@ -250,6 +258,8 @@ def get_systemblock_lpzbarrel(dim_s_proprio = 2, dim_s_extero = 1, dt = 0.01):
             'mdl_tau': 0.1,
             # 'mdl_spectral_radius': 0.1, # 0.999,
             # 'mdl_tau': 0.9,
+            'lag_past':   (-1, 0), # down to -6
+            'lag_future': (-1, 0),
             }
         }
     return systemblock_lpz
@@ -280,6 +290,8 @@ def get_systemblock_sphero(dim_s_proprio = 2, dim_s_extero = 1, dt = 0.05):
             'smdict': {},
             'minlag': 2, # 2, # 4, # 2
             'maxlag': 5,
+            'lag_past': (-2, -1),
+            'lag_future': (-1, 0),
             }
         }
     return systemblock_sphero
@@ -318,32 +330,23 @@ maxlag = systemblock['params']['maxlag']
 
 dt = systemblock['params']['dt']
 
-# HACK
-if systemblock['params'].has_key('mdl_w_input'):
-    mdl_w_input = systemblock['params']['mdl_w_input']
-else:
-    mdl_w_input = 1.0
-    
-if systemblock['params'].has_key('mdl_theta'):
-    mdl_theta = systemblock['params']['mdl_theta']
-else:
-    mdl_theta = 1e-1
+# model config defaults
+mdl_cnf = {
+    'mdl_w_input': 1.0,
+    'mdl_w_bias': 0.5,
+    'mdl_theta': 1e-1,
+    'mdl_eta': 1e-4,
+    'mdl_spectral_radius': 0.999,
+    'mdl_tau': 0.1,
+    }
 
-if systemblock['params'].has_key('mdl_eta'):
-    mdl_eta = systemblock['params']['mdl_eta']
-else:
-    mdl_eta = 8e-4 # 1e-1
-    
-if systemblock['params'].has_key('mdl_spectral_radius'):
-    mdl_spectral_radius = systemblock['params']['mdl_spectral_radius']
-else:
-    mdl_spectral_radius = 0.999
-    
-if systemblock['params'].has_key('mdl_tau'):
-    mdl_tau = systemblock['params']['mdl_tau']
-else:
-    mdl_tau = 8e-4 # 1e-1
-    
+# update default model config with system specific values
+for k in [
+        'mdl_w_input', 'mdl_w_bias', 'mdl_theta', 'mdl_eta',
+        'mdl_spectral_radius', ' mdl_tau']:
+    if systemblock['params'].has_key(k):
+        mdl_cnf[k] = systemblock['params'][k]
+
 # algo = 'knn' #
 # algo = 'gmm' #
 # algo = 'igmm' #
@@ -352,23 +355,33 @@ else:
 # algo = 'storkgp'
 # algo = 'resrls'
 # algo = 'homeokinesis'
+
+
 algo = 'res_eh'
-# eh model in principle only needs current goal prediction (pre_l1), measurement (meas_l0) on the input
-# lag past -lag-laglen+1 up to -lag+1, this goes directly and only into smpSHL.learnEH and not into smpModel
+# eh model in principle only needs
+#  1) current goal prediction (pre_l1), current measurement (meas_l0) on the
+#     block input
+# lag past -lag-laglen+1 up to -lag+1, this goes directly and only into
+# smpSHL.learnEH and not into smpModel
+
 # lag_past = (-3, -2) #
 # lag_past = (-3, -2) #
-# lag future is a single time step now, multi-step prediction is difficult in the eh context
-lag_future = (-1, 0)
+# lag future is a single time step now, multi-step prediction is
+# difficult to formulate straightaway
+lag_future = systemblock['params']['lag_future'] # (-1, 0)
+
 # lpzbarrel
-# lag_past = (-6, -2) #
+lag_past = systemblock['params']['lag_past'] # (-1, -0) # good
 # lag_past = (-2, -1) # good
-lag_past = (-3, -2) # good
+# lag_past = (-3, -2) # good
 # lag_past = (-4, -3) # best
-# lag_past = (-5, -4) not good
-# lag_past = (-5, -1)
+# lag_past = (-5, -4) # not good
+# lag_past = (-4, -2)
+# lag_past = (-6, -2) #
 # lag_past = (-20, -1)
 # minlag = 1
 # maxlag = max(-lag_past[0], -lag_future[0])
+
 minlag = max(1, -max(lag_past[1], lag_future[1]))
 maxlag = 1 - min(lag_past[0], lag_future[0])
 maxlag_x = 120
@@ -783,98 +796,98 @@ graph = OrderedDict([
                 #         },
                 #     }),
 
-                # # goal sampler (motivation) sample single angle and duplicate with offset pi/2
-                # ('pre_l1', {
-                #     'block': ModelBlock2,
-                #     'params': {
-                #         'blocksize': 1,
-                #         'blockphase': [0],
-                #         'ros': True,
-                #         'inputs': {                        
-                #             'lo': {'val': -1.0, 'shape': (dim_s_proprio, 1)},
-                #             'hi': {'val':  1.0, 'shape': (dim_s_proprio, 1)},
-                #             'meas_l0': {
-                #                 'bus': 'robot1/s_proprio',
-                #                 'shape': (dim_s_proprio, maxlag), 'lag': range(-laglen, 0)},
-                #         },
-                #         'outputs': {
-                #             'pre': {'shape': (dim_s_proprio, 1)},
-                #             'prerr': {'shape': (dim_s_proprio, 1)},
-                #             },
-                #         'models': {
-                #             'goal': {'type': 'random_uniform_pi_2'}
-                #             },
-                #         'rate': 2000, # int(numsteps/30), # 1000,
-                #         },
-                #     }),
-                    
-                ('cnt', {
-                    'block': CountBlock2,
+                # goal sampler (motivation) sample single angle and duplicate with offset pi/2
+                ('pre_l1', {
+                    'block': ModelBlock2,
                     'params': {
                         'blocksize': 1,
-                        'debug': False,
-                        'inputs': {},
-                        'outputs': {'x': {'shape': (dim_s_proprio, 1)}},
+                        'blockphase': [0],
+                        'ros': True,
+                        'inputs': {                        
+                            'lo': {'val': -1.0, 'shape': (dim_s_proprio, 1)},
+                            'hi': {'val':  1.0, 'shape': (dim_s_proprio, 1)},
+                            'meas_l0': {
+                                'bus': 'robot1/s_proprio',
+                                'shape': (dim_s_proprio, maxlag), 'lag': range(-laglen, 0)},
+                        },
+                        'outputs': {
+                            'pre': {'shape': (dim_s_proprio, 1)},
+                            'prerr': {'shape': (dim_s_proprio, 1)},
+                            },
+                        'models': {
+                            'goal': {'type': 'random_uniform_pi_2'}
+                            },
+                        'rate': 10, # int(numsteps/30), # 1000,
                         },
                     }),
+                    
+                # ('cnt', {
+                #     'block': CountBlock2,
+                #     'params': {
+                #         'blocksize': 1,
+                #         'debug': False,
+                #         'inputs': {},
+                #         'outputs': {'x': {'shape': (dim_s_proprio, 1)}},
+                #         },
+                #     }),
 
-                # a random number generator, mapping const input to hi
-                ('pre_l1', {
-                    'block': FuncBlock2,
-                    'params': {
-                        'id': 'pre_l1',
-                        'outputs': {'pre': {'shape': (dim_s_proprio, 1)}},
-                        'debug': False,
-                        'blocksize': 1,
-                        'ros': True,
-                        # 'inputs': {'lo': [0, (3, 1)], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
-                        # recurrent connection
-                        'inputs': {
-                            'x': {'bus': 'cnt/x'},
-                            # 'f': {'val': np.array([[0.2355, 0.2355]]).T * 1.0}, # good with knn and eta = 0.3
-                            # 'f': {'val': np.array([[0.23538, 0.23538]]).T * 1.0}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.45]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.23539]]).T * 10.0 * dt}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.23539]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.23539]]).T * 3.4 * dt}, # good with soesgp and eta = 0.7
+                # # a random number generator, mapping const input to hi
+                # ('pre_l1', {
+                #     'block': FuncBlock2,
+                #     'params': {
+                #         'id': 'pre_l1',
+                #         'outputs': {'pre': {'shape': (dim_s_proprio, 1)}},
+                #         'debug': False,
+                #         'blocksize': 1,
+                #         'ros': True,
+                #         # 'inputs': {'lo': [0, (3, 1)], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+                #         # recurrent connection
+                #         'inputs': {
+                #             'x': {'bus': 'cnt/x'},
+                #             # 'f': {'val': np.array([[0.2355, 0.2355]]).T * 1.0}, # good with knn and eta = 0.3
+                #             # 'f': {'val': np.array([[0.23538, 0.23538]]).T * 1.0}, # good with soesgp and eta = 0.7
+                #             # 'f': {'val': np.array([[0.45]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
+                #             # 'f': {'val': np.array([[0.23539]]).T * 10.0 * dt}, # good with soesgp and eta = 0.7
+                #             # 'f': {'val': np.array([[0.23539]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
+                #             # 'f': {'val': np.array([[0.23539]]).T * 3.4 * dt}, # good with soesgp and eta = 0.7
                             
-                            # 'f': {'val': np.array([[0.23539]]).T * 3.0 * dt}, # good with soesgp and eta = 0.7
-                            'f': {'val': np.array([[0.23539]]).T * 2.9 * dt}, # good with soesgp and eta = 0.7
+                #             # 'f': {'val': np.array([[0.23539]]).T * 3.0 * dt}, # good with soesgp and eta = 0.7
+                #             'f': {'val': np.array([[0.23539]]).T * 2.9 * dt}, # good with soesgp and eta = 0.7
                             
-                            # 'f': {'val': np.array([[0.23539]]).T * 7.23 * dt}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.23539]]).T * 2.0 * dt}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.23539]]).T * 2.5 * dt}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.23539]]).T * 1.5 * dt}, # good with soesgp and eta = 0.7
+                #             # 'f': {'val': np.array([[0.23539]]).T * 7.23 * dt}, # good with soesgp and eta = 0.7
+                #             # 'f': {'val': np.array([[0.23539]]).T * 2.0 * dt}, # good with soesgp and eta = 0.7
+                #             # 'f': {'val': np.array([[0.23539]]).T * 2.5 * dt}, # good with soesgp and eta = 0.7
+                #             # 'f': {'val': np.array([[0.23539]]).T * 1.5 * dt}, # good with soesgp and eta = 0.7
                             
-                            # 'f': {'val': np.array([[0.23539]]).T * 0.05 * dt}, # good with soesgp and eta = 0.7
+                #             # 'f': {'val': np.array([[0.23539]]).T * 0.05 * dt}, # good with soesgp and eta = 0.7
                             
-                            # 'f': {'val': np.array([[0.23539, 0.3148]]).T * 0.05 * dt}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.14, 0.14]]).T * 1.0},
-                            # 'f': {'val': np.array([[0.82, 0.82]]).T},
-                            # 'f': {'val': np.array([[0.745, 0.745]]).T},
-                            # 'f': {'val': np.array([[0.7, 0.7]]).T},
-                            # 'f': {'val': np.array([[0.65, 0.65]]).T},
-                            # 'f': {'val': np.array([[0.39, 0.39]]).T},
-                            # 'f': {'val': np.array([[0.37, 0.37]]).T},
-                            # 'f': {'val': np.array([[0.325, 0.325]]).T},
-                            # 'f': {'val': np.array([[0.31, 0.31]]).T},
-                            # 'f': {'val': np.array([[0.19, 0.19]]).T},
-                            # 'f': {'val': np.array([[0.18, 0.181]]).T},
-                            # 'f': {'val': np.array([[0.171, 0.171]]).T},
-                            # 'f': {'val': np.array([[0.161, 0.161]]).T},
-                            # 'f': {'val': np.array([[0.151, 0.151]]).T},
-                            # 'f': {'val': np.array([[0.141, 0.141]]).T},
-                            # stay in place
-                            # 'f': {'val': np.array([[0.1, 0.1]]).T},
-                            # 'f': {'val': np.array([[0.24, 0.24]]).T},
-                            # 'sigma': {'val': np.array([[0.001, 0.002]]).T}}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
-                            'sigma': {'val': np.ones((dim_s_proprio, 1)) * 1e-6}, # {'val': np.random.uniform(0, 0.01, (dim_s_proprio, 1))},
-                            'offset': {'val': m_mins + (m_maxs - m_mins)/2.0},
-                            'amp': {'val': (m_maxs - m_mins)/2.0},
-                        }, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
-                        'func': f_sin_noise,
-                    },
-                }),
+                #             # 'f': {'val': np.array([[0.23539, 0.3148]]).T * 0.05 * dt}, # good with soesgp and eta = 0.7
+                #             # 'f': {'val': np.array([[0.14, 0.14]]).T * 1.0},
+                #             # 'f': {'val': np.array([[0.82, 0.82]]).T},
+                #             # 'f': {'val': np.array([[0.745, 0.745]]).T},
+                #             # 'f': {'val': np.array([[0.7, 0.7]]).T},
+                #             # 'f': {'val': np.array([[0.65, 0.65]]).T},
+                #             # 'f': {'val': np.array([[0.39, 0.39]]).T},
+                #             # 'f': {'val': np.array([[0.37, 0.37]]).T},
+                #             # 'f': {'val': np.array([[0.325, 0.325]]).T},
+                #             # 'f': {'val': np.array([[0.31, 0.31]]).T},
+                #             # 'f': {'val': np.array([[0.19, 0.19]]).T},
+                #             # 'f': {'val': np.array([[0.18, 0.181]]).T},
+                #             # 'f': {'val': np.array([[0.171, 0.171]]).T},
+                #             # 'f': {'val': np.array([[0.161, 0.161]]).T},
+                #             # 'f': {'val': np.array([[0.151, 0.151]]).T},
+                #             # 'f': {'val': np.array([[0.141, 0.141]]).T},
+                #             # stay in place
+                #             # 'f': {'val': np.array([[0.1, 0.1]]).T},
+                #             # 'f': {'val': np.array([[0.24, 0.24]]).T},
+                #             # 'sigma': {'val': np.array([[0.001, 0.002]]).T}}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+                #             'sigma': {'val': np.ones((dim_s_proprio, 1)) * 1e-6}, # {'val': np.random.uniform(0, 0.01, (dim_s_proprio, 1))},
+                #             'offset': {'val': m_mins + (m_maxs - m_mins)/2.0},
+                #             'amp': {'val': (m_maxs - m_mins)/2.0},
+                #         }, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+                #         'func': f_sin_noise,
+                #     },
+                # }),
                 
                 # # dev model actinf_m1: learner is basic actinf predictor proprio space learn_proprio_base_0
                 # ('pre_l0', {
@@ -1046,6 +1059,7 @@ graph = OrderedDict([
                             'err': {'shape': (dim_s_proprio, 1)},
                             'perflp': {'shape': (dim_s_proprio, 1)},
                             'tgt': {'shape': (dim_s_proprio, 1)},
+                            'hidden': {'shape': (20, 1)},
                             },
                         'models': {
                             
@@ -1063,27 +1077,25 @@ graph = OrderedDict([
                                 'lag_future': lag_future,
                                 'idim': dim_s_proprio * 3, #* (lag_past[1] - lag_past[0]) * 3, # laglen
                                 'odim': dim_s_proprio * (lag_future[1] - lag_future[0]), # laglen,
-                                'eta': mdl_eta, # 8e-4,
+                                'eta': mdl_cnf['mdl_eta'],
                                 'eta_init': 1e-3,
                                 'modelsize': 500,
                                 'N': 500,
                                 'p': 0.1,
                                 # 'g': 0.999,
-                                'spectral_radius': mdl_spectral_radius,
-                                'tau': mdl_tau,
+                                'spectral_radius': mdl_cnf['mdl_spectral_radius'],
+                                'tau': mdl_cnf['mdl_tau'],
                                 # 'res_input_num': dim_s_proprio * laglen * 3,
                                 # 'res_output_num': dim_s_proprio * laglen,
                                 'res_feedback_scaling': 0.0,
-                                'w_input': mdl_w_input,
-                                # 'w_input': 1.0, # pm, sa
-                                # 'w_input': 3.0, # bha
-                                'w_bias': 0.0, # 5,
+                                'w_input': mdl_cnf['mdl_w_input'],
+                                'w_bias': mdl_cnf['mdl_w_bias'],
                                 'res_output_scaling': 1.0,
                                 'nonlin_func': np.tanh,
                                 'use_ip': 0,
                                 # 'theta': 1e-1, # pm, sa
                                 # 'theta': 3e-2, # bha
-                                'theta': mdl_theta,
+                                'theta': mdl_cnf['mdl_theta'],
                                 'theta_state': 1e-2,
                                 'coeff_a': 0.3,
                                 'len_episode': numsteps,

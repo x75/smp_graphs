@@ -801,6 +801,10 @@ graph = OrderedDict([
                             'pre_l1': {
                                 'bus': 'pre_l1/pre',
                                 # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag, -minlag)},
+                                # FIXME: check correctness here
+                                # training on past goal, prediction with current goal
+                                # should be possible inside step_model to use current
+                                # goal
                                 'shape': (dim_s_proprio, maxlag), 'lag': range(lag_past[0], lag_past[1])},
                             # ascending prediction error
                             'pre_l0': {

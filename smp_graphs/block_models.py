@@ -211,7 +211,7 @@ def init_random_uniform_pi_2(ref, conf, mconf):
         setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
         # setattr(ref, outk, np.ones(outv['shape']))
         print "block_models.py: random_uniform_pi_2_init %s = %s" % (outk, getattr(ref, outk))
-    ref.prerr_ = np.ones((ref.prerr.shape[0], 100))
+    ref.prerr_ = np.ones((ref.prerr.shape[0], 40)) * 1.0
 
 def step_random_uniform_pi_2(ref):
     if hasattr(ref, 'rate'):
@@ -230,11 +230,15 @@ def step_random_uniform_pi_2(ref):
             prerr = ref.pre - meas_l0
             np.roll(ref.prerr_, -1, axis = 1)
             ref.prerr_[...,[-1]] = prerr.copy()
+            pred = ref.pre
+            print "uniform_pi_2 small error", prerr, np.mean(np.abs(ref.prerr_))
             if np.mean(np.abs(ref.prerr_)) < 0.1:
-                print "uniform_pi_2 small error"
+                print "uniform_pi_2 small error sampling"
                 pred = np.random.normal(meas_l0, scale = np.mean(np.abs(ref.prerr_))) # , size = outv['shape']) # * 1e-3
             else:
-                pred = np.random.normal(meas_l0, scale = 0.001) # , size = outv['shape']) # * 1e-3
+                # pred = np.random.normal(meas_l0, scale = 0.001) # , size = outv['shape']) # * 1e-3
+                if ref.cnt % (ref.rate * 200) == 0:
+                    pred = np.random.normal(meas_l0, scale = 0.001) # , size = outv['shape']) # * 1e-3
                 
             
             # pred = np.zeros(outv['shape'])
@@ -924,6 +928,11 @@ def init_eh(ref, conf, mconf):
     if mconf['use_wb']:
         self.bound_weight_fit(mconf['wb_thr'])
 
+    # self.selsize = ref.outputs['hidden']['shape'][0]
+    ref.selsize = params['outputs']['hidden']['shape'][0]
+    # hidden state output random projection
+    ref.hidden_output_index = np.random.choice(
+        range(mconf['modelsize']), ref.selsize, replace=False)
     # initialize tapping (devmdl)
     ref.tapping_SM = partial(tapping_SM, mode = ref.type)
     ref.tapping_EH = partial(tapping_EH)
@@ -1078,6 +1087,9 @@ def step_eh(ref):
     setattr(ref, 'err', err_[:,[-1]])
     setattr(ref, 'perflp', ref.mdl.perf_lp)
     # setattr(ref, 'perflp', perf_lp_m1)
+    hidden = ref.mdl.model.r[ref.hidden_output_index]
+    # print "hidden", hidden.shape
+    setattr(ref, 'hidden', hidden)
 
     if ref.cnt % 500 == 0:
         print "iter[%d]: |W_o| = %f, eta = %f" % (ref.cnt, np.linalg.norm(ref.mdl.model.wo), ref.mdl.eta, )
