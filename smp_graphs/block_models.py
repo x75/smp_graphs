@@ -868,9 +868,12 @@ def init_eh(ref, conf, mconf):
     - Stabilization: error thresholding, weight bounding, decaying eta, IP + mean removal + moment coding
     """
 
-    print "mconf", mconf.keys()
-    print "mconf.eta", mconf['eta']
-    print "mconf.eta_init", mconf['eta_init']
+    
+    print "ModelBlock2.model.init_eh mconf = {"
+    for k, v in mconf.items():
+        print "   %s = %s" % (k,v)
+    # print "mconf.eta", mconf['eta']
+    # print "mconf.eta_init", mconf['eta_init']
     
     # params variable shortcut
     params = conf['params']
@@ -1008,6 +1011,9 @@ def step_eh(ref):
     # err = prerr_l0___
     # print "prerr_l0___", prerr_l0___.shape
     err_t = goal_t - meas_t
+    # print "goal_t", goal_t
+    # print "meas_t", meas_t
+    # print "err_t", err_t
     # err_t1 = np.corrcoef(pre_l1_t_corr, meas_l0_t_corr)
     
     # # compute correlation
@@ -1045,13 +1051,14 @@ def step_eh(ref):
     ref.mdl.learnEH_prepare(perf = ref.perf_measure(err_t))
     perf = ref.mdl.perf
     # perf_i = np.ones_like(goal) * ref.perf_measure(goal - meas)
-    # print "perf", perf.shape, "perf_i", perf_i.shape
+    # print "perf", perf.shape, "err_t", err_t.shape
     
     # compose new network input
     x = np.vstack((
         goal_i,
         perf_i * 1.0, # 0.25,
         meas_i,
+#        pre_i,
         ))
     # print "x", x.shape
     y = pre_i
@@ -1063,15 +1070,15 @@ def step_eh(ref):
     # print "y_mdl_", y_mdl_.shape
     # print "y_mdl_", y_mdl_
 
-    # update perf prediction
-    X_perf = np.vstack((goal_i, meas_i, perf_i)).T # , y_mdl_.T)).T
-    Y_perf = perf_i.T
-    # print "X_perf", X_perf.shape
-    # print "Y_perf", Y_perf.shape
-    perf_lp_fancy = ref.mdl.perf_model_fancy.step(X = X_perf, Y = Y_perf)
-    # print "perf pred", ref.mdl.perf_lp, perf_lp_fancy
-    perf_lp_m1 = ref.mdl.perf_lp.copy()
-    ref.mdl.perf_lp = perf_lp_fancy.T.copy()
+    # # update perf prediction
+    # X_perf = np.vstack((goal_i, meas_i, perf_i)).T # , y_mdl_.T)).T # , pre_i
+    # Y_perf = perf_i.T
+    # # print "X_perf", X_perf.shape
+    # # print "Y_perf", Y_perf.shape
+    # perf_lp_fancy = ref.mdl.perf_model_fancy.step(X = X_perf, Y = Y_perf)
+    # # print "perf pred", ref.mdl.perf_lp, perf_lp_fancy
+    # # perf_lp_m1 = ref.mdl.perf_lp.copy()
+    # ref.mdl.perf_lp = perf_lp_fancy.T.copy()
     
     # prepare block outputs
     # print "ref.laglen", ref.laglen
