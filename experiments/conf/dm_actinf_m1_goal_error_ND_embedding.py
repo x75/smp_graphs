@@ -46,11 +46,11 @@ commandline_args = ['numsteps']
 randseed = 12348
 numsteps = int(10000/5)
 loopblocksize = numsteps
-# sysname = 'pm'
+sysname = 'pm'
 # sysname = 'sa'
 # sysname = 'bha'
 # sysname = 'stdr'
-sysname = 'lpzbarrel'
+# sysname = 'lpzbarrel'
 # sysname = 'sphero'
 # dim = 3 # 2, 1
 # dim = 9 # bha
@@ -750,12 +750,14 @@ graph = OrderedDict([
                             # 'f': {'val': np.array([[0.23538, 0.23538]]).T * 1.0}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.45]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.225]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
-                            'f': {'val': np.array([[0.23539]]).T * 10.0 * dt}, # good with soesgp and eta = 0.7
+
+                            # barrel
+                            # 'f': {'val': np.array([[0.23539]]).T * 10.0 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.23539]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.23539]]).T * 7.23 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.23539]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
                             
-                            # 'f': {'val': np.array([[0.23539]]).T * 0.2 * dt}, # good with soesgp and eta = 0.7
+                            'f': {'val': np.array([[0.23539]]).T * 0.2 * dt}, # good with soesgp and eta = 0.7
                             
                             # 'f': {'val': np.array([[0.23539, 0.2348, 0.14]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.14, 0.14]]).T * 1.0},

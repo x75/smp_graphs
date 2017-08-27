@@ -334,6 +334,7 @@ def init_model(ref, conf, mconf):
         mdl = smpHebbianSOM(conf = mconf)
         # mdl = smpHebbianSOM(idim, odim, numepisodes = 1, mapsize_e = 1000, mapsize_p = 100, som_lr = 1e-1)
     elif algo == "soesgp":
+        print "soesgp conf", mconf
         mdl = smpSOESGP(conf = mconf)
     elif algo == "storkgp":
         mdl = smpSTORKGP(conf = mconf)
@@ -813,6 +814,8 @@ def step_homeokinesis(ref):
     #     's_proprio': pre_l0.copy(),
     #     's_extero': pre_l0.copy()}
 
+################################################################################
+# extero-to-proprio map learning (e2p)
 def init_e2p(ref, conf, mconf):
     ref.mdl = init_model(ref, conf, mconf)
     ref.X_  = np.zeros((mconf['idim'], 1))
@@ -851,7 +854,148 @@ def step_e2p(ref):
             setattr(ref, 'pre', sample.T)
             setattr(ref, 'pre_ext', extero_)
 
-# model func: reservoir expansion
+################################################################################
+# direct forward / inverse model learning via prediction dataset
+def tapping_imol_pre_inv(ref):
+    # FIXME: replace + 1 with + rate
+    rate = 1
+    pre_l1 = ref.inputs['pre_l1']['val'][
+        ...,
+        range(ref.lag_past_inv[0] + rate, ref.lag_past_inv[1] + rate)]
+    meas_l0 = ref.inputs['meas_l0']['val'][
+        ...,
+        range(ref.lag_past_inv[0] + rate, ref.lag_past_inv[1] + rate)]
+    prerr_l0 = ref.inputs['prerr_l0']['val'][
+        ...,
+        range(ref.lag_past_inv[0] + rate, ref.lag_past_inv[1] + rate)]
+    # print "prerr_l0", prerr_l0
+    prerr_l0 = np.roll(prerr_l0, -1, axis = -1)
+    # print "prerr_l0", prerr_l0
+    prerr_l0[...,[-1]] = pre_l1[...,[-1]] - meas_l0[...,[-1]]
+    # print "prerr_l0", prerr_l0
+    # if isinstance(ref.mdl_inv, smpOTLModel) or isinstance(ref.mdl_inv, smpSHL):
+    #     pre_l1 = meas_l0 + prerr_l0 * 1.0
+    # else:
+    pre_l1 = ref.inputs['pre_l1']['val'][
+        ...,
+        range(ref.lag_past_inv[0] + rate, ref.lag_past_inv[1] + rate)]
+    
+    return {
+        'pre_l1': pre_l1,
+        'meas_l0': meas_l0,
+        'prerr_l0': prerr_l0,
+    }
+
+def tapping_imol_fit_inv(ref):
+    rate = 1
+    # X
+    # last goal prediction with measurement    
+    # pre_l1 = ref.inputs['pre_l1']['val'][...,range(ref.lag_past_inv[0], ref.lag_past_inv[1])]
+    # pre_l1 = ref.inputs['pre_l0']['val'][...,range(ref.lag_past_inv[0] + rate, ref.lag_past_inv[1] + rate)]
+    # FIXME: rate is laglen
+    pre_l1 = ref.inputs['meas_l0']['val'][
+        ...,
+        range(ref.lag_past_inv[0] + rate, ref.lag_past_inv[1] + rate)]
+    meas_l0 = ref.inputs['meas_l0']['val'][
+        ...,
+        range(ref.lag_past_inv[0], ref.lag_past_inv[1])]
+    prerr_l0 = ref.inputs['prerr_l0']['val'][
+        ...,
+        range(ref.lag_past_inv[0] + rate, ref.lag_past_inv[1] + rate)]
+    # Y
+    # pre_l0 = ref.inputs['meas_l0']['val'][...,range(ref.lag_future_inv[0], ref.lag_future_inv[1])]
+    pre_l0 = ref.inputs['pre_l0']['val'][
+        ...,
+        range(ref.lag_future_inv[0], ref.lag_future_inv[1])]
+    return {
+        'pre_l1': pre_l1,
+        'meas_l0': meas_l0,
+        'prerr_l0': prerr_l0,
+        'pre_l0': pre_l0 * 0.9,
+        }
+            
+def init_imol(ref, conf, mconf):
+    # init forward model
+    mconf_fwd = mconf['fwd']
+    ref.mdl_fwd = init_model(ref, conf = conf, mconf = mconf_fwd)
+    # init inverse model
+    mconf_inv = mconf['inv']
+    ref.idim_inv = mconf_inv['idim']
+    ref.odim_inv = mconf_inv['odim']
+    ref.lag_past_inv  = mconf_inv['lag_past']
+    ref.laglen_past_inv = ref.lag_past_inv[1] - ref.lag_past_inv[0]
+    ref.lag_future_inv  = mconf_inv['lag_future']
+    ref.laglen_future_inv = ref.lag_future_inv[1] - ref.lag_future_inv[0]
+    ref.mdl_inv = init_model(ref, conf = conf, mconf = mconf_inv)
+
+    ref.prerr_avg = 1.0
+
+def step_imol(ref):
+    # tapping
+    tap_pre_inv = tapping_imol_pre_inv(ref)
+    tap_fit_inv = tapping_imol_fit_inv(ref)
+    # print "tap_fit_inv", tap_fit_inv
+    # fit old / predict new forward
+    # fit old / predict new inverse
+    # return new command
+    
+    # print "%s.step_imol inputs = %s" % (ref.__class__.__name__, ref.inputs.keys())
+    # print "%s.step_imol tap_pre_inv = %s" % (ref.__class__.__name__, tap_pre_inv.keys())
+    # print "%s.step_imol tap_fit_inv = %s" % (ref.__class__.__name__, tap_fit_inv.keys())
+    
+    # pre_l0 = ref.mdl_inv.step(X = np.random.uniform(size = (ref.idim, 1)))
+    # pre_l0 = ref.mdl_inv.fit(X = np.random.uniform(size = (1, ref.idim_inv)))
+    X_fit_inv = np.vstack((
+        tap_fit_inv['pre_l1'],
+        tap_fit_inv['meas_l0'],
+        tap_fit_inv['prerr_l0'] * 0.0,
+        ))
+    Y_fit_inv = np.vstack((
+        tap_fit_inv['pre_l0'],
+        ))
+    X_pre_inv = np.vstack((
+        tap_pre_inv['pre_l1'],
+        tap_pre_inv['meas_l0'],
+        tap_pre_inv['prerr_l0'] * 0.0,
+        ))
+    # prediction error inverse
+    prerr_l0_inv = ref.inputs['pre_l1']['val'][...,[-1]] - ref.inputs['meas_l0']['val'][...,[-1]]
+
+    ref.prerr_avg = 0.8 * ref.prerr_avg + 0.2 * np.sqrt(np.mean(np.square(prerr_l0_inv)))
+    
+    # fit model
+    if isinstance(ref.mdl_inv, smpOTLModel):
+        ref.mdl_inv.fit(X = X_fit_inv.T, y = Y_fit_inv.T, update = False)
+    elif isinstance(ref.mdl_inv, smpSHL):
+        ref.mdl_inv.fit(X = X_fit_inv.T, Y = Y_fit_inv.T * 1.0, update = False)
+    else:
+        ref.mdl_inv.fit(X = X_fit_inv.T, y = Y_fit_inv.T)
+
+    # model prediction
+    pre_l0 = ref.mdl_inv.predict(X = X_pre_inv.T)
+    # pre_l0 = ref.mdl_inv.model.zn.T
+
+    # output sampling
+    if isinstance(ref.mdl_inv, smpOTLModel):
+        pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * np.sqrt(ref.mdl_inv.var * 1.0)
+    elif isinstance(ref.mdl_inv, smpSHL):
+        ref.mdl_inv.theta = ref.prerr_avg * 0.1
+        pre_l0_var = np.zeros_like(pre_l0) * ref.prerr_avg * 0.1
+    else:
+        pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.prerr_avg * 1.0
+    # pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.prerr_avg * 0.1
+           
+    pre_l0 += pre_l0_var
+    pre_l0 = np.clip(pre_l0, -1.1, 1.1)
+    print "%s.step_imol pre_l0 = %s, prerr_avg = %s" % (ref.__class__.__name__, pre_l0, pre_l0_var)
+
+    # set outputs
+    setattr(ref, 'pre', pre_l0.copy().T)
+    setattr(ref, 'err', prerr_l0_inv)
+    setattr(ref, 'tgt', Y_fit_inv.copy())
+            
+################################################################################
+# exploratory hebbian direct inverse model learning (eh diml)
 def init_eh(ref, conf, mconf):
     """init_eh
 
@@ -1104,12 +1248,12 @@ def step_eh(ref):
     # return to execute prediction on system and wait for new measurement
             
 class model(object):
-    """model
+    """model class
 
-    generic model class used by ModelBlock2
+    Generic model class used by ModelBlock2
 
-    low-level models are implemented via init_<model> and step_<model> functions
-    reducing code?
+    Low-level models are implemented via init_<model> and step_<model>
+    functions reducing code.
     """
     models = {
         # open-loop models
@@ -1130,6 +1274,7 @@ class model(object):
         'actinf_m3': {'init': init_actinf, 'step': step_actinf},
         'e2p':       {'init': init_e2p,    'step': step_e2p},
         # direct forward/inverse model pair learning
+        'imol': {'init': init_imol, 'step': step_imol},
         # reward based learning
         'eh':        {'init': init_eh,     'step': step_eh},
         # self-organization of behaviour: hk, pimax/tipi, infth_pi, infth_ais, ...
@@ -1159,7 +1304,16 @@ class model(object):
 class ModelBlock2(PrimBlock2):
     """Basic Model block
 
-    Merge funcblock with memory"""
+    This is a template block with a member params[\"models\"]. A model
+    is loaded on init by evaluating an init_MODEL and step_MODEL
+    function with a common interface. This way we don't need to define
+    a block for every model variant but can just write it down
+    compactly as init and step functions.
+
+    FIXME: obvisouly merge with funcblock, a model generally is a func
+    with memory
+    """
+    
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
         """ModelBlock2 init"""
