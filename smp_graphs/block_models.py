@@ -862,13 +862,16 @@ def tapping_imol_pre_inv(ref):
     rate = 1
     pre_l1 = ref.inputs['pre_l1']['val'][
         ...,
-        range(ref.lag_past_inv[0] + rate, ref.lag_past_inv[1] + rate)]
+        range(
+            ref.lag_past_inv[0] + ref.lag_off_f2p_inv,
+            ref.lag_past_inv[1] + ref.lag_off_f2p_inv)]
+    
     meas_l0 = ref.inputs['meas_l0']['val'][
         ...,
-        range(ref.lag_past_inv[0] + rate, ref.lag_past_inv[1] + rate)]
+        range(ref.lag_past_inv[0] + ref.lag_off_f2p_inv, ref.lag_past_inv[1] + ref.lag_off_f2p_inv)]
     prerr_l0 = ref.inputs['prerr_l0']['val'][
         ...,
-        range(ref.lag_past_inv[0] + rate, ref.lag_past_inv[1] + rate)]
+        range(ref.lag_past_inv[0] + ref.lag_off_f2p_inv, ref.lag_past_inv[1] + ref.lag_off_f2p_inv)]
 
     prerr_l0 = np.roll(prerr_l0, -1, axis = -1)
     prerr_l0[...,[-1]] = pre_l1[...,[-1]] - meas_l0[...,[-1]]
@@ -887,22 +890,22 @@ def tapping_imol_fit_inv(ref):
     # FIXME: rate is laglen
     pre_l1 = ref.inputs['meas_l0']['val'][
         ...,
-        range(ref.lag_past_inv[0] + rate, ref.lag_past_inv[1] + rate)]
+        range(ref.lag_past_inv[0] + ref.lag_off_f2p_inv, ref.lag_past_inv[1] + ref.lag_off_f2p_inv)]
     meas_l0 = ref.inputs['meas_l0']['val'][
         ...,
         range(ref.lag_past_inv[0], ref.lag_past_inv[1])]
     prerr_l0 = ref.inputs['prerr_l0']['val'][
         ...,
-        range(ref.lag_past_inv[0] + rate, ref.lag_past_inv[1] + rate)]
+        range(ref.lag_past_inv[0] + ref.lag_off_f2p_inv, ref.lag_past_inv[1] + ref.lag_off_f2p_inv)]
     # Y
     pre_l0 = ref.inputs['pre_l0']['val'][
         ...,
-        range(ref.lag_future_inv[0], ref.lag_future_inv[1])]
+        range(ref.lag_future_inv[0] - ref.lag_off_f2p_inv + 1, ref.lag_future_inv[1] - ref.lag_off_f2p_inv + 1)]
     return {
         'pre_l1': pre_l1,
         'meas_l0': meas_l0,
         'prerr_l0': prerr_l0,
-        'pre_l0': pre_l0 * 1.0,
+        'pre_l0': pre_l0,
         }
 
 def tapping_imol_recurrent_fit_inv(ref):
@@ -918,14 +921,14 @@ def tapping_imol_recurrent_fit_inv(ref):
     if ref.cnt < ref.thr_predict:
         pre_l1 = ref.inputs['meas_l0']['val'][
             ...,
-            range(ref.lag_past_inv[0] + rate, ref.lag_past_inv[1] + rate)]
+            range(ref.lag_past_inv[0] + ref.lag_off_f2p_inv, ref.lag_past_inv[1] + ref.lag_off_f2p_inv)]
     else:
         pre_l1_1 = ref.inputs['pre_l1']['val'][
             ...,
-            range(ref.lag_past_inv[0] + rate, ref.lag_past_inv[1] + rate)]
+            range(ref.lag_past_inv[0] + ref.lag_off_f2p_inv, ref.lag_past_inv[1] + ref.lag_off_f2p_inv)]
         pre_l1_2 = ref.inputs['meas_l0']['val'][
             ...,
-            range(ref.lag_past_inv[0] + rate, ref.lag_past_inv[1] + rate)]
+            range(ref.lag_past_inv[0] + ref.lag_off_f2p_inv, ref.lag_past_inv[1] + ref.lag_off_f2p_inv)]
         mdltr = np.square(max(0, 1.0 - np.mean(np.abs(prerr_l0))))
         print "mdltr", mdltr
         pre_l1 = pre_l1_2 + (pre_l1_1 - pre_l1_2) * mdltr # 0.05
@@ -939,14 +942,15 @@ def tapping_imol_recurrent_fit_inv(ref):
     
     # pre_l1 -= prerr_l0[...,[-1]] * 0.1
     # Y
+    # FIXME check - 1?
     pre_l0 = ref.inputs['pre_l0']['val'][
         ...,
-        range(ref.lag_future_inv[0] - rate, ref.lag_future_inv[1] - rate)]
+        range(ref.lag_future_inv[0] - ref.lag_off_f2p_inv, ref.lag_future_inv[1] - ref.lag_off_f2p_inv)]
     return {
         'pre_l1': pre_l1,
         'meas_l0': meas_l0,
         'prerr_l0': prerr_l0,
-        'pre_l0': pre_l0 * 1.0,
+        'pre_l0': pre_l0,
         }
 
 def tapping_imol_recurrent_fit_inv_2(ref):
@@ -957,7 +961,7 @@ def tapping_imol_recurrent_fit_inv_2(ref):
 
     pre_l1 = ref.inputs['meas_l0']['val'][
         ...,
-        range(ref.lag_past_inv[0] + rate, ref.lag_past_inv[1] + rate)]
+        range(ref.lag_past_inv[0] + ref.lag_off_f2p_inv, ref.lag_past_inv[1] + ref.lag_off_f2p_inv)]
     
     meas_l0 = ref.inputs['meas_l0']['val'][
         ...,
@@ -973,7 +977,7 @@ def tapping_imol_recurrent_fit_inv_2(ref):
     # Y
     pre_l0 = ref.inputs['pre_l0']['val'][
         ...,
-        range(ref.lag_future_inv[0] - rate, ref.lag_future_inv[1] - rate)]
+        range(ref.lag_future_inv[0] - ref.lag_off_f2p_inv + rate, ref.lag_future_inv[1] - ref.lag_off_f2p_inv + rate)]
     
     return {
         'pre_l1': pre_l1,
@@ -994,6 +998,8 @@ def init_imol(ref, conf, mconf):
     ref.laglen_past_inv = ref.lag_past_inv[1] - ref.lag_past_inv[0]
     ref.lag_future_inv  = mconf_inv['lag_future']
     ref.laglen_future_inv = ref.lag_future_inv[1] - ref.lag_future_inv[0]
+    ref.lag_gap_f2p_inv = ref.lag_future_inv[0] - ref.lag_past_inv[1]
+    ref.lag_off_f2p_inv = ref.lag_future_inv[1] - ref.lag_past_inv[1]
     ref.mdl_inv = init_model(ref, conf = conf, mconf = mconf_inv)
 
     ref.prerr_avg = 1e-3
@@ -1040,7 +1046,9 @@ def step_imol(ref):
         tap_pre_inv['prerr_l0'] * 1.0,
         ))
     # prediction error inverse
-    prerr_l0_inv = ref.inputs['pre_l1']['val'][...,[-2]] - ref.inputs['meas_l0']['val'][...,[-1]]
+    prerr_l0_inv = ref.inputs['pre_l1']['val'][
+        ...,
+        [ref.lag_past_inv[1]]] - ref.inputs['meas_l0']['val'][...,[-1]]
 
     # ref.prerr_avg = 0.8 * ref.prerr_avg + 0.2 * np.sqrt(np.mean(np.square(prerr_l0_inv)))
     ref.prerr_avg = 0.9 * ref.prerr_avg + 0.1 * np.sqrt(np.mean(np.square(prerr_l0_inv)))
@@ -1123,7 +1131,7 @@ def step_imol(ref):
             pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * 0.001
         else:
             # pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.prerr_avg * 0.5 # np.sqrt(ref.mdl_inv.var) # * ref.mdl_inv.noise
-            pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * np.sqrt(ref.mdl_inv.var) * ref.prerr_avg * 0.3
+            pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * np.sqrt(ref.mdl_inv.var) * ref.prerr_avg * 0.1 # 0.3
 
     elif isinstance(ref.mdl_inv, smpSHL):
 
@@ -1135,14 +1143,14 @@ def step_imol(ref):
         # else:
             pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.prerr_avg * 0.0001 # np.sqrt(ref.mdl_inv.var) # * ref.mdl_inv.noise
         else:
-            pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.prerr_avg * 0.001 # np.sqrt(ref.mdl_inv.var) # * ref.mdl_inv.noise
+            pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.prerr_avg * 0.01 # np.sqrt(ref.mdl_inv.var) # * ref.mdl_inv.noise
             
-        ref.mdl_inv.theta = ref.prerr_avg * 0.001
+        ref.mdl_inv.theta = ref.prerr_avg * 0.01
         # pre_l0_var = np.ones_like(pre_l0) * ref.prerr_avg * 0.1
         if ref.mdl_inv.lrname == 'FORCEmdn':
             pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * 1e-4
     else:
-        pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.prerr_avg * 1.0
+        pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.prerr_avg * 0.1 # 1.0
     # pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.prerr_avg * 0.25
            
     pre_l0 += pre_l0_var
