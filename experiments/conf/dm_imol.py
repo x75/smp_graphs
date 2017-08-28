@@ -294,11 +294,11 @@ maxlag = systemblock['params']['maxlag']
 
 dt = systemblock['params']['dt']
 
-algo = 'knn' #
-# algo = 'gmm' #
-# algo = 'igmm' #
-# algo = 'hebbsom'
-# algo = 'soesgp'
+# algo = 'knn' # ok
+# algo = 'gmm' # ok
+# algo = 'igmm' # ok, fix deprecation, inference output conf
+# algo = 'hebbsom' # fix
+algo = 'soesgp'
 # algo = 'storkgp'
 # algo = 'resrls'
 
