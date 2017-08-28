@@ -340,7 +340,8 @@ def init_model(ref, conf, mconf):
         mdl = smpSTORKGP(conf = mconf)
     elif algo in ['resrls', 'res_eh']:
         if algo == 'resrls':
-            mconf['lrname'] = 'RLS'
+            # mconf['lrname'] = 'RLS'
+            pass
         # only copy unset fields from the source
         # mconf.update(smpSHL.defaults)
         # mconf.update({'numepisodes': 1, 'mapsize_e': 140, 'mapsize_p': 60, 'som_lr': 1e-1, 'visualize': False})
@@ -909,22 +910,71 @@ def tapping_imol_recurrent_fit_inv(ref):
     # X
     # last goal prediction with measurement    
     # FIXME: rate is laglen
-    pre_l1 = ref.inputs['meas_l0']['val'][
-        ...,
-        range(ref.lag_past_inv[0] + rate, ref.lag_past_inv[1] + rate)]
-    meas_l0 = ref.inputs['meas_l0']['val'][
-        ...,
-        range(ref.lag_past_inv[0], ref.lag_past_inv[1])]
+
     prerr_l0 = ref.inputs['prerr_l0']['val'][
         ...,
         range(ref.lag_past_inv[0] + rate, ref.lag_past_inv[1] + rate)]
+    
+    if ref.cnt < ref.thr_predict:
+        pre_l1 = ref.inputs['meas_l0']['val'][
+            ...,
+            range(ref.lag_past_inv[0] + rate, ref.lag_past_inv[1] + rate)]
+    else:
+        pre_l1_1 = ref.inputs['pre_l1']['val'][
+            ...,
+            range(ref.lag_past_inv[0] + rate, ref.lag_past_inv[1] + rate)]
+        pre_l1_2 = ref.inputs['meas_l0']['val'][
+            ...,
+            range(ref.lag_past_inv[0] + rate, ref.lag_past_inv[1] + rate)]
+        mdltr = np.square(max(0, 1.0 - np.mean(np.abs(prerr_l0))))
+        print "mdltr", mdltr
+        pre_l1 = pre_l1_2 + (pre_l1_1 - pre_l1_2) * mdltr # 0.05
+        
+    meas_l0 = ref.inputs['meas_l0']['val'][
+        ...,
+        range(ref.lag_past_inv[0], ref.lag_past_inv[1])]
+    
     prerr_l0 = np.roll(prerr_l0, -1, axis = -1)
     prerr_l0[...,[-1]] = pre_l1[...,[-1]] - meas_l0[...,[-1]]
+    
     # pre_l1 -= prerr_l0[...,[-1]] * 0.1
     # Y
     pre_l0 = ref.inputs['pre_l0']['val'][
         ...,
         range(ref.lag_future_inv[0] - rate, ref.lag_future_inv[1] - rate)]
+    return {
+        'pre_l1': pre_l1,
+        'meas_l0': meas_l0,
+        'prerr_l0': prerr_l0,
+        'pre_l0': pre_l0 * 1.0,
+        }
+
+def tapping_imol_recurrent_fit_inv_2(ref):
+    rate = 1
+    # X
+    # last goal prediction with measurement    
+    # FIXME: rate is laglen
+
+    pre_l1 = ref.inputs['meas_l0']['val'][
+        ...,
+        range(ref.lag_past_inv[0] + rate, ref.lag_past_inv[1] + rate)]
+    
+    meas_l0 = ref.inputs['meas_l0']['val'][
+        ...,
+        range(ref.lag_past_inv[0], ref.lag_past_inv[1])]
+    
+    prerr_l0 = ref.inputs['prerr_l0']['val'][
+        ...,
+        range(ref.lag_past_inv[0] + rate, ref.lag_past_inv[1] + rate)]
+    prerr_l0 = np.roll(prerr_l0, -1, axis = -1)
+    prerr_l0[...,[-1]] = pre_l1[...,[-1]] - meas_l0[...,[-1]]
+    
+    # pre_l1 -= prerr_l0[...,[-1]] * 0.1
+    # Y
+    pre_l0 = ref.inputs['pre_l0']['val'][
+        ...,
+        range(ref.lag_future_inv[0] - rate, ref.lag_future_inv[1] - rate)]
+    
     return {
         'pre_l1': pre_l1,
         'meas_l0': meas_l0,
@@ -946,8 +996,10 @@ def init_imol(ref, conf, mconf):
     ref.laglen_future_inv = ref.lag_future_inv[1] - ref.lag_future_inv[0]
     ref.mdl_inv = init_model(ref, conf = conf, mconf = mconf_inv)
 
-    ref.prerr_avg = 1.0
+    ref.prerr_avg = 1e-3
 
+    ref.thr_predict = 1000
+    
     if isinstance(ref.mdl_inv, smpOTLModel) or isinstance(ref.mdl_inv, smpSHL):
         ref.recurrent = True
     else:
@@ -957,7 +1009,7 @@ def step_imol(ref):
     # tapping
     if ref.recurrent:
         tap_pre_inv = tapping_imol_pre_inv(ref)
-        tap_fit_inv = tapping_imol_recurrent_fit_inv(ref)
+        tap_fit_inv = tapping_imol_recurrent_fit_inv_2(ref)
     else:
         tap_pre_inv = tapping_imol_pre_inv(ref)
         tap_fit_inv = tapping_imol_fit_inv(ref)
@@ -975,12 +1027,13 @@ def step_imol(ref):
     # pre_l0 = ref.mdl_inv.fit(X = np.random.uniform(size = (1, ref.idim_inv)))
     X_fit_inv = np.vstack((
         tap_fit_inv['pre_l1'],
-        tap_fit_inv['meas_l0'],
+        tap_fit_inv['meas_l0'] * 1.0,
         tap_fit_inv['prerr_l0'] * 1.0,
         ))
     Y_fit_inv = np.vstack((
         tap_fit_inv['pre_l0'],
         ))
+    
     X_pre_inv = np.vstack((
         tap_pre_inv['pre_l1'],
         tap_pre_inv['meas_l0'],
@@ -989,7 +1042,8 @@ def step_imol(ref):
     # prediction error inverse
     prerr_l0_inv = ref.inputs['pre_l1']['val'][...,[-1]] - ref.inputs['meas_l0']['val'][...,[-1]]
 
-    ref.prerr_avg = 0.8 * ref.prerr_avg + 0.2 * np.sqrt(np.mean(np.square(prerr_l0_inv)))
+    # ref.prerr_avg = 0.8 * ref.prerr_avg + 0.2 * np.sqrt(np.mean(np.square(prerr_l0_inv)))
+    ref.prerr_avg = 0.9 * ref.prerr_avg + 0.1 * np.sqrt(np.mean(np.square(prerr_l0_inv)))
     
     # fit model
     if isinstance(ref.mdl_inv, smpOTLModel):
@@ -999,11 +1053,35 @@ def step_imol(ref):
         ref.mdl_inv.predict(X = X_fit_inv.T)
         pre_l0 = ref.mdl_inv.pred.reshape(Y_fit_inv.T.shape)
     elif isinstance(ref.mdl_inv, smpSHL):
-        ref.mdl_inv.fit(X = X_fit_inv.T, Y = Y_fit_inv.T * 1.0, update = False)
+        # fit only after two updates
+        if ref.cnt > 2: #  and np.mean(np.square(prerr_l0_inv)) < 0.1:
+            ref.mdl_inv.fit(X = X_fit_inv.T, Y = Y_fit_inv.T * 1.0, update = False)
+            # print "mdl_inv e", ref.mdl_inv.lr.e
+            
+        # predict for external goal
+        # r_local = ref.mdl_inv.model.r.copy()
+        # x_local = ref.mdl_inv.model.x.copy()
+        # print "mdl_inv.model.r", 
+        pre_l1_local = ref.mdl_inv.predict(X = X_pre_inv.T, rollback = True)
+        
+        # print "mdl_inv.model.r", np.mean(np.abs(ref.mdl_inv.model.r - r_local))
+        # print "mdl_inv.model.x", np.mean(np.abs(ref.mdl_inv.model.x - x_local))
+        
+        # print "pre_l1_local", pre_l1_local
+            
+        if ref.mdl_inv.lrname == 'FORCEmdn':
+            pre_l0 = ref.mdl_inv.y
+        else:
+            # pre_l0 = ref.mdl_inv.model.zn.T
+            pre_l0 = ref.mdl_inv.model.z.T
+            # print "step_imol smpSHL pre_l0", pre_l0
+            
+        # predict with same X and update network
         ref.mdl_inv.predict(X = X_fit_inv.T)
-        pre_l0 = ref.mdl_inv.model.zn.T
-        # pre_l0 = ref.mdl_inv.model.zn.T
+        
     else:
+        # feedforward case
+        # model fit
         ref.mdl_inv.fit(X = X_fit_inv.T, y = Y_fit_inv.T)
         # model prediction
         pre_l0 = ref.mdl_inv.predict(X = X_pre_inv.T)
@@ -1011,28 +1089,49 @@ def step_imol(ref):
     # output sampling
     if isinstance(ref.mdl_inv, smpOTLModel):
         # pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * (1.0/np.sqrt(ref.mdl_inv.var) * 1.0) * ref.prerr_avg * 1.0
-        print "soesgp var", np.sqrt(np.mean(ref.mdl_inv.var))
+        print "soesgp var", ref.mdl_inv.var, ref.cnt # np.sqrt(np.mean(ref.mdl_inv.var))
         # if np.sqrt(np.mean(ref.mdl_inv.var)) < 0.4:
         #     pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * 0.1
         # else:
-        # pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * 0.1
-        pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * np.square(ref.prerr_avg) * 0.2 # np.sqrt(ref.mdl_inv.var)
-        
+        #     pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * 0.1
+        # pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * np.square(ref.prerr_avg) * 0.2 # 
+        if ref.cnt < ref.thr_predict:
+            pre_l0 = np.random.uniform(-1.0, 1.0, size = pre_l0.shape)
+            pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * 0.001
+        else:
+            pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.prerr_avg * 0.5 # np.sqrt(ref.mdl_inv.var) # * ref.mdl_inv.noise
+
     elif isinstance(ref.mdl_inv, smpSHL):
-        ref.mdl_inv.theta = ref.prerr_avg * 0.5
-        pre_l0_var = np.ones_like(pre_l0) * ref.prerr_avg * 0.1
+
+        pre_l0 = pre_l1_local.copy()
+        
+        if ref.cnt < ref.thr_predict:
+        #     pre_l0 = np.random.uniform(-1.0, 1.0, size = pre_l0.shape)
+        #     pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * 0.001
+        # else:
+            pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.prerr_avg * 0.0001 # np.sqrt(ref.mdl_inv.var) # * ref.mdl_inv.noise
+        else:
+            pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.prerr_avg * 0.0001 # np.sqrt(ref.mdl_inv.var) # * ref.mdl_inv.noise
+            
+        ref.mdl_inv.theta = ref.prerr_avg * 0.01
+        # pre_l0_var = np.ones_like(pre_l0) * ref.prerr_avg * 0.1
+        if ref.mdl_inv.lrname == 'FORCEmdn':
+            pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * 1e-4
     else:
         pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.prerr_avg * 1.0
     # pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.prerr_avg * 0.25
            
     pre_l0 += pre_l0_var
     pre_l0 = np.clip(pre_l0, -1.1, 1.1)
-    print "%s.step_imol pre_l0 = %s, prerr_avg = %s" % (ref.__class__.__name__, pre_l0, ref.prerr_avg)
+    # print "%s.step_imol pre_l0 = %s, prerr_avg = %s" % (ref.__class__.__name__, pre_l0, ref.prerr_avg)
+    print "%s.step_imol prerr_avg = %s" % (ref.__class__.__name__, ref.prerr_avg)
 
     # set outputs
     setattr(ref, 'pre', pre_l0.copy().T)
     setattr(ref, 'err', prerr_l0_inv)
     setattr(ref, 'tgt', Y_fit_inv.copy())
+    setattr(ref, 'X', X_fit_inv.copy())
+    setattr(ref, 'Y', Y_fit_inv.copy())
             
 ################################################################################
 # exploratory hebbian direct inverse model learning (eh diml)
