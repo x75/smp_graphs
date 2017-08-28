@@ -875,7 +875,7 @@ graph = OrderedDict([
                                     'spectral_radius': 0.99, # 0.01,
                                     'alpha': 5.0,
                                     'theta': 0.01,
-                                    'theta_state': 0.01,
+                                    'theta_state': 0.05,
                                     'lrname': 'FORCE',
                                     'mixcomps': 3,
                                 }

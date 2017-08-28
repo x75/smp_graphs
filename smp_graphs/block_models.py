@@ -998,7 +998,7 @@ def init_imol(ref, conf, mconf):
 
     ref.prerr_avg = 1e-3
 
-    ref.thr_predict = 1000
+    ref.thr_predict = 1#000
     
     if isinstance(ref.mdl_inv, smpOTLModel) or isinstance(ref.mdl_inv, smpSHL):
         ref.recurrent = True
@@ -1040,7 +1040,7 @@ def step_imol(ref):
         tap_pre_inv['prerr_l0'] * 1.0,
         ))
     # prediction error inverse
-    prerr_l0_inv = ref.inputs['pre_l1']['val'][...,[-1]] - ref.inputs['meas_l0']['val'][...,[-1]]
+    prerr_l0_inv = ref.inputs['pre_l1']['val'][...,[-2]] - ref.inputs['meas_l0']['val'][...,[-1]]
 
     # ref.prerr_avg = 0.8 * ref.prerr_avg + 0.2 * np.sqrt(np.mean(np.square(prerr_l0_inv)))
     ref.prerr_avg = 0.9 * ref.prerr_avg + 0.1 * np.sqrt(np.mean(np.square(prerr_l0_inv)))
@@ -1048,10 +1048,30 @@ def step_imol(ref):
     # fit model
     if isinstance(ref.mdl_inv, smpOTLModel):
         # ref.mdl_inv.fit(X = X_fit_inv.T, y = Y_fit_inv.T, update = True) # False)
-        if True: # np.any(prerr_l0_inv < ref.prerr_avg):
+        # if True: # np.any(prerr_l0_inv < ref.prerr_avg):
+        # fit only after two updates
+        if ref.cnt > 2:
             ref.mdl_inv.fit(X = X_fit_inv.T, y = Y_fit_inv.T, update = False)
+
+        # predict for external goal
+        
+        # r = []
+        # ref.mdl_inv.otlmodel.getState(r)
+        # r = np.array(r)
+        # print "soesgp r", r
+        
+        pre_l1_local = ref.mdl_inv.predict(X = X_pre_inv.T, rollback = True)
+        
+        # q = []
+        # ref.mdl_inv.otlmodel.getState(q)
+        # print "soesgp r", np.array(q) - r
+        
+        pre_l0 = ref.mdl_inv.pred.copy().reshape(Y_fit_inv.T.shape)
+        # print "soesgp pre_l0", pre_l0
+        
+        # predict with same X and update network
         ref.mdl_inv.predict(X = X_fit_inv.T)
-        pre_l0 = ref.mdl_inv.pred.reshape(Y_fit_inv.T.shape)
+        
     elif isinstance(ref.mdl_inv, smpSHL):
         # fit only after two updates
         if ref.cnt > 2: #  and np.mean(np.square(prerr_l0_inv)) < 0.1:
@@ -1089,7 +1109,10 @@ def step_imol(ref):
     # output sampling
     if isinstance(ref.mdl_inv, smpOTLModel):
         # pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * (1.0/np.sqrt(ref.mdl_inv.var) * 1.0) * ref.prerr_avg * 1.0
-        print "soesgp var", ref.mdl_inv.var, ref.cnt # np.sqrt(np.mean(ref.mdl_inv.var))
+
+        if ref.cnt % 100 == 0:
+            print "soesgp var", ref.mdl_inv.var, ref.cnt # np.sqrt(np.mean(ref.mdl_inv.var))
+        
         # if np.sqrt(np.mean(ref.mdl_inv.var)) < 0.4:
         #     pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * 0.1
         # else:
@@ -1099,7 +1122,8 @@ def step_imol(ref):
             pre_l0 = np.random.uniform(-1.0, 1.0, size = pre_l0.shape)
             pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * 0.001
         else:
-            pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.prerr_avg * 0.5 # np.sqrt(ref.mdl_inv.var) # * ref.mdl_inv.noise
+            # pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.prerr_avg * 0.5 # np.sqrt(ref.mdl_inv.var) # * ref.mdl_inv.noise
+            pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * np.sqrt(ref.mdl_inv.var) * ref.prerr_avg * 0.3
 
     elif isinstance(ref.mdl_inv, smpSHL):
 
@@ -1111,7 +1135,7 @@ def step_imol(ref):
         # else:
             pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.prerr_avg * 0.0001 # np.sqrt(ref.mdl_inv.var) # * ref.mdl_inv.noise
         else:
-            pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.prerr_avg * 0.0001 # np.sqrt(ref.mdl_inv.var) # * ref.mdl_inv.noise
+            pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.prerr_avg * 0.001 # np.sqrt(ref.mdl_inv.var) # * ref.mdl_inv.noise
             
         ref.mdl_inv.theta = ref.prerr_avg * 0.01
         # pre_l0_var = np.ones_like(pre_l0) * ref.prerr_avg * 0.1
@@ -1124,11 +1148,12 @@ def step_imol(ref):
     pre_l0 += pre_l0_var
     pre_l0 = np.clip(pre_l0, -1.1, 1.1)
     # print "%s.step_imol pre_l0 = %s, prerr_avg = %s" % (ref.__class__.__name__, pre_l0, ref.prerr_avg)
-    print "%s.step_imol prerr_avg = %s" % (ref.__class__.__name__, ref.prerr_avg)
+    if ref.cnt % 100 == 0:
+        print "%s.step_imol prerr_avg = %s" % (ref.__class__.__name__, ref.prerr_avg)
 
     # set outputs
     setattr(ref, 'pre', pre_l0.copy().T)
-    setattr(ref, 'err', prerr_l0_inv)
+    setattr(ref, 'err', prerr_l0_inv.copy())
     setattr(ref, 'tgt', Y_fit_inv.copy())
     setattr(ref, 'X', X_fit_inv.copy())
     setattr(ref, 'Y', Y_fit_inv.copy())
