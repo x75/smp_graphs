@@ -1143,9 +1143,9 @@ def step_imol(ref):
         # else:
             pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.prerr_avg * 0.0001 # np.sqrt(ref.mdl_inv.var) # * ref.mdl_inv.noise
         else:
-            pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.prerr_avg * 0.01 # np.sqrt(ref.mdl_inv.var) # * ref.mdl_inv.noise
+            pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.prerr_avg * 0.05 # np.sqrt(ref.mdl_inv.var) # * ref.mdl_inv.noise
             
-        ref.mdl_inv.theta = ref.prerr_avg * 0.01
+        ref.mdl_inv.theta = ref.prerr_avg * 0.05
         # pre_l0_var = np.ones_like(pre_l0) * ref.prerr_avg * 0.1
         if ref.mdl_inv.lrname == 'FORCEmdn':
             pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * 1e-4

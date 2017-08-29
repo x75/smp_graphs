@@ -39,7 +39,7 @@ ros = True
 
 # experiment
 commandline_args = ['numsteps']
-randseed = 12349
+randseed = 12350
 numsteps = int(10000/1)
 loopblocksize = numsteps
 sysname = 'pm'
@@ -298,9 +298,9 @@ algo = 'knn' # ok
 # algo = 'gmm' # ok
 # algo = 'igmm' # ok, fix deprecation, inference output conf
 # algo = 'hebbsom' # fix
-# algo = 'soesgp'
+algo = 'soesgp'
 # algo = 'storkgp'
-algo = 'resrls'
+# algo = 'resrls'
 
 # algo = 'homeokinesis'
 
@@ -338,7 +338,7 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
     return {
     'block': PlotBlock2,
     'params': {
-        'blocksize': min(numsteps, 1000), # blocksize,
+        'blocksize': numsteps, # min(numsteps, 1000), # blocksize,
         'inputs': {
             'goals': {'bus': '%s/pre' % (l1,), 'shape': (dim_s_proprio, blocksize)},
             'pre':   {'bus': '%s/pre' % (l0,), 'shape': (dim_s_proprio, blocksize)},
@@ -872,14 +872,14 @@ graph = OrderedDict([
                                     'eta': eta,
                                     'memory': 10,
                                     'w_input': 1.0,
-                                    'w_bias': 0.1,
-                                    'modelsize': 300,
-                                    'tau': 0.2, # 0.05, # 1.0,
-                                    'multitau': True,
+                                    'w_bias': 0.0,
+                                    'modelsize': 100,
+                                    'tau': 0.4, # 0.05, # 1.0,
+                                    'multitau': False,
                                     'spectral_radius': 0.99, # 0.01,
-                                    'alpha': 5.0, # 10.0,
+                                    'alpha': 2.0, # 10.0,
                                     'theta': 0.01,
-                                    'theta_state': 0.001,
+                                    'theta_state': 0.1,
                                     'lrname': 'FORCE',
                                     'mixcomps': 3,
                                     'oversampling': 1,
