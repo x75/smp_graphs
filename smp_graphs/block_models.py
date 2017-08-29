@@ -1070,8 +1070,9 @@ def step_imol(ref):
         ...,
         [ref.lag_past_inv[1]]] - ref.inputs['meas_l0']['val'][...,[-1]]
 
-    ref.prerr_avg = 0.8 * ref.prerr_avg + 0.2 * np.sqrt(np.mean(np.square(prerr_l0_inv)))
-    # ref.prerr_avg = 0.9 * ref.prerr_avg + 0.1 * np.sqrt(np.mean(np.square(prerr_l0_inv)))
+    # ref.prerr_avg = 0.7 * ref.prerr_avg + 0.3 * np.sqrt(np.mean(np.square(prerr_l0_inv)))
+    # ref.prerr_avg = 0.8 * ref.prerr_avg + 0.2 * np.sqrt(np.mean(np.square(prerr_l0_inv)))
+    ref.prerr_avg = 0.9 * ref.prerr_avg + 0.1 * np.sqrt(np.mean(np.square(prerr_l0_inv)))
     # ref.prerr_avg = 0.99 * ref.prerr_avg + 0.01 * np.sqrt(np.mean(np.square(prerr_l0_inv)))
     
     # fit model
@@ -1140,7 +1141,7 @@ def step_imol(ref):
         # pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * (1.0/np.sqrt(ref.mdl_inv.var) * 1.0) * ref.prerr_avg * 1.0
 
         # amp = 0.02
-        amp = 0.1
+        amp = 0.05
         
         if ref.cnt % 100 == 0:
             print "soesgp var", ref.mdl_inv.var, ref.cnt # np.sqrt(np.mean(ref.mdl_inv.var))
@@ -1161,7 +1162,7 @@ def step_imol(ref):
 
         pre_l0 = pre_l1_local.copy()
 
-        amp = 0.1
+        amp = 0.05
         
         if ref.cnt < ref.thr_predict:
         #     pre_l0 = np.random.uniform(-1.0, 1.0, size = pre_l0.shape)
@@ -1178,7 +1179,7 @@ def step_imol(ref):
     elif isinstance(ref.mdl_inv, smpHebbianSOM):
         pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.prerr_avg * 0.0001
     else:
-        pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.prerr_avg * 0.5 # 1.0
+        pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.prerr_avg * 0.05 # 1.0
     # pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.prerr_avg * 0.25
            
     pre_l0 += pre_l0_var
@@ -1193,8 +1194,10 @@ def step_imol(ref):
         # assume pre_l0 is row vector with (x1_t-n, x2_t-n, ..., x1_t-1, x2_t-1, ..., x1_t, x2_t, ...)
         pre_l0_t = pre_l0.reshape((ref.laglen_future_inv, -1)).T # restore ref.inputs format rows = dims, cols = time, most recent at -1
         # print "pre_l0_t", pre_l0_t.shape
-        # pre_l0 = pre_l0_t[...,[-1]].copy()
         pre_l0 = pre_l0_t[...,[-1]].copy()
+        # pre_l0 = pre_l0_t[...,[0]].copy()
+        # pre_l0 = np.sum(pre_l0_t * (1.0/np.arange(1, ref.laglen_future_inv+1)), axis = -1).reshape((-1, 1))
+        # pre_l0 = np.mean(pre_l0_t, axis = -1).reshape((-1, 1))
         # print "pre_l0", pre_l0.shape
 
         tgt_t = Y_fit_inv.reshape((ref.laglen_future_inv, -1)).T
