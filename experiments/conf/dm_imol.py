@@ -46,7 +46,7 @@ sysname = 'pm'
 # sysname = 'sa'
 # sysname = 'bha'
 # sysname = 'stdr'
-sysname = 'lpzbarrel'
+# sysname = 'lpzbarrel'
 # sysname = 'sphero'
 # dim = 3 # 2, 1
 # dim = 9 # bha
@@ -294,11 +294,11 @@ maxlag = systemblock['params']['maxlag']
 
 dt = systemblock['params']['dt']
 
-algo = 'knn' # ok
+# algo = 'knn' # ok
 # algo = 'gmm' # ok
 # algo = 'igmm' # ok, fix deprecation, inference output conf
-# algo = 'hebbsom' # fix
-algo = 'soesgp'
+algo = 'hebbsom' # fix
+# algo = 'soesgp'
 # algo = 'storkgp'
 # algo = 'resrls'
 
@@ -307,7 +307,7 @@ algo = 'soesgp'
 # pm
 algo_fwd = algo
 algo_inv = algo
-lag_past   = (-2, -1)
+lag_past   = (-4, -3)
 lag_future = (-1, 0)
 
 # lag_past = (-11, -3)
@@ -334,11 +334,11 @@ eta = 0.15
 
 def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
     global partial
-    global PlotBlock2, numsteps, timeseries, dim_s_extero, dim_s_proprio
+    global PlotBlock2, numsteps, timeseries, dim_s_extero, dim_s_proprio, lag_past, lag_future
     return {
     'block': PlotBlock2,
     'params': {
-        'blocksize': numsteps, # min(numsteps, 1000), # blocksize,
+        'blocksize': min(numsteps, 1000), # blocksize, # numsteps, # 
         'inputs': {
             'goals': {'bus': '%s/pre' % (l1,), 'shape': (dim_s_proprio, blocksize)},
             'pre':   {'bus': '%s/pre' % (l0,), 'shape': (dim_s_proprio, blocksize)},
@@ -346,8 +346,8 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             'tgt':   {'bus': '%s/tgt' % (l0,), 'shape': (dim_s_proprio, blocksize)},
             's_proprio':    {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, blocksize)},
             's_extero':     {'bus': 'robot1/s_extero',  'shape': (dim_s_extero, blocksize)},
-            'X': {'bus': 'pre_l0/X', 'shape': (dim_s_proprio * 3, blocksize)},
-            'Y': {'bus': 'pre_l0/Y',  'shape': (dim_s_proprio, blocksize)},
+            'X': {'bus': 'pre_l0/X', 'shape': (dim_s_proprio * (lag_past[1] - lag_past[0]) * 3, blocksize)},
+            'Y': {'bus': 'pre_l0/Y',  'shape': (dim_s_proprio * (lag_future[1] - lag_future[0]), blocksize)},
             },
         'hspace': 0.2,
         'subplots': [
@@ -765,10 +765,10 @@ graph = OrderedDict([
                             # 'f': {'val': np.array([[0.23539]]).T * 10.0 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.23539]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.23539]]).T * 7.23 * dt}, # good with soesgp and eta = 0.7
-                            'f': {'val': np.array([[0.23539]]).T * 2.9 * dt}, # good with soesgp and eta = 0.7
+                            # 'f': {'val': np.array([[0.23539]]).T * 2.9 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.23539]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
                             
-                            # 'f': {'val': np.array([[0.23539]]).T * 0.2 * dt}, # good with soesgp and eta = 0.7
+                            'f': {'val': np.array([[0.23539]]).T * 0.2 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.23539]]).T * 0.05 * dt}, # good with soesgp and eta = 0.7
                             
                             # 'f': {'val': np.array([[0.23539, 0.2348, 0.14]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
@@ -840,8 +840,8 @@ graph = OrderedDict([
                             'pre': {'shape': (dim_s_proprio, 1)},
                             'err': {'shape': (dim_s_proprio, 1)},
                             'tgt': {'shape': (dim_s_proprio, 1)},
-                            'X': {'shape': (dim_s_proprio * 3, 1)},
-                            'Y': {'shape': (dim_s_proprio, 1)},
+                            'X': {'shape': (dim_s_proprio * (lag_past[1] - lag_past[0]) * 3, 1)},
+                            'Y': {'shape': (dim_s_proprio * (lag_future[1] - lag_future[0]), 1)},
                             },
                         'models': {
                             'imol': {
@@ -873,17 +873,17 @@ graph = OrderedDict([
                                     'memory': 10,
                                     'w_input': 1.0,
                                     'w_bias': 0.0,
-                                    'modelsize': 100,
-                                    'tau': 0.4, # 0.05, # 1.0,
-                                    'multitau': False,
+                                    'modelsize': 300,
+                                    'tau': 0.25, # 0.8, # 0.05, # 1.0,
+                                    'multitau': True, # False,
                                     'spectral_radius': 0.99, # 0.01,
-                                    'alpha': 2.0, # 10.0,
+                                    'alpha': 10.0, # 10.0,
                                     'theta': 0.01,
-                                    'theta_state': 0.1,
+                                    'theta_state': 0.01,
                                     'lrname': 'FORCE',
                                     'mixcomps': 3,
                                     'oversampling': 1,
-                                    'visualize': False,
+                                    'visualize': True,
                                 }
                             },
                         },
