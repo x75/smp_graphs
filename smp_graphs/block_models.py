@@ -883,7 +883,7 @@ def tapping_imol_pre_inv(ref):
     return {
         # 'pre_l1': pre_l1,
         # 'meas_l0': meas_l0,
-        # 'prerr_l0': prerr_l0,
+        'prerr_l0_temp': prerr_l0,
         'pre_l1': pre_l1.T.reshape((-1, 1)),
         'meas_l0': meas_l0.T.reshape((-1, 1)),
         'prerr_l0': prerr_l0.T.reshape((-1, 1)),
@@ -985,7 +985,8 @@ def tapping_imol_recurrent_fit_inv_2(ref):
     
     prerr_l0 = ref.inputs['prerr_l0']['val'][
         ...,
-        range(ref.lag_past_inv[0] + rate, ref.lag_past_inv[1] + rate)]
+        range(ref.lag_past_inv[0] + ref.lag_off_f2p_inv, ref.lag_past_inv[1] + ref.lag_off_f2p_inv)]
+    # range(ref.lag_past_inv[0] + rate, ref.lag_past_inv[1] + rate)]
     prerr_l0 = np.roll(prerr_l0, -1, axis = -1)
     prerr_l0[...,[-1]] = pre_l1[...,[-1]] - meas_l0[...,[-1]]
     
@@ -1007,6 +1008,8 @@ def tapping_imol_recurrent_fit_inv_2(ref):
         }
 
 def init_imol(ref, conf, mconf):
+    # params variable shortcut
+    params = conf['params']
     # init forward model
     mconf_fwd = mconf['fwd']
     ref.mdl_fwd = init_model(ref, conf = conf, mconf = mconf_fwd)
@@ -1020,11 +1023,20 @@ def init_imol(ref, conf, mconf):
     ref.laglen_future_inv = ref.lag_future_inv[1] - ref.lag_future_inv[0]
     ref.lag_gap_f2p_inv = ref.lag_future_inv[0] - ref.lag_past_inv[1]
     ref.lag_off_f2p_inv = ref.lag_future_inv[1] - ref.lag_past_inv[1]
+
+    # update conf
+    mconf_inv['lag_off'] = ref.lag_off_f2p_inv
+    # initialize inverse model
     ref.mdl_inv = init_model(ref, conf = conf, mconf = mconf_inv)
 
+    # learning params
     ref.prerr_avg = 1e-3
-
     ref.thr_predict = 1#000
+    
+    ref.selsize = params['outputs']['hidden']['shape'][0]
+    # hidden state output random projection
+    ref.hidden_output_index = np.random.choice(
+        range(mconf_inv['modelsize']), ref.selsize, replace=False)
     
     if isinstance(ref.mdl_inv, smpOTLModel) or isinstance(ref.mdl_inv, smpSHL):
         ref.recurrent = True
@@ -1054,7 +1066,7 @@ def step_imol(ref):
     X_fit_inv = np.vstack((
         tap_fit_inv['pre_l1'],
         tap_fit_inv['meas_l0'] * 1.0,
-        tap_fit_inv['prerr_l0'] * 1.0,
+        tap_fit_inv['prerr_l0'] * 1e-0,
         ))
     Y_fit_inv = np.vstack((
         tap_fit_inv['pre_l0'],
@@ -1063,16 +1075,18 @@ def step_imol(ref):
     X_pre_inv = np.vstack((
         tap_pre_inv['pre_l1'],
         tap_pre_inv['meas_l0'],
-        tap_pre_inv['prerr_l0'] * 1.0,
+        tap_pre_inv['prerr_l0'] * 1e-0,
         ))
+    
     # prediction error inverse
-    prerr_l0_inv = ref.inputs['pre_l1']['val'][
-        ...,
-        [ref.lag_past_inv[1]]] - ref.inputs['meas_l0']['val'][...,[-1]]
+    # prerr_l0_inv = ref.inputs['pre_l1']['val'][
+    #     ...,
+    #     [ref.lag_past_inv[1]]] - ref.inputs['meas_l0']['val'][...,[-1]]
+    prerr_l0_inv = tap_pre_inv['prerr_l0_temp'][...,[-1]]
 
     # ref.prerr_avg = 0.7 * ref.prerr_avg + 0.3 * np.sqrt(np.mean(np.square(prerr_l0_inv)))
-    # ref.prerr_avg = 0.8 * ref.prerr_avg + 0.2 * np.sqrt(np.mean(np.square(prerr_l0_inv)))
-    ref.prerr_avg = 0.9 * ref.prerr_avg + 0.1 * np.sqrt(np.mean(np.square(prerr_l0_inv)))
+    ref.prerr_avg = 0.8 * ref.prerr_avg + 0.2 * np.sqrt(np.mean(np.square(prerr_l0_inv)))
+    # ref.prerr_avg = 0.9 * ref.prerr_avg + 0.1 * np.sqrt(np.mean(np.square(prerr_l0_inv)))
     # ref.prerr_avg = 0.99 * ref.prerr_avg + 0.01 * np.sqrt(np.mean(np.square(prerr_l0_inv)))
     
     # fit model
@@ -1104,7 +1118,7 @@ def step_imol(ref):
         
     elif isinstance(ref.mdl_inv, smpSHL):
         # fit only after two updates
-        if ref.cnt > 2: #  and np.mean(np.square(prerr_l0_inv)) < 0.1:
+        if ref.cnt > 2 and ref.prerr_avg >= 0.3: #  and np.mean(np.square(prerr_l0_inv)) < 0.1:
             ref.mdl_inv.fit(X = X_fit_inv.T, Y = Y_fit_inv.T * 1.0, update = False)
             # print "mdl_inv e", ref.mdl_inv.lr.e
             
@@ -1128,7 +1142,13 @@ def step_imol(ref):
             
         # predict with same X and update network
         ref.mdl_inv.predict(X = X_fit_inv.T)
-        
+
+        if hasattr(ref.mdl_inv.model, 'r'):
+            hidden = ref.mdl_inv.model.r[ref.hidden_output_index]
+            # print "hidden", hidden.shape
+            setattr(ref, 'hidden', hidden)
+            setattr(ref, 'wo_norm', np.array([[np.linalg.norm(ref.mdl_inv.model.wo, 2)]]))
+            # print "wo_norm", ref.wo_norm
     else:
         # feedforward case
         # model fit
@@ -1141,7 +1161,7 @@ def step_imol(ref):
         # pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * (1.0/np.sqrt(ref.mdl_inv.var) * 1.0) * ref.prerr_avg * 1.0
 
         # amp = 0.02
-        amp = 0.05
+        amp = 0.01
         
         if ref.cnt % 100 == 0:
             print "soesgp var", ref.mdl_inv.var, ref.cnt # np.sqrt(np.mean(ref.mdl_inv.var))
@@ -1162,7 +1182,7 @@ def step_imol(ref):
 
         pre_l0 = pre_l1_local.copy()
 
-        amp = 0.05
+        amp = 0.02 # 0.01
         
         if ref.cnt < ref.thr_predict:
         #     pre_l0 = np.random.uniform(-1.0, 1.0, size = pre_l0.shape)
@@ -1212,7 +1232,7 @@ def step_imol(ref):
     setattr(ref, 'tgt', tgt.copy())
     setattr(ref, 'X', X_fit_inv.copy())
     setattr(ref, 'Y', Y_fit_inv.copy())
-            
+                
 ################################################################################
 # exploratory hebbian direct inverse model learning (eh diml)
 def init_eh(ref, conf, mconf):

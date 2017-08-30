@@ -39,7 +39,7 @@ ros = True
 
 # experiment
 commandline_args = ['numsteps']
-randseed = 12351
+randseed = 12354
 numsteps = int(10000/1)
 loopblocksize = numsteps
 # sysname = 'pm'
@@ -286,6 +286,7 @@ systemblock   = get_systemblock[sysname]()
 
 dim_s_proprio = systemblock['params']['dim_s_proprio']
 dim_s_extero  = systemblock['params']['dim_s_extero']
+dim_s_hidden_debug = 20
 m_mins = np.array([systemblock['params']['m_mins']]).T
 m_maxs = np.array([systemblock['params']['m_maxs']]).T
 
@@ -294,21 +295,23 @@ maxlag = systemblock['params']['maxlag']
 
 dt = systemblock['params']['dt']
 
-algo = 'knn' # ok
+# algo = 'knn' # ok
 # algo = 'gmm' # ok
 # algo = 'igmm' # ok, fix deprecation, inference output conf
 # algo = 'hebbsom' # fix
 # algo = 'soesgp'
 # algo = 'storkgp'
-# algo = 'resrls'
+algo = 'resrls'
 
 # algo = 'homeokinesis'
 
 # pm
 algo_fwd = algo
 algo_inv = algo
-# lag_past   = (-4, -3)
-lag_past   = (-20, -2)
+lag_past   = (-2, -1)
+# lag_past   = (-3, -2)
+# lag_past   = (-4, -2)
+# lag_past   = (-20, -2)
 lag_future = (-1, 0)
 
 # lag_past = (-11, -3)
@@ -335,7 +338,7 @@ eta = 0.15
 
 def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
     global partial
-    global PlotBlock2, numsteps, timeseries, dim_s_extero, dim_s_proprio, lag_past, lag_future
+    global PlotBlock2, numsteps, timeseries, dim_s_extero, dim_s_proprio, dim_s_hidden_debug, lag_past, lag_future
     return {
     'block': PlotBlock2,
     'params': {
@@ -349,6 +352,8 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             's_extero':     {'bus': 'robot1/s_extero',  'shape': (dim_s_extero, blocksize)},
             'X': {'bus': 'pre_l0/X', 'shape': (dim_s_proprio * (lag_past[1] - lag_past[0]) * 3, blocksize)},
             'Y': {'bus': 'pre_l0/Y',  'shape': (dim_s_proprio * (lag_future[1] - lag_future[0]), blocksize)},
+            'hidden': {'bus': 'pre_l0/hidden',  'shape': (dim_s_hidden_debug, blocksize)},
+            'wo_norm': {'bus': 'pre_l0/wo_norm',  'shape': (1, blocksize)},
             },
         'hspace': 0.2,
         'subplots': [
@@ -378,6 +383,12 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             ],
             [
                 {'input': ['Y'], 'plot': partial(timeseries, marker = '.')},
+            ],
+            [
+                {'input': ['hidden'], 'plot': partial(timeseries, marker = '.')},
+            ],
+            [
+                {'input': ['wo_norm'], 'plot': partial(timeseries, marker = '.')},
             ],
             ]
         }
@@ -766,6 +777,7 @@ graph = OrderedDict([
                             # 'f': {'val': np.array([[0.23539]]).T * 10.0 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.23539]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.23539]]).T * 7.23 * dt}, # good with soesgp and eta = 0.7
+                            # 'f': {'val': np.array([[0.23539]]).T * 3.2 * dt}, # good with soesgp and eta = 0.7
                             'f': {'val': np.array([[0.23539]]).T * 2.9 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.23539]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
                             
@@ -843,6 +855,8 @@ graph = OrderedDict([
                             'tgt': {'shape': (dim_s_proprio, 1)},
                             'X': {'shape': (dim_s_proprio * (lag_past[1] - lag_past[0]) * 3, 1)},
                             'Y': {'shape': (dim_s_proprio * (lag_future[1] - lag_future[0]), 1)},
+                            'hidden': {'shape': (dim_s_hidden_debug, 1)},
+                            'wo_norm': {'shape': (1, 1)},
                             },
                         'models': {
                             'imol': {
@@ -871,20 +885,22 @@ graph = OrderedDict([
                                     # 'laglen_past': lag_past[1] - lag_past[0],
                                     # 'laglen_future': lag_future[1] - lag_future[0],
                                     'eta': eta,
-                                    'memory': 10,
+                                    'memory': maxlag,
                                     'w_input': 1.0,
-                                    'w_bias': 0.0,
-                                    'modelsize': 300,
-                                    'tau': 0.25, # 0.8, # 0.05, # 1.0,
-                                    'multitau': True, # False,
-                                    'spectral_radius': 0.99, # 0.01,
-                                    'alpha': 10.0, # 10.0,
+                                    'w_bias': 0.2,
+                                    'modelsize': 322,
+                                    'tau': 0.08, # 0.8, # 0.05, # 1.0,
+                                    'multitau': False, # True,
+                                    'spectral_radius': 0.999, # 0.01,
+                                    'alpha': 5.0, # 10.0,
                                     'theta': 0.01,
-                                    'theta_state': 0.01,
-                                    'lrname': 'FORCE',
+                                    # RLS / barrel
+                                    'theta_state': 0.1, # for RLS
+                                    'lrname': 'RLS',
                                     'mixcomps': 3,
                                     'oversampling': 1,
-                                    'visualize': True,
+                                    'visualize': False,
+                                    'wgt_thr': 0.5,
                                 }
                             },
                         },
