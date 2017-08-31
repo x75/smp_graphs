@@ -1084,8 +1084,8 @@ def step_imol(ref):
     #     [ref.lag_past_inv[1]]] - ref.inputs['meas_l0']['val'][...,[-1]]
     prerr_l0_inv = tap_pre_inv['prerr_l0_temp'][...,[-1]]
 
-    # ref.prerr_avg = 0.7 * ref.prerr_avg + 0.3 * np.sqrt(np.mean(np.square(prerr_l0_inv)))
-    ref.prerr_avg = 0.8 * ref.prerr_avg + 0.2 * np.sqrt(np.mean(np.square(prerr_l0_inv)))
+    ref.prerr_avg = 0.7 * ref.prerr_avg + 0.3 * np.sqrt(np.mean(np.square(prerr_l0_inv)))
+    # ref.prerr_avg = 0.8 * ref.prerr_avg + 0.2 * np.sqrt(np.mean(np.square(prerr_l0_inv)))
     # ref.prerr_avg = 0.9 * ref.prerr_avg + 0.1 * np.sqrt(np.mean(np.square(prerr_l0_inv)))
     # ref.prerr_avg = 0.99 * ref.prerr_avg + 0.01 * np.sqrt(np.mean(np.square(prerr_l0_inv)))
     
@@ -1116,9 +1116,14 @@ def step_imol(ref):
         # predict with same X and update network
         ref.mdl_inv.predict(X = X_fit_inv.T)
         
+        if hasattr(ref.mdl_inv, 'r_'):
+            hidden = ref.mdl_inv.r_[ref.hidden_output_index,[-1]].reshape((ref.hidden_output_index.shape[0], 1))
+            # print "hidden", hidden.shape
+            setattr(ref, 'hidden', hidden)
+            
     elif isinstance(ref.mdl_inv, smpSHL):
-        # fit only after two updates
-        if ref.cnt > 2 and ref.prerr_avg >= 0.3: #  and np.mean(np.square(prerr_l0_inv)) < 0.1:
+        # fit only after two updates, 0.3 barrel
+        if ref.cnt > 2 and ref.prerr_avg >= 0.01: #  and np.mean(np.square(prerr_l0_inv)) < 0.1:
             ref.mdl_inv.fit(X = X_fit_inv.T, Y = Y_fit_inv.T * 1.0, update = False)
             # print "mdl_inv e", ref.mdl_inv.lr.e
             
@@ -1160,8 +1165,11 @@ def step_imol(ref):
     if isinstance(ref.mdl_inv, smpOTLModel):
         # pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * (1.0/np.sqrt(ref.mdl_inv.var) * 1.0) * ref.prerr_avg * 1.0
 
+        # amp = 1.0
+        amp = 0.1
         # amp = 0.02
-        amp = 0.01
+        # amp = 0.01
+        # amp = 0.001
         
         if ref.cnt % 100 == 0:
             print "soesgp var", ref.mdl_inv.var, ref.cnt # np.sqrt(np.mean(ref.mdl_inv.var))
@@ -1182,7 +1190,10 @@ def step_imol(ref):
 
         pre_l0 = pre_l1_local.copy()
 
-        amp = 0.02 # 0.01
+        # amp = 0.1
+        # amp = 0.05
+        amp = 0.02
+        # amp = 0.01
         
         if ref.cnt < ref.thr_predict:
         #     pre_l0 = np.random.uniform(-1.0, 1.0, size = pre_l0.shape)

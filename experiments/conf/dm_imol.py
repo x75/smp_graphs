@@ -42,11 +42,11 @@ commandline_args = ['numsteps']
 randseed = 12354
 numsteps = int(10000/1)
 loopblocksize = numsteps
-# sysname = 'pm'
+sysname = 'pm'
 # sysname = 'sa'
 # sysname = 'bha'
 # sysname = 'stdr'
-sysname = 'lpzbarrel'
+# sysname = 'lpzbarrel'
 # sysname = 'sphero'
 # dim = 3 # 2, 1
 # dim = 9 # bha
@@ -265,7 +265,7 @@ get_systemblock = {
     'pm': partial(get_systemblock_pm, dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1),
     'sa': partial(get_systemblock_sa, dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1),
     'bha': partial(get_systemblock_bha, dim_s_proprio = 9, dim_s_extero = 3, dt = 0.1),
-    'lpzbarrel': partial(get_systemblock_lpzbarrel, dim_s_proprio = 2, dim_s_extero = 1, dt = 2.0/92.0), # 0.025),
+    'lpzbarrel': partial(get_systemblock_lpzbarrel, dim_s_proprio = 2, dim_s_extero = 1, dt = 1.0/12.5), # 2.0/92.0), # 0.025),
     'stdr': partial(get_systemblock_stdr, dim_s_proprio = 2, dim_s_extero = 3, dt = 0.1),
     'sphero': partial(get_systemblock_sphero, dim_s_proprio = 2, dim_s_extero = 1, dt = 0.0167),
     }
@@ -299,19 +299,19 @@ dt = systemblock['params']['dt']
 # algo = 'gmm' # ok
 # algo = 'igmm' # ok, fix deprecation, inference output conf
 # algo = 'hebbsom' # fix
-# algo = 'soesgp'
+algo = 'soesgp'
 # algo = 'storkgp'
-algo = 'resrls'
+# algo = 'resrls'
 
 # algo = 'homeokinesis'
 
 # pm
 algo_fwd = algo
 algo_inv = algo
-lag_past   = (-2, -1)
+# lag_past   = (-2, -1)
 # lag_past   = (-3, -2)
+lag_past   = (-4, -3)
 # lag_past   = (-4, -2)
-# lag_past   = (-20, -2)
 lag_future = (-1, 0)
 
 # lag_past = (-11, -3)
@@ -342,7 +342,7 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
     return {
     'block': PlotBlock2,
     'params': {
-        'blocksize': numsteps, # min(numsteps, 1000), # blocksize, # 
+        'blocksize': min(numsteps, 1000), # blocksize, # numsteps
         'inputs': {
             'goals': {'bus': '%s/pre' % (l1,), 'shape': (dim_s_proprio, blocksize)},
             'pre':   {'bus': '%s/pre' % (l0,), 'shape': (dim_s_proprio, blocksize)},
@@ -778,11 +778,11 @@ graph = OrderedDict([
                             # 'f': {'val': np.array([[0.23539]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.23539]]).T * 7.23 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.23539]]).T * 3.2 * dt}, # good with soesgp and eta = 0.7
-                            'f': {'val': np.array([[0.23539]]).T * 2.9 * dt}, # good with soesgp and eta = 0.7
+                            # 'f': {'val': np.array([[0.23539]]).T * 2.9 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.23539]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
                             
                             # 'f': {'val': np.array([[0.23539]]).T * 0.2 * dt}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.23539]]).T * 0.05 * dt}, # good with soesgp and eta = 0.7
+                            'f': {'val': np.array([[0.23539]]).T * 0.05 * dt}, # good with soesgp and eta = 0.7
                             
                             # 'f': {'val': np.array([[0.23539, 0.2348, 0.14]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.14, 0.14]]).T * 1.0},
@@ -888,19 +888,26 @@ graph = OrderedDict([
                                     'memory': maxlag,
                                     'w_input': 1.0,
                                     'w_bias': 0.2,
-                                    'modelsize': 322,
-                                    'tau': 0.08, # 0.8, # 0.05, # 1.0,
                                     'multitau': False, # True,
-                                    'spectral_radius': 0.999, # 0.01,
-                                    'alpha': 5.0, # 10.0,
                                     'theta': 0.01,
+                                    # FORCE / pm
+                                    'modelsize': 200,
+                                    'theta_state': 0.01,
+                                    'lrname': 'FORCE',
+                                    'alpha': 20.0, # 10.0,
+                                    'spectral_radius': 0.99, # 0.01,
+                                    'tau': 0.1, # 0.8, # 0.05, # 1.0,
+                                    'wgt_thr': 2.5,
                                     # RLS / barrel
-                                    'theta_state': 0.1, # for RLS
-                                    'lrname': 'RLS',
+                                    # 'modelsize': 322,
+                                    # 'theta_state': 0.1, # for RLS
+                                    # 'lrname': 'RLS',
+                                    # 'spectral_radius': 0.999, # 0.01,
+                                    # 'tau': 0.08, # 0.8, # 0.05, # 1.0,
+                                    # 'wgt_thr': 0.5,
                                     'mixcomps': 3,
                                     'oversampling': 1,
                                     'visualize': False,
-                                    'wgt_thr': 0.5,
                                 }
                             },
                         },
