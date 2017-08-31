@@ -886,7 +886,7 @@ def tapping_imol_pre_inv(ref):
         'prerr_l0_temp': prerr_l0,
         'pre_l1': pre_l1.T.reshape((-1, 1)),
         'meas_l0': meas_l0.T.reshape((-1, 1)),
-        'prerr_l0': prerr_l0.T.reshape((-1, 1)),
+        'prerr_l0': prerr_l0.T.reshape((-1, 1)) * 0.0,
     }
 
 def tapping_imol_fit_inv(ref):
@@ -915,7 +915,7 @@ def tapping_imol_fit_inv(ref):
         'prerr_l0_temp': prerr_l0,
         'pre_l1': pre_l1.T.reshape((-1, 1)),
         'meas_l0': meas_l0.T.reshape((-1, 1)),
-        'prerr_l0': prerr_l0.T.reshape((-1, 1)),
+        'prerr_l0': prerr_l0.T.reshape((-1, 1)) * 0.0,
         'pre_l0': pre_l0.T.reshape((-1, 1)),
         }
 
@@ -967,11 +967,51 @@ def tapping_imol_recurrent_fit_inv(ref):
         'prerr_l0_temp': prerr_l0,
         'pre_l1': pre_l1.T.reshape((-1, 1)),
         'meas_l0': meas_l0.T.reshape((-1, 1)),
-        'prerr_l0': prerr_l0.T.reshape((-1, 1)),
+        'prerr_l0': prerr_l0.T.reshape((-1, 1)) * 0.0,
         'pre_l0': pre_l0.T.reshape((-1, 1)),
         }
 
 def tapping_imol_recurrent_fit_inv_2(ref):
+    rate = 1
+    # X
+    # last goal prediction with measurement    
+    # FIXME: rate is laglen
+
+    pre_l1 = ref.inputs['meas_l0']['val'][
+        ...,
+        range(ref.lag_past_inv[0] + ref.lag_off_f2p_inv, ref.lag_past_inv[1] + ref.lag_off_f2p_inv)].copy()
+    
+    meas_l0 = ref.inputs['meas_l0']['val'][
+        ...,
+        range(ref.lag_past_inv[0], ref.lag_past_inv[1])].copy()
+    
+    prerr_l0 = ref.inputs['prerr_l0']['val'][
+        ...,
+        range(ref.lag_past_inv[0] + ref.lag_off_f2p_inv, ref.lag_past_inv[1] + ref.lag_off_f2p_inv)].copy()
+    # range(ref.lag_past_inv[0] + rate, ref.lag_past_inv[1] + rate)]
+    prerr_l0 = np.roll(prerr_l0, -1, axis = -1)
+    prerr_l0[...,[-1]] = pre_l1[...,[-1]] - meas_l0[...,[-1]]
+    
+    # pre_l1 -= prerr_l0[...,[-1]] * 0.1
+    # Y
+    pre_l0 = ref.inputs['pre_l0']['val'][
+        ...,
+        range(ref.lag_future_inv[0] - ref.lag_off_f2p_inv + rate, ref.lag_future_inv[1] - ref.lag_off_f2p_inv + rate)].copy()
+    
+    return {
+        # 'pre_l1': pre_l1,
+        # 'meas_l0': meas_l0,
+        # 'prerr_l0': prerr_l0,
+        # 'pre_l0': pre_l0 * 1.0,
+        'prerr_l0_temp': prerr_l0,
+        'pre_l1': pre_l1.T.reshape((-1, 1)),
+        'meas_l0': meas_l0.T.reshape((-1, 1)),
+        'prerr_l0': prerr_l0.T.reshape((-1, 1)) * 0.0,
+        'pre_l0': pre_l0.T.reshape((-1, 1)),
+        }
+
+def tapping_imol_recurrent_fit_inv_3(ref):
+    """error driven"""
     rate = 1
     # X
     # last goal prediction with measurement    
@@ -1052,8 +1092,8 @@ def step_imol(ref):
     # tapping
     if ref.recurrent:
         tap_pre_inv = tapping_imol_pre_inv(ref)
-        # tap_fit_inv = tapping_imol_recurrent_fit_inv(ref)
-        tap_fit_inv = tapping_imol_recurrent_fit_inv_2(ref)
+        tap_fit_inv = tapping_imol_recurrent_fit_inv(ref)
+        # tap_fit_inv = tapping_imol_recurrent_fit_inv_2(ref)
     else:
         tap_pre_inv = tapping_imol_pre_inv(ref)
         tap_fit_inv = tapping_imol_fit_inv(ref)
@@ -1071,8 +1111,8 @@ def step_imol(ref):
     # pre_l0 = ref.mdl_inv.fit(X = np.random.uniform(size = (1, ref.idim_inv)))
     X_fit_inv = np.vstack((
         tap_fit_inv['pre_l1'],
-        tap_fit_inv['meas_l0'] * 1.0,
-        tap_fit_inv['prerr_l0'] * 1e-6,
+        tap_fit_inv['meas_l0'],
+        tap_fit_inv['prerr_l0'],
         ))
     Y_fit_inv = np.vstack((
         tap_fit_inv['pre_l0'],
@@ -1081,7 +1121,7 @@ def step_imol(ref):
     X_pre_inv = np.vstack((
         tap_pre_inv['pre_l1'],
         tap_pre_inv['meas_l0'],
-        tap_pre_inv['prerr_l0'] * 1e-6,
+        tap_pre_inv['prerr_l0'],
         ))
     
     # prediction error inverse
@@ -1091,12 +1131,10 @@ def step_imol(ref):
     prerr_l0_inv = tap_pre_inv['prerr_l0_temp'][...,[-1]]
     prerr_l0_fwd = tap_fit_inv['prerr_l0_temp'][...,[-1]]
 
-    ref.prerr_inv_avg = 0.7 * ref.prerr_inv_avg + 0.3 * prerr_l0_inv
+
+    coeff = 0.9
+    ref.prerr_inv_avg = coeff * ref.prerr_inv_avg + (1-coeff) * prerr_l0_inv
     ref.prerr_inv_rms_avg = np.sqrt(np.mean(np.square(ref.prerr_inv_avg)))
-    # ref.prerr_avg = 0.7 * ref.prerr_avg + 0.3 * np.sqrt(np.mean(np.square(prerr_l0_inv)))
-    # ref.prerr_avg = 0.8 * ref.prerr_avg + 0.2 * np.sqrt(np.mean(np.square(prerr_l0_inv)))
-    # ref.prerr_avg = 0.9 * ref.prerr_avg + 0.1 * np.sqrt(np.mean(np.square(prerr_l0_inv)))
-    # ref.prerr_avg = 0.99 * ref.prerr_avg + 0.01 * np.sqrt(np.mean(np.square(prerr_l0_inv)))
     
     # fit model
     if isinstance(ref.mdl_inv, smpOTLModel):
@@ -1166,12 +1204,13 @@ def step_imol(ref):
         # pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * (1.0/np.sqrt(ref.mdl_inv.var) * 1.0) * ref.prerr_avg * 1.0
 
         # amp = 1.0
+        # amp = 0.2
         # amp = 0.1
         # amp = 0.05
-        # amp = 0.02
+        amp = 0.02
         # amp = 0.01
         # amp = 0.001
-        amp = 0.0
+        # amp = 0.0
         
         if ref.cnt % 100 == 0:
             print "soesgp var", ref.mdl_inv.var, ref.cnt # np.sqrt(np.mean(ref.mdl_inv.var))
@@ -1185,8 +1224,8 @@ def step_imol(ref):
             pre_l0 = np.random.uniform(-1.0, 1.0, size = pre_l0.shape)
             pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * 0.001
         else:
-            # pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.prerr_avg * 0.5 # np.sqrt(ref.mdl_inv.var) # * ref.mdl_inv.noise
-            pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * np.sqrt(ref.mdl_inv.var) * ref.prerr_inv_rms_avg * amp # 0.3
+            pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * amp
+            # pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * np.sqrt(ref.mdl_inv.var) * ref.prerr_inv_rms_avg * amp # 0.3
 
     elif isinstance(ref.mdl_inv, smpSHL):
 
@@ -1195,8 +1234,8 @@ def step_imol(ref):
         # amp = 1.0
         # amp = 0.1
         # amp = 0.05
-        # amp = 0.02
-        amp = 0.01
+        amp = 0.02
+        # amp = 0.01 # lag = 1
         # amp = 1e-3
         # amp = 0.0
         

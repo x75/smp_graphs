@@ -295,13 +295,13 @@ maxlag = systemblock['params']['maxlag']
 
 dt = systemblock['params']['dt']
 
-# algo = 'knn' # ok
+algo = 'knn' # ok
 # algo = 'gmm' # ok
 # algo = 'igmm' # ok, fix deprecation, inference output conf
 # algo = 'hebbsom' # fix
-# algo = 'soesgp'
+algo = 'soesgp'
 # algo = 'storkgp'
-algo = 'resrls'
+# algo = 'resrls'
 
 # algo = 'homeokinesis'
 
@@ -891,12 +891,15 @@ graph = OrderedDict([
                                     'w_bias': 0.2,
                                     'multitau': False, # True,
                                     'theta': 0.01,
+                                    # soesgp
+                                    'modelsize': 100,
+                                    # 'spectral_radius': 1.5, # 0.01,
                                     # FORCE / pm
-                                    'modelsize': 300,
+                                    # 'modelsize': 300,
                                     'theta_state': 0.02,
                                     'lrname': 'FORCE',
                                     'alpha': 10.0, # 10.0,
-                                    'spectral_radius': 0.99, # 0.01,
+                                    'spectral_radius': 0.9, # 0.01,
                                     'tau': 0.2, # 0.8, # 0.05, # 1.0,
                                     'wgt_thr': 2.3,
                                     # RLS / barrel
