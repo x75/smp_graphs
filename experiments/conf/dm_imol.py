@@ -86,7 +86,7 @@ def get_systemblock_pm(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
             'dim_s_extero': dim_s_extero,
             'minlag': 1,
             'maxlag': 4, # 2, # 20, # 2, # 5
-            'lag': 3,
+            'lag': 1,
             'order': 2,
             'coupling_sigma': 1e-2,
             'transfer': 0,
@@ -299,18 +299,19 @@ dt = systemblock['params']['dt']
 # algo = 'gmm' # ok
 # algo = 'igmm' # ok, fix deprecation, inference output conf
 # algo = 'hebbsom' # fix
-algo = 'soesgp'
+# algo = 'soesgp'
 # algo = 'storkgp'
-# algo = 'resrls'
+algo = 'resrls'
 
 # algo = 'homeokinesis'
 
 # pm
 algo_fwd = algo
 algo_inv = algo
-# lag_past   = (-2, -1)
+lag_past   = (-2, -1)
 # lag_past   = (-3, -2)
-lag_past   = (-4, -3)
+# lag_past   = (-4, -3)
+# lag_past   = (-5, -4)
 # lag_past   = (-4, -2)
 lag_future = (-1, 0)
 
@@ -891,13 +892,13 @@ graph = OrderedDict([
                                     'multitau': False, # True,
                                     'theta': 0.01,
                                     # FORCE / pm
-                                    'modelsize': 200,
-                                    'theta_state': 0.01,
+                                    'modelsize': 300,
+                                    'theta_state': 0.02,
                                     'lrname': 'FORCE',
-                                    'alpha': 20.0, # 10.0,
+                                    'alpha': 10.0, # 10.0,
                                     'spectral_radius': 0.99, # 0.01,
-                                    'tau': 0.1, # 0.8, # 0.05, # 1.0,
-                                    'wgt_thr': 2.5,
+                                    'tau': 0.2, # 0.8, # 0.05, # 1.0,
+                                    'wgt_thr': 2.3,
                                     # RLS / barrel
                                     # 'modelsize': 322,
                                     # 'theta_state': 0.1, # for RLS
