@@ -859,64 +859,66 @@ def step_e2p(ref):
 ################################################################################
 # direct forward / inverse model learning via prediction dataset
 def tapping_imol_pre_inv(ref):
-    # rate is single time step delay from recurrent inputs
-    rate = 1
+    # most recent top-down prediction on the input
     pre_l1 = ref.inputs['pre_l1']['val'][
         ...,
         range(
             ref.lag_past_inv[0] + ref.lag_off_f2p_inv,
             ref.lag_past_inv[1] + ref.lag_off_f2p_inv)].copy()
-    
+
+    # most recent state measurements
     meas_l0 = ref.inputs['meas_l0']['val'][
         ...,
         range(ref.lag_past_inv[0] + ref.lag_off_f2p_inv, ref.lag_past_inv[1] + ref.lag_off_f2p_inv)].copy()
+    
+    # most 1-recent pre_l1/meas_l0 errors
     prerr_l0 = ref.inputs['prerr_l0']['val'][
         ...,
         range(ref.lag_past_inv[0] + ref.lag_off_f2p_inv, ref.lag_past_inv[1] + ref.lag_off_f2p_inv)].copy()
-
+    # momentary pre_l1/meas_l0 error
     prerr_l0 = np.roll(prerr_l0, -1, axis = -1)
     prerr_l0[...,[-1]] = pre_l1[...,[-1]] - meas_l0[...,[-1]]
-    # pre_l1 -= prerr_l0[...,[-1]] * 0.1
 
-    # print "tapping_imol_pre_inv shapes", pre_l1.shape, meas_l0.shape, prerr_l0.shape
-    
     return {
         # 'pre_l1': pre_l1,
         # 'meas_l0': meas_l0,
-        'prerr_l0_temp': prerr_l0,
-        'pre_l1': pre_l1.T.reshape((-1, 1)),
-        'meas_l0': meas_l0.T.reshape((-1, 1)),
-        'prerr_l0': prerr_l0.T.reshape((-1, 1)) * 0.0,
+        'prerr_l0': prerr_l0,
+        'pre_l1_flat': pre_l1.T.reshape((-1, 1)),
+        'meas_l0_flat': meas_l0.T.reshape((-1, 1)),
+        'prerr_l0_flat': prerr_l0.T.reshape((-1, 1)) * 0.0,
     }
 
 def tapping_imol_fit_inv(ref):
     rate = 1
     # X
     # last goal prediction with measurement    
-    # FIXME: rate is laglen
+    # most recent goal top-down prediction as input
     pre_l1 = ref.inputs['meas_l0']['val'][
         ...,
         range(ref.lag_past_inv[0] + ref.lag_off_f2p_inv, ref.lag_past_inv[1] + ref.lag_off_f2p_inv)].copy()
+    # corresponding starting state k steps in the past
     meas_l0 = ref.inputs['meas_l0']['val'][
         ...,
         range(ref.lag_past_inv[0], ref.lag_past_inv[1])].copy()
+    # corresponding error k steps in the past, 1-delay for recurrent
     prerr_l0 = ref.inputs['prerr_l0']['val'][
         ...,
-        range(ref.lag_past_inv[0] + ref.lag_off_f2p_inv, ref.lag_past_inv[1] + ref.lag_off_f2p_inv)].copy()
+        range(ref.lag_past_inv[0] + rate, ref.lag_past_inv[1] + rate)].copy()
     # Y
+    # corresponding output k steps in the past, 1-delay for recurrent
     pre_l0 = ref.inputs['pre_l0']['val'][
         ...,
-        range(ref.lag_future_inv[0] - ref.lag_off_f2p_inv + 1, ref.lag_future_inv[1] - ref.lag_off_f2p_inv + 1)].copy()
+        range(ref.lag_future_inv[0], ref.lag_future_inv[1])].copy()
+    
     return {
         # 'pre_l1': pre_l1,
         # 'meas_l0': meas_l0,
-        # 'prerr_l0': prerr_l0,
+        'prerr_l0': prerr_l0,
         # 'pre_l0': pre_l0,
-        'prerr_l0_temp': prerr_l0,
-        'pre_l1': pre_l1.T.reshape((-1, 1)),
-        'meas_l0': meas_l0.T.reshape((-1, 1)),
-        'prerr_l0': prerr_l0.T.reshape((-1, 1)) * 0.0,
-        'pre_l0': pre_l0.T.reshape((-1, 1)),
+        'pre_l1_flat': pre_l1.T.reshape((-1, 1)),
+        'meas_l0_flat': meas_l0.T.reshape((-1, 1)),
+        'prerr_l0_flat': prerr_l0.T.reshape((-1, 1)) * 0.0,
+        'pre_l0_flat': pre_l0.T.reshape((-1, 1)),
         }
 
 def tapping_imol_recurrent_fit_inv(ref):
@@ -927,27 +929,35 @@ def tapping_imol_recurrent_fit_inv(ref):
 
     prerr_l0 = ref.inputs['prerr_l0']['val'][
         ...,
-        range(ref.lag_past_inv[0] + rate, ref.lag_past_inv[1] + rate)].copy()
+        range(ref.lag_past_inv[0] + ref.lag_off_f2p_inv, ref.lag_past_inv[1] + ref.lag_off_f2p_inv)].copy()
     
     if ref.cnt < ref.thr_predict:
+        # take current state measurement
         pre_l1 = ref.inputs['meas_l0']['val'][
             ...,
             range(ref.lag_past_inv[0] + ref.lag_off_f2p_inv, ref.lag_past_inv[1] + ref.lag_off_f2p_inv)].copy()
+        # add noise (input exploration)
+        pre_l1 += np.random.normal(0.0, 1.0, pre_l1.shape) * 0.1
     else:
+        # take top-down prediction
         pre_l1_1 = ref.inputs['pre_l1']['val'][
             ...,
             range(ref.lag_past_inv[0] + ref.lag_off_f2p_inv, ref.lag_past_inv[1] + ref.lag_off_f2p_inv)].copy()
+        # and current state
         pre_l1_2 = ref.inputs['meas_l0']['val'][
             ...,
             range(ref.lag_past_inv[0] + ref.lag_off_f2p_inv, ref.lag_past_inv[1] + ref.lag_off_f2p_inv)].copy()
         mdltr = np.square(max(0, 1.0 - np.mean(np.abs(prerr_l0))))
         # print "mdltr", mdltr
+        # explore input around current state depending on pe state
         pre_l1 = pre_l1_2 + (pre_l1_1 - pre_l1_2) * mdltr # 0.05
-        
+
+    # most recent measurements
     meas_l0 = ref.inputs['meas_l0']['val'][
         ...,
-        range(ref.lag_past_inv[0], ref.lag_past_inv[1])].copy()
-    
+        range(ref.lag_past_inv[0] + ref.lag_off_f2p_inv, ref.lag_past_inv[1] + ref.lag_off_f2p_inv)].copy()
+
+    # update prediction errors
     prerr_l0 = np.roll(prerr_l0, -1, axis = -1)
     prerr_l0[...,[-1]] = pre_l1[...,[-1]] - meas_l0[...,[-1]]
     
@@ -955,20 +965,20 @@ def tapping_imol_recurrent_fit_inv(ref):
     # FIXME check - 1?
     pre_l0 = ref.inputs['pre_l0']['val'][
         ...,
-        range(ref.lag_future_inv[0] - ref.lag_off_f2p_inv, ref.lag_future_inv[1] - ref.lag_off_f2p_inv)].copy()
+        range(ref.lag_future_inv[0], ref.lag_future_inv[1])].copy()
+    # range(ref.lag_future_inv[0] - ref.lag_off_f2p_inv, ref.lag_future_inv[1] - ref.lag_off_f2p_inv)].copy()
 
     # print "tapping_imol_recurrent_fit_inv shapes", pre_l1.shape, meas_l0.shape, prerr_l0.shape, pre_l0.shape
     
     return {
         # 'pre_l1': pre_l1,
         # 'meas_l0': meas_l0,
-        # 'prerr_l0': prerr_l0,
+        'prerr_l0': prerr_l0,
         # 'pre_l0': pre_l0,
-        'prerr_l0_temp': prerr_l0,
-        'pre_l1': pre_l1.T.reshape((-1, 1)),
-        'meas_l0': meas_l0.T.reshape((-1, 1)),
-        'prerr_l0': prerr_l0.T.reshape((-1, 1)) * 0.0,
-        'pre_l0': pre_l0.T.reshape((-1, 1)),
+        'pre_l1_flat': pre_l1.T.reshape((-1, 1)),
+        'meas_l0_flat': meas_l0.T.reshape((-1, 1)),
+        'prerr_l0_flat': prerr_l0.T.reshape((-1, 1)) * 0.0,
+        'pre_l0_flat': pre_l0.T.reshape((-1, 1)),
         }
 
 def tapping_imol_recurrent_fit_inv_2(ref):
@@ -983,7 +993,7 @@ def tapping_imol_recurrent_fit_inv_2(ref):
     
     meas_l0 = ref.inputs['meas_l0']['val'][
         ...,
-        range(ref.lag_past_inv[0], ref.lag_past_inv[1])].copy()
+        range(ref.lag_past_inv[0] + ref.lag_off_f2p_inv, ref.lag_past_inv[1] + ref.lag_off_f2p_inv)].copy()
     
     prerr_l0 = ref.inputs['prerr_l0']['val'][
         ...,
@@ -1001,53 +1011,12 @@ def tapping_imol_recurrent_fit_inv_2(ref):
     return {
         # 'pre_l1': pre_l1,
         # 'meas_l0': meas_l0,
-        # 'prerr_l0': prerr_l0,
+        'prerr_l0': prerr_l0,
         # 'pre_l0': pre_l0 * 1.0,
-        'prerr_l0_temp': prerr_l0,
-        'pre_l1': pre_l1.T.reshape((-1, 1)),
-        'meas_l0': meas_l0.T.reshape((-1, 1)),
-        'prerr_l0': prerr_l0.T.reshape((-1, 1)) * 0.0,
-        'pre_l0': pre_l0.T.reshape((-1, 1)),
-        }
-
-def tapping_imol_recurrent_fit_inv_3(ref):
-    """error driven"""
-    rate = 1
-    # X
-    # last goal prediction with measurement    
-    # FIXME: rate is laglen
-
-    pre_l1 = ref.inputs['meas_l0']['val'][
-        ...,
-        range(ref.lag_past_inv[0] + ref.lag_off_f2p_inv, ref.lag_past_inv[1] + ref.lag_off_f2p_inv)].copy()
-    
-    meas_l0 = ref.inputs['meas_l0']['val'][
-        ...,
-        range(ref.lag_past_inv[0], ref.lag_past_inv[1])].copy()
-    
-    prerr_l0 = ref.inputs['prerr_l0']['val'][
-        ...,
-        range(ref.lag_past_inv[0] + ref.lag_off_f2p_inv, ref.lag_past_inv[1] + ref.lag_off_f2p_inv)].copy()
-    # range(ref.lag_past_inv[0] + rate, ref.lag_past_inv[1] + rate)]
-    prerr_l0 = np.roll(prerr_l0, -1, axis = -1)
-    prerr_l0[...,[-1]] = pre_l1[...,[-1]] - meas_l0[...,[-1]]
-    
-    # pre_l1 -= prerr_l0[...,[-1]] * 0.1
-    # Y
-    pre_l0 = ref.inputs['pre_l0']['val'][
-        ...,
-        range(ref.lag_future_inv[0] - ref.lag_off_f2p_inv + rate, ref.lag_future_inv[1] - ref.lag_off_f2p_inv + rate)].copy()
-    
-    return {
-        # 'pre_l1': pre_l1,
-        # 'meas_l0': meas_l0,
-        # 'prerr_l0': prerr_l0,
-        # 'pre_l0': pre_l0 * 1.0,
-        'prerr_l0_temp': prerr_l0,
-        'pre_l1': pre_l1.T.reshape((-1, 1)),
-        'meas_l0': meas_l0.T.reshape((-1, 1)),
-        'prerr_l0': prerr_l0.T.reshape((-1, 1)),
-        'pre_l0': pre_l0.T.reshape((-1, 1)),
+        'pre_l1_flat': pre_l1.T.reshape((-1, 1)),
+        'meas_l0_flat': meas_l0.T.reshape((-1, 1)),
+        'prerr_l0_flat': prerr_l0.T.reshape((-1, 1)) * 0.0,
+        'pre_l0_flat': pre_l0.T.reshape((-1, 1)),
         }
 
 def init_imol(ref, conf, mconf):
@@ -1089,6 +1058,12 @@ def init_imol(ref, conf, mconf):
         ref.recurrent = False
             
 def step_imol(ref):
+    # tap data
+    # (fit old / predict new forward)
+    # fit old inverse with current feedback
+    # predict new inverse with current state
+    # return new (inverse) prediction (command)
+    
     # tapping
     if ref.recurrent:
         tap_pre_inv = tapping_imol_pre_inv(ref)
@@ -1097,39 +1072,29 @@ def step_imol(ref):
     else:
         tap_pre_inv = tapping_imol_pre_inv(ref)
         tap_fit_inv = tapping_imol_fit_inv(ref)
-        
-    # print "tap_fit_inv", tap_fit_inv
-    # fit old / predict new forward
-    # fit old / predict new inverse
-    # return new command
-    
-    # print "%s.step_imol inputs = %s" % (ref.__class__.__name__, ref.inputs.keys())
-    # print "%s.step_imol tap_pre_inv = %s" % (ref.__class__.__name__, tap_pre_inv.keys())
-    # print "%s.step_imol tap_fit_inv = %s" % (ref.__class__.__name__, tap_fit_inv.keys())
-    
-    # pre_l0 = ref.mdl_inv.step(X = np.random.uniform(size = (ref.idim, 1)))
-    # pre_l0 = ref.mdl_inv.fit(X = np.random.uniform(size = (1, ref.idim_inv)))
+
+    # fit and predict inputs from tapped data
     X_fit_inv = np.vstack((
-        tap_fit_inv['pre_l1'],
-        tap_fit_inv['meas_l0'],
-        tap_fit_inv['prerr_l0'],
+        tap_fit_inv['pre_l1_flat'],
+        tap_fit_inv['meas_l0_flat'],
+        tap_fit_inv['prerr_l0_flat'],
         ))
     Y_fit_inv = np.vstack((
-        tap_fit_inv['pre_l0'],
+        tap_fit_inv['pre_l0_flat'],
         ))
     
     X_pre_inv = np.vstack((
-        tap_pre_inv['pre_l1'],
-        tap_pre_inv['meas_l0'],
-        tap_pre_inv['prerr_l0'],
+        tap_pre_inv['pre_l1_flat'],
+        tap_pre_inv['meas_l0_flat'],
+        tap_pre_inv['prerr_l0_flat'],
         ))
     
     # prediction error inverse
     # prerr_l0_inv = ref.inputs['pre_l1']['val'][
     #     ...,
     #     [ref.lag_past_inv[1]]] - ref.inputs['meas_l0']['val'][...,[-1]]
-    prerr_l0_inv = tap_pre_inv['prerr_l0_temp'][...,[-1]]
-    prerr_l0_fwd = tap_fit_inv['prerr_l0_temp'][...,[-1]]
+    prerr_l0_inv = tap_pre_inv['prerr_l0'][...,[-1]]
+    prerr_l0_fwd = tap_fit_inv['prerr_l0'][...,[-1]]
 
 
     coeff = 0.9
@@ -1146,12 +1111,12 @@ def step_imol(ref):
 
         # predict for external goal
         pre_l1_local = ref.mdl_inv.predict(X = X_pre_inv.T, rollback = True)
-
+        
         # save prediction
         pre_l0 = ref.mdl_inv.pred.copy().reshape(Y_fit_inv.T.shape)
         # print "soesgp pre_l0", pre_l0
         
-        # predict with same X and update network
+        # predict with same fit X and update network
         ref.mdl_inv.predict(X = X_fit_inv.T)
 
         # set hidden attribute for output
@@ -1261,8 +1226,10 @@ def step_imol(ref):
            
     pre_l0 += pre_l0_var
     pre_l0 = np.clip(pre_l0, -1.1, 1.1)
+    
     # print "pre_l0", pre_l0.shape
     # print "%s.step_imol pre_l0 = %s, prerr_avg = %s" % (ref.__class__.__name__, pre_l0, ref.prerr_avg)
+    
     if ref.cnt % 100 == 0:
         print "%s.step_imol prerr_avg = %s" % (ref.__class__.__name__, ref.prerr_inv_rms_avg)
 

@@ -88,7 +88,7 @@ def get_systemblock_pm(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
             'maxlag': 4, # 2, # 20, # 2, # 5
             'lag': 1,
             'order': 2,
-            'coupling_sigma': 1e-1,
+            'coupling_sigma': 1e-3,
             'transfer': 0,
             'anoise_mean': 0.0,
             'anoise_std': 1e-2,
@@ -298,7 +298,7 @@ dt = systemblock['params']['dt']
 algo = 'knn' # ok
 # algo = 'gmm' # ok
 # algo = 'igmm' # ok, fix deprecation, inference output conf
-algo = 'hebbsom' # fix
+# algo = 'hebbsom' # fix
 # algo = 'soesgp'
 # algo = 'storkgp'
 # algo = 'resrls'
