@@ -47,7 +47,7 @@ def f_sin(args):
     for i in range(x.shape[0]):
         # p[0,0] = 0.0
         # p[1,0] = np.pi/2.0
-        p[i,0] = -float(i)/2.0
+        p[i,0] = float(i)/2.0
     f = args['f']['val']
 
     assert f.shape[0] == 1 or f.shape[0] == x.shape[0]
