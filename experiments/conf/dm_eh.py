@@ -96,18 +96,20 @@ def get_systemblock_pm(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
             # tapping
             'minlag': 1,
             'maxlag': 2, # 2, # 20, # 2, # 5
-            'lag_past': (-1, 0),
+            'lag_past': (-2, -1),
             'lag_future': (-1, 0),
             # model params
             'mdl_modelsize': 300,
             'mdl_w_input': 1.0,
-            'mdl_theta': 1e-1,
+            'mdl_theta': 0.5e-1,
             'mdl_eta': 1e-3,
             'mdl_mdltr_type': 'cont_elem', #'bin_elem',
             'mdl_mdltr_thr': 0.005, # 0.01,
             'mdl_wgt_thr': 1.0, # 
             'mdl_perf_measure': meas.square, # .identity
             'mdl_perf_model_type': 'lowpass', # 'resforce',
+            # target parameters
+            'target_f': 0.05,
             }
         }
 
@@ -250,12 +252,12 @@ def get_systemblock_lpzbarrel(dim_s_proprio = 2, dim_s_extero = 1, dt = 0.01):
             'smdict': {},
             'minlag': 2, # 1, # 5, 4
             'maxlag': 6, # 2,
-            # model parameter
-            'mdl_w_input': 1.0,
-            'mdl_w_bias': 0.5,
+            # model parameters
+            'mdl_w_input': 0.5,
+            'mdl_w_bias': 0.1,
             # 'mdl_theta': 5e-3, # 2.5e-1,
-            'mdl_theta': 1e-1, # 2.5e-1,
-            'mdl_eta': 5e-4, # 5e-4,
+            'mdl_theta': 2e-1, # 2.5e-1,
+            'mdl_eta': 5e-4,
             
             # 'mdl_theta': 5e-2, # 2.5e-1,
             # 'mdl_eta': 5e-4, # 5e-4,
@@ -264,14 +266,23 @@ def get_systemblock_lpzbarrel(dim_s_proprio = 2, dim_s_extero = 1, dt = 0.01):
             # 'mdl_eta': 3e-4, # 5e-4,
             
             # 'mdl_eta': 1e-4, # 5e-4,
-            'mdl_spectral_radius': 0.999,
-            'mdl_tau': 0.1,
+            'mdl_spectral_radius': 0.8,
+            'mdl_tau': 0.3,
             # 'mdl_spectral_radius': 0.1, # 0.999,
             # 'mdl_tau': 0.9,
-            'mdl_perf_model_type': 'resforce',
+            'mdl_perf_measure': meas.square, # .identity
+            'mdl_perf_model_type': 'lowpass',
+            'mdl_coeff_a': 0.2,
+            # 'mdl_perf_model_type': 'resforce',
+            'mdl_mdltr_type': 'bin_joint_any',
             # 
-            'lag_past':   (-1, 0), # down to -6
+            # 'lag_past':   (-1, 0), # down to -6
+            'lag_past':   (-3, -2), # down to -6
             'lag_future': (-1, 0),
+            # target parameters
+            # 'target_f': 2.9,
+            # 'target_f': 1.45,
+            'target_f': 0.725 * 0.5,
             }
         }
     return systemblock_lpz
@@ -354,21 +365,37 @@ mdl_cnf = {
     'mdl_tau': 0.1,
     'mdl_mdltr_type': 'bin_elem',
     'mdl_mdltr_thr': 0.0,
+    'mdl_wgt_thr': 1.0, # 
     'mdl_perf_measure': meas.square, # meas.abs, # abs, square, sum_abs, sum_square, sum_sqrt
     'mdl_perf_model_type': 'lowpass', # 'resforce'
+    'mdl_coeff_a': 0.2, 
     }
+
+tgt_cnf = {
+    'target_f': 0.05,
+}
 
 # update default model config with system specific values
 for k in [
         'mdl_w_input', 'mdl_w_bias', 'mdl_theta', 'mdl_eta',
         'mdl_spectral_radius', ' mdl_tau', 'mdl_mdltr_type',
         'mdl_mdltr_thr', 'mdl_perf_measure', 'mdl_perf_model_type',
-        'mdl_wgt_thr']:
+        'mdl_wgt_thr', 'mdl_coeff_a']:
     if systemblock['params'].has_key(k):
         mdl_cnf[k] = systemblock['params'][k]
 
 print "mdl_cnf = {"
 for k, v in mdl_cnf.items():
+    print "    %s = %s" % (k, v)
+
+
+# update default target config with system specific values
+for k in ['target_f']:
+    if systemblock['params'].has_key(k):
+        tgt_cnf[k] = systemblock['params'][k]
+
+print "tgt_cnf = {"
+for k, v in tgt_cnf.items():
     print "    %s = %s" % (k, v)
         
 # algo = 'knn' #
@@ -884,9 +911,13 @@ graph = OrderedDict([
                             # 'f': {'val': np.array([[0.23539]]).T * 2.0 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.23539]]).T * 2.5 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.23539]]).T * 1.5 * dt}, # good with soesgp and eta = 0.7
-                            
-                            'f': {'val': np.array([[0.23539]]).T * 0.05 * dt}, # good with soesgp and eta = 0.7
-                            
+
+                            # # pointmass etc
+                            # 'f': {'val': np.array([[0.23539]]).T * 0.05 * dt}, # good with soesgp and eta = 0.7
+
+                            # configurable
+                            'f': {'val': np.array([[0.23539]]).T * tgt_cnf['target_f'] * dt}, # good with soesgp and eta = 0.7
+
                             # 'f': {'val': np.array([[0.23539, 0.3148]]).T * 0.05 * dt}, # good with soesgp and eta = 0.7
                             # 'f': {'val': np.array([[0.14, 0.14]]).T * 1.0},
                             # 'f': {'val': np.array([[0.82, 0.82]]).T},
@@ -1126,7 +1157,7 @@ graph = OrderedDict([
                                 # 'theta': 3e-2, # bha
                                 'theta': mdl_cnf['mdl_theta'],
                                 'theta_state': 1e-2,
-                                'coeff_a': 0.2,
+                                'coeff_a': mdl_cnf['mdl_coeff_a'],
                                 'len_episode': numsteps,
                                 'input_coupling_mtx_spec': {0: 1., 1: 1.},
                                 'input_coupling': 'normal', # uniform, normal, sparse_uniform, sparse_normal, disjunct

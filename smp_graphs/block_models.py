@@ -1380,7 +1380,7 @@ def step_eh(ref):
         # meas_l0 = ref.inputs['meas_l0']['val'][...,np.array(ref.inputs['pre_l1']['lag'])+1]
         pre_l1 = ref.inputs['pre_l1']['val'][...,[-1]] # most recent goal prediction
         pre_l0 = ref.inputs['pre_l0']['val'][...,[-1]] # most recent goal prediction
-        prerr_l0 = ref.inputs['prerr_l0']['val'][...,[-1]] # our own most recent prediction error
+        prerr_l0 = ref.inputs['prerr_l0']['val'][...,[-1]] * 0.0 # our own most recent prediction error
         meas_l0 = ref.inputs['meas_l0']['val'][...,[-1]] # most recent measurement
         return (pre_l1, pre_l0, prerr_l0, meas_l0)
     (pre_l1, pre_l0, prerr_l0, meas_l0) = tapping_EH_input(ref)
@@ -1479,6 +1479,12 @@ def step_eh(ref):
     # print "x", x.shape
     y = pre_i
     # update model
+    if ref.cnt < 200: # washout 
+        ref.mdl.eta = 0.0
+    else:
+        ref.mdl.eta = ref.mdl.eta2
+    # print "perf", np.mean(np.square(ref.mdl.perf_lp))
+    # print "eta", ref.mdl.eta
     y_mdl_ = ref.mdl.step(
         X = x.T,
         Y = y.T # dummy
