@@ -163,6 +163,17 @@ def step_res(ref):
     # print ref.res.r.shape
     setattr(ref, 'x_res', ref.res.r)
 
+# TODO: model func: attractor neural network expansion (ANN-x)
+#       the idea is:
+#       a) a forward autonomous reservoir which computes out its eigendynamics given constant input (re shriki)
+#       b) 'conventional' ANN with random or structured design which is excited and computed to internal
+#          convergence for given constant input (repose-cell network, bayes filter, ...)
+# init_annx(ref, conf, mconf):
+#     pass
+
+# step_annx(ref):
+#     pass
+    
 # model func: polynomial expansion using mdp
 def init_polyexp(ref, conf, mconf):
     params = conf['params']
