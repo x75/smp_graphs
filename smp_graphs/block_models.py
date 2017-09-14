@@ -729,6 +729,15 @@ def step_actinf(ref):
     ref.pre_l1_tm2 = ref.pre_l1_tm1.copy()
     ref.pre_l1_tm1 = ref.inputs[ref.pre_l1_inkey]['val'][...,[-1]].copy() # pre_l1[...,[-1]].copy()
 
+
+def step_actinf_2(ref):
+    # model
+    # X_t-lag = (pre_l1_{lagp[0], lagp[1]}, prerr_l0_{lagp[0]+1, lagp[1]+1}
+    # Y_t     = pre_l0_{lagp[0]+1, lagp[1]+1} - (prerr_l0_{lagp[0]+1, lagp[1]+1} * eta)
+    # mdl.fit(X_t-lag, Y_t)
+    # pre_l0 = mdl.predict(X_t)
+    pass
+
 # def step_actinf_prediction_errors_extended(ref):
 #     # if np.sum(np.abs(ref.goal_prop - ref.goal_prop_tm1)) > 1e-2:
 #     #     ref.E_prop_pred_fast = np.random.uniform(-1e-5, 1e-5, ref.E_prop_pred_fast.shape)
