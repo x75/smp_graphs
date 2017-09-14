@@ -730,7 +730,8 @@ def step_actinf(ref):
     ref.pre_l1_tm2 = ref.pre_l1_tm1.copy()
     ref.pre_l1_tm1 = ref.inputs[ref.pre_l1_inkey]['val'][...,[-1]].copy() # pre_l1[...,[-1]].copy()
 
-
+################################################################################
+# step_actinf_2
 def tap(ref, inkey = None, lag = None):
     assert inkey is not None, "block_models.tap needs input key inkey"
     assert lag is not None, "block_models.tap needs tapping lag"
@@ -743,7 +744,9 @@ def tap_tupoff(tup = (), off = 0):
     return (tup[0] + off, tup[1] + off)
 
 def step_actinf_2(ref):
-
+    # FIXME: 1D only, flatten etc
+    # FIXME: what's actinf specific, what's general?
+    
     # prerr_t  = pre_l1_{lagf[0] - lag_off, lagf[1] - lag_off} - meas_l0_{lagf[0], lagf[1]}
     def tapping_prerr(ref):
         prerr_fit = tap(ref, 'pre_l1', tap_tupoff(ref.lag_future, -ref.lag_off)) - tap(ref, 'meas_l0', ref.lag_future)
