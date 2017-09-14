@@ -40,7 +40,7 @@ ros = True
 # experiment
 commandline_args = ['numsteps']
 randseed = 12355
-numsteps = int(10000/2)
+numsteps = int(10000/5)
 loopblocksize = numsteps
 sysname = 'pm'
 # sysname = 'sa'
@@ -296,12 +296,12 @@ maxlag = systemblock['params']['maxlag']
 dt = systemblock['params']['dt']
 
 # algo = 'knn' # ok
-# algo = 'gmm' # ok
+algo = 'gmm' # ok
 # algo = 'igmm' # ok, fix deprecation, inference output conf
 # algo = 'hebbsom' # fix
-algo = 'soesgp'
+# algo = 'soesgp'
 # algo = 'storkgp'
-algo = 'resrls'
+# algo = 'resrls'
 
 # algo = 'homeokinesis'
 
@@ -311,8 +311,8 @@ algo_inv = algo
 # lag_past   = (-1, 0)
 # lag_past   = (-2, -1)
 # lag_past   = (-3, -2)
-lag_past   = (-4, -3)
-# lag_past   = (-5, -4)
+# lag_past   = (-4, -3)
+lag_past   = (-5, -4)
 # lag_past   = (-6, -5)
 lag_future = (-1, 0)
 

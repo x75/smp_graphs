@@ -202,6 +202,7 @@ def step_random_uniform(ref):
     hi = ref.inputs['hi']['val'] # .T
     for outk, outv in ref.outputs.items():
         if ref.cnt % (ref.rate * 1) == 0:
+            print ref.__class__.__name__, ref.id, "lo, hi, out shapes", lo.shape, hi.shape, outv['shape']
             setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
         else:
             setattr(ref, outk, np.random.uniform(-1e-3, 1e-3, size = outv['shape']))
@@ -429,15 +430,19 @@ def tapping_SM(ref, mode = 'm1'):
     pre_l1_tap_full = ref.inputs[ref.pre_l1_inkey]['val'][...,pre_l1_tap_spec]
     # print "pre_l1_tap_full", pre_l1_tap_full.shape
     pre_l1_tap_flat = pre_l1_tap_full.reshape((-1, 1))
+
+    # target
     pre_l1_tap_full_target = ref.inputs[ref.pre_l1_inkey]['val'][...,range(-ref.laglen_future - 1, -1)]
     pre_l1_tap_flat_target = pre_l1_tap_full_target.reshape((-1, 1))
 
+    # meas
     meas_l0_tap_spec = ref.inputs['meas_l0']['lag']
     meas_l0_tap_full = ref.inputs['meas_l0']['val'][...,meas_l0_tap_spec]
     meas_l0_tap_flat = meas_l0_tap_full.reshape((ref.odim, 1))
     meas_l0_tap_full_input = ref.inputs['meas_l0']['val'][...,range(-ref.laglen_past, 0)]
     meas_l0_tap_flat_input = meas_l0_tap_full_input.reshape((-1, 1))
 
+    # pre_l0
     pre_l0_tap_spec = ref.inputs['pre_l0']['lag']
     pre_l0_tap_full = ref.inputs['pre_l0']['val'][...,pre_l0_tap_spec]
     pre_l0_tap_flat = pre_l0_tap_full.reshape((-1, 1))
@@ -472,8 +477,11 @@ def tapping_XY(ref, pre_l1_tap_flat, pre_l0_tap_flat, prerr_l0_tap_flat, prerr_l
     """
     # print "tapping pre_l1", pre_l1_tap_flat.shape, prerr_l0_tap_flat.shape, ref.idim
     # print "tapping reshape", pre_l1_tap.reshape((ref.idim/2, 1)), prerr_l0_tap.reshape((ref.idim/2, 1))
-    
+
+    # wtf?
+    # orig tap at past+1 because recurrent
     tmp = ref.inputs['pre_l0']['val'][...,ref.inputs['pre_l0']['lag']]
+    # truncate to length of future tap?
     tmp_ = tmp[...,ref.inputs['meas_l0']['lag']].reshape((-1, 1))
     
     if ref.type == 'm1' or ref.type == 'm3':
@@ -623,8 +631,9 @@ def init_actinf(ref, conf, mconf):
     
 def step_actinf(ref):
 
-    # deal with the lag specification for each input (lag, delay, temporal characteristic)
-    (pre_l1, pre_l0, meas_l0, prerr_l0, prerr_l0_, prerr_l0__, prerr_l0___) = ref.tapping_SM(ref) # tapping_SM(ref, mode = ref.type)
+    # get prediction taps
+    (pre_l1, pre_l0, meas_l0, prerr_l0, prerr_l0_, prerr_l0__, prerr_l0___) = ref.tapping_SM(ref)
+    # get model fit taps
     (X, Y) = ref.tapping_XY(ref, pre_l1, pre_l0, prerr_l0, prerr_l0___)
     
     # print "cnt", ref.cnt, "pre_l1.shape", pre_l1.shape, "pre_l0.shape", pre_l0.shape, "meas_l0.shape", meas_l0.shape, "prerr_l0.shape", prerr_l0.shape, "prerr_l0_", prerr_l0_.shape, "X", X.shape, "Y", Y.shape
