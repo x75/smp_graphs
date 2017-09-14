@@ -743,28 +743,40 @@ def tap_tupoff(tup = (), off = 0):
     return (tup[0] + off, tup[1] + off)
 
 def step_actinf_2(ref):
-    # model
 
-    # X_t-lag = [pre_l1_{lagp[0], lagp[1]}, prerr_l0_{lagp[0]+1, lagp[1]+1}]
-    # prerr_t = pre_l1_{lagf[0] - lag_off, lagf[1] - lag_off} - meas_l0_{lagf[0], lagf[1]}
-    # Y_t     = pre_l0_{lagf[0] - lag_off + 1, lagf[1] - lag_off + 1} - (prerr_t * eta) # * d_prerr/d_params
+    # prerr_t  = pre_l1_{lagf[0] - lag_off, lagf[1] - lag_off} - meas_l0_{lagf[0], lagf[1]}
+    def tapping_prerr(ref):
+        prerr_fit = tap(ref, 'pre_l1', tap_tupoff(ref.lag_future, -ref.lag_off)) - tap(ref, 'meas_l0', ref.lag_future)
+        return (prerr_fit, )
+
+    # pre_l0_t = pre_l0_{lagf[0] - lag_off + 1, lagf[1] - lag_off + 1}
+    def tapping_pre_l0_fit(ref):
+        return (tap(ref, 'pre_l0', tap_tupoff(ref.lag_future, -ref.lag_off + 1)),)
+        
+    # X_t-lag  = [pre_l1_{lagp[0], lagp[1]}, prerr_l0_{lagp[0]+1, lagp[1]+1}]
+    # Y_t      = pre_l0_t - (prerr_t * eta) # * d_prerr/d_params
     def tapping_XY_fit(ref):
         X_fit_lag = np.vstack((
             tap(ref, 'pre_l1', ref.lag_past),
             tap(ref, 'prerr_l0', ref.lag_past),
         ))
-        prerr_fit = tap(ref, 'pre_l1', (ref.lag_future[0] - ref.lag_off, ref.lag_future[1] - ref.lag_off)) - tap(ref, 'meas_l0', (ref.lag_future[0], ref.lag_future[1]))
-        Y_fit   = tap(ref, 'pre_l0', (ref.lag_future[0] - ref.lag_off + 1, ref.lag_future[1] - ref.lag_off + 1)) + (prerr_fit * ref.eta)
+        prerr_fit, = tapping_prerr(ref)
+        pre_l0_fit, = tapping_pre_l0_fit(ref)
+        Y_fit   = pre_l0_fit + (prerr_fit * ref.eta)
         return (X_fit_lag, Y_fit, prerr_fit)
 
     X_fit_lag, Y_fit, prerr_fit = tapping_XY_fit(ref)
     ref.mdl.fit(X_fit_lag.T, Y_fit.T)
 
+    def tapping_pre_l1_predict(ref):
+        return (tap(ref, 'pre_l1', (ref.lag_future[1] - ref.laglen_past, ref.lag_future[1])),)
+    
     # X_t = [pre_l1_{lagf[1] - lagp_len, lagf[1]}, prerr_t]
     def tapping_X_predict(ref):
-        prerr_fit = tap(ref, 'pre_l1', (ref.lag_future[0] - ref.lag_off, ref.lag_future[1] - ref.lag_off)) - tap(ref, 'meas_l0', (ref.lag_future[0], ref.lag_future[1]))
+        prerr_fit, = tapping_prerr(ref)
+        pre_l1_predict, = tapping_pre_l1_predict(ref)
         X_predict = np.vstack((
-            tap(ref, 'pre_l1', (ref.lag_future[1] - ref.laglen_past, ref.lag_future[1])),
+            pre_l1_predict,
             prerr_fit,
         ))
         return (X_predict, )
