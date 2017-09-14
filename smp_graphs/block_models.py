@@ -4,8 +4,6 @@ Oswald Berthold 2012-2017
 
 smp models: models are coders, representations, predictions, inferences, associations, ...
 
-
-
 models raw (fit/predict X/Y style models)
 models sm  sensorimotor  models
 models dvl devleopmental models
@@ -202,7 +200,7 @@ def step_random_uniform(ref):
     hi = ref.inputs['hi']['val'] # .T
     for outk, outv in ref.outputs.items():
         if ref.cnt % (ref.rate * 1) == 0:
-            print ref.__class__.__name__, ref.id, "lo, hi, out shapes", lo.shape, hi.shape, outv['shape']
+            # print ref.__class__.__name__, ref.id, "lo, hi, out shapes", lo.shape, hi.shape, outv['shape']
             setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
         else:
             setattr(ref, outk, np.random.uniform(-1e-3, 1e-3, size = outv['shape']))
@@ -1331,6 +1329,8 @@ def init_eh(ref, conf, mconf):
     # compute the tapping lengths for past and future
     ref.laglen_past = ref.lag_past[1] - ref.lag_past[0]
     ref.laglen_future = ref.lag_future[1] - ref.lag_future[0]
+    # lag offset
+    ref.lag_off = ref.lag_future[1] - ref.lag_past[1]
 
     mconf['visualize'] = False
     
@@ -1409,7 +1409,12 @@ def step_eh(ref):
     def tapping_EH_target(ref):
         # pre_l1 = ref.inputs['pre_l1']['val'][...,np.array(ref.inputs['meas_l0']['lag'])-1]
         # meas_l0 = ref.inputs['meas_l0']['val'][...,ref.inputs['meas_l0']['lag']]
-        pre_l1 = ref.inputs['pre_l1']['val'][...,range(ref.lag_future[0]-1, ref.lag_future[1]-1)]
+        
+        # # this also works because goals change slowly
+        # pre_l1 = ref.inputs['pre_l1']['val'][...,range(ref.lag_future[0] - 1, ref.lag_future[1] - 1)]
+        # future - lag offset
+        pre_l1 = ref.inputs['pre_l1']['val'][...,range(ref.lag_future[0] - ref.lag_off, ref.lag_future[1] - ref.lag_off)]
+        # pre_l1 = ref.inputs['pre_l1']['val'][...,range(ref.lag_past[0]-1, ref.lag_past[1]-1)]
         meas_l0 = ref.inputs['meas_l0']['val'][...,range(ref.lag_future[0], ref.lag_future[1])]
         return(pre_l1, meas_l0)
 

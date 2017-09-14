@@ -81,7 +81,7 @@ def get_systemblock_pm(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
             'force_max':  1.0,
             'force_min': -1.0,
             'friction': 0.01,
-            'sysnoise': 0, # 1e-2,
+            'sysnoise': 1e-2,
             'debug': False,
             'dim_s_proprio': dim_s_proprio,
             'length_ratio': 3./2., # gain curve?
@@ -297,9 +297,9 @@ m_maxs = np.array([systemblock['params']['m_maxs']]).T
 
 dt = systemblock['params']['dt']
 
-algo = 'knn' #
+# algo = 'knn' #
 # algo = 'gmm' #
-# algo = 'igmm' #
+algo = 'igmm' #
 # algo = 'hebbsom'
 # algo = 'soesgp'
 # algo = 'storkgp'
@@ -310,15 +310,16 @@ algo = 'knn' #
 # lag_future = (-5, 0)
 # lag_past = (-11, -10)
 # lag_past = (-5, -4)
-# lag_past = (-4, -3)
+lag_past = (-4, -3)
 # lag_past = (-3, -2)
-lag_past = (-2, -1)
+# lag_past = (-2, -1)
 # lpzbarrel non-overlapping seems important
 # lag_past = (-6, -2)
 lag_future = (-1, 0)
 
 minlag = 1 # -lag_future[1]
-maxlag = -lag_past[0] # + lag_future[1]
+# maxlag = -lag_past[0] # + lag_future[1]
+maxlag = max(20, -lag_past[0])
 laglen = maxlag # - minlag
 
 # eta = 0.99
@@ -707,191 +708,191 @@ graph = OrderedDict([
         'params': {
             'graph': OrderedDict([
 
-                # goal sampler (motivation) sample_discrete_uniform_goal
-                ('pre_l1', {
-                    'block': ModelBlock2,
-                    'params': {
-                        'blocksize': 1,
-                        'blockphase': [0],
-                        'inputs': {                        
-                            'lo': {'val': m_mins, 'shape': (dim_s_proprio, 1)},
-                            'hi': {'val': m_maxs, 'shape': (dim_s_proprio, 1)},
-                            },
-                        'outputs': {'pre': {'shape': (dim_s_proprio, 1)}},
-                        'models': {
-                            'goal': {'type': 'random_uniform'}
-                            },
-                        'rate': 40,
-                        },
-                    }),
-
-                # ('cnt', {
-                #     'block': CountBlock2,
-                #     'params': {
-                #         'blocksize': 1,
-                #         'debug': False,
-                #         'inputs': {},
-                #         'outputs': {'x': {'shape': (dim_s_proprio, 1)}},
-                #         },
-                #     }),
-
-                # # a random number generator, mapping const input to hi
+                # # goal sampler (motivation) sample_discrete_uniform_goal
                 # ('pre_l1', {
-                #     'block': FuncBlock2,
-                #     'params': {
-                #         'id': 'pre_l1',
-                #         'outputs': {'pre': {'shape': (dim_s_proprio, 1)}},
-                #         'debug': False,
-                #         'ros': ros,
-                #         'blocksize': 1,
-                #         # 'inputs': {'lo': [0, (3, 1)], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
-                #         # recurrent connection
-                #         'inputs': {
-                #             'x': {'bus': 'cnt/x'},
-                #             # 'f': {'val': np.array([[0.2355, 0.2355]]).T * 1.0}, # good with knn and eta = 0.3
-                #             # 'f': {'val': np.array([[0.23538, 0.23538]]).T * 1.0}, # good with soesgp and eta = 0.7
-                #             # 'f': {'val': np.array([[0.45]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
-                #             # 'f': {'val': np.array([[0.225]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
-
-                #             # barrel
-                #             # 'f': {'val': np.array([[0.23539]]).T * 10.0 * dt}, # good with soesgp and eta = 0.7
-                #             # 'f': {'val': np.array([[0.23539]]).T * 7.23 * dt}, # good with soesgp and eta = 0.7
-                #             # 'f': {'val': np.array([[0.23539]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
-                #             # 'f': {'val': np.array([[0.23539]]).T * 2.9 * dt}, # good with soesgp and eta = 0.7
-                #             # 'f': {'val': np.array([[0.23539]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
-
-                #             # pointmass
-                #             'f': {'val': np.array([[0.23539]]).T * 0.2 * dt}, # good with soesgp and eta = 0.7
-                            
-                #             # 'f': {'val': np.array([[0.23539, 0.2348, 0.14]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
-                #             # 'f': {'val': np.array([[0.14, 0.14]]).T * 1.0},
-                #             # 'f': {'val': np.array([[0.82, 0.82]]).T},
-                #             # 'f': {'val': np.array([[0.745, 0.745]]).T},
-                #             # 'f': {'val': np.array([[0.7, 0.7]]).T},
-                #             # 'f': {'val': np.array([[0.65, 0.65]]).T},
-                #             # 'f': {'val': np.array([[0.39, 0.39]]).T},
-                #             # 'f': {'val': np.array([[0.37, 0.37]]).T},
-                #             # 'f': {'val': np.array([[0.325, 0.325]]).T},
-                #             # 'f': {'val': np.array([[0.31, 0.31]]).T},
-                #             # 'f': {'val': np.array([[0.19, 0.19]]).T},
-                #             # 'f': {'val': np.array([[0.18, 0.181]]).T},
-                #             # 'f': {'val': np.array([[0.171, 0.171]]).T},
-                #             # 'f': {'val': np.array([[0.161, 0.161]]).T},
-                #             # 'f': {'val': np.array([[0.151, 0.151]]).T},
-                #             # 'f': {'val': np.array([[0.141, 0.141]]).T},
-                #             # stay in place
-                #             # 'f': {'val': np.array([[0.1, 0.1]]).T},
-                #             # 'f': {'val': np.array([[0.24, 0.24]]).T},
-                #             # 'sigma': {'val': np.array([[0.001, 0.002]]).T}}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
-                #             'sigma': {'val': np.random.uniform(0, 0.01, (dim_s_proprio, 1))},
-                #             'offset': {'val': m_mins + (m_maxs - m_mins)/2.0},
-                #             'amp': {'val': (m_maxs - m_mins)/2.0},
-                #         }, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
-                #         'func': f_sin_noise,
-                #     },
-                # }),
-                
-                # # dev model actinf_m1: learner is basic actinf predictor proprio space learn_proprio_base_0
-                # ('pre_l0', {
                 #     'block': ModelBlock2,
                 #     'params': {
                 #         'blocksize': 1,
                 #         'blockphase': [0],
-                #         'debug': False,
-                #         'lag': minlag,
-                #         'eta': eta, # 3.7,
-                #         'ros': ros,
-                #         # FIXME: relative shift = minlag, block length the maxlag
-                #         'inputs': {
-                #             # descending prediction
-                #             'pre_l1': {
-                #                 'bus': 'pre_l1/pre',
-                #                 # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag, -minlag)},
-                #                 # FIXME: check correctness here
-                #                 # training on past goal, prediction with current goal
-                #                 # should be possible inside step_model to use current
-                #                 # goal
-                #                 'shape': (dim_s_proprio, maxlag), 'lag': range(lag_past[0], lag_past[1])},
-                #             # ascending prediction error
-                #             'pre_l0': {
-                #                 'bus': 'pre_l0/pre',
-                #                 # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)},
-                #                 'shape': (dim_s_proprio, maxlag), 'lag': range(lag_past[0] + 1, lag_past[1] + 1)},
-                #             # ascending prediction error
-                #             'prerr_l0': {
-                #                 'bus': 'pre_l0/err',
-                #                 # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)},
-                #                 'shape': (dim_s_proprio, maxlag), 'lag': range(lag_past[0] + 1, lag_past[1] + 1)},
-                #             # measurement
-                #             'meas_l0': {
-                #                 'bus': 'robot1/s_proprio',
-                #                 # 'shape': (dim_s_proprio, maxlag), 'lag': range(-laglen, 0)}
-                #                 'shape': (dim_s_proprio, maxlag), 'lag': range(lag_future[0], lag_future[1])}
+                #         'inputs': {                        
+                #             'lo': {'val': m_mins, 'shape': (dim_s_proprio, 1)},
+                #             'hi': {'val': m_maxs, 'shape': (dim_s_proprio, 1)},
                 #             },
-                #         'outputs': {
-                #             'pre': {'shape': (dim_s_proprio, 1)},
-                #             'err': {'shape': (dim_s_proprio, 1)},
-                #             'tgt': {'shape': (dim_s_proprio, 1)},
-                #             },
+                #         'outputs': {'pre': {'shape': (dim_s_proprio, 1)}},
                 #         'models': {
-                            
-                #             'm1': {
-                #                 'type': 'actinf_m1',
-                #                 'algo': algo,
-                #                 'lag_past': lag_past,
-                #                 'lag_future': lag_future,
-                #                 'idim': dim_s_proprio * (lag_past[1] - lag_past[0]) * 2, # laglen
-                #                 'odim': dim_s_proprio * (lag_future[1] - lag_future[0]), # laglen,
-                #                 'laglen': laglen,
-                #                 # 'laglen_past': lag_past[1] - lag_past[0],
-                #                 # 'laglen_future': lag_future[1] - lag_future[0],
-                #                 'eta': eta,
-                #                 },
-                                
-                #             # 'm2': {
-                #             #     'type': 'actinf_m2',
-                #             #     'algo': algo,
-                #             #     'idim': dim_s_proprio * laglen,
-                #             #     'odim': dim_s_proprio * laglen,
-                #             #     'laglen': laglen,
-                #             #     'eta': eta
-                #             #     },
-                            
-                #             # 'm3': {
-                #             #     'type': 'actinf_m3',
-                #             #     'algo': algo,
-                #             #     'idim': dim_s_proprio * laglen * 2,
-                #             #     'odim': dim_s_proprio * laglen,
-                #             #     'laglen': laglen,
-                #             #     'eta': eta
-                #             #     },
-                                
+                #             'goal': {'type': 'random_uniform'}
                 #             },
-                #         'rate': 1,
+                #         'rate': 40,
                 #         },
                 #     }),
 
-                # dev model uniform random sampler
+                ('cnt', {
+                    'block': CountBlock2,
+                    'params': {
+                        'blocksize': 1,
+                        'debug': False,
+                        'inputs': {},
+                        'outputs': {'x': {'shape': (dim_s_proprio, 1)}},
+                        },
+                    }),
+
+                # a random number generator, mapping const input to hi
+                ('pre_l1', {
+                    'block': FuncBlock2,
+                    'params': {
+                        'id': 'pre_l1',
+                        'outputs': {'pre': {'shape': (dim_s_proprio, 1)}},
+                        'debug': False,
+                        'ros': ros,
+                        'blocksize': 1,
+                        # 'inputs': {'lo': [0, (3, 1)], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+                        # recurrent connection
+                        'inputs': {
+                            'x': {'bus': 'cnt/x'},
+                            # 'f': {'val': np.array([[0.2355, 0.2355]]).T * 1.0}, # good with knn and eta = 0.3
+                            # 'f': {'val': np.array([[0.23538, 0.23538]]).T * 1.0}, # good with soesgp and eta = 0.7
+                            # 'f': {'val': np.array([[0.45]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
+                            # 'f': {'val': np.array([[0.225]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
+
+                            # barrel
+                            # 'f': {'val': np.array([[0.23539]]).T * 10.0 * dt}, # good with soesgp and eta = 0.7
+                            # 'f': {'val': np.array([[0.23539]]).T * 7.23 * dt}, # good with soesgp and eta = 0.7
+                            # 'f': {'val': np.array([[0.23539]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
+                            # 'f': {'val': np.array([[0.23539]]).T * 2.9 * dt}, # good with soesgp and eta = 0.7
+                            # 'f': {'val': np.array([[0.23539]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
+
+                            # pointmass
+                            'f': {'val': np.array([[0.23539]]).T * 0.2 * dt}, # good with soesgp and eta = 0.7
+                            
+                            # 'f': {'val': np.array([[0.23539, 0.2348, 0.14]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
+                            # 'f': {'val': np.array([[0.14, 0.14]]).T * 1.0},
+                            # 'f': {'val': np.array([[0.82, 0.82]]).T},
+                            # 'f': {'val': np.array([[0.745, 0.745]]).T},
+                            # 'f': {'val': np.array([[0.7, 0.7]]).T},
+                            # 'f': {'val': np.array([[0.65, 0.65]]).T},
+                            # 'f': {'val': np.array([[0.39, 0.39]]).T},
+                            # 'f': {'val': np.array([[0.37, 0.37]]).T},
+                            # 'f': {'val': np.array([[0.325, 0.325]]).T},
+                            # 'f': {'val': np.array([[0.31, 0.31]]).T},
+                            # 'f': {'val': np.array([[0.19, 0.19]]).T},
+                            # 'f': {'val': np.array([[0.18, 0.181]]).T},
+                            # 'f': {'val': np.array([[0.171, 0.171]]).T},
+                            # 'f': {'val': np.array([[0.161, 0.161]]).T},
+                            # 'f': {'val': np.array([[0.151, 0.151]]).T},
+                            # 'f': {'val': np.array([[0.141, 0.141]]).T},
+                            # stay in place
+                            # 'f': {'val': np.array([[0.1, 0.1]]).T},
+                            # 'f': {'val': np.array([[0.24, 0.24]]).T},
+                            # 'sigma': {'val': np.array([[0.001, 0.002]]).T}}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+                            'sigma': {'val': np.random.uniform(0, 0.01, (dim_s_proprio, 1))},
+                            'offset': {'val': m_mins + (m_maxs - m_mins)/2.0},
+                            'amp': {'val': (m_maxs - m_mins)/2.0},
+                        }, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+                        'func': f_sin_noise,
+                    },
+                }),
+                
+                # dev model actinf_m1: learner is basic actinf predictor proprio space learn_proprio_base_0
                 ('pre_l0', {
                     'block': ModelBlock2,
                     'params': {
                         'blocksize': 1,
                         'blockphase': [0],
-                        'inputs': {                        
-                            'lo': {'val': m_mins, 'shape': (dim_s_proprio, 1)},
-                            'hi': {'val': m_maxs, 'shape': (dim_s_proprio, 1)},
+                        'debug': False,
+                        'lag': minlag,
+                        'eta': eta, # 3.7,
+                        'ros': ros,
+                        # FIXME: relative shift = minlag, block length the maxlag
+                        'inputs': {
+                            # descending prediction
+                            'pre_l1': {
+                                'bus': 'pre_l1/pre',
+                                # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag, -minlag)},
+                                # FIXME: check correctness here
+                                # training on past goal, prediction with current goal
+                                # should be possible inside step_model to use current
+                                # goal
+                                'shape': (dim_s_proprio, maxlag), 'lag': range(lag_past[0], lag_past[1])},
+                            # ascending prediction error
+                            'pre_l0': {
+                                'bus': 'pre_l0/pre',
+                                # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)},
+                                'shape': (dim_s_proprio, maxlag), 'lag': range(lag_past[0] + 1, lag_past[1] + 1)},
+                            # ascending prediction error
+                            'prerr_l0': {
+                                'bus': 'pre_l0/err',
+                                # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)},
+                                'shape': (dim_s_proprio, maxlag), 'lag': range(lag_past[0] + 1, lag_past[1] + 1)},
+                            # measurement
+                            'meas_l0': {
+                                'bus': 'robot1/s_proprio',
+                                # 'shape': (dim_s_proprio, maxlag), 'lag': range(-laglen, 0)}
+                                'shape': (dim_s_proprio, maxlag), 'lag': range(lag_future[0], lag_future[1])}
                             },
                         'outputs': {
                             'pre': {'shape': (dim_s_proprio, 1)},
-                            'err': {'val': np.zeros((dim_s_proprio, 1)), 'shape': (dim_s_proprio, 1)},
-                            'tgt': {'val': np.zeros((dim_s_proprio, 1)), 'shape': (dim_s_proprio, 1)},
+                            'err': {'shape': (dim_s_proprio, 1)},
+                            'tgt': {'shape': (dim_s_proprio, 1)},
                             },
                         'models': {
-                            'goal': {'type': 'random_uniform'}
+                            
+                            'm1': {
+                                'type': 'actinf_m1',
+                                'algo': algo,
+                                'lag_past': lag_past,
+                                'lag_future': lag_future,
+                                'idim': dim_s_proprio * (lag_past[1] - lag_past[0]) * 2, # laglen
+                                'odim': dim_s_proprio * (lag_future[1] - lag_future[0]), # laglen,
+                                'laglen': laglen,
+                                # 'laglen_past': lag_past[1] - lag_past[0],
+                                # 'laglen_future': lag_future[1] - lag_future[0],
+                                'eta': eta,
+                                },
+                                
+                            # 'm2': {
+                            #     'type': 'actinf_m2',
+                            #     'algo': algo,
+                            #     'idim': dim_s_proprio * laglen,
+                            #     'odim': dim_s_proprio * laglen,
+                            #     'laglen': laglen,
+                            #     'eta': eta
+                            #     },
+                            
+                            # 'm3': {
+                            #     'type': 'actinf_m3',
+                            #     'algo': algo,
+                            #     'idim': dim_s_proprio * laglen * 2,
+                            #     'odim': dim_s_proprio * laglen,
+                            #     'laglen': laglen,
+                            #     'eta': eta
+                            #     },
+                                
                             },
-                        'rate': 50,
+                        'rate': 1,
                         },
                     }),
+
+                # # dev model uniform random sampler
+                # ('pre_l0', {
+                #     'block': ModelBlock2,
+                #     'params': {
+                #         'blocksize': 1,
+                #         'blockphase': [0],
+                #         'inputs': {                        
+                #             'lo': {'val': m_mins, 'shape': (dim_s_proprio, 1)},
+                #             'hi': {'val': m_maxs, 'shape': (dim_s_proprio, 1)},
+                #             },
+                #         'outputs': {
+                #             'pre': {'shape': (dim_s_proprio, 1)},
+                #             'err': {'val': np.zeros((dim_s_proprio, 1)), 'shape': (dim_s_proprio, 1)},
+                #             'tgt': {'val': np.zeros((dim_s_proprio, 1)), 'shape': (dim_s_proprio, 1)},
+                #             },
+                #         'models': {
+                #             'goal': {'type': 'random_uniform'}
+                #             },
+                #         'rate': 50,
+                #         },
+                #     }),
                     
                 # # dev model homeokinesis
                 # ('pre_l0', {

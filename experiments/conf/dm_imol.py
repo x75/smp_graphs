@@ -35,12 +35,12 @@ saveplot = False
 recurrent = True
 debug = False
 showplot = True
-ros = True
+ros = False
 
 # experiment
 commandline_args = ['numsteps']
 randseed = 12355
-numsteps = int(10000/5)
+numsteps = int(10000/10)
 loopblocksize = numsteps
 sysname = 'pm'
 # sysname = 'sa'
@@ -295,8 +295,8 @@ maxlag = systemblock['params']['maxlag']
 
 dt = systemblock['params']['dt']
 
-# algo = 'knn' # ok
-algo = 'gmm' # ok
+algo = 'knn' # ok
+# algo = 'gmm' # ok
 # algo = 'igmm' # ok, fix deprecation, inference output conf
 # algo = 'hebbsom' # fix
 # algo = 'soesgp'
@@ -311,8 +311,8 @@ algo_inv = algo
 # lag_past   = (-1, 0)
 # lag_past   = (-2, -1)
 # lag_past   = (-3, -2)
-# lag_past   = (-4, -3)
-lag_past   = (-5, -4)
+lag_past   = (-4, -3)
+# lag_past   = (-5, -4)
 # lag_past   = (-6, -5)
 lag_future = (-1, 0)
 
@@ -734,7 +734,7 @@ graph = OrderedDict([
                     'params': {
                         'blocksize': 1,
                         'blockphase': [0],
-                        'ros': True,
+                        'ros': ros,
                         'inputs': {                        
                             'lo': {'val': m_mins * 1.0, 'shape': (dim_s_proprio, 1)},
                             'hi': {'val': m_maxs * 1.0, 'shape': (dim_s_proprio, 1)},
@@ -743,7 +743,7 @@ graph = OrderedDict([
                         'models': {
                             'goal': {'type': 'random_uniform'}
                             },
-                        'rate': 400,
+                        'rate': 40,
                         },
                     }),
 
@@ -764,7 +764,7 @@ graph = OrderedDict([
                 #         'id': 'pre_l1',
                 #         'outputs': {'pre': {'shape': (dim_s_proprio, 1)}},
                 #         'debug': False,
-                #         'ros': True,
+                #         'ros': ros,
                 #         'blocksize': 1,
                 #         # 'inputs': {'lo': [0, (3, 1)], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
                 #         # recurrent connection
@@ -823,7 +823,7 @@ graph = OrderedDict([
                         'debug': False,
                         'lag': minlag,
                         'eta': eta, # 3.7,
-                        'ros': True,
+                        'ros': ros,
                         # FIXME: relative shift = minlag, block length the maxlag
                         'inputs': {
                             # descending prediction
