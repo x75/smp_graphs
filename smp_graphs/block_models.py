@@ -605,6 +605,7 @@ def init_actinf(ref, conf, mconf):
     ref.laglen  = mconf['laglen']
     ref.lag_past  = mconf['lag_past']
     ref.lag_future  = mconf['lag_future']
+    ref.lag_off = ref.lag_future[1] - ref.lag_past[1]
 
     ref.laglen_past = ref.lag_past[1] - ref.lag_past[0]
     ref.laglen_future = ref.lag_future[1] - ref.lag_future[0]
@@ -730,13 +731,51 @@ def step_actinf(ref):
     ref.pre_l1_tm1 = ref.inputs[ref.pre_l1_inkey]['val'][...,[-1]].copy() # pre_l1[...,[-1]].copy()
 
 
+def tap(ref, inkey = None, lag = None):
+    assert inkey is not None, "block_models.tap needs input key inkey"
+    assert lag is not None, "block_models.tap needs tapping lag"
+    if type(lag) is tuple:
+        tapping = range(lag[0], lag[1])
+    return ref.inputs[inkey]['val'][...,tapping]
+
+def tap_tupoff(tup = (), off = 0):
+    assert len(tup) == 2, "block_models.py.tap_tupoff wants 2-tuple, got %d-tuple" % (len(tup), )
+    return (tup[0] + off, tup[1] + off)
+
 def step_actinf_2(ref):
     # model
-    # X_t-lag = (pre_l1_{lagp[0], lagp[1]}, prerr_l0_{lagp[0]+1, lagp[1]+1}
-    # Y_t     = pre_l0_{lagp[0]+1, lagp[1]+1} - (prerr_l0_{lagp[0]+1, lagp[1]+1} * eta)
-    # mdl.fit(X_t-lag, Y_t)
-    # pre_l0 = mdl.predict(X_t)
-    pass
+
+    # X_t-lag = [pre_l1_{lagp[0], lagp[1]}, prerr_l0_{lagp[0]+1, lagp[1]+1}]
+    # prerr_t = pre_l1_{lagf[0] - lag_off, lagf[1] - lag_off} - meas_l0_{lagf[0], lagf[1]}
+    # Y_t     = pre_l0_{lagf[0] - lag_off + 1, lagf[1] - lag_off + 1} - (prerr_t * eta) # * d_prerr/d_params
+    def tapping_XY_fit(ref):
+        X_fit_lag = np.vstack((
+            tap(ref, 'pre_l1', ref.lag_past),
+            tap(ref, 'prerr_l0', ref.lag_past),
+        ))
+        prerr_fit = tap(ref, 'pre_l1', (ref.lag_future[0] - ref.lag_off, ref.lag_future[1] - ref.lag_off)) - tap(ref, 'meas_l0', (ref.lag_future[0], ref.lag_future[1]))
+        Y_fit   = tap(ref, 'pre_l0', (ref.lag_future[0] - ref.lag_off + 1, ref.lag_future[1] - ref.lag_off + 1)) + (prerr_fit * ref.eta)
+        return (X_fit_lag, Y_fit, prerr_fit)
+
+    X_fit_lag, Y_fit, prerr_fit = tapping_XY_fit(ref)
+    ref.mdl.fit(X_fit_lag.T, Y_fit.T)
+
+    # X_t = [pre_l1_{lagf[1] - lagp_len, lagf[1]}, prerr_t]
+    def tapping_X_predict(ref):
+        prerr_fit = tap(ref, 'pre_l1', (ref.lag_future[0] - ref.lag_off, ref.lag_future[1] - ref.lag_off)) - tap(ref, 'meas_l0', (ref.lag_future[0], ref.lag_future[1]))
+        X_predict = np.vstack((
+            tap(ref, 'pre_l1', (ref.lag_future[1] - ref.laglen_past, ref.lag_future[1])),
+            prerr_fit,
+        ))
+        return (X_predict, )
+
+    X_predict, = tapping_X_predict(ref)
+    pre_l0 = ref.mdl.predict(X_predict.T)
+
+    # publish model's internal state
+    setattr(ref, 'pre', pre_l0.T.copy())
+    setattr(ref, 'err', prerr_fit.copy())
+    # setattr(ref, 'tgt', tgt_)
 
 # def step_actinf_prediction_errors_extended(ref):
 #     # if np.sum(np.abs(ref.goal_prop - ref.goal_prop_tm1)) > 1e-2:
@@ -1581,7 +1620,7 @@ class model(object):
         'random_uniform_pi_2': {'init': init_random_uniform_pi_2, 'step': step_random_uniform_pi_2},
         # closed-loop models
         # active inference
-        'actinf_m1': {'init': init_actinf, 'step': step_actinf},
+        'actinf_m1': {'init': init_actinf, 'step': step_actinf_2},
         'actinf_m2': {'init': init_actinf, 'step': step_actinf},
         'actinf_m3': {'init': init_actinf, 'step': step_actinf},
         'e2p':       {'init': init_e2p,    'step': step_e2p},

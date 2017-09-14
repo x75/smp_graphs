@@ -44,7 +44,7 @@ ros = False # True
 # experiment
 commandline_args = ['numsteps']
 randseed = 12348
-numsteps = int(10000/10)
+numsteps = int(10000/2)
 loopblocksize = numsteps
 sysname = 'pm'
 # sysname = 'sa'
@@ -90,7 +90,7 @@ def get_systemblock_pm(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
             'dim_s_extero': dim_s_extero,
             'minlag': 1,
             'maxlag': 4, # 2, # 20, # 2, # 5
-            'lag': 3,
+            'lag': 1,
             'order': 2,
             'coupling_sigma': 1e-2,
             'transfer': 0,
@@ -297,22 +297,23 @@ m_maxs = np.array([systemblock['params']['m_maxs']]).T
 
 dt = systemblock['params']['dt']
 
-# algo = 'knn' #
+algo = 'knn' #
 # algo = 'gmm' #
-algo = 'igmm' #
+# algo = 'igmm' #
 # algo = 'hebbsom'
 # algo = 'soesgp'
 # algo = 'storkgp'
 # algo = 'resrls'
 # algo = 'homeokinesis'
 
+# lag_past = (-21, -20)
 # lag_past = (-11, -3)
 # lag_future = (-5, 0)
 # lag_past = (-11, -10)
 # lag_past = (-5, -4)
-lag_past = (-4, -3)
+# lag_past = (-4, -3)
 # lag_past = (-3, -2)
-# lag_past = (-2, -1)
+lag_past = (-2, -1)
 # lpzbarrel non-overlapping seems important
 # lag_past = (-6, -2)
 lag_future = (-1, 0)
