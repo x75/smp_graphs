@@ -790,7 +790,7 @@ def step_actinf_2(ref):
     # publish model's internal state
     setattr(ref, 'pre', pre_l0.T.copy())
     setattr(ref, 'err', prerr_fit.copy())
-    # setattr(ref, 'tgt', tgt_)
+    setattr(ref, 'tgt', Y_fit.copy())
 
 # def step_actinf_prediction_errors_extended(ref):
 #     # if np.sum(np.abs(ref.goal_prop - ref.goal_prop_tm1)) > 1e-2:
