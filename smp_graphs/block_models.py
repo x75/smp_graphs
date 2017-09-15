@@ -35,6 +35,7 @@ from smp_base.measures import meas as measf
 # from smp_graphs.common import array_fix
 from smp_graphs.graph import nxgraph_node_by_id_recursive
 from smp_graphs.block import decInit, decStep, PrimBlock2
+from smp_graphs.tapping import tap_tupoff, tap, tap_flat, tap_unflat
 
 try:
     from smp_base.models_actinf import smpOTLModel, smpSOESGP, smpSTORKGP
@@ -732,65 +733,80 @@ def step_actinf(ref):
 
 ################################################################################
 # step_actinf_2
-def tap(ref, inkey = None, lag = None):
-    assert inkey is not None, "block_models.tap needs input key inkey"
-    assert lag is not None, "block_models.tap needs tapping lag"
-    if type(lag) is tuple:
-        tapping = range(lag[0], lag[1])
-    return ref.inputs[inkey]['val'][...,tapping]
-
-def tap_tupoff(tup = (), off = 0):
-    assert len(tup) == 2, "block_models.py.tap_tupoff wants 2-tuple, got %d-tuple" % (len(tup), )
-    return (tup[0] + off, tup[1] + off)
-
 def step_actinf_2(ref):
-    # FIXME: 1D only, flatten etc
+    """block_models.step_actinf_2
+
+    Step the actinf model, version 2, lean tapping code
+
+    # FIXME: single time slice taps only: add flattened version, reshape business
     # FIXME: what's actinf specific, what's general?
+    """
     
     # prerr_t  = pre_l1_{lagf[0] - lag_off, lagf[1] - lag_off} - meas_l0_{lagf[0], lagf[1]}
-    def tapping_prerr(ref):
+    def tapping_prerr_fit(ref):
         prerr_fit = tap(ref, 'pre_l1', tap_tupoff(ref.lag_future, -ref.lag_off)) - tap(ref, 'meas_l0', ref.lag_future)
         return (prerr_fit, )
 
     # pre_l0_t = pre_l0_{lagf[0] - lag_off + 1, lagf[1] - lag_off + 1}
     def tapping_pre_l0_fit(ref):
-        return (tap(ref, 'pre_l0', tap_tupoff(ref.lag_future, -ref.lag_off + 1)),)
+        pre_l0_fit = tap(ref, 'pre_l0', tap_tupoff(ref.lag_future, -ref.lag_off + 1))
+        return (pre_l0_fit,)
         
     # X_t-lag  = [pre_l1_{lagp[0], lagp[1]}, prerr_l0_{lagp[0]+1, lagp[1]+1}]
     # Y_t      = pre_l0_t - (prerr_t * eta) # * d_prerr/d_params
     def tapping_XY_fit(ref):
-        X_fit_lag = np.vstack((
-            tap(ref, 'pre_l1', ref.lag_past),
-            tap(ref, 'prerr_l0', ref.lag_past),
+        X_fit_pre_l1 = tap(ref, 'pre_l1', ref.lag_past)
+        X_fit_prerr_l0 = tap(ref, 'prerr_l0', ref.lag_past)
+        X_fit_flat = np.vstack((
+            tap_flat(X_fit_pre_l1),
+            tap_flat(X_fit_prerr_l0),
         ))
-        prerr_fit, = tapping_prerr(ref)
-        pre_l0_fit, = tapping_pre_l0_fit(ref)
-        Y_fit   = pre_l0_fit + (prerr_fit * ref.eta)
-        return (X_fit_lag, Y_fit, prerr_fit)
+        
+        Y_fit_prerr_l0, = tapping_prerr_fit(ref)
+        Y_fit_prerr_l0_flat = tap_flat(Y_fit_prerr_l0)
+        Y_fit_pre_l0,   = tapping_pre_l0_fit(ref)
+        Y_fit   = Y_fit_pre_l0 + (Y_fit_prerr_l0 * ref.eta)
+        Y_fit_flat = tap_flat(Y_fit)
+        return (X_fit_flat, Y_fit_flat, Y_fit_prerr_l0_flat)
 
-    X_fit_lag, Y_fit, prerr_fit = tapping_XY_fit(ref)
-    ref.mdl.fit(X_fit_lag.T, Y_fit.T)
+    X_fit_flat, Y_fit_flat, prerr_fit_flat = tapping_XY_fit(ref)
+    ref.mdl.fit(X_fit_flat.T, Y_fit_flat.T)
 
+    # prerr_t  = pre_l1_{lagf[0] - lag_off, lagf[1] - lag_off} - meas_l0_{lagf[0], lagf[1]}
+    def tapping_prerr_predict(ref):
+        prerr_predict = tap(ref, 'pre_l1', ref.lag_past) - tap(ref, 'meas_l0', tap_tupoff(ref.lag_past, ref.lag_off))
+        return (prerr_predict, )
+    
     def tapping_pre_l1_predict(ref):
-        return (tap(ref, 'pre_l1', (ref.lag_future[1] - ref.laglen_past, ref.lag_future[1])),)
+        pre_l1_predict = tap(ref, 'pre_l1', (ref.lag_future[1] - ref.laglen_past, ref.lag_future[1]))
+        return (pre_l1_predict,)
     
     # X_t = [pre_l1_{lagf[1] - lagp_len, lagf[1]}, prerr_t]
     def tapping_X_predict(ref):
-        prerr_fit, = tapping_prerr(ref)
+        prerr_predict, = tapping_prerr_predict(ref)
+        prerr_predict_flat = tap_flat(prerr_predict)
         pre_l1_predict, = tapping_pre_l1_predict(ref)
+        pre_l1_predict_flat = tap_flat(pre_l1_predict)
         X_predict = np.vstack((
-            pre_l1_predict,
-            prerr_fit,
+            pre_l1_predict_flat,
+            prerr_predict_flat,
         ))
         return (X_predict, )
 
     X_predict, = tapping_X_predict(ref)
     pre_l0 = ref.mdl.predict(X_predict.T)
+    
+    # block outputs prepare
+    pre = tap_unflat(pre_l0, ref.laglen_future).copy()
+    err = tap_unflat(prerr_fit_flat.T, ref.laglen_future).copy() # prerr_fit.copy()
+    tgt = tap_unflat(Y_fit_flat.T, ref.laglen_future).copy()
+    X_fit = X_fit_flat.copy()
 
-    # publish model's internal state
-    setattr(ref, 'pre', pre_l0.T.copy())
-    setattr(ref, 'err', prerr_fit.copy())
-    setattr(ref, 'tgt', Y_fit.copy())
+    # block outputs set
+    setattr(ref, 'pre', pre)
+    setattr(ref, 'err', err)
+    setattr(ref, 'tgt', tgt)
+    setattr(ref, 'X_fit', X_fit)
 
 # def step_actinf_prediction_errors_extended(ref):
 #     # if np.sum(np.abs(ref.goal_prop - ref.goal_prop_tm1)) > 1e-2:

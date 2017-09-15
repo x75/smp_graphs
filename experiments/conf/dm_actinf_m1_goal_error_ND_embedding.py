@@ -297,8 +297,8 @@ m_maxs = np.array([systemblock['params']['m_maxs']]).T
 
 dt = systemblock['params']['dt']
 
-algo = 'knn' #
-# algo = 'gmm' #
+# algo = 'knn' #
+algo = 'gmm' #
 # algo = 'igmm' #
 # algo = 'hebbsom'
 # algo = 'soesgp'
@@ -308,8 +308,8 @@ algo = 'knn' #
 
 # lag_past = (-21, -20)
 # lag_past = (-11, -10)
-# lag_past = (-11, -3)
-lag_past = (-6, -5)
+lag_past = (-8, -5)
+# lag_past = (-6, -5)
 # lag_past = (-5, -4)
 # lag_past = (-4, -3)
 # lag_past = (-3, -2)
@@ -334,7 +334,7 @@ eta = 0.7
 
 def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
     global partial
-    global PlotBlock2, numsteps, timeseries, dim_s_extero, dim_s_proprio
+    global PlotBlock2, numsteps, timeseries, dim_s_extero, dim_s_proprio, lag_past, lag_future
     return {
     'block': PlotBlock2,
     'params': {
@@ -344,6 +344,7 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             'pre':   {'bus': '%s/pre' % (l0,), 'shape': (dim_s_proprio, blocksize)},
             'err':   {'bus': '%s/err' % (l0,), 'shape': (dim_s_proprio, blocksize)},
             'tgt':   {'bus': '%s/tgt' % (l0,), 'shape': (dim_s_proprio, blocksize)},
+            'X_fit': {'bus': '%s/X_fit' % (l0,), 'shape': (dim_s_proprio * (lag_past[1] - lag_past[0]) * 2, blocksize)},
             's_proprio':    {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, blocksize)},
             's_extero':     {'bus': 'robot1/s_extero',  'shape': (dim_s_extero, blocksize)},
             },
@@ -366,6 +367,9 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             # ],
             [
                 {'input': ['err',], 'plot': partial(timeseries, marker='.')},
+            ],
+            [
+                {'input': ['X_fit'], 'plot': partial(timeseries, marker='.')},
             ],
             [
                 {'input': ['tgt'], 'plot': partial(timeseries, marker='.')},
@@ -834,6 +838,7 @@ graph = OrderedDict([
                             'pre': {'shape': (dim_s_proprio, 1)},
                             'err': {'shape': (dim_s_proprio, 1)},
                             'tgt': {'shape': (dim_s_proprio, 1)},
+                            'X_fit': {'shape': (dim_s_proprio * (lag_past[1] - lag_past[0]) * 2, 1)},
                             },
                         'models': {
                             
