@@ -600,7 +600,6 @@ def init_actinf(ref, conf, mconf):
     # for outk, outv in params['outputs'].items():
     #     setattr(ref, outk, np.random.uniform(-hi, hi, size = outv['shape']))
     ref.pre_l1_inkey = 'pre_l1'
-    ref.mdl = init_model(ref, conf, mconf)
     ref.X_  = np.zeros((mconf['idim'], 1))
     ref.y_  = np.zeros((mconf['odim'], 1))
     ref.laglen  = mconf['laglen']
@@ -613,6 +612,9 @@ def init_actinf(ref, conf, mconf):
     ref.pre_l1_tm1 = np.zeros((mconf['idim']/2/ref.laglen_past, 1))
     ref.pre_l1_tm2 = np.zeros((mconf['idim']/2/ref.laglen_past, 1))
 
+    # reservoir extras
+    mconf.update({'memory': ref.laglen})
+    
     if mconf['type'] == 'actinf_m1':
         ref.type = 'm1'
     elif mconf['type'] == 'actinf_m2':
@@ -628,6 +630,9 @@ def init_actinf(ref, conf, mconf):
     # goal statistics
     ref.dgoal_fit_ = np.linalg.norm(ref.pre_l1_tm1 - ref.pre_l1_tm2)
     ref.dgoal_ = np.linalg.norm(-ref.pre_l1_tm1)
+
+    #  initialize the learner
+    ref.mdl = init_model(ref, conf, mconf)
     
 def step_actinf(ref):
 
@@ -769,6 +774,7 @@ def step_actinf_2(ref):
         Y_fit_flat = tap_flat(Y_fit)
         return (X_fit_flat, Y_fit_flat, Y_fit_prerr_l0_flat)
 
+    # get data and fit the model
     X_fit_flat, Y_fit_flat, prerr_fit_flat = tapping_XY_fit(ref)
     ref.mdl.fit(X_fit_flat.T, Y_fit_flat.T)
 
@@ -793,20 +799,28 @@ def step_actinf_2(ref):
         ))
         return (X_predict, )
 
+    # get data and predict
     X_predict, = tapping_X_predict(ref)
     pre_l0 = ref.mdl.predict(X_predict.T)
     
     # block outputs prepare
-    pre = tap_unflat(pre_l0, ref.laglen_future).copy()
-    err = tap_unflat(prerr_fit_flat.T, ref.laglen_future).copy() # prerr_fit.copy()
-    tgt = tap_unflat(Y_fit_flat.T, ref.laglen_future).copy()
+    pre_ = tap_unflat(pre_l0, ref.laglen_future).copy()
+    pre = pre_[...,[-1]] # earliest relevant prediction
+    err_ = tap_unflat(prerr_fit_flat.T, ref.laglen_future).copy() # prerr_fit.copy()
+    err = err_[...,[-1]]
+    tgt_ = tap_unflat(Y_fit_flat.T, ref.laglen_future).copy()
+    tgt = tgt_[...,[-1]]
     X_fit = X_fit_flat.copy()
+    Y_pre = pre_l0.T.copy()
 
+    # print "pre", pre.shape, "err", err.shape, "tgt", tgt.shape, "X_fit", X_fit.shape, "Y_pre", Y_pre.shape
+    
     # block outputs set
     setattr(ref, 'pre', pre)
     setattr(ref, 'err', err)
     setattr(ref, 'tgt', tgt)
     setattr(ref, 'X_fit', X_fit)
+    setattr(ref, 'Y_pre', Y_pre)
 
 # def step_actinf_prediction_errors_extended(ref):
 #     # if np.sum(np.abs(ref.goal_prop - ref.goal_prop_tm1)) > 1e-2:

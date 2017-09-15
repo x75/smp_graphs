@@ -44,7 +44,7 @@ ros = False # True
 # experiment
 commandline_args = ['numsteps']
 randseed = 12348
-numsteps = int(10000/4)
+numsteps = int(10000/2)
 loopblocksize = numsteps
 sysname = 'pm'
 # sysname = 'sa'
@@ -297,8 +297,8 @@ m_maxs = np.array([systemblock['params']['m_maxs']]).T
 
 dt = systemblock['params']['dt']
 
-# algo = 'knn' #
-algo = 'gmm' #
+algo = 'knn' #
+# algo = 'gmm' #
 # algo = 'igmm' #
 # algo = 'hebbsom'
 # algo = 'soesgp'
@@ -308,7 +308,7 @@ algo = 'gmm' #
 
 # lag_past = (-21, -20)
 # lag_past = (-11, -10)
-lag_past = (-8, -5)
+lag_past = (-7, -5)
 # lag_past = (-6, -5)
 # lag_past = (-5, -4)
 # lag_past = (-4, -3)
@@ -316,7 +316,8 @@ lag_past = (-8, -5)
 # lag_past = (-2, -1)
 # lpzbarrel non-overlapping seems important
 # lag_past = (-6, -2)
-lag_future = (-1, 0)
+# lag_future = (-1, 0)
+lag_future = (-2, 0)
 
 minlag = 1 # -lag_future[1]
 # maxlag = -lag_past[0] # + lag_future[1]
