@@ -58,46 +58,48 @@ sysname = 'pm'
 """system block
  - a robot
 """
-def get_systemblock_pm(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
-    global np, PointmassBlock2
-    return {
-        'block': PointmassBlock2,
-        'params': {
-            'id': 'robot1',
-            'blocksize': 1, # FIXME: make pm blocksize aware!
-            'systype': 2,
-            'sysdim': dim_s_proprio,
-            # initial state
-            'x0': np.random.uniform(-0.3, 0.3, (dim_s_proprio * 3, 1)),
-            # 'inputs': {'u': {'val': np.random.uniform(-1, 1, (3, numsteps))}},
-            'inputs': {'u': {'bus': 'pre_l0/pre'}},
-            'outputs': {
-                's_proprio': {'shape': (dim_s_proprio, 1)},
-                's_extero':  {'shape': (dim_s_extero, 1)}
-                }, # , 's_all': [(9, 1)]},
-            'statedim': dim_s_proprio * 3,
-            'dt': dt,
-            'mass': 1.0,
-            'force_max':  1.0,
-            'force_min': -1.0,
-            'friction': 0.01,
-            'sysnoise': 1e-2,
-            'debug': False,
-            'dim_s_proprio': dim_s_proprio,
-            'length_ratio': 3./2., # gain curve?
-            'm_mins': [-1.] * dim_s_proprio,
-            'm_maxs': [ 1.] * dim_s_proprio,
-            'dim_s_extero': dim_s_extero,
-            'minlag': 1,
-            'maxlag': 4, # 2, # 20, # 2, # 5
-            'lag': 5,
-            'order': 2,
-            'coupling_sigma': 1e-2,
-            'transfer': 0,
-            'anoise_mean': 0.0,
-            'anoise_std': 1e-2,
-            }
-        }
+from smp_graphs.utils_conf import get_systemblock_pm
+
+# def get_systemblock_pm(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
+#     global np, PointmassBlock2
+#     return {
+#         'block': PointmassBlock2,
+#         'params': {
+#             'id': 'robot1',
+#             'blocksize': 1, # FIXME: make pm blocksize aware!
+#             'systype': 2,
+#             'sysdim': dim_s_proprio,
+#             # initial state
+#             'x0': np.random.uniform(-0.3, 0.3, (dim_s_proprio * 3, 1)),
+#             # 'inputs': {'u': {'val': np.random.uniform(-1, 1, (3, numsteps))}},
+#             'inputs': {'u': {'bus': 'pre_l0/pre'}},
+#             'outputs': {
+#                 's_proprio': {'shape': (dim_s_proprio, 1)},
+#                 's_extero':  {'shape': (dim_s_extero, 1)}
+#                 }, # , 's_all': [(9, 1)]},
+#             'statedim': dim_s_proprio * 3,
+#             'dt': dt,
+#             'mass': 1.0,
+#             'force_max':  1.0,
+#             'force_min': -1.0,
+#             'friction': 0.01,
+#             'sysnoise': 1e-2,
+#             'debug': False,
+#             'dim_s_proprio': dim_s_proprio,
+#             'length_ratio': 3./2., # gain curve?
+#             'm_mins': [-1.] * dim_s_proprio,
+#             'm_maxs': [ 1.] * dim_s_proprio,
+#             'dim_s_extero': dim_s_extero,
+#             'minlag': 1,
+#             'maxlag': 4, # 2, # 20, # 2, # 5
+#             'lag': 5,
+#             'order': 2,
+#             'coupling_sigma': 1e-2,
+#             'transfer': 0,
+#             'anoise_mean': 0.0,
+#             'anoise_std': 1e-2,
+#             }
+#         }
 
 def get_systemblock_sa(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
     global np, SimplearmBlock2

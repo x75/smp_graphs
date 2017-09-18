@@ -67,7 +67,6 @@ def get_systemblock_pm(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
             'sysdim': dim_s_proprio,
             # initial state
             'x0': np.random.uniform(-0.3, 0.3, (dim_s_proprio * 3, 1)),
-            # 'inputs': {'u': {'val': np.random.uniform(-1, 1, (3, numsteps))}},
             'inputs': {'u': {'bus': 'pre_l0/pre'}},
             'outputs': {
                 's_proprio': {'shape': (dim_s_proprio, 1)},
@@ -93,13 +92,12 @@ def get_systemblock_pm(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
             'transfer': 1, # 1, # 1
             'anoise_mean': 0.0,
             'anoise_std': 1e-3,
+            
+            # model related
             # tapping
-            'minlag': 1,
-            'maxlag': 2, # 2, # 20, # 2, # 5
             'lag_past': (-4, -3),
-            # 'lag_past': (-2, -1),
             'lag_future': (-1, 0),
-            # model params
+            # low-level params
             'mdl_modelsize': 300,
             'mdl_w_input': 1.0,
             'mdl_theta': 0.5e-1,
@@ -350,8 +348,6 @@ dim_s_extero  = systemblock['params']['dim_s_extero']
 dim_s_hidden_debug = 20
 m_mins = np.array([systemblock['params']['m_mins']]).T
 m_maxs = np.array([systemblock['params']['m_maxs']]).T
-minlag = systemblock['params']['minlag']
-maxlag = systemblock['params']['maxlag']
 
 dt = systemblock['params']['dt']
 
@@ -431,8 +427,6 @@ lag_past = systemblock['params']['lag_past'] # (-1, -0) # good
 # lag_past = (-4, -2)
 # lag_past = (-6, -2) #
 # lag_past = (-20, -1)
-# minlag = 1
-# maxlag = max(-lag_past[0], -lag_future[0])
 
 minlag = max(1, -max(lag_past[1], lag_future[1]))
 maxlag = 1 - min(lag_past[0], lag_future[0])
