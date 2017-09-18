@@ -29,7 +29,7 @@ from smp_graphs.funcs import f_sin, f_motivation, f_motivation_bin
 numsteps = 10000
 recurrent = True
 debug = False
-dim = 3
+dim = 2
 motors = dim
 dt = 0.1
 showplot = True
@@ -91,6 +91,7 @@ systemblock_sa = {
         "sysnoise": 1e-2,
         'debug': False,
         'dim_s_motor': dim,
+        'dim_s_proprio': dim,
         'length_ratio': 3./2.,
         'm_mins': -1,
         'm_maxs': 1,
@@ -98,7 +99,7 @@ systemblock_sa = {
         }
     }    
 
-systemblock = systemblock_pm
+systemblock = systemblock_sa
 dim_s_motor  = systemblock['params']['dim_s_motor']
 dim_s_extero = systemblock['params']['dim_s_extero']
 dim_s_goal   = dim_s_extero
