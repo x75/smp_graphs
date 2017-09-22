@@ -398,6 +398,7 @@ class Block2(object):
                     
         # fetch existing configuration arguments
         if type(self.conf) == dict and self.conf.has_key('params'):
+            # print "Block2 init params", self.conf['params']
             set_attr_from_dict(self, self.conf['params'])
         else:
             print "What could it be? Look at %s" % (self.conf)
@@ -1590,7 +1591,17 @@ class UniformRandomBlock2(PrimBlock2):
         
         # self.lo = 0
         # self.hi = 1
-        # self.x = np.random.uniform(self.lo, self.hi, (self.odim, 1))
+        # print "UniformRandomBlock2 keys", self.__dict__.keys()
+        # print "out x", self.outputs['x']['shape']
+        # print "out x", self.outputs['x']
+        for k, v in self.outputs.items():
+            x_ = np.random.uniform(-1e-1, 1e-1, v['shape'])
+            if hasattr(self, 'lo') and hasattr(self, 'hi'):
+                x_ = np.random.uniform(self.lo, self.hi, v['shape'])
+            setattr(self, k, x_.copy())
+        # self.x = np.random.uniform(
+        #     self.inputs['lo']['val'], self.inputs['hi']['val'],
+        #     self.outputs['x']['shape'])
         
     @decStep()
     def step(self, x = None):

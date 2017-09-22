@@ -8,7 +8,7 @@ from functools import partial
 import numpy as np
 
 from smp_base.measures import meas
-from smp_graphs.block_cls import PointmassBlock2
+from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2
 
 """system block
  - a robot
@@ -86,11 +86,14 @@ def get_systemblock_sa(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
                 }, # , 's_all': [(9, 1)]},
             'statedim': dim_s_proprio * 3,
             'dt': dt,
+            'lag': 3,
+            'lag_past': (-4, -3),
+            'lag_future': (-1, 0),
             'mass': 1.0/3.0,
             'force_max':  1.0,
             'force_min': -1.0,
             'friction': 0.001,
-            'sysnoise': 1e-2,
+            'sysnoise': 5e-3,
             'debug': False,
             'dim_s_proprio': dim_s_proprio,
             'length_ratio': 3./2.0,
@@ -101,8 +104,8 @@ def get_systemblock_sa(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
             # 'm_mins': -1,
             # 'm_maxs': 1,
             'dim_s_extero': dim_s_extero,
-            'minlag': 1,
-            'maxlag': 2, # 5
+            # 'minlag': 1,
+            # 'maxlag': 2, # 5
             }
         }
 
@@ -142,8 +145,8 @@ def get_systemblock_bha(dim_s_proprio = 9, dim_s_extero = 3, dt = 0.1):
             's_mins': [ 0.10] * dim_s_proprio, # fixme all sensors
             's_maxs': [ 0.30] * dim_s_proprio,
             'doplot': False,
-            'minlag': 1,
-            'maxlag': 3 # 5
+            # 'minlag': 1,
+            # 'maxlag': 3 # 5
             }
         }
     
@@ -169,8 +172,8 @@ def get_systemblock_stdr(dim_s_proprio = 2, dim_s_extero = 3, dt = 0.1):
             'dim_s_extero': dim_s_extero,   
             'outdict': {},
             'smdict': {},
-            'minlag': 1, # ha
-            'maxlag': 4, # 5
+            # 'minlag': 1, # ha
+            # 'maxlag': 4, # 5
             }
         }
 
@@ -196,13 +199,11 @@ def get_systemblock_lpzbarrel(dim_s_proprio = 2, dim_s_extero = 1, dt = 0.01):
             'dim_s_extero': dim_s_extero,   
             'outdict': {},
             'smdict': {},
-            'minlag': 2, # 1, # 5, 4
-            'maxlag': 6, # 2,
+            # 'minlag': 2, # 1, # 5, 4
+            # 'maxlag': 6, # 2,
             }
         }
     return systemblock_lpz
-
-# systemblock_lpzbarrel = get_systemblock_lpzbarrel(dt = dt)
 
 # ROS system using the Sphero
 def get_systemblock_sphero(dim_s_proprio = 2, dim_s_extero = 1, dt = 0.05):
@@ -226,13 +227,11 @@ def get_systemblock_sphero(dim_s_proprio = 2, dim_s_extero = 1, dt = 0.05):
             'dim_s_extero': dim_s_extero,   
             'outdict': {},
             'smdict': {},
-            'minlag': 2, # 2, # 4, # 2
-            'maxlag': 5,
+            # 'minlag': 2, # 2, # 4, # 2
+            # 'maxlag': 5,
             }
         }
     return systemblock_sphero
-
-# systemblock_sphero = get_systemblock_sphero()
 
 get_systemblock = {
     'pm': partial(get_systemblock_pm, dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1),

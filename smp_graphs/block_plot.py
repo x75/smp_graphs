@@ -62,7 +62,8 @@ class FigPlotBlock2(PrimBlock2):
         
         # create figure
         self.fig = makefig(
-            rows = self.fig_rows, cols = self.fig_cols, wspace = self.wspace, hspace = self.hspace,
+            rows = self.fig_rows, cols = self.fig_cols,
+            wspace = self.wspace, hspace = self.hspace,
             title = self.title)
         # self.fig.tight_layout(pad = 1.0)
         # self.debug_print("fig.axes = %s", (self.fig.axes, ))

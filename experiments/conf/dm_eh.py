@@ -130,7 +130,9 @@ def get_systemblock_sa(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
                 }, # , 's_all': [(9, 1)]},
             'statedim': dim_s_proprio * 3,
             'dt': dt,
-            'lag': 3,
+            'lag': 1,
+            'lag_past': (-2, -1),
+            'lag_future': (-1, 0),
             'mass': 1.0/3.0,
             'force_max':  1.0,
             'force_min': -1.0,
@@ -148,8 +150,6 @@ def get_systemblock_sa(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
             'dim_s_extero': dim_s_extero,
             'minlag': 1,
             'maxlag': 2, # 5
-            'lag_past': (-1, 0),
-            'lag_future': (-1, 0),
             }
         }
 
