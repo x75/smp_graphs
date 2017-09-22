@@ -26,10 +26,10 @@ from smp_graphs.block import FuncBlock2
 from smp_graphs.funcs import f_sin, f_motivation, f_motivation_bin
 
 # reuse
-numsteps = 10000/2
+numsteps = 10000/10
 recurrent = True
 debug = False
-dim = 2
+dim = 1
 motors = dim
 dt = 0.1
 showplot = True
@@ -103,7 +103,7 @@ from smp_graphs.utils_conf import get_systemblock_sa
 #         }
 #     }    
 
-systemblock   = get_systemblock['sa']()
+systemblock   = get_systemblock['sa'](dim_s_proprio = dim)
 dim_s_proprio = systemblock['params']['dim_s_proprio']
 dim_s_extero  = systemblock['params']['dim_s_extero']
 # dim_s_goal   = dim_s_extero
@@ -174,8 +174,8 @@ graph = OrderedDict([
                             'y': {'shape': (dim_s_proprio, 1)},
                             'y1': {'shape': (dim_s_proprio, 1)},
                             'x_': {'shape': (dim_s_goal, 1)}},
-                        # 'func': f_motivation_bin,
-                        'func': f_motivation,
+                        'func': f_motivation_bin,
+                        # 'func': f_motivation,
                         'debug': False,
                     },
                 }),
@@ -230,8 +230,8 @@ graph = OrderedDict([
                 },
             'subplots': [
                 [
-                    {'input': 's_p', 'plot': timeseries},
-                    {'input': 's_p', 'plot': histogram},
+                    {'input': ['s_p', 'goal'], 'plot': timeseries},
+                    {'input': ['s_p', 'goal'], 'plot': histogram},
                 ],
                 [
                     {'input': ['s_e', 'goal'], 'plot': timeseries},

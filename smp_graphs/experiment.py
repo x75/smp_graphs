@@ -136,10 +136,16 @@ Load a config from the file in args.conf
         print '#' * 80
         print "Init done, running the graph"
         print "{0}.run: numsteps = {1}".format(self.__class__.__name__, self.params['numsteps'])
-        
+
+        # TODO: try run
+        #       except go interactive
+        import pdb
         # topblock_x = self.topblock.step(x = None)
         for i in xrange(self.params['numsteps']):
+            # try:
             topblock_x = self.topblock.step(x = None)
+            # except:
+            # pdb.set_trace()
             # FIXME: progress bar / display        
             
         print "final return value topblock.x = %s" % (topblock_x)
