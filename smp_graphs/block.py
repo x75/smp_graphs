@@ -392,9 +392,18 @@ class Block2(object):
         self.paren = paren
         self.top = top
         self.cname = self.__class__.__name__
-        
+
+        # merge Block2 base defaults with child defaults
+        # print "Block2 Block2.defaul", Block2.defaults
+        # print "Block2 self.defaults", self.defaults
+        # print "Block2 self.__class_", self.__class__.defaults
+        defaults = {}
+        defaults.update(Block2.defaults, **self.defaults)
+        print "defaults", defaults
+                
         # load defaults
-        set_attr_from_dict(self, self.defaults)
+        # set_attr_from_dict(self, self.defaults)
+        set_attr_from_dict(self, defaults)
                     
         # fetch existing configuration arguments
         if type(self.conf) == dict and self.conf.has_key('params'):
@@ -1049,8 +1058,19 @@ class Block2(object):
             return get_input(self.inputs, k)
 
 class FuncBlock2(Block2):
-    """!@brief Function block: wrap the function given by the configuration in params['func'] in a block"""
+    """FuncBlock2 class
+
+    Function block: wrap the function given by the 'func' configuration
+    parameter in a block
+    """
+    defaults = {
+        'func': lambda x: x
+        }
+        
     def __init__(self, conf = {}, paren = None, top = None):
+        """FuncBlock2.__init__
+        """
+        # print "FuncBlock2 defaults", Block2.defaults, self.defaults
         Block2.__init__(self, conf = conf, paren = paren, top = top)
 
         self.check_attrs(['func'])
@@ -1059,6 +1079,10 @@ class FuncBlock2(Block2):
 
     @decStep()
     def step(self, x = None):
+        """FuncBlock2.step
+
+        Function block step function
+        """
         # print "%s.step inputs[%d] = %s" % (self.cname, self.cnt, self.inputs)
         # self.inputs is a dict with values [array]
         # assert self.inputs.has_key('x'), "%s.inputs expected to have key 'x' with function input vector. Check config."

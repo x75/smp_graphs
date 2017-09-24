@@ -36,11 +36,18 @@ def nxgraph_add_nodes_from_dict(conf, G, nc):
     Returns:
      - tuple (G, nc), the new graph, the new node count after insertion
     """
+    # assert conf.has_key('params'), "config needs params dict"
+    
     for k, v in conf.items():
-        v['params']['id'] = k
-        # print "v", v
-        G.add_node(nc, v)
-        nc += 1
+        nxgraph_add_node_from_conf(k, v, G, nc)
+    return (G, nc)
+
+def nxgraph_add_node_from_conf(k, v, G, nc):
+    if not v.has_key('params'): v['params'] = {}
+    v['params']['id'] = k
+    # print "v", v
+    G.add_node(nc, v)
+    nc += 1
     return (G, nc)
 
 def nxgraph_from_smp_graph(conf):
