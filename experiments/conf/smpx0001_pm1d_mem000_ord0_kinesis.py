@@ -35,6 +35,7 @@ dim = 1
 motors = dim
 dt = 0.1
 showplot = True
+saveplot = True
 randseed = 126
 
 from smp_graphs.utils_conf import get_systemblock
@@ -182,6 +183,7 @@ graph = OrderedDict([
         'params': {
             'id': 'plot',
             'blocksize': numsteps,
+            'saveplot': saveplot,
             'inputs': {
                 's_p': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
                 's_e': {'bus': 'robot1/s_extero', 'shape': (dim_s_extero, numsteps)},
