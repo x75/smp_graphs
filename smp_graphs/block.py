@@ -5,6 +5,7 @@ block: basic block of computation
 2017 Oswald Berthold
 """
 
+import pdb
 import uuid, sys, time, copy, re
 from collections import OrderedDict, MutableMapping
 import itertools
@@ -342,10 +343,13 @@ class decStep():
                     # copy data onto bus
                     xself.bus[v['buskey']] = getattr(xself, k).copy()
                     # print "xself.bus[v['buskey'] = %s]" % (v['buskey'], ) , xself.bus[v['buskey']]
-
+                    
                     # do logging
                     if xself.logging:
+                        # try:
                         log.log_pd(tbl_name = v['buskey'], data = xself.bus[v['buskey']])
+                        # except:
+                        # print "Logging failed"
 
                     if hasattr(xself, 'ros') and xself.ros:
                         theattr = getattr(xself, k).flatten().tolist()
@@ -395,11 +399,11 @@ class Block2(object):
 
         # merge Block2 base defaults with child defaults
         # print "Block2 Block2.defaul", Block2.defaults
-        print "Block2 self.defaults", self.defaults
+        # print "Block2 self.defaults", self.defaults
         # print "Block2 self.__class_", self.__class__.defaults
         defaults = {}
         defaults.update(Block2.defaults, **self.defaults)
-        print "defaults %s = %s" % (self.cname, defaults)
+        # print "defaults %s = %s" % (self.cname, defaults)
                 
         # load defaults
         # set_attr_from_dict(self, self.defaults)
@@ -715,6 +719,7 @@ class Block2(object):
             self.pubs = {}
             self.subs = {}
             self.msgs = {}
+
         for k, v in self.outputs.items():
             print "%s.init_outputs: outk = %s, outv = %s" % (self.cname, k, v)
             assert type(v) is dict, "Old config of %s output %s with type %s, %s" % (self.id, k, type(v), v)
@@ -914,6 +919,10 @@ class Block2(object):
             
             # for k, v in self.graph.items():
             v['block_'].step()
+            # try:
+            #     v['block_'].step()
+            # except:
+            #     pdb.set_trace()
             # print "%s-%s.step[%d]: k = %s, v = %s" % (self.cname, self.id, self.cnt, k, type(v))
 
         if self.topblock:
@@ -936,7 +945,7 @@ class Block2(object):
 
             # store log
             if (self.cnt) % 500 == 0 or self.cnt == (self.numsteps - 1):
-                print "storing log @iter %04d" % (self.cnt)
+                print "storing log @iter % 4d/%d" % (self.cnt, self.numsteps)
                 log.log_pd_store()
 
             # store on final step and copy data attributes to log attributes
@@ -1066,9 +1075,9 @@ class FuncBlock2(Block2):
     parameter in a block
     """
     defaults = {
-        'func': lambda x: {'x': x},
+        'func': lambda x: {'x': x['x']['val']},
         'inputs': {
-            'x': {'bus': 'cnt/cnt'},
+            'x': {'bus': 'cnt/x'},
             },
         'outputs': {
             'x': {'shape': (1,1)},
@@ -1586,9 +1595,10 @@ class CountBlock2(PrimBlock2):
     """!@brief Count block: output is just the count
     """
     defaults = {
+        # 'cnt': np.ones((1,1)),
         'outputs': {
-            'cnt': {'shape': (1,1)}
-            }
+            'x': {'shape': (1,1)}
+            },
         }
         
     @decInit()
@@ -1604,7 +1614,8 @@ class CountBlock2(PrimBlock2):
         self.cnt_ = np.zeros(self.outputs[self.outk]['shape'])
         # print self.inputs
         # FIXME: modulo / cout range with reset/overflow
-        
+
+        print "\n%s endofinit bus = %s\n" % (self.cname, self.bus.keys())
     @decStep()
     def step(self, x = None):
         """CountBlock step: if blocksize is 1 just copy the counter, if bs > 1 set cnt_ to range"""
@@ -1618,6 +1629,7 @@ class CountBlock2(PrimBlock2):
         else:
             self.cnt_[...,0] = self.cnt
         # FIXME: make that a for output items loop
+        # print "getattr self.outk", self.outk, getattr(self, self.outk), self.cnt_
         setattr(self, self.outk, (self.cnt_ * self.scale) + self.offset)
 
 class UniformRandomBlock2(PrimBlock2):

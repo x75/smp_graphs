@@ -118,6 +118,7 @@ class PlotBlock2(FigPlotBlock2):
         # 'inputs': {
         #     'x': {'bus': 'x'}, # FIXME: how can this be known? id-1?
         # },
+        'blocksize': 1,
         'subplots': [[{'input': ['x'], 'plot': timeseries}]],
      }
     
@@ -132,7 +133,7 @@ class PlotBlock2(FigPlotBlock2):
             for i, subplot in enumerate(self.subplots):
                 for j, subplotconf in enumerate(subplot):
                     assert subplotconf.has_key('input'), "PlotBlock2 needs 'input' key in the plot spec = %s" % (subplotconf,)
-                    assert subplotconf.has_key('plot'), "PlotBlock2 needs 'plot' key in the plot spec = %s" % (subplotconf,)
+                    # assert subplotconf.has_key('plot'), "PlotBlock2 needs 'plot' key in the plot spec = %s" % (subplotconf,)
                     # make it a list if it isn't
                     for input_spec_key in ['input', 'ndslice', 'shape']:
                         if subplotconf.has_key(input_spec_key):
@@ -160,7 +161,7 @@ class PlotBlock2(FigPlotBlock2):
                         plotlen = self.inputs[subplotconf['input'][0]]['shape'][-1]
                         xslice = slice(0, plotlen)
                         plotshape = mytupleroll(self.inputs[subplotconf['input'][k]]['shape'])
-                        print "%s.subplots defaults: plotlen = %d, xslice = %s, plotshape = %s" % (self.cname, plotlen, xslice, plotshape)
+                        # print "%s.subplots defaults: plotlen = %d, xslice = %s, plotshape = %s" % (self.cname, plotlen, xslice, plotshape)
                     
                         # x axis slice spec
                         if subplotconf.has_key('xslice'):
@@ -175,7 +176,7 @@ class PlotBlock2(FigPlotBlock2):
                             plotlen = plotshape[0]
                             xslice = slice(0, plotlen)
 
-                        print "%s.subplots post-shape: plotlen = %d, xslice = %s, plotshape = %s" % (self.cname, plotlen, xslice, plotshape)
+                        # print "%s.subplots post-shape: plotlen = %d, xslice = %s, plotshape = %s" % (self.cname, plotlen, xslice, plotshape)
                         
                         # configure x axis
                         if subplotconf.has_key('xaxis'):
@@ -196,7 +197,7 @@ class PlotBlock2(FigPlotBlock2):
                         else:
                             plotdata[ink_] = myt(self.inputs[ink]['val'])[xslice] # .reshape((xslice.stop - xslice.start, -1))
 
-                        print "ink = %s, plotdata = %s, plotshape = %s" % (ink_, plotdata[ink_].shape, plotshape)
+                        # print "ink = %s, plotdata = %s, plotshape = %s" % (ink_, plotdata[ink_].shape, plotshape)
                         # plotdata[ink_] = plotdata[ink_].reshape((plotshape[1], plotshape[0])).T
                         plotdata[ink_] = plotdata[ink_].reshape(plotshape)
                         
@@ -214,6 +215,9 @@ class PlotBlock2(FigPlotBlock2):
                         plotdata = {}
                         if subplotconf['mode'] in ['stack', 'combine', 'concat']:
                             plotdata['all'] = np.hstack(ivecs)
+
+                    # default plot type
+                    if not subplotconf.has_key('plot'): subplotconf['plot'] = timeseries
                         
                     if hasattr(subplotconf['plot'], 'func_name'):
                         # plain function
@@ -223,7 +227,7 @@ class PlotBlock2(FigPlotBlock2):
                         plottype = subplotconf['plot'].func.func_name
                     else:
                         # unknown func type
-                        plottype = "unk plottype"
+                        plottype = timeseries # "unk plottype"
 
                     # append to title
                     title += " " + plottype

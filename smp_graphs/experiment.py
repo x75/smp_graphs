@@ -40,6 +40,7 @@ def get_args():
     parser.add_argument("-c", "--conf",     type=str, default=default_conf,     help="Configuration file [%s]" % default_conf)
     parser.add_argument("-m", "--mode",     type=str, default="run",            help="Which subprogram to run [run], one of [run, graphviz]")
     parser.add_argument("-n", "--numsteps", type=int, default=default_numsteps, help="Number of outer loop steps [%s]" % default_numsteps)
+    parser.add_argument("-s", "--randseed",     type=int, default=None,             help="Random seed [None], seed is taken from config file")
     # 
     # parse arguments
     args = parser.parse_args()
@@ -52,8 +53,11 @@ def set_config_defaults(conf):
     return conf
 
 def set_config_commandline_args(conf, args):
-    for commandline_arg in conf['params'].has_key("numsteps"):
-        conf['params']['numsteps'] = 100
+    # for commandline_arg in conf['params'].has_key("numsteps"):
+    #     conf['params']['numsteps'] = 100
+    for clarg in ['numsteps', 'randseed']:
+        if getattr(args, clarg) is not None:
+            conf['params'][clarg] = getattr(args, clarg)
     return conf
 
 def make_expr_id_configfile(name = "experiment", configfile = "conf/default2.py"):
@@ -91,7 +95,7 @@ Load a config from the file in args.conf
             import rospy
             rospy.init_node("smp_graph")
     
-        # self.conf = set_config_commandline_args(self.conf, args)
+        self.conf = set_config_commandline_args(self.conf, args)
         
         # print "%s.init: conf keys = %s\n\n\n\n" % (self.__class__.__name__, self.conf.keys())
         
@@ -139,7 +143,7 @@ Load a config from the file in args.conf
 
         # TODO: try run
         #       except go interactive
-        import pdb
+        # import pdb
         # topblock_x = self.topblock.step(x = None)
         for i in xrange(self.params['numsteps']):
             # try:
