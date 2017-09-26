@@ -395,11 +395,11 @@ class Block2(object):
 
         # merge Block2 base defaults with child defaults
         # print "Block2 Block2.defaul", Block2.defaults
-        # print "Block2 self.defaults", self.defaults
+        print "Block2 self.defaults", self.defaults
         # print "Block2 self.__class_", self.__class__.defaults
         defaults = {}
         defaults.update(Block2.defaults, **self.defaults)
-        print "defaults", defaults
+        print "defaults %s = %s" % (self.cname, defaults)
                 
         # load defaults
         # set_attr_from_dict(self, self.defaults)
@@ -844,6 +844,8 @@ class Block2(object):
                         
                     elif not v.has_key('shape'):
                         # check if key exists or not. if it doesn't, that means this is a block inside dynamical graph construction
+                        print "\nplotblock", self.bus.keys()
+
                         assert self.bus.has_key(v['bus']), "Requested bus item %s is not in buskeys %s" % (v['bus'], self.bus.keys())
                     
                         # enforce bus blocksize smaller than local blocksize, tackle later
@@ -1064,7 +1066,13 @@ class FuncBlock2(Block2):
     parameter in a block
     """
     defaults = {
-        'func': lambda x: x
+        'func': lambda x: {'x': x},
+        'inputs': {
+            'x': {'bus': 'cnt/cnt'},
+            },
+        'outputs': {
+            'x': {'shape': (1,1)},
+            }
         }
         
     def __init__(self, conf = {}, paren = None, top = None):
@@ -1577,6 +1585,12 @@ class ConstBlock2(PrimBlock2):
 class CountBlock2(PrimBlock2):
     """!@brief Count block: output is just the count
     """
+    defaults = {
+        'outputs': {
+            'cnt': {'shape': (1,1)}
+            }
+        }
+        
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
         # defaults

@@ -109,6 +109,18 @@ class FigPlotBlock2(PrimBlock2):
             print "%s error %s" % ('FigPlotBlock2', e)
 
 class PlotBlock2(FigPlotBlock2):
+    """PlotBlock2 class
+    
+    Block for plotting timeseries and histograms
+    """
+    # PlotBlock2.defaults
+    defaults = {
+        # 'inputs': {
+        #     'x': {'bus': 'x'}, # FIXME: how can this be known? id-1?
+        # },
+        'subplots': [[{'input': ['x'], 'plot': timeseries}]],
+     }
+    
     def __init__(self, conf = {}, paren = None, top = None):
         FigPlotBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
