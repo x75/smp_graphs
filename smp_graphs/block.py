@@ -827,7 +827,6 @@ class Block2(object):
                         assert len(v['shape']) > 1, "Shape must be length == 2"
 
                         # clamp input_shape[1] to min(numsteps, input_shape[1])
-                        # v['shape'][1] = min(self.top.numsteps, v['shape'][1])
                         v['shape'] = (v['shape'][0], min(self.top.numsteps, v['shape'][1]))
                         
                         # initialize input buffer

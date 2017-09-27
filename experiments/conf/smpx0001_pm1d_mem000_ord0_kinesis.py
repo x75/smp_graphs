@@ -52,6 +52,7 @@ dim_s_goal    = dim_s_proprio
 # 1. loop over randseed
 # 2. loop over budget vs. density (space limits, distance threshold), hyperopt
 # 3. loop over randseed with fixed optimized parameters
+# 4. loop over kinesis variants [bin, cont] and system variants ord [0, 1, 2, 3?] and ndim = [1,2,3,4,8,16,...,ndim_max]
 
 # TODO low-level
 # experiment sig, make hash, store config and logfile with that hash
