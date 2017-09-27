@@ -424,13 +424,17 @@ class Block2(object):
 
         # input buffer vs. blocksize: input buffer is sliding, blocksize is jumping
         # FIXME: obsolete? delete ibuf
-        if self.blocksize > self.ibuf:
-            self.ibuf = self.blocksize
+        # blocksize vs. numsteps: override config blocksize with global numsteps if numsteps < blocksize
+        # print "self.top", self.top
+        # if self.blocksize > self.ibuf:
+        #     self.ibuf = self.blocksize
 
         ################################################################################
         # 1 general top block stuff: init bus, set top to self, init logging
         #   all the rest should be the same as for hier from file, hier from dict, loop, loop_seq
         if self.topblock:
+            # print "Block2.init topblock conf.keys", self.conf['params'].keys()
+            # print "Block2.init topblock numsteps", self.numsteps
             # fix the random seed
             np.random.seed(self.randseed)
                 
@@ -461,8 +465,11 @@ class Block2(object):
 
             log.log_pd_store_config_final(nxgraph_to_smp_graph(self.nxgraph))
 
+            # print "Block2.init topblock self.blocksize", self.blocksize
+
         # not topblock
         else:
+            self.blocksize_clamp()
             # get bus from topblock
             self.bus = self.top.bus
             
@@ -470,6 +477,13 @@ class Block2(object):
 
         print "%s-%s end of init blocksize = %d" % (self.cname, self.id, self.blocksize)
 
+    def blocksize_clamp(self):
+        """Block2.blocksize_clamp
+
+        Clamp blocksize to numsteps if numsteps < blocksize
+        """
+        self.blocksize = min(self.top.numsteps, self.blocksize)
+        
     def init_block(self):
         """Init a graph block: topblock, hierarchical inclusion: file/dict, loop, loop_seq"""
         ################################################################################
@@ -810,8 +824,12 @@ class Block2(object):
                         # else:
                         #     # vshape = v['shape'][:-1] + (self.ibuf,)
                         #     vshape = v['shape']
-                        assert len(v['shape']) > 1, "Shape needs minimum two element"
-                            
+                        assert len(v['shape']) > 1, "Shape must be length == 2"
+
+                        # clamp input_shape[1] to min(numsteps, input_shape[1])
+                        # v['shape'][1] = min(self.top.numsteps, v['shape'][1])
+                        v['shape'] = (v['shape'][0], min(self.top.numsteps, v['shape'][1]))
+                        
                         # initialize input buffer
                         v['val'] = np.zeros(v['shape']) # ibuf >= blocksize
                         

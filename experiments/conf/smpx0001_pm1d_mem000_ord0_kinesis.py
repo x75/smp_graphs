@@ -26,7 +26,7 @@ from smp_graphs.block_models import ModelBlock2
 
 from smp_graphs.funcs import f_sin, f_motivation, f_motivation_bin
 
-# reuse
+# global parameters can be overwritten from the commandline
 ros = False
 numsteps = 10000/1
 recurrent = True
@@ -47,6 +47,17 @@ dim_s_proprio = systemblock['params']['dim_s_proprio']
 dim_s_extero  = systemblock['params']['dim_s_extero']
 # dim_s_goal   = dim_s_extero
 dim_s_goal    = dim_s_proprio
+
+# TODO
+# 1. loop over randseed
+# 2. loop over budget vs. density (space limits, distance threshold), hyperopt
+# 3. loop over randseed with fixed optimized parameters
+
+# TODO low-level
+# experiment sig, make hash, store config and logfile with that hash
+# compute experiment hash: if exists, use logfile, else compute
+# compute experiment/model_i hash: if exists, use pickled model i, else train
+# pimp smp_graphs graph visualisation
 
 # graph
 graph = OrderedDict([

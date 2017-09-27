@@ -55,7 +55,8 @@ def set_config_defaults(conf):
 def set_config_commandline_args(conf, args):
     # for commandline_arg in conf['params'].has_key("numsteps"):
     #     conf['params']['numsteps'] = 100
-    for clarg in ['numsteps', 'randseed']:
+    gparams = ['numsteps', 'randseed']
+    for clarg in gparams:
         if getattr(args, clarg) is not None:
             conf['params'][clarg] = getattr(args, clarg)
     return conf
@@ -94,7 +95,8 @@ Load a config from the file in args.conf
         if self.conf['params']['ros']:
             import rospy
             rospy.init_node("smp_graph")
-    
+
+        # update conf with commandline arguments
         self.conf = set_config_commandline_args(self.conf, args)
         
         # print "%s.init: conf keys = %s\n\n\n\n" % (self.__class__.__name__, self.conf.keys())
