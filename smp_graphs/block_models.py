@@ -276,6 +276,7 @@ def init_random_uniform_modulated(ref, conf, mconf):
     setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
     ref.credit = np.ones((1, 1)) * params['credit']
     ref.credit_ = ref.credit.copy()
+    ref.goalsize = params['goalsize']
     # setattr(ref, outk, np.ones(outv['shape']))
     print "block_models.py: random_uniform_modulated_init %s = %s" % (outk, getattr(ref, outk))
 
@@ -294,7 +295,7 @@ def step_random_uniform_modulated(ref):
     # for outk, outv in ref.outputs.items():
     outk = 'pre'
     outv = ref.outputs[outk]
-    if ref.cnt % (ref.rate * 1) == 0 and mdltr_ < 0.01:
+    if ref.cnt % (ref.rate * 1) == 0 and mdltr_ < ref.goalsize:
         # print ref.__class__.__name__, ref.id, "lo, hi, out shapes", lo.shape, hi.shape, outv['shape']
         setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
         ref.credit = ref.credit_.copy()

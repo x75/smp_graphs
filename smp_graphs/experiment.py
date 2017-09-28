@@ -41,6 +41,7 @@ def get_args():
     parser.add_argument("-m", "--mode",     type=str, default="run",            help="Which subprogram to run [run], one of [run, graphviz]")
     parser.add_argument("-n", "--numsteps", type=int, default=default_numsteps, help="Number of outer loop steps [%s]" % default_numsteps)
     parser.add_argument("-s", "--randseed",     type=int, default=None,             help="Random seed [None], seed is taken from config file")
+    # parser.add_argument("-sp", "--saveplot", type=int, default=None,             help="Random seed [None], seed is taken from config file")
     # 
     # parse arguments
     args = parser.parse_args()
@@ -85,6 +86,9 @@ Arguments:
 Load a config from the file in args.conf
 
     """
+
+    gparams = ['ros', 'numsteps', 'recurrent', 'debug', 'dim', 'dt', 'showplot', 'saveplot', 'randseed']
+    
     def __init__(self, args):
         global make_expr_id
         make_expr_id = partial(make_expr_id_configfile, configfile = args.conf)

@@ -13,7 +13,7 @@ from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2
 """system block
  - a robot
 """
-def get_systemblock_pm(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
+def get_systemblock_pm(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1, lag = 1):
     global np, PointmassBlock2, meas
     return {
         'block': PointmassBlock2,
@@ -42,7 +42,7 @@ def get_systemblock_pm(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
             'm_mins': [-1.0] * dim_s_proprio,
             'm_maxs': [ 1.0] * dim_s_proprio,
             'dim_s_extero': dim_s_extero,
-            'lag': 5,
+            'lag': lag,
             'order': 2,
             'coupling_sigma': 1e-2,
             'transfer': 0,

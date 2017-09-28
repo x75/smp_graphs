@@ -35,14 +35,16 @@ dim = 1
 motors = dim
 dt = 0.1
 showplot = True
-saveplot = True
+saveplot = False
 randseed = 126
 
 from smp_graphs.utils_conf import get_systemblock
 from smp_graphs.utils_conf import get_systemblock_pm
 from smp_graphs.utils_conf import get_systemblock_sa
 
-systemblock   = get_systemblock['pm'](dim_s_proprio = dim)
+systemblock   = get_systemblock['pm'](dim_s_proprio = dim, lag = 1)
+systemblock['params']['sysnoise'] = 0.0
+systemblock['params']['anoise_std'] = 0.0
 dim_s_proprio = systemblock['params']['dim_s_proprio']
 dim_s_extero  = systemblock['params']['dim_s_extero']
 # dim_s_goal   = dim_s_extero
@@ -100,7 +102,8 @@ graph = OrderedDict([
                         'blocksize': 1,
                         'blockphase': [0],
                         'ros': ros,
-                        'credit': np.ones((1, 1)) * 100,
+                        'credit': np.ones((1, 1)) * 510,
+                        'goalsize': 0.01, # area of goal
                         'inputs': {                        
                             'lo': {'val': -0.2, 'shape': (dim_s_proprio, 1)},
                             'hi': {'val': 0.2 * 1.0, 'shape': (dim_s_proprio, 1)},
@@ -131,27 +134,29 @@ graph = OrderedDict([
                 #             'x': {'shape': (dim_s_goal, 1)}}
                 #         },
                 #     }),
-                # kinesis, goal detector, output is binary or continuous, on-goal/off-goal, d(goal)
-                ('motivation', {
-                    'block': FuncBlock2,
-                    'params': {
-                        'id': 'motivation',
-                        # 'inputs': {'x': {'bus': 'robot1/s_extero'}, 'x_': {'val': np.random.uniform(-0.05, 0.05, (3,1))}},
-                        'inputs': {
-                            # 'x':   {'bus': 'robot1/s_extero', 'shape': (dim_s_extero, 1)},
-                            'x': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 1)},
-                            'x_':  {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, 1)},
-                            # 'x__': {'val': dim_s_proprio, 'shape': (dim_s_proprio, 1)}
-                            },
-                        'outputs': {
-                            'y': {'shape': (dim_s_proprio, 1)},
-                            'y1': {'shape': (dim_s_proprio, 1)},
-                            'x_': {'shape': (dim_s_goal, 1)}},
-                        'func': f_motivation_bin,
-                        # 'func': f_motivation,
-                        'debug': False,
-                    },
-                }),
+                
+                # # kinesis, goal detector, output is binary or continuous, on-goal/off-goal, d(goal)
+                # ('motivation', {
+                #     'block': FuncBlock2,
+                #     'params': {
+                #         'id': 'motivation',
+                #         # 'inputs': {'x': {'bus': 'robot1/s_extero'}, 'x_': {'val': np.random.uniform(-0.05, 0.05, (3,1))}},
+                #         'inputs': {
+                #             # 'x':   {'bus': 'robot1/s_extero', 'shape': (dim_s_extero, 1)},
+                #             'x': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 1)},
+                #             'x_':  {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, 1)},
+                #             # 'x__': {'val': dim_s_proprio, 'shape': (dim_s_proprio, 1)}
+                #             },
+                #         'outputs': {
+                #             'y': {'shape': (dim_s_proprio, 1)},
+                #             'y1': {'shape': (dim_s_proprio, 1)},
+                #             'x_': {'shape': (dim_s_goal, 1)}},
+                #         'func': f_motivation_bin,
+                #         # 'func': f_motivation,
+                #         'debug': False,
+                #     },
+                # }),
+                
                 # kinesis, search, noise, motor babbling - modulated by goal detector
                 # ('search', {
                 ('pre_l0', {
@@ -199,16 +204,17 @@ graph = OrderedDict([
             'inputs': {
                 's_p': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
                 's_e': {'bus': 'robot1/s_extero', 'shape': (dim_s_extero, numsteps)},
-                'goal': {'bus': 'motivation/x_', 'shape': (dim_s_goal, numsteps)},
+                # 'goal': {'bus': 'motivation/x_', 'shape': (dim_s_goal, numsteps)},
                 'd4': {'bus': 'sin/y', 'shape': (dim_s_proprio, numsteps)},
                 'd5': {'bus': 'motivation/y', 'shape': (dim_s_proprio, numsteps)},
+                'pre_l0': {'bus': 'pre_l0/pre', 'shape': (dim_s_goal, numsteps)},
                 'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
                 'pre_l1_credit': {'bus': 'pre_l1/credit', 'shape': (dim_s_goal, numsteps)},
                 },
             'subplots': [
                 [
-                    {'input': ['s_p', 'goal'], 'plot': timeseries},
-                    {'input': ['s_p', 'goal'], 'plot': histogram},
+                    {'input': ['pre_l0', 's_p', 'pre_l1'], 'plot': [timeseries, partial(timeseries, linewidth = 1.0), timeseries]},
+                    {'input': ['pre_l0', 's_p', 'pre_l1'], 'plot': histogram},
                 ],
                 # [
                 #     {'input': ['s_e', 'goal'], 'plot': timeseries},
@@ -222,10 +228,10 @@ graph = OrderedDict([
                 #     {'input': 'd5', 'plot': timeseries},
                 #     {'input': 'd5', 'plot': histogram},
                 # ],
-                [
-                    {'input': 'pre_l1', 'plot': timeseries},
-                    {'input': 'pre_l1', 'plot': histogram},
-                ],
+                # [
+                #     {'input': 'pre_l1', 'plot': timeseries},
+                #     {'input': 'pre_l1', 'plot': histogram},
+                # ],
                 [
                     {'input': 'pre_l1_credit', 'plot': timeseries},
                     {'input': 'pre_l1_credit', 'plot': histogram},

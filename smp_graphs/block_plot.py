@@ -1,6 +1,7 @@
 
 # import itertools
 
+from collections import OrderedDict
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 from  matplotlib import rcParams
@@ -58,7 +59,8 @@ class FigPlotBlock2(PrimBlock2):
         self.fig_cols = len(self.subplots[0])
 
         if not hasattr(self, 'title'):
-            self.title = "%s - %s-%s" % (self.top.id, self.cname, self.id)
+            # self.title = "%s - %s-%s" % (self.top.id, self.cname, self.id)
+            self.title = "%s" % (self.top.id, )
         
         # create figure
         self.fig = makefig(
@@ -152,10 +154,32 @@ class PlotBlock2(FigPlotBlock2):
                     # plotdata = self.inputs[subplotconf['input']][0].T
                     # elif type(subplotconf['input']) is list:
                     # plotdata = self.inputs[subplotconf['input'][1]][0].T
-                    plotdata = {}
+                    # plotdata = {}
+                    plotdata = OrderedDict()
                     plotvar = " "
                     title = ""
                     if subplotconf.has_key('title'): title += subplotconf['title']
+                        
+                    # default plot type
+                    if not subplotconf.has_key('plot'): subplotconf['plot'] = timeseries
+
+                    if type(subplotconf['plot']) is list:
+                        subplotconf_plot = subplotconf['plot'][0]
+                    else:
+                        subplotconf_plot = subplotconf['plot']
+                        
+                    if hasattr(subplotconf_plot, 'func_name'):
+                        # plain function
+                        plottype = subplotconf_plot.func_name
+                    elif hasattr(subplotconf_plot, 'func'):
+                        # partial'ized func
+                        plottype = subplotconf_plot.func.func_name
+                    else:
+                        # unknown func type
+                        plottype = timeseries # "unk plottype"
+
+                    # append to title
+                    title += " " + plottype
                         
                     for k, ink in enumerate(subplotconf['input']):
                         plotlen = self.inputs[subplotconf['input'][0]]['shape'][-1]
@@ -204,9 +228,10 @@ class PlotBlock2(FigPlotBlock2):
                         # fix nans
                         plotdata[ink_][np.isnan(plotdata[ink_])] = -1.0
                         plotvar += "%s, " % (self.inputs[ink]['bus'],)
-                    title += plotvar
+                    # assign and trim title
+                    title += plotvar[:-2]
                         
-                    # different 
+                    # different
                     if subplotconf.has_key('mode'):
                         # ivecs = tuple(self.inputs[ink][0].T[xslice] for k, ink in enumerate(subplotconf['input']))
                         ivecs = tuple(self.inputs[ink][0].myt()[xslice] for k, ink in enumerate(subplotconf['input']))
@@ -215,22 +240,6 @@ class PlotBlock2(FigPlotBlock2):
                         plotdata = {}
                         if subplotconf['mode'] in ['stack', 'combine', 'concat']:
                             plotdata['all'] = np.hstack(ivecs)
-
-                    # default plot type
-                    if not subplotconf.has_key('plot'): subplotconf['plot'] = timeseries
-                        
-                    if hasattr(subplotconf['plot'], 'func_name'):
-                        # plain function
-                        plottype = subplotconf['plot'].func_name
-                    elif hasattr(subplotconf['plot'], 'func'):
-                        # partial'ized func
-                        plottype = subplotconf['plot'].func.func_name
-                    else:
-                        # unknown func type
-                        plottype = timeseries # "unk plottype"
-
-                    # append to title
-                    title += " " + plottype
 
                     # if type(subplotconf['input']) is list:
                     if subplotconf.has_key('xaxis'):
@@ -253,12 +262,19 @@ class PlotBlock2(FigPlotBlock2):
                     # plot the plotdata
                     labels = []
                     self.fig.axes[idx].clear()
+                    inkc = 0
                     for ink, inv in plotdata.items():
                         # print "%s.plot_subplots: ink = %s, plotvar = %s, inv.sh = %s, t.sh = %s" % (self.cname, ink, plotvar, inv.shape, t.shape)
+                        if type(subplotconf['plot']) is list:
+                            plotfunc_conf = subplotconf['plot'][inkc]
+                        else:
+                            plotfunc_conf = subplotconf['plot']
+                            
                         # this is the plotfunction from the config
-                        subplotconf['plot'](self.fig.axes[idx], data = inv, ordinate = t, label = "%s" % ink, title = title)
+                        plotfunc_conf(self.fig.axes[idx], data = inv, ordinate = t, label = "%s" % ink, title = title)
                         # labels.append("%s" % ink)
                         # metadata
+                        inkc += 1
                     # self.fig.axes[idx].legend()
                     # self.fig.axes[idx].set_title("%s of %s" % (plottype, plotvar, ), fontsize=8)
                     # [subplotconf['slice'][0]:subplotconf['slice'][1]].T)
