@@ -204,9 +204,9 @@ graph = OrderedDict([
             'loop': [('randseed', 1000 + i) for i in range(1, 4)],
             'loopmode': 'parallel',
             'numsteps': numsteps,
-            # graph dict?
+            # graph dictionary: (id-key, {config dict})
             'loopblock': loopblock,
-            'outputs': {'x': {'shape': (3, 1)}},
+            # 'outputs': {'x': {'shape': (3, 1)}},
         },
     }),
 

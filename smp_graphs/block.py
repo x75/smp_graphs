@@ -1,6 +1,6 @@
-"""smp_graphs - smp sensorimotor experiments as computation graphs
+"""smp_graphs - sensorimotor experiments as computation graphs (smp)
 
-block: basic block of computation
+block.py: Basic computation blocks and supporting structures
 
 2017 Oswald Berthold
 """
@@ -43,8 +43,9 @@ BLOCKSIZE_MAX = 10000
 ################################################################################
 # utils, TODO move to utils.py
 def ordereddict_insert(ordereddict = None, insertionpoint = None, itemstoadd = []):
-    """self rolled ordered dict insertion
-    from http://stackoverflow.com/questions/29250479/insert-into-ordereddict-behind-key-foo-inplace
+    """ordereddict_insert
+
+    Self rolled ordered dict insertion from http://stackoverflow.com/questions/29250479/insert-into-ordereddict-behind-key-foo-inplace
     """
     assert ordereddict is not None
     assert insertionpoint in ordereddict.keys(), "insp = %s, keys = %s, itemstoadd = %s" % (insertionpoint, ordereddict.keys(), itemstoadd)
@@ -74,8 +75,10 @@ def ordereddict_insert(ordereddict = None, insertionpoint = None, itemstoadd = [
 # bus class
 # from http://stackoverflow.com/questions/3387691/how-to-perfectly-override-a-dict
 class Bus(MutableMapping):
-    """A dictionary that applies an arbitrary key-altering
-       function before accessing the keys"""
+    """Bus class
+
+    A dictionary that applies an arbitrary key-altering function before accessing the keys
+    """
 
     def __init__(self, *args, **kwargs):
         self.store = dict()
@@ -107,6 +110,10 @@ class Bus(MutableMapping):
         self.store[k] = v
 
     def plot(self, ax = None, blockid = None):
+        """Bus.plot
+
+        Plot the bus for documentation and debugging.
+        """
         assert ax is not None
         xspacing = 10
         yspacing = 2
@@ -176,6 +183,10 @@ class Bus(MutableMapping):
         plt.pause(1e-6)
 
 def get_blocksize_input(G, buskey):
+    """block.py.get_blocksize_input
+
+    Get the blocksize of input element from the bus at 'buskey'
+    """
     # print "G", G.nodes(), "buskey", buskey
     (srcid, srcvar) = buskey.split("/") # [-1]
     # print "G.nodes()", G.nodes()
@@ -197,7 +208,10 @@ def get_blocksize_input(G, buskey):
 ################################################################################
 # Block decorator init
 class decInit():
-    """!@brief Block.init wrapper"""
+    """decInit Block2 init decorator class
+
+    Wrap around Block2.__init__ to perform pervasive tasks
+    """
     def __call__(self, f):
         def wrap(xself, *args, **kwargs):
 
@@ -215,9 +229,9 @@ class decInit():
 ################################################################################
 # Block decorator step
 class decStep():
-    """decStep
+    """decStep Block2 step decorator class
 
-    Block.step wrapper
+    Wrap around Block2.step to perform tasks common to all Block2's.
     """
 
     def process_input(self, xself):
@@ -370,8 +384,16 @@ class decStep():
 ################################################################################
 # Base block class
 class Block2(object):
-    """!@brief Basic block class
+    """Block2 class
+
+    Block base class
+    Arguments
+    - conf: Block configuration dictionary
+    - paren: ref to Block's parent
+    - top: ref to top-level node in nested graphs
+    - blockid: override block's id assignment
     """
+    
     defaults = {
         'id': None,
         'debug': False,
@@ -469,10 +491,13 @@ class Block2(object):
 
         # not topblock
         else:
+            # numsteps cl arg vs. blocksizes
             self.blocksize_clamp()
+            
             # get bus from topblock
             self.bus = self.top.bus
-            
+
+            # init block
             self.init_block()
 
         # numsteps / blocksize
@@ -516,13 +541,13 @@ class Block2(object):
             # get the graph from the configuration dict
             self.nxgraph = nxgraph_from_smp_graph(self.conf)
             
-            # clone
+            # node cloning (experimental)
             if hasattr(self, 'graph') \
               and type(self.graph) is str \
               and self.graph.startswith('id:'):
                 # search node
                 print "top graph", self.top.nxgraph.nodes()
-                targetid = self.graph[3:]
+                targetid = self.graph[3:] # id template
                 targetnode = nxgraph_node_by_id_recursive(self.top.nxgraph, targetid)
                 print "%s-%s" % (self.cname, self.id), "targetid", targetid, "targetnode", targetnode
                 if len(targetnode) > 0:
@@ -542,7 +567,9 @@ class Block2(object):
                     
                 # clone = copy.deepcopy(targetnode[0][1].node[targetnode[0][0]])
                 # clone = copy.copy(targetnode[0][1].node[targetnode[0][0]])
-                # reference copy of block configuration
+                """
+                # block configuration reference
+
                 targetnode_ = {
                     'block_': "<smp_graphs.block_models.ModelBlock2 object at 0x7f586c3e2710>",
                     'params': {
@@ -588,7 +615,8 @@ class Block2(object):
                                 'init': True}},
                         'id': 'pre_l0'},
                     'block': "<class 'smp_graphs.block_models.ModelBlock2'>"}
-                    
+                """
+                        
                 # replace id refs
                 id_orig = copy.copy(clone['params']['id'])
                 clone['params']['id'] = id_orig + "_clone"
@@ -605,6 +633,7 @@ class Block2(object):
                         v['bus'] = re.sub(id_orig, clone['params']['id'], v['bus'])
                     clone['block_'].inputs[k] = copy.deepcopy(v)
                     print "%s.init cloning  input k = %s, v = %s" % (self.cname, k, clone['block_'].inputs[k])
+                    
                 # replace output refs
                 for k, v in clone['block_'].outputs.items():
                     # v['buskey'].split("/")[0], v['buskey'].split("/")[0] + "_clone"
@@ -612,8 +641,11 @@ class Block2(object):
                     print "%s.init cloning output k = %s, v = %s" % (self.cname, k, v)
                     clone['block_'].outputs[k] = copy.deepcopy(v)
                 print "cloning: cloned block_.id = %s" % (clone['block_'].id)
+                
                 # add the modified node
                 self.nxgraph.add_node(0, clone)
+
+                # puh!
                 
             # for n in self.nxgraph.nodes():
             #     print "%s-%s g.node[%s] = %s" % (self.cname, self.id, n, self.nxgraph.node[n])
@@ -670,7 +702,10 @@ class Block2(object):
     #     print "loopblock", self.conf['params'].keys() # ['id']
         
     def init_graph_pass_1(self):
-        """!@brief initialize this block's graph by instantiating all graph nodes"""
+        """Block2.init_graph_pass_1
+
+        Initialize this block's graph by instantiating all graph nodes
+        """
         # if we're coming from non topblock init
         # self.graph = self.conf['params']['graph']
 
@@ -1138,12 +1173,37 @@ class FuncBlock2(Block2):
 class LoopBlock2(Block2):
     """LoopBlock2 class
 
-    Dynamically create block variations from template according to variations specified via list or function
+    Dynamically create block variations from template according to
+    variations specified via list or function
 
-    Two loop modes in this framework:
-     - parallel mode (LoopBlock2): modify the graph structure and all block variations at the same time
-     - sequential mode (SeqLoopBlock2): modify execution to run each variation one after the other
-     """
+    Two loop modes in smp_graphs: parallel mode (LoopBlock2) which
+    modifies the graph structure at config time and instantiates all
+    block variations concurrently. Sequential mode (SeqLoopBlock2)
+    modifies graph at execution time by instantiating and running each
+    variation one after the other.
+
+    Parallel / LoopBlock2 parameters:
+    - loop: the loop specification, either a list of tuples or a
+      function returning tuples. Tuples have the form ('param', value)
+      and param is a configuration parameter of the inner loopblock.
+    - loopblock: conf dict for block to be loooped
+    - loopmode: used in graph construction (graphs.py)
+
+    Examples for loop specification
+
+            [('inputs', {'x': {'val': 1}}), ('inputs', {'x': {'val': 2}})]
+            or
+            [
+                [
+                    ('inputs',  {'x': {'val': 1}}),
+                    ('gain',    0.5),
+                    ],
+                [
+                    ('inputs', {'x': {'val': 2}})
+                    ('gain',    0.75),
+                    ]
+                ]
+    """
     def __init__(self, conf = {}, paren = None, top = None):
         self.defaults['loop'] = [1]
         self.defaults['loopblock'] = {}
@@ -1152,84 +1212,38 @@ class LoopBlock2(Block2):
         self.loopmode = 'parallel'
         
         assert conf['params'].has_key('loop'), "Come on, looping without specification is dumb"
-        
+
+        # parent Block2 init takes care of constructing self.nxgraph
         Block2.__init__(self, conf = conf, paren = paren, top = top)
 
-        # loopblocks = []
-        # # loop the loop
-        # for i, lparams in enumerate(self.loop):
-        #     print "lparams", lparams, "self.loopblock['params']", self.loopblock['params']
-            
-        #     # copy params
-        #     loopblock_params = {}
-        #     for k, v in self.loopblock['params'].items():
-        #         if k == 'id':
-        #             loopblock_params[k] = "%s_%d" % (self.id, i+1)
-        #         # FIXME: only works for first item
-        #         elif k == lparams[0]:
-        #             loopblock_params[k] = lparams[1]
-        #         else:
-        #             loopblock_params[k] = v
-
-        #     # create dynamic conf
-        #     loopblock_conf = {'block': self.loopblock['block'], 'params': loopblock_params}
-        #     # instantiate block
-        #     dynblock = self.loopblock['block'](conf = loopblock_conf,
-        #                                        paren = self.paren, top = self.top)
-        #     # print "loopblock dynblock = %s" % (dynblock.cname, )
-
-        #     # get config and store it
-        #     dynblockconf = dynblock.get_config()
-        #     dynblockconf[1]['block'] = dynblock
-
-        #     # append to list of dynamic blocks
-        #     loopblocks.append(dynblockconf)
-        #     # print print_dict(self.top.graph)
-
-        # # # debug loopblocks in LoopBlock2 init
-        # # for item in loopblocks:
-        # #     print "%s.__init__ loopblocks = %s: %s" % (self.__class__.__name__, item[0], print_dict(item[1]))
-
-        # # print "loopblocks", self.id, loopblocks
-                
-        # # FIXME: this good?
-        # # insert dynamic blocks into existing ordered dict
-        # # print "topgraph", print_dict(self.top.graph)
-        # print "%s-%s.init swong topgrah = %s" % (self.cname, self.id, self.top.graph.keys()) # , self.graph.keys()
-        # ordereddict_insert(ordereddict = self.top.graph, insertionpoint = '%s' % self.id, itemstoadd = loopblocks)
-        # print "%s-%s.init swong topgrah = %s" % (self.cname, self.id, self.top.graph.keys()) # , self.graph.keys()
-        # for k, v in self.top.graph.items():
-        #     print "k", k, "v", v['block']
-
-        # print "top graph", print_dict(self.top.graph)
-        # print "top graph", self.top.graph.keys()
-        # print "top graph", print_dict(self.top.graph[self.top.graph.keys()[0]])
-
-        # replace loopblock block entry in original config, propagated back to the top / global namespace
-        # self.loopblock['block'] = Block2.__class__.__name__
-                   
+        # done
+        
     def step(self, x = None):
-        """LoopBlock2.step: loop over self.nxgraph items and step them"""
-        # pass
+        """LoopBlock2.step
+
+        Loop over self.nxgraph items and step
+
+        Disregards blocksize and calls children in every step. Children need to do their own exec timing.
+
+        No inputs.
+
+        No output.
+        """
+        # print "%s.step[%d], blocksize %d" % (self.cname, self.cnt, self.blocksize, )
         for i in range(self.nxgraph.number_of_nodes()):
-            # print "node %d" % (i,)
             v = self.nxgraph.node[i]
             k = v['params']['id']
+            # print "node %d, k = %s" % (i, k)
 
-            # print "k, v", k, v
-            
-            # for k, v in self.graph.items():
             v['block_'].step()
 
-            # buskey = "%s/x" % v['block_'].id
-            # buskey2 = v['block_'].outputs['x']['buskey']
-            # print "constblock", k, buskey, buskey2, v['block_'].x.flatten()
-            # print self.bus[buskey], self.bus.keys()
-            # print self.top.bus[buskey], self.top.bus.keys()
-            # print self.bus[v['params']]
+        self.cnt += 1
 
 class SeqLoopBlock2(Block2):
-    """!@brief Sequential loop block"""
+    """SeqLoopBlock2 class
+
+    A sequential loop block: dynamic instantiation of Blocks within loop iterations
+    """
     def __init__(self, conf = {}, paren = None, top = None):
         self.defaults['loop'] = [1]
         self.defaults['loopmode'] = 'sequential'
@@ -1405,7 +1419,11 @@ class SeqLoopBlock2(Block2):
         #     print "%s.step: bests = %s, %s" % (self.cname, self.hp_bests[-1], f_obj_hpo(tuple([self.hp_bests[-1][k] for k in sorted(self.hp_bests[-1])])))
     
 class PrimBlock2(Block2):
-    """!@brief Base class for primitive blocks"""
+    """PrimBlock2 class
+
+    Base class for primitive blocks as opposed to compositional ones
+    containing graphs themselves.
+    """
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
         Block2.__init__(self, conf = conf, paren = paren, top = top)
@@ -1417,9 +1435,11 @@ class PrimBlock2(Block2):
         pass
     
 class IBlock2(PrimBlock2):
-    """!@brief Integrator block: integrate input and write to output
+    """IBlock2 class
 
-params: inputs, outputs, leakrate    
+    Integrator block: integrate input and write current value to output
+
+    Params: inputs, outputs, leakrate
     """
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
@@ -1455,9 +1475,11 @@ params: inputs, outputs, leakrate
             # print getattr(self, outk).shape
 
 class dBlock2(PrimBlock2):
-    """!@brief Differentiator block: compute differences of input and write to output
+    """dBlock2 class
 
-params: inputs, outputs, leakrate / smoothrate?
+    Differentiator block: compute differences of input and write to output
+
+    Params: inputs, outputs, leakrate / smoothrate?
     """
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
@@ -1498,9 +1520,11 @@ params: inputs, outputs, leakrate / smoothrate?
             setattr(self, ink_, self.inputs[ink]['val'].copy())
 
 class DelayBlock2(PrimBlock2):
-    """!@brief Delay block: delay shift input by n steps
+    """DelayBlock2 class
 
-params: inputs, delay in steps / shift
+    Delay block: delay signal with internal ringbuffer delay line.
+
+    Params: inputs, delay in steps / shift
     """
     @decInit() # outputs from inputs block decorator
     def __init__(self, conf = {}, paren = None, top = None):
@@ -1589,7 +1613,9 @@ class SliceBlock2(PrimBlock2):
                 # print "%s-%s.step[%d] outk = %s, outsh = %s, out = %s" % (self.cname, self.id, self.cnt, outk, getattr(self, outk).shape, getattr(self, outk))
 
 class StackBlock2(PrimBlock2):
-    """!@brief Stack block can combine input slices into a single output item
+    """StackBlock2 class
+
+    Stack block can combine input slices into a single output item
     """
     def __init__(self, conf = {}, paren = None, top = None):
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
@@ -1601,7 +1627,9 @@ class StackBlock2(PrimBlock2):
         self.y = np.vstack(st)
                     
 class ConstBlock2(PrimBlock2):
-    """!@brief Constant block: output is a constant vector
+    """ConstBlock2 class
+
+    Constant block: output is a constant vector
     """
     def __init__(self, conf = {}, paren = None, top = None):
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
@@ -1618,7 +1646,9 @@ class ConstBlock2(PrimBlock2):
             self.x = self.inputs['c']['val'].copy() # FIXME as that good? only works for single column vector
 
 class CountBlock2(PrimBlock2):
-    """!@brief Count block: output is just the count
+    """CountBlock2 class
+
+    Count block: output is a counter
     """
     defaults = {
         # 'cnt': np.ones((1,1)),
@@ -1659,7 +1689,10 @@ class CountBlock2(PrimBlock2):
         setattr(self, self.outk, (self.cnt_ * self.scale) + self.offset)
 
 class UniformRandomBlock2(PrimBlock2):
-    """!@brief Uniform random numbers: output is uniform random vector
+    """UniformRandomBlock2 class
+
+    Generate uniform random numbers, output is a vector random sample
+    from uniform distribution.
     """
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):

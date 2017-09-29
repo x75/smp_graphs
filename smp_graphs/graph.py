@@ -101,13 +101,14 @@ def nxgraph_from_smp_graph(conf):
       and type(conf['params']['loop']) is list:
         # construction loop
         for i, item in enumerate(conf['params']['loop']):
+            # at least a one element list of key:val tuples
             if type(item) is tuple:
                 item = [item]
+            # get template and copy
             lpconf = copy.deepcopy(conf['params']['loopblock'])
 
             # rewrite block ids with loop count
             lpconf = dict_replace_idstr_recursive(d = lpconf, cid = conf['params']['id'], xid = "%d" % (i, ))
-
             
             """Examples for loop specification
 
@@ -128,10 +129,12 @@ def nxgraph_from_smp_graph(conf):
             for (paramk, paramv) in item:
                 lpconf['params'][paramk] = paramv # .copy()
 
+            print "nxgraph_from_smp_graph", lpconf['params']['id']
+            print "nxgraph_from_smp_graph", print_dict(lpconf['params'])
             G.add_node(nc, lpconf)
             nc += 1
 
-    # FIXME: what about func based loops?
+    # FIXME: function based loops, only used with SeqLoop yet
             
     return G
 
