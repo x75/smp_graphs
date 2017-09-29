@@ -1,7 +1,6 @@
 
 import traceback
-import sys
-import pickle
+import sys, pickle, re
 
 from collections import OrderedDict
 
@@ -149,7 +148,22 @@ def dict_replace_idstr_recursive(d, cid, xid):
     # print "dict_replace_idstr_recursive", print_dict(d)
     
     if cid is not None:
+        # change param 'id'
         d['params']['id'] = "%s|%s" % (cid, xid)
+
+        # change param 'inputs'
+        if d['params'].has_key('inputs'):
+            for ink, inv in d['params']['inputs'].items():
+                if inv.has_key('bus'):
+                    print "bus old", inv['bus']
+                    inv['bus'] = re.sub(
+                        r'%s' % (cid, ),
+                        r'%s' % (d['params']['id'], ),
+                        inv['bus'])
+                    print "bus new", inv['bus']
+                    
+        # change param '?'
+        
 
     if d['params'].has_key('graph') and type(d['params']['graph']) is not str:
         tgraph = OrderedDict()

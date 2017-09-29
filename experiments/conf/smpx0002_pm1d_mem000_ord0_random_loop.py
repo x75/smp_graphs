@@ -188,9 +188,10 @@ loopblock = {
         'debug': False,
         'topblock': False,
         'numsteps': numsteps,
+        'subgraph_rewrite_id': True,
         # contains the subgraph specified in this config file
-        # 'subgraph': 'conf/smpx0001_pm1d_mem000_ord0_random.py'
-        'graph': graph1,
+        'subgraph': 'conf/smpx0001_pm1d_mem000_ord0_random.py'
+        # 'graph': graph1,
     },
 }
 
