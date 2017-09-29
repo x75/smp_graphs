@@ -1248,6 +1248,7 @@ class SeqLoopBlock2(Block2):
 
     # loop function for self.loop = list 
     def f_loop_list(self, i, f_obj):
+        print "self.loop", i, self.loop
         results = f_obj(self.loop[i])
         return results
 
@@ -1271,7 +1272,7 @@ class SeqLoopBlock2(Block2):
                 'numsteps': self.numsteps,
             }
             for k, v in self.loopblock['params'].items():
-                # print "loopblock params", k, v
+                print "loopblock params", k, v, lparams[0]
                 if k == 'id':
                     loopblock_params[k] = "%s_%d" % (self.id, i)
                 elif k == lparams[0]:
@@ -1286,15 +1287,18 @@ class SeqLoopBlock2(Block2):
             # create dynamic conf
             loopblock_conf = {'block': self.loopblock['block'], 'params': loopblock_params}
             # instantiate block
-            self.dynblock = self.loopblock['block'](conf = loopblock_conf,
-                                               paren = self.paren, top = self.top)
+            self.dynblock = self.loopblock['block'](
+                conf = loopblock_conf,
+                paren = self.paren,
+                top = self.top)
+            
             # second pass
             self.dynblock.init_pass_2()
 
             # this is needed for using SeqLoop as a sequencer / timeline with full sideway time
             # run the block starting from cnt = 1
             for j in range(1, self.dynblock.numsteps+1):
-                # print "%s trying %s.step[%d]" % (self.cname, self.dynblock.cname, j)
+                print "%s trying %s.step[%d]" % (self.cname, self.dynblock.cname, j)
                 self.dynblock.step()
 
             print "%s.step did %s.step * %d" % (self.cname, self.dynblock.cname, j)
@@ -1339,6 +1343,7 @@ class SeqLoopBlock2(Block2):
             return rundata
         # {'loss': , 'status': STATUS_OK, 'dynblock': None, 'lparams': lparams}
 
+        # set loop function wether loop body is list or func
         if type(self.loop) is list:
             f_obj_ = f_obj
         else:
@@ -1347,8 +1352,9 @@ class SeqLoopBlock2(Block2):
         # loop the loop
         then = time.time()
         print "%s-%s[%d] iter#" % (self.cname, self.id, self.cnt),
+        # loopblock loop
         for i in range(self.numsteps/self.loopblocksize):
-            print "%d" % (i,),
+            print "SeqLoopBlock2.step loop iter %d" % (i,),
             sys.stdout.flush()
             then = time.time()
 
