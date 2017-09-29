@@ -1,8 +1,8 @@
-"""smp_graphs - smp sensorimotor experiments as computation graphs
+"""smp_graphs - sensorimotor experiments as computation graphs (smp)
 
 2017 Oswald Berthold
 
-experiment: basic experiment shell for
+Experiment: basic experiment shell for
  - running a graph
  - loading and drawing a graph (networkx)
 """
@@ -31,6 +31,10 @@ from smp_graphs.graph import nxgraph_plot, recursive_draw, nxgraph_flatten, nxgr
 ################################################################################
 # utils, TODO: move to utils.py
 def get_args():
+    """Experiment.py.get_args
+
+    Define argparse commandline arguments
+    """
     # define defaults
     default_conf     = "conf/default.py"
     default_numsteps = None # 10
@@ -52,11 +56,19 @@ def get_args():
     return args
 
 def set_config_defaults(conf):
+    """Experiment.py.set_config_defaults
+
+    Set configuration defaults if they are missing
+    """
     if not conf['params'].has_key("numsteps"):
         conf['params']['numsteps'] = 100
     return conf
 
 def set_config_commandline_args(conf, args):
+    """Experiment.py.set_config_commandline_args
+
+    Set configuration params from commandline, used to override config file setting for quick tests
+    """
     # for commandline_arg in conf['params'].has_key("numsteps"):
     #     conf['params']['numsteps'] = 100
     gparams = ['numsteps', 'randseed', 'ros']
@@ -66,7 +78,10 @@ def set_config_commandline_args(conf, args):
     return conf
 
 def make_expr_id_configfile(name = "experiment", configfile = "conf/default2.py"):
-    """return experiment signature as name and timestamp"""
+    """Experiment.py.make_expr_id_configfile
+
+    Make experiment signature from name and timestamp
+    """
     confs = configfile.split("/")
     confs = confs[-1].split(".")[0]
     # print "configfile", confs
@@ -76,23 +91,32 @@ def make_expr_id(name = "experiment"):
     pass
 
 def make_expr_sig(args =  None):
-    """return experiment timestamp"""
+    """Experiment.py.make_expr_sig
+
+    Return formatted timestamp
+    """
     return time.strftime("%Y%m%d_%H%M%S")
 
 class Experiment(object):
-    """!@brief Main experiment class
+    """Experiment class
 
-Arguments:
-   args: argparse configuration namespace (key, value)
+    Arguments:
+    - args: argparse configuration namespace (key, value)
 
-
-Load a config from the file in args.conf
-
+    Load a config from the file given in args.conf, initialize nxgraph from conf, run the graph
     """
 
+    # global config file parameters
     gparams = ['ros', 'numsteps', 'recurrent', 'debug', 'dim', 'dt', 'showplot', 'saveplot', 'randseed']
     
     def __init__(self, args):
+        """Experiment.__init__
+
+        Experiment init
+
+        Arguments:
+        - args: argparse configuration namespace (key, value) containing args.conf
+        """
         global make_expr_id
         make_expr_id = partial(make_expr_id_configfile, configfile = args.conf)
         self.conf = get_config_raw(args.conf)
@@ -131,6 +155,10 @@ Load a config from the file in args.conf
         # print "print_dict\n", print_dict(self.conf)
 
     def plotgraph(self):
+        """Experiment.plotgraph
+
+        Show a visualization of the graph of the experiment
+        """
         graph_fig = makefig(
             rows = 1, cols = 3, wspace = 0.1, hspace = 0.0,
             axesspec = [(0, 0), (0, slice(1, None))], title = "Nxgraph and Bus")
@@ -152,6 +180,10 @@ Load a config from the file in args.conf
         # print self.conf['params']
             
     def run(self):
+        """Experiment.run
+
+        Run the experiment by running the graph.
+        """
         print '#' * 80
         print "Init done, running %s" % (self.topblock.nxgraph.name, )
         print "    Graph: %s" % (self.topblock.nxgraph.nodes(), )
@@ -179,8 +211,18 @@ import networkx as nx
 import re
 
 class Graphviz(object):
-    """!@brief Special experiment: Load runtime config into a networkx graph and plot it"""
+    """Graphviz class
+
+    Load a runtime config into a networkx graph and plot it
+    """
     def __init__(self, args):
+        """Graphviz.__init__
+
+        Initialize a Graphviz instance
+
+        Arguments:
+        - args: argparse configuration namespace (key, value)
+        """
         # load graph config
         self.conf = get_config_raw(args.conf)
         assert self.conf is not None, "%s.init: Couldn't read config file %s" % (self.__class__.__name__, args.conf)
@@ -190,6 +232,10 @@ class Graphviz(object):
         self.layout  = self.layouts[2]
 
     def run(self):
+        """Graphviz.run
+
+        Run method
+        """
         # create nx graph
         G = nx.MultiDiGraph()
 
