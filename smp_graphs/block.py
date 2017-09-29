@@ -475,7 +475,8 @@ class Block2(object):
             
             self.init_block()
 
-        print "%s-%s end of init blocksize = %d" % (self.cname, self.id, self.blocksize)
+        # numsteps / blocksize
+        # print "%s-%s end of init blocksize = %d" % (self.cname, self.id, self.blocksize)
 
     def blocksize_clamp(self):
         """Block2.blocksize_clamp
@@ -735,7 +736,7 @@ class Block2(object):
             self.msgs = {}
 
         for k, v in self.outputs.items():
-            print "%s.init_outputs: outk = %s, outv = %s" % (self.cname, k, v)
+            # print "%s.init_outputs: outk = %s, outv = %s" % (self.cname, k, v)
             assert type(v) is dict, "Old config of %s output %s with type %s, %s" % (self.id, k, type(v), v)
             # print "v.keys()", v.keys()
             # assert v.keys()[0] in ['shape', 'bus'], "Need 'bus' or 'shape' key in outputs spec of %s" % (self.id, )
@@ -866,7 +867,7 @@ class Block2(object):
                         
                     elif not v.has_key('shape'):
                         # check if key exists or not. if it doesn't, that means this is a block inside dynamical graph construction
-                        print "\nplotblock", self.bus.keys()
+                        # print "\nplotblock", self.bus.keys()
 
                         assert self.bus.has_key(v['bus']), "Requested bus item %s is not in buskeys %s" % (v['bus'], self.bus.keys())
                     
@@ -1135,7 +1136,9 @@ class FuncBlock2(Block2):
             self.debug_print("step[%d]: y = %s", (self.cnt, self.y,))
             
 class LoopBlock2(Block2):
-    """!@brief Loop block: dynamically create block variations according to some specificiations of variation
+    """LoopBlock2 class
+
+    Dynamically create block variations from template according to variations specified via list or function
 
     Two loop modes in this framework:
      - parallel mode (LoopBlock2): modify the graph structure and all block variations at the same time

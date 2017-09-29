@@ -38,6 +38,8 @@ def get_args():
     parser = argparse.ArgumentParser()
     # add required arguments
     parser.add_argument("-c", "--conf",     type=str, default=default_conf,     help="Configuration file [%s]" % default_conf)
+    parser.add_argument("-dr", "--do-ros",  dest="ros", action="store_true",    default = None, help = "Do / enable ROS?")
+    parser.add_argument("-nr", "--no-ros",  dest="ros", action="store_false",   default = None, help = "No / disable ROS?")
     parser.add_argument("-m", "--mode",     type=str, default="run",            help="Which subprogram to run [run], one of [run, graphviz]")
     parser.add_argument("-n", "--numsteps", type=int, default=default_numsteps, help="Number of outer loop steps [%s]" % default_numsteps)
     parser.add_argument("-s", "--randseed",     type=int, default=None,             help="Random seed [None], seed is taken from config file")
@@ -57,7 +59,7 @@ def set_config_defaults(conf):
 def set_config_commandline_args(conf, args):
     # for commandline_arg in conf['params'].has_key("numsteps"):
     #     conf['params']['numsteps'] = 100
-    gparams = ['numsteps', 'randseed']
+    gparams = ['numsteps', 'randseed', 'ros']
     for clarg in gparams:
         if getattr(args, clarg) is not None:
             conf['params'][clarg] = getattr(args, clarg)
@@ -97,13 +99,14 @@ Load a config from the file in args.conf
         assert self.conf is not None, "%s.init: Couldn't read config file %s" % (self.__class__.__name__, args.conf)
         self.conf = set_config_defaults(self.conf)
 
+        # update conf with commandline arguments
+        self.conf = set_config_commandline_args(self.conf, args)
+
+        # initialize ROS if needed
         if self.conf['params']['ros']:
             import rospy
             rospy.init_node("smp_graph")
 
-        # update conf with commandline arguments
-        self.conf = set_config_commandline_args(self.conf, args)
-        
         # print "%s.init: conf keys = %s\n\n\n\n" % (self.__class__.__name__, self.conf.keys())
         
         for k in self.conf.keys():
@@ -150,8 +153,10 @@ Load a config from the file in args.conf
             
     def run(self):
         print '#' * 80
-        print "Init done, running the graph"
-        print "{0}.run: numsteps = {1}".format(self.__class__.__name__, self.params['numsteps'])
+        print "Init done, running %s" % (self.topblock.nxgraph.name, )
+        print "    Graph: %s" % (self.topblock.nxgraph.nodes(), )
+        print "      Bus: %s" % (self.topblock.bus.keys(),)
+        print " numsteps: {0}/{1}".format(self.params['numsteps'], self.topblock.numsteps)
 
         # TODO: try run
         #       except go interactive

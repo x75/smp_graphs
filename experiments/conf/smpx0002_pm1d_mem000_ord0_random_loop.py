@@ -189,8 +189,8 @@ loopblock = {
         'topblock': False,
         'numsteps': numsteps,
         # contains the subgraph specified in this config file
-        'subgraph': 'conf/smpx0001_pm1d_mem000_ord0_random.py'
-        # 'graph': graph1,
+        # 'subgraph': 'conf/smpx0001_pm1d_mem000_ord0_random.py'
+        'graph': graph1,
     },
 }
 
@@ -201,7 +201,7 @@ graph = OrderedDict([
         'params': {
             'id': 'b3',
             'logging': False,
-            'loop': [('inputs', {'c': {'val': np.random.uniform(-i, i, (3, 1)), 'shape': (3, 1)}}) for i in range(1, 4)],
+            'loop': [('randseed', 1000 + i) for i in range(1, 4)],
             'loopmode': 'parallel',
             'numsteps': numsteps,
             # graph dict?

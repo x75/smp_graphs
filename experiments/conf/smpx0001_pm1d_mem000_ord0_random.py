@@ -67,9 +67,9 @@ lim = 1.0
 
 # graph
 graph = OrderedDict([
-    # robot
-    ('robot1', systemblock),
-    
+    # # robot
+    # ('robot1', systemblock),
+        
     # brain
     ('braina', {
         'block': Block2,
@@ -118,6 +118,9 @@ graph = OrderedDict([
         }
     }),
     
+    # robot
+    ('robot1', systemblock),
+        
     # plotting
     ('plot', {
         'block': PlotBlock2,
@@ -134,7 +137,7 @@ graph = OrderedDict([
                 },
             'subplots': [
                 [
-                    {'input': ['pre_l0', 's_p', 'pre_l1'], 'plot': [timeseries, partial(timeseries, linewidth = 1.0), timeseries]},
+                    {'input': ['pre_l0', 's_p', 'pre_l1'], 'plot': [partial(timeseries, linewidth = 1.0), timeseries, timeseries]},
                     {'input': ['pre_l0', 's_p', 'pre_l1'], 'plot': histogram},
                 ],
                 [

@@ -191,7 +191,7 @@ def init_random_uniform(ref, conf, mconf):
         hi = np.ones(( outv['shape'] ))
         setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
         # setattr(ref, outk, np.ones(outv['shape']))
-        print "block_models.py: random_uniform_init %s = %s" % (outk, getattr(ref, outk))
+        # print "block_models.py: random_uniform_init %s = %s" % (outk, getattr(ref, outk))
 
 def step_random_uniform(ref):
     if hasattr(ref, 'rate'):
@@ -221,7 +221,7 @@ def init_random_uniform_pi_2(ref, conf, mconf):
         hi = np.ones(( outv['shape'] ))
         setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
         # setattr(ref, outk, np.ones(outv['shape']))
-        print "block_models.py: random_uniform_pi_2_init %s = %s" % (outk, getattr(ref, outk))
+        # print "block_models.py: random_uniform_pi_2_init %s = %s" % (outk, getattr(ref, outk))
     ref.prerr_ = np.ones((ref.prerr.shape[0], 40)) * 1.0
 
 def step_random_uniform_pi_2(ref):
@@ -278,7 +278,7 @@ def init_random_uniform_modulated(ref, conf, mconf):
     ref.credit_ = ref.credit.copy()
     ref.goalsize = params['goalsize']
     # setattr(ref, outk, np.ones(outv['shape']))
-    print "block_models.py: random_uniform_modulated_init %s = %s" % (outk, getattr(ref, outk))
+    # print "block_models.py: random_uniform_modulated_init %s = %s" % (outk, getattr(ref, outk))
 
 def step_random_uniform_modulated(ref):
     if hasattr(ref, 'rate'):
@@ -311,7 +311,7 @@ def init_alternating_sign(ref, conf, mconf):
         hi = np.ones(( outv['shape'] ))
         # setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
         setattr(ref, outk, np.ones(outv['shape']))
-        print "block_models.py: alternating_sign_init %s = %s" % (outk, getattr(ref, outk))
+        # print "block_models.py: alternating_sign_init %s = %s" % (outk, getattr(ref, outk))
 
 def step_alternating_sign(ref):
     if hasattr(ref, 'rate'):
@@ -331,7 +331,7 @@ def step_alternating_sign(ref):
         # np.random.uniform(lo, hi, size = outv['shape']))
         # print "%s-%s[%d]model.step_alternating_sign %s = %s" % (
         #     ref.cname, ref.id, ref.cnt, outk, getattr(ref, outk))
-        print "block_models.py: alternating_sign_step %s = %s" % (outk, getattr(ref, outk))
+        # print "block_models.py: alternating_sign_step %s = %s" % (outk, getattr(ref, outk))
         
 # used by: actinf, homeokinesis, e2p, eh (FIXME: rename reward)
 def init_model(ref, conf, mconf):
