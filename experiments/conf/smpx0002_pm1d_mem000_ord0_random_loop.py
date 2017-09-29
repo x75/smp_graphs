@@ -196,44 +196,44 @@ loopblock = {
 }
 
 graph = OrderedDict([
-    # concurrent loop
-    ('b3', {
-        'block': LoopBlock2,
-        'params': {
-            'id': 'b3',
-            'logging': False,
-            'loop': [('randseed', 1000 + i) for i in range(1, 4)],
-            'loopmode': 'parallel',
-            'numsteps': numsteps,
-            # graph dictionary: (id-key, {config dict})
-            'loopblock': loopblock,
-            # 'outputs': {'x': {'shape': (3, 1)}},
-        },
-    }),
-
-    # # sequential loop
-    # ("b4", {
-    #     'block': SeqLoopBlock2,
+    # # concurrent loop
+    # ('b3', {
+    #     'block': LoopBlock2,
     #     'params': {
-    #         'id': 'b4',
-    #         # loop specification, check hierarchical block to completely
-    #         # pass on the contained in/out space?
-    #         'blocksize': numsteps, # same as loop length
-    #         'numsteps':  numsteps,
-    #         'loopblocksize': numsteps, # loopblocksize,
-    #         # can't do this dynamically yet without changing init passes
-    #         'outputs': {
-    #             # 'x': {'shape': (3, numsteps)},
-    #             # 'y': {'shape': (1, numsteps)}
-    #         },
-    #         # 'loop': [('inputs', {
-    #         #     'lo': {'val': np.random.uniform(-i, 0, (3, 1)), 'shape': (3, 1)}, 'hi': {'val': np.random.uniform(0.1, i, (3, 1)), 'shape': (3, 1)}}) for i in range(1, 11)],
-    #         # 'loop': lambda ref, i: ('inputs', {'lo': [10 * i], 'hi': [20*i]}),
-    #         # 'loop': [('inputs', {'x': {'val': np.random.uniform(np.pi/2, 3*np.pi/2, (3,1))]}) for i in range(1, numsteps+1)],
-    #         'loop': [('randseed', 1000)], # partial(f_loop_hpo, space = f_loop_hpo_space_f3(pdim = 3)),
-    #         'loopmode': 'sequential',
+    #         'id': 'b3',
+    #         'logging': False,
+    #         'loop': [('randseed', 1000 + i) for i in range(1, 4)],
+    #         'loopmode': 'parallel',
+    #         'numsteps': numsteps,
+    #         # graph dictionary: (id-key, {config dict})
     #         'loopblock': loopblock,
+    #         # 'outputs': {'x': {'shape': (3, 1)}},
     #     },
     # }),
+
+    # sequential loop
+    ("b4", {
+        'block': SeqLoopBlock2,
+        'params': {
+            'id': 'b4',
+            # loop specification, check hierarchical block to completely
+            # pass on the contained in/out space?
+            'blocksize': numsteps, # same as loop length
+            'numsteps':  numsteps,
+            'loopblocksize': numsteps/3, # loopblocksize,
+            # can't do this dynamically yet without changing init passes
+            'outputs': {
+                # 'x': {'shape': (3, numsteps)},
+                # 'y': {'shape': (1, numsteps)}
+            },
+            # 'loop': [('inputs', {
+            #     'lo': {'val': np.random.uniform(-i, 0, (3, 1)), 'shape': (3, 1)}, 'hi': {'val': np.random.uniform(0.1, i, (3, 1)), 'shape': (3, 1)}}) for i in range(1, 11)],
+            # 'loop': lambda ref, i: ('inputs', {'lo': [10 * i], 'hi': [20*i]}),
+            # 'loop': [('inputs', {'x': {'val': np.random.uniform(np.pi/2, 3*np.pi/2, (3,1))]}) for i in range(1, numsteps+1)],
+            'loop': [('randseed', 1000 + i) for i in range(0, 3)], # partial(f_loop_hpo, space = f_loop_hpo_space_f3(pdim = 3)),
+            'loopmode': 'sequential',
+            'loopblock': loopblock,
+        },
+    }),
     
 ])

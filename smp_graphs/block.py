@@ -409,6 +409,7 @@ class Block2(object):
         'rate': 1, # execution rate rel. to cnt
         'ros': False, # no ROS yet
         'phase': [0],
+        'subgraph_rewrite_id': True, #
     }
 
     @decInit()
@@ -1295,7 +1296,7 @@ class SeqLoopBlock2(Block2):
                 'numsteps': self.numsteps,
             }
             for k, v in self.loopblock['params'].items():
-                print "loopblock params", k, v, lparams[0]
+                print "SeqLoopBlock2.step.f_obj loopblock params", k, v # , lparams[0]
                 if k == 'id':
                     loopblock_params[k] = "%s_%d" % (self.id, i)
                 elif k == lparams[0]:
@@ -1321,7 +1322,7 @@ class SeqLoopBlock2(Block2):
             # this is needed for using SeqLoop as a sequencer / timeline with full sideway time
             # run the block starting from cnt = 1
             for j in range(1, self.dynblock.numsteps+1):
-                print "%s trying %s.step[%d]" % (self.cname, self.dynblock.cname, j)
+                # print "%s trying %s.step[%d]" % (self.cname, self.dynblock.cname, j)
                 self.dynblock.step()
 
             print "%s.step did %s.step * %d" % (self.cname, self.dynblock.cname, j)
@@ -1377,7 +1378,7 @@ class SeqLoopBlock2(Block2):
         print "%s-%s[%d] iter#" % (self.cname, self.id, self.cnt),
         # loopblock loop
         for i in range(self.numsteps/self.loopblocksize):
-            print "SeqLoopBlock2.step loop iter %d" % (i,),
+            print "SeqLoopBlock2.step[%d] loop iter %d" % (self.cnt, i,),
             sys.stdout.flush()
             then = time.time()
 
