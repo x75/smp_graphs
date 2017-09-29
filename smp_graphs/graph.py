@@ -131,11 +131,13 @@ def nxgraph_from_smp_graph(conf):
 
             print "nxgraph_from_smp_graph", lpconf['params']['id']
             print "nxgraph_from_smp_graph", print_dict(lpconf['params'])
+            # print "|G|", G.name, G.number_of_nodes()
             G.add_node(nc, lpconf)
+            # print "|G|", G.name, G.number_of_nodes()
             nc += 1
 
     # FIXME: function based loops, only used with SeqLoop yet
-            
+    print "G.name", G.name, G.number_of_nodes()
     return G
 
 def nxgraph_get_layout(G, layout_type):

@@ -3,7 +3,10 @@ import traceback
 import sys
 import pickle
 
+from collections import OrderedDict
+
 from smp_base.common import set_attr_from_dict
+from smp_graphs.utils import print_dict
 
 ################################################################################
 # static config templates
@@ -138,20 +141,32 @@ def dict_search_recursive(d, k):
 def dict_replace_idstr_recursive(d, cid, xid):
     """smp_graphs.common.dict_replace_idstr_recursive
 
-    Replace all id references in the dict with id + parent information
+    Replace all references in dict 'd' to id 'cid' in the dictionary with 'cid|xid'
     """
     assert d.has_key('params')
     # assert d['params'].has_key('id')
+
+    # print "dict_replace_idstr_recursive", print_dict(d)
     
     if cid is not None:
         d['params']['id'] = "%s|%s" % (cid, xid)
 
     if d['params'].has_key('graph') and type(d['params']['graph']) is not str:
+        tgraph = OrderedDict()
         for k, v in d['params']['graph'].items():
             # v['params']['id'] = k
-            v = dict_replace_idstr_recursive(d = v, cid = k, xid = xid)
-            d['params']['graph'][k] = v
 
+            # replace ids in dict val
+            v = dict_replace_idstr_recursive(d = v, cid = k, xid = xid)
+            # replace ids in dict key
+            k_ = v['params']['id']
+            # reassemble
+            tgraph[k_] = v
+            d['params']['graph'][k] = v
+        # copy new dict to graph
+        # print "tgraph", tgraph
+        d['params']['graph'] = tgraph
+        # print "d['params']['graph']", d['params']['graph']
     return d
 
 def dict_replace_nodekeys(d, xid, idmap = {}):

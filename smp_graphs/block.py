@@ -663,7 +663,10 @@ class Block2(object):
             self.init_primitive()
             
     def init_primitive(self):
-        """initialize primitive block"""
+        """Block2.init_primitive
+
+        Initialize primitive block
+        """
         # initialize block output
         self.init_outputs()
             
@@ -710,6 +713,9 @@ class Block2(object):
         # self.graph = self.conf['params']['graph']
 
         print "{0: <20}.init_graph_pass_1 graph.keys = {1}".format(self.cname[:20], self.nxgraph.nodes())
+        if hasattr(self, 'graph'):
+            print "    graph", self.graph, "\n"
+            print "    nxgraph", self.nxgraph, "\n"
         
         # pass 1 init
         # for k, v in self.graph.items():
@@ -722,7 +728,7 @@ class Block2(object):
             # self.debug_print("__init__: pass 1\nk = %s,\nv = %s", (k, print_dict(v)))
 
             # debug timing
-            print "{0: <20}.init pass 1 k = {1: >20}, v = {2: >20}".format(self.__class__.__name__[:20], k[:20], v['block'].__name__)
+            print "{0: <20}.init pass 1 k = {1: >5}, v = {2: >20}".format(self.__class__.__name__[:20], k[:20], v['block'].__name__)
             then = time.time()
 
             # print v['block_']
