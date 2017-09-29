@@ -684,15 +684,21 @@ class Block2(object):
         # set the graph params
         self.conf['params']['graph'] = subconf['params']['graph']
 
+        # selectively ignore nodes in 'subgraph_ignore_nodes' list from included subgraph
+        if hasattr(self, 'subgraph_ignore_nodes'):
+            for ignk in self.subgraph_ignore_nodes:
+                del self.conf['params']['graph'][ignk]
+        
         # additional configuration for the subgraph
         if hasattr(self, 'subgraphconf'):
             # modifications happen in conf space since graph init pass 1 and 2 are pending
             for confk, confv in self.subgraphconf.items():
                 (confk_id, confk_param) = confk.split("/")
                 confnode = dict_search_recursive(self.conf['params']['graph'], confk_id)
-                # print "confk_param", confk_param
-                # print "confv", confv
-                # print "confnode", confnode.keys()
+                if confnode is None: continue
+                print "confk_param", confk_param
+                print "confv", confv
+                print "confnode", confnode.keys()
                 confnode['params'][confk_param] = confv
         # # debug
         # print self.conf['params']['graph']['brain_learn_proprio']['params']['graph'][confk_id]

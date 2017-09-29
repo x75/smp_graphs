@@ -188,13 +188,19 @@ loopblock = {
         'debug': False,
         'topblock': False,
         'numsteps': numsteps,
-        'subgraph_rewrite_id': True,
         # contains the subgraph specified in this config file
-        'subgraph': 'conf/smpx0001_pm1d_mem000_ord0_random.py'
+        'subgraph': 'conf/smpx0001_pm1d_mem000_ord0_random.py',
+        'subgraph_rewrite_id': True,
+        'subgraph_ignore_nodes': ['plot'],
+        'subgraphconf': {
+            'plot/active': False
+            },
         # 'graph': graph1,
     },
 }
 
+numloop = 3
+    
 graph = OrderedDict([
     # # concurrent loop
     # ('b3', {
@@ -220,7 +226,7 @@ graph = OrderedDict([
             # pass on the contained in/out space?
             'blocksize': numsteps, # same as loop length
             'numsteps':  numsteps,
-            'loopblocksize': numsteps/3, # loopblocksize,
+            'loopblocksize': numsteps/numloop, # loopblocksize,
             # can't do this dynamically yet without changing init passes
             'outputs': {
                 # 'x': {'shape': (3, numsteps)},
@@ -230,10 +236,10 @@ graph = OrderedDict([
             #     'lo': {'val': np.random.uniform(-i, 0, (3, 1)), 'shape': (3, 1)}, 'hi': {'val': np.random.uniform(0.1, i, (3, 1)), 'shape': (3, 1)}}) for i in range(1, 11)],
             # 'loop': lambda ref, i: ('inputs', {'lo': [10 * i], 'hi': [20*i]}),
             # 'loop': [('inputs', {'x': {'val': np.random.uniform(np.pi/2, 3*np.pi/2, (3,1))]}) for i in range(1, numsteps+1)],
-            'loop': [('randseed', 1000 + i) for i in range(0, 3)], # partial(f_loop_hpo, space = f_loop_hpo_space_f3(pdim = 3)),
+            'loop': [('randseed', 1000 + i) for i in range(0, numloop)], # partial(f_loop_hpo, space = f_loop_hpo_space_f3(pdim = 3)),
             'loopmode': 'sequential',
             'loopblock': loopblock,
         },
     }),
-    
+
 ])
