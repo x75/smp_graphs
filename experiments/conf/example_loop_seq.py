@@ -120,8 +120,12 @@ graph = OrderedDict([
             'id': 'bplot',
             'blocksize': numsteps,
             'debug': False,
-            'inputs': {'d1': {'bus': 'b1/x'}, 'd2': {'bus': 'f1/y'}, 'd3': {'bus': 'hpo/y', 'shape': (1, numsteps)},
-                           'd4': {'bus': 'f2/y'}, 'd5': {'bus': 'hpo/x', 'shape': (3, numsteps)}},
+            'inputs': {
+                'd1': {'bus': 'b1/x'},
+                'd2': {'bus': 'f1/y'},
+                'd3': {'bus': 'hpo/y', 'shape': (1, numsteps)},
+                'd4': {'bus': 'f2/y'},
+                'd5': {'bus': 'hpo/x', 'shape': (3, numsteps)}},
             'outputs': {}, # 'x': {'shape': (1, 1)}
             'subplots': [
                 # [

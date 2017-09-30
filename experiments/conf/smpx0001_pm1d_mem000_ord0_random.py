@@ -23,6 +23,7 @@ layers and start to grow connecting pathways
 from smp_graphs.block import FuncBlock2
 from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2
 from smp_graphs.block_models import ModelBlock2
+from smp_graphs.block_meas import MomentBlock2
 
 from smp_graphs.funcs import f_sin, f_motivation, f_motivation_bin
 
@@ -60,6 +61,7 @@ lim = 1.0
 # 4. loop over kinesis variants [bin, cont] and system variants ord [0, 1, 2, 3?] and ndim = [1,2,3,4,8,16,...,ndim_max]
 
 # TODO low-level
+# block groups
 # experiment sig, make hash, store config and logfile with that hash
 # compute experiment hash: if exists, use logfile, else compute
 # compute experiment/model_i hash: if exists, use pickled model i, else train
@@ -120,7 +122,25 @@ graph = OrderedDict([
     
     # robot
     ('robot1', systemblock),
-        
+
+    # measures
+    ('measure', {
+        'block': MomentBlock2,
+        'params': {
+            'id': 'measure',
+            'blocksize': numsteps,
+            'inputs': {
+                'credit': {'bus': 'pre_l1/credit', 'shape': (1, numsteps)},
+            },
+            'outputs': {
+                'credit_mu': {'shape': (1, 1)},
+                'credit_var': {'shape': (1, 1)},
+                'credit_min': {'shape': (1, 1)},
+                'credit_max': {'shape': (1, 1)},
+            },
+        },
+    }),
+    
     # plotting
     ('plot', {
         'block': PlotBlock2,

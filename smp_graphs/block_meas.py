@@ -122,10 +122,10 @@ class XCorrBlock2(PrimBlock2):
         #         ax.legend()
         # plt.show()
 
-
-
 class WindowedBlock2(PrimBlock2):
-    """!@brief Uniform random numbers: output is uniform random vector
+    """WindowedBlock2 class
+
+    Uniform random numbers: output is uniform random vector
     FIXME: this one is not really needed as sliding window just comes out of blocksize vs. output blocksize
     """
     @decInit()
@@ -146,3 +146,32 @@ class TFBlock2(PrimBlock2):
         for k, v in data.items():
             DATA[k.upper()] = np.fft.fft(a = v)
         return DATA
+
+################################################################################
+# good old plain measures
+# MSE
+# statistical moments: mean, var, kurt, entropy, min, max
+class MomentBlock2(PrimBlock2):
+    """MomentBlock2 class
+
+    Compute statistical moments: mean, var, min, max
+    """
+    @decInit()
+    def __init__(self, conf = {}, paren = None, top = None):
+        PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
+
+    @decStep()
+    def step(self, x = None):
+        for k, v in self.inputs.items():
+            # print "%s.step[%d] k = %s, v = %s/%s, bus = %s" % (self.cname, self.cnt, k, v['val'].shape, v['shape'], self.bus[v['bus']].shape)
+            data = v['val']
+            # print "data", data.shape
+            k_mu = k + "_mu"
+            k_var = k + "_var"
+            k_min = k + "_min"
+            k_max = k + "_max"
+            setattr(self, k_mu, np.mean(v['val'], keepdims = True))
+            setattr(self, k_var, np.var(v['val'], keepdims = True))
+            setattr(self, k_min, np.min(v['val'], keepdims = True))
+            setattr(self, k_max, np.max(v['val'], keepdims = True))
+            print "MomentBlock2: mu, var, min, max", k, getattr(self, k_mu), getattr(self, k_var), getattr(self, k_min), getattr(self, k_max)

@@ -157,7 +157,10 @@ graph1 = OrderedDict([
 #         'numsteps': sweepsys_input_flat,  # inner numsteps when used as loopblock (sideways time)
 #         'blocksize': 1,           # compute single steps, has to be 1 so inner cnt is correct etc
 #         'blockphase': [0],        # phase = 0
-#         'outputs': {'meshgrid': {'shape': (dim_s_proprio, sweepsys_input_flat), 'buscopy': 'sweepsys_grid/meshgrid'}},
+#         'outputs': {
+#             'meshgrid': {
+#                 'shape': (dim_s_proprio, sweepsys_input_flat),
+#                 'buscopy': 'sweepsys_grid/meshgrid'}},
 #         # subgraph
 #         'graph': OrderedDict([
 #             ('sweepsys_grid', {
@@ -186,6 +189,7 @@ loopblock = {
     'params': {
         'id': 'bhier',
         'debug': False,
+        'logging': False,
         'topblock': False,
         'numsteps': numsteps,
         # contains the subgraph specified in this config file
@@ -196,6 +200,10 @@ loopblock = {
             'plot/active': False
             },
         # 'graph': graph1,
+        'outputs': {
+            'credit_min': {'shape': (1, 1), 'buscopy': 'measure/credit_min'},
+            'credit_max': {'shape': (1, 1), 'buscopy': 'measure/credit_max'},
+            }
     },
 }
 
@@ -213,7 +221,7 @@ graph = OrderedDict([
     #         'numsteps': numsteps,
     #         # graph dictionary: (id-key, {config dict})
     #         'loopblock': loopblock,
-    #         # 'outputs': {'x': {'shape': (3, 1)}},
+    #         'outputs': {'credit_mu': {'shape': (3, 1)}},
     #     },
     # }),
 
@@ -229,6 +237,7 @@ graph = OrderedDict([
             'loopblocksize': numsteps/numloop, # loopblocksize,
             # can't do this dynamically yet without changing init passes
             'outputs': {
+                'credit_min': {'shape': (1, numloop)}
                 # 'x': {'shape': (3, numsteps)},
                 # 'y': {'shape': (1, numsteps)}
             },

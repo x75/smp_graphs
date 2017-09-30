@@ -23,10 +23,13 @@ from smp_base.plot import makefig, set_interactive
 
 import smp_graphs.logging as log
 from smp_graphs.utils import print_dict, xproduct, myt
-from smp_graphs.common import conf_header, conf_footer
+
+from smp_graphs.common import conf_header, conf_footer, get_input
 from smp_graphs.common import get_config_raw, get_config_raw_from_string
-from smp_graphs.common import set_attr_from_dict, dict_search_recursive, dict_replace_idstr_recursive2
-from smp_graphs.common import get_input
+
+from smp_graphs.common import set_attr_from_dict
+from smp_graphs.common import dict_get_nodekeys_recursive, dict_replace_nodekeys_loop
+from smp_graphs.common import dict_search_recursive, dict_replace_idstr_recursive2
 
 from smp_graphs.graph import nxgraph_from_smp_graph, nxgraph_to_smp_graph
 from smp_graphs.graph import nxgraph_node_by_id, nxgraph_node_by_id_recursive
@@ -705,7 +708,19 @@ class Block2(object):
 
         # rewrite id strings?
         if hasattr(self, 'subgraph_rewrite_id') and self.subgraph_rewrite_id:
-            self.conf['params']['graph'] = dict_replace_idstr_recursive2(self.conf['params']['graph'], xid = self.conf['params']['id'][-1:])
+            nks_0 = dict_get_nodekeys_recursive(self.conf['params']['graph'])
+            xid = self.conf['params']['id'][-1:]
+            self.conf['params']['graph'] = dict_replace_idstr_recursive2(
+                d = self.conf['params']['graph'], xid = xid)
+            nks_l = dict_get_nodekeys_recursive(self.conf['params']['graph'])
+            
+            d_outputs = self.conf['params']['outputs']
+            d_outputs = dict_replace_nodekeys_loop(d_outputs, nks_0, xid)
+            print "nks", xid, nks_0, nks_l
+            print "d_outputs", d_outputs
+            # self.conf['params']['outputs'] = dict_get_nodekeys_recursive(
+            #     d = self.conf['params']['outputs'])
+            # , xid = self.conf['params']['id'][-1:])
         
     # def init_loopblock(self):
     #     print "loopblock", self.loopblock
@@ -1031,10 +1046,12 @@ class Block2(object):
 
         # if self.cnt % self.blocksize == 0:
         if (self.cnt % self.blocksize) in self.blockphase:
-            # print "cnt % blocksize", self.cnt, self.blocksize, self.cname, self.id
+            # if self.id.startswith('b4'):
+            #     print "%s.%s cnt modulo blocksize" % (self.cname, self.id), self.cnt, self.blocksize, self.cname, self.id
             # copy outputs from subblocks as configured in enclosing block outputs spec
             for k, v in self.outputs.items():
                 if v.has_key('buscopy'):
+                    # print "self.bus.keys", self.bus.keys()
                     setattr(self, k, self.bus[v['buscopy']])
                     # print "%s-%s[%d] self.%s = %s from bus %s" % (self.cname, self.id, self.cnt, k, getattr(self, k), v['buscopy'])
                 
@@ -1267,6 +1284,8 @@ class SeqLoopBlock2(Block2):
 
         Block2.__init__(self, conf = conf, paren = paren, top = top)
 
+        print "output credit_min", self.credit_min.shape
+
         self.init_primitive()
         
         # check 'loop' parameter type and set the loop function
@@ -1331,8 +1350,9 @@ class SeqLoopBlock2(Block2):
                 # print "%s trying %s.step[%d]" % (self.cname, self.dynblock.cname, j)
                 self.dynblock.step()
 
-            print "%s.step did %s.step * %d" % (self.cname, self.dynblock.cname, j)
-                
+            print "%s.step.f_obj did %d %s.steps" % (self.cname, j, self.dynblock.cname)
+
+            # copy looped-block outputs to loop-block outputs
             d = {}
             for outk, outv in self.dynblock.outputs.items():
                 d[outk] = getattr(self.dynblock, outk)
@@ -1388,13 +1408,18 @@ class SeqLoopBlock2(Block2):
             sys.stdout.flush()
             then = time.time()
 
-            # func: need input function from config
+            # run the loop, if it's a func loop: need input function from config
             results = self.f_loop(i, f_obj_)
             self.debug_print("SeqLoopBlock2 f_loop results[%d] = %s", (i, results))
-            if results is not None:
-                for k, v in results.items():
-                    self.debug_print("SeqLoopBlock2.step loop %d result k = %s, v = %s", (i, k, v))
-                    setattr(self, k, v)
+
+            # FIXME: WORKS for loop example hpo, model sweeps,
+            #        BREAKS for real experiment with measure output
+            # # copy dict to self attrs
+            # if results is not None:
+            #     for k, v in results.items():
+            #         self.debug_print("SeqLoopBlock2.step loop %d result k = %s, v = %s", (i, k, v))
+            #         setattr(self, k, v)
+                    
             # dynblock = results['dynblock']
             # lparams = results['lparams']
             
@@ -1403,8 +1428,9 @@ class SeqLoopBlock2(Block2):
             #     print "dynout", getattr(dynblock, k)
 
             for outk in self.outputs.keys():
+                # print "SeqLoopBlock2.step[%d] loop iter %d, outk = %s, dynblock outk = %s" % (self.cnt, i, outk, self.dynblock.outputs.keys(), )
                 outvar = getattr(self, outk)
-                # outvar[:,[i] = bla
+                print "SeqLoopBlock2.step[%d] loop iter %d, outk = %s, outvar = %s" % (self.cnt, i, outk, outvar, )
                 
                 # func: need output function from config
                 # FIXME: handle loopblock blocksizes greater than one
@@ -1424,7 +1450,7 @@ class SeqLoopBlock2(Block2):
                     
                 # print "    dynblock = %s.%s" % (self.dynblock.cname)
                 outvar[:,outslice] = getattr(self.dynblock, outk)
-                # print "outslice", outslice, "outvar", outvar[:,outslice]
+                print "outslice", outslice, "outvar", outvar.shape, outvar[...,:i+1], outvar[:,outslice], "dynblock[%s] = %s" % (outk, getattr(self.dynblock, outk))
         sys.stdout.write('\n')
         
         # # hack for checking hpo minimum

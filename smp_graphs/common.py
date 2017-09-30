@@ -311,7 +311,46 @@ def dict_replace_idstr_recursive2(d, xid, idmap = {}):
     d, idmap = dict_replace_nodekeyrefs(d, xid, idmap)
         
     return d
+
+def dict_get_nodekeys_recursive(d):
+    """dict_get_nodekeys_recursive
+
+    Recursively get all nodekeys from a nested graph
+    """
+    nodekeys = set(d.keys())
+    for nk in nodekeys:
+        # print "nodekey", nk
+        # print "graphkeys", d[nk]['params'].keys()
+        if d[nk]['params'].has_key('graph'):
+            # print "graphkeys", d[nk]['params']['graph'].keys()
+            nodekeys = nodekeys.union(dict_get_nodekeys_recursive(d[nk]['params']['graph']))
+    return nodekeys
+
+def dict_replace_nodekeys_loop(d = {}, nodekeys = set(), loopiter = 0):
+    for k, v in d.items():
+        # new id from old id
+        # k_ = "%s|%s" % (k, xid)
+        if k in nodekeys:
+            k_ = re.sub(r'%s' % k, r'%s|%s' % loopiter, k)
+            # overwrite old key with replacement
+            d[k_] = d.pop(k)
+        else:
+            k_ = k
             
+        print "k", k, "k_", k_, type(loopiter), nodekeys, type(d[k_])
+        # d[k_] is number, str, list, dict
+        if type(d[k_]) is str:
+            for nk in nodekeys:
+                print "replacing occur of k", nk, "in d[k_]", d[k_], "with string k_", nk, loopiter
+                d[k_] = re.sub(r'%s/' % nk, r'%s|%s/' % (nk, loopiter), d[k_])
+            print "replacing string k with string k_", d[k_]
+        elif type(d[k_]) is dict:
+            print "d[k_]", d[k_]
+            d[k_] = dict_replace_nodekeys_loop(d[k_], nodekeys, loopiter)
+        # elif type(d[k_]) is list:
+        #     d[k_] = dict_replace_nodekeys_loop(d[k_], nodekeys, loopiter)
+    return d
+        
 def read_puppy_hk_pickles(lfile, key = None):
     """smp_graphs.common.read pickled log dicts from andi's puppy experiments"""
     d = pickle.load(open(lfile, 'rb'))
