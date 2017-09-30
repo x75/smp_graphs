@@ -121,18 +121,18 @@ def dict_search_recursive(d, k):
     Search for the presence of key k recursively over nested smp_graph config dicts
     """
     # FIXME: make it generic recursive search over nested graphs and move to smp_base
-    # print "d", d, "k", k
-    print "#" * 80
-    print "searching k = %s " % (k,),
+
+    # print "#" * 80
+    # print "searching k = %s " % (k,),
     if d.has_key(k):
-        print "found k = %s, params = %s" % (k, d[k]['params'].keys())
+        # print "found k = %s, params = %s" % (k, d[k]['params'].keys())
         return d[k]
     else:
-        print "d.keys()", d.keys()
+        # print "d.keys()", d.keys()
         for k_, v_ in d.items():
             # if v_[
             if v_['params'].has_key('graph'): #  or v_['params'].has_key('subgraph'):
-                print "k_", k_, "v_", v_['params'].keys()
+                # print "k_", k_, "v_", v_['params'].keys()
                 return dict_search_recursive(v_['params']['graph'], k)
     # None found
     return None
@@ -155,12 +155,12 @@ def dict_replace_idstr_recursive(d, cid, xid):
         if d['params'].has_key('inputs'):
             for ink, inv in d['params']['inputs'].items():
                 if inv.has_key('bus'):
-                    print "bus old", inv['bus']
+                    # print "bus old", inv['bus']
                     inv['bus'] = re.sub(
                         r'%s' % (cid, ),
                         r'%s' % (d['params']['id'], ),
                         inv['bus'])
-                    print "bus new", inv['bus']
+                    # print "bus new", inv['bus']
                     
         # change param '?'
         
@@ -244,7 +244,7 @@ def dict_replace_nodekeyrefs(d, xid, idmap):
                     # print "ink, inv", ink, inv
                     # print "idmap", idmap
                     buskey = "%s/%s" % (idmap[invbuss[0]], invbuss[1])
-                    print "dict_replace_nodekeyrefs: replacing %s with %s in node %s" % (inv['bus'], buskey, k_)
+                    # print "dict_replace_nodekeyrefs: replacing %s with %s in node %s" % (inv['bus'], buskey, k_)
                     inv['bus'] = buskey
                     
         # fix bus references in outputs
@@ -256,7 +256,7 @@ def dict_replace_nodekeyrefs(d, xid, idmap):
                     # print "ink, inv", ink, inv
                     # print "idmap", idmap
                     buskey = "%s/%s" % (idmap[invbuss[0]], invbuss[1])
-                    print "dict_replace_nodekeyrefs: replacing %s with %s in node %s" % (inv['buscopy'], buskey, k_)
+                    # print "dict_replace_nodekeyrefs: replacing %s with %s in node %s" % (inv['buscopy'], buskey, k_)
                     inv['buscopy'] = buskey
                 print "\n\n\n\n\n\n\noutputs, buscopy", d[k_]['params']
 
@@ -279,7 +279,7 @@ def dict_replace_nodekeyrefs(d, xid, idmap):
                         # print "ink, inv", ink, inv
                         # print "idmap", idmap
                         buskey = "%s/%s" % (idmap[invbuss[0]], invbuss[1])
-                        print "dict_replace_nodekeyrefs: replacing %s with %s in node %s" % (inv['buscopy'], buskey, k_)
+                        # print "dict_replace_nodekeyrefs: replacing %s with %s in node %s" % (inv['buscopy'], buskey, k_)
                         inv['buscopy'] = buskey
                         
             d[k_]['params']['loopblock']['params']['graph'], idmap = dict_replace_nodekeyrefs(d[k_]['params']['loopblock']['params']['graph'], xid, idmap)
@@ -337,15 +337,15 @@ def dict_replace_nodekeys_loop(d = {}, nodekeys = set(), loopiter = 0):
         else:
             k_ = k
             
-        print "k", k, "k_", k_, type(loopiter), nodekeys, type(d[k_])
+        # print "k", k, "k_", k_, type(loopiter), nodekeys, type(d[k_])
         # d[k_] is number, str, list, dict
         if type(d[k_]) is str:
             for nk in nodekeys:
-                print "replacing occur of k", nk, "in d[k_]", d[k_], "with string k_", nk, loopiter
+                # print "replacing occur of k", nk, "in d[k_]", d[k_], "with string k_", nk, loopiter
                 d[k_] = re.sub(r'%s/' % nk, r'%s|%s/' % (nk, loopiter), d[k_])
-            print "replacing string k with string k_", d[k_]
+            # print "replacing string k with string k_", d[k_]
         elif type(d[k_]) is dict:
-            print "d[k_]", d[k_]
+            # print "d[k_]", d[k_]
             d[k_] = dict_replace_nodekeys_loop(d[k_], nodekeys, loopiter)
         # elif type(d[k_]) is list:
         #     d[k_] = dict_replace_nodekeys_loop(d[k_], nodekeys, loopiter)

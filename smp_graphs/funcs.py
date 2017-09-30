@@ -95,10 +95,10 @@ def f_sinesquare3(args):
 
 def f_sinesquare4(args):
     fu_check_required_args(args, ['x'], 'f_sinesquare2')
-    
+    # print "func x", args['x']['val'].shape
     x = f_sinesquare2(args)
     s1 = np.sum(x, axis = 0)
-    return np.ones((1,1)) * s1
+    return {'y': np.ones((1,1)) * s1}
 
 ################################################################################
 # generator functions

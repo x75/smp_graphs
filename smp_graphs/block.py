@@ -685,6 +685,7 @@ class Block2(object):
         assert subconf['params']['numsteps'] <= self.top.numsteps, "enclosed numsteps = %d greater than top level numsteps = %d" % (subconf['params']['numsteps'], self.top.numsteps)
 
         # set the graph params
+        # self.conf['params']['graph'] = copy.deepcopy(subconf['params']['graph'])
         self.conf['params']['graph'] = subconf['params']['graph']
 
         # selectively ignore nodes in 'subgraph_ignore_nodes' list from included subgraph
@@ -708,6 +709,7 @@ class Block2(object):
 
         # rewrite id strings?
         if hasattr(self, 'subgraph_rewrite_id') and self.subgraph_rewrite_id:
+            # self.outputs_copy = copy.deepcopy(self.conf['params']['outputs'])
             nks_0 = dict_get_nodekeys_recursive(self.conf['params']['graph'])
             xid = self.conf['params']['id'][-1:]
             self.conf['params']['graph'] = dict_replace_idstr_recursive2(
@@ -715,6 +717,7 @@ class Block2(object):
             nks_l = dict_get_nodekeys_recursive(self.conf['params']['graph'])
             
             d_outputs = self.conf['params']['outputs']
+            # print "d_outputs", d_outputs
             d_outputs = dict_replace_nodekeys_loop(d_outputs, nks_0, xid)
             print "nks", xid, nks_0, nks_l
             print "d_outputs", d_outputs
@@ -735,9 +738,10 @@ class Block2(object):
         # self.graph = self.conf['params']['graph']
 
         print "{0: <20}.init_graph_pass_1 graph.keys = {1}".format(self.cname[:20], self.nxgraph.nodes())
-        if hasattr(self, 'graph'):
-            print "    graph", self.graph, "\n"
-            print "    nxgraph", self.nxgraph, "\n"
+        
+        # if hasattr(self, 'graph'):
+        #     print "    graph", self.graph, "\n"
+        #     print "    nxgraph", self.nxgraph, "\n"
         
         # pass 1 init
         # for k, v in self.graph.items():
@@ -898,10 +902,13 @@ class Block2(object):
                         
                         # bus item does not exist yet
                         if not self.bus.has_key(v['bus']):
-                            for i in range(5):
-                                # FIXME: hacky
-                                print "%s-%s init (pass 2) WARNING: bus %s doesn't exist yet and will possibly not be written to by any block, buskeys = %s" % (self.cname, self.id, v['bus'], self.bus.keys())
+                            
+                            # FIXME: hacky
+                            for i in range(1): # 5
+                                # print "%s-%s init (pass 2) WARNING: bus %s doesn't exist yet and will possibly not be written to by any block, buskeys = %s" % (self.cname, self.id, v['bus'], self.bus.keys())
+                                print "%s-%s init (pass 2) WARNING: nonexistent bus %s" % (self.cname, self.id, v['bus'])
                                 if not self.top.recurrent: time.sleep(1)
+                                    
                             # pre-init that bus from constant
                             self.bus[v['bus']] = v['val'].copy()
                         else:
@@ -1053,7 +1060,7 @@ class Block2(object):
                 if v.has_key('buscopy'):
                     # print "self.bus.keys", self.bus.keys()
                     setattr(self, k, self.bus[v['buscopy']])
-                    # print "%s-%s[%d] self.%s = %s from bus %s" % (self.cname, self.id, self.cnt, k, getattr(self, k), v['buscopy'])
+                    # print "%s-%s[%d] self.%s = %s from bus %s / %s" % (self.cname, self.id, self.cnt, k, getattr(self, k), v['buscopy'], self.bus[v['buscopy']])
                 
         # need to to count ourselves
         # self.cnt += 1
@@ -1196,6 +1203,7 @@ class FuncBlock2(Block2):
                 setattr(self, k, v)
         else:
             for outk, outv in self.outputs.items():
+                # print "k, v", outk, outv, f_val
                 setattr(self, outk, f_val)
             self.y = f_val
             self.debug_print("step[%d]: y = %s", (self.cnt, self.y,))
@@ -1284,8 +1292,6 @@ class SeqLoopBlock2(Block2):
 
         Block2.__init__(self, conf = conf, paren = paren, top = top)
 
-        print "output credit_min", self.credit_min.shape
-
         self.init_primitive()
         
         # check 'loop' parameter type and set the loop function
@@ -1297,7 +1303,7 @@ class SeqLoopBlock2(Block2):
 
     # loop function for self.loop = list 
     def f_loop_list(self, i, f_obj):
-        print "self.loop", i, self.loop
+        # print "self.loop", i, self.loop
         results = f_obj(self.loop[i])
         return results
 
@@ -1320,8 +1326,17 @@ class SeqLoopBlock2(Block2):
             loopblock_params = {
                 'numsteps': self.numsteps,
             }
+
+            # FIXME: randseed hack
+            if lparams[0] == 'randseed':
+                # save old state
+                randstate = np.random.get_state()
+                # reset the seed for this loop
+                np.random.seed(lparams[1])
+                
             for k, v in self.loopblock['params'].items():
-                print "SeqLoopBlock2.step.f_obj loopblock params", k, v # , lparams[0]
+                # print "SeqLoopBlock2.step.f_obj loopblock params", k, v # , lparams[0]
+
                 if k == 'id':
                     loopblock_params[k] = "%s_%d" % (self.id, i)
                 elif k == lparams[0]:
@@ -1333,8 +1348,8 @@ class SeqLoopBlock2(Block2):
                 "%s.step.f_obj:\n    loopblock_params = %s",
                 (self.cname, loopblock_params))
             
-            # create dynamic conf
-            loopblock_conf = {'block': self.loopblock['block'], 'params': loopblock_params}
+            # create dynamic conf, beware the copy (!!!)
+            loopblock_conf = {'block': self.loopblock['block'], 'params': copy.deepcopy(loopblock_params)}
             # instantiate block
             self.dynblock = self.loopblock['block'](
                 conf = loopblock_conf,
@@ -1347,11 +1362,18 @@ class SeqLoopBlock2(Block2):
             # this is needed for using SeqLoop as a sequencer / timeline with full sideway time
             # run the block starting from cnt = 1
             for j in range(1, self.dynblock.numsteps+1):
-                # print "%s trying %s.step[%d]" % (self.cname, self.dynblock.cname, j)
+                # print "%s-%s trying %s-%s.step[%d]" % (self.cname, self.id, self.dynblock.cname, self.dynblock.id, j)
+                # print self.dynblock.x.shape, self.dynblock.y.shape
                 self.dynblock.step()
 
             print "%s.step.f_obj did %d %s.steps" % (self.cname, j, self.dynblock.cname)
 
+            # FIXME: randseed hack
+            if lparams[0] == 'randseed':
+                # save old state
+                np.random.set_state(randstate)
+
+            
             # copy looped-block outputs to loop-block outputs
             d = {}
             for outk, outv in self.dynblock.outputs.items():
@@ -1401,15 +1423,16 @@ class SeqLoopBlock2(Block2):
 
         # loop the loop
         then = time.time()
-        print "%s-%s[%d] iter#" % (self.cname, self.id, self.cnt),
+        print "%s-%s.step[%d]" % (self.cname, self.id, self.cnt)
         # loopblock loop
         for i in range(self.numsteps/self.loopblocksize):
-            print "SeqLoopBlock2.step[%d] loop iter %d" % (self.cnt, i,),
+            print "%s-%s.step[%d] loop iter %d" % (self.cname, self.id, self.cnt, i,)
             sys.stdout.flush()
             then = time.time()
 
             # run the loop, if it's a func loop: need input function from config
             results = self.f_loop(i, f_obj_)
+            # print "results", results
             self.debug_print("SeqLoopBlock2 f_loop results[%d] = %s", (i, results))
 
             # FIXME: WORKS for loop example hpo, model sweeps,
@@ -1430,7 +1453,7 @@ class SeqLoopBlock2(Block2):
             for outk in self.outputs.keys():
                 # print "SeqLoopBlock2.step[%d] loop iter %d, outk = %s, dynblock outk = %s" % (self.cnt, i, outk, self.dynblock.outputs.keys(), )
                 outvar = getattr(self, outk)
-                print "SeqLoopBlock2.step[%d] loop iter %d, outk = %s, outvar = %s" % (self.cnt, i, outk, outvar, )
+                # print "SeqLoopBlock2.step[%d] loop iter %d, outk = %s, outvar = %s" % (self.cnt, i, outk, outvar, )
                 
                 # func: need output function from config
                 # FIXME: handle loopblock blocksizes greater than one
@@ -1449,8 +1472,8 @@ class SeqLoopBlock2(Block2):
                     (self.cname, outk, getattr(self, outk).shape, outslice, ))
                     
                 # print "    dynblock = %s.%s" % (self.dynblock.cname)
-                outvar[:,outslice] = getattr(self.dynblock, outk)
-                print "outslice", outslice, "outvar", outvar.shape, outvar[...,:i+1], outvar[:,outslice], "dynblock[%s] = %s" % (outk, getattr(self.dynblock, outk))
+                outvar[:,outslice] = getattr(self.dynblock, outk).copy()
+                print "outslice", outslice, "outvar", outvar.shape, outvar[...,:], outvar[:,outslice], "dynblock[%s] = %s" % (outk, getattr(self.dynblock, outk))
         sys.stdout.write('\n')
         
         # # hack for checking hpo minimum

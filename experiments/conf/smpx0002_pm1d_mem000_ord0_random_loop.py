@@ -35,7 +35,7 @@ dim = 1
 motors = dim
 dt = 0.1
 showplot = True
-saveplot = False
+saveplot = True
 randseed = 126
 
 from smp_graphs.utils_conf import get_systemblock
@@ -184,6 +184,8 @@ graph1 = OrderedDict([
 #         }
 #     }
 
+numloop = 100
+
 loopblock = {
     'block': Block2,
     'params': {
@@ -192,6 +194,7 @@ loopblock = {
         'logging': False,
         'topblock': False,
         'numsteps': numsteps,
+        'randseed': 1,
         # contains the subgraph specified in this config file
         'subgraph': 'conf/smpx0001_pm1d_mem000_ord0_random.py',
         'subgraph_rewrite_id': True,
@@ -203,11 +206,10 @@ loopblock = {
         'outputs': {
             'credit_min': {'shape': (1, 1), 'buscopy': 'measure/credit_min'},
             'credit_max': {'shape': (1, 1), 'buscopy': 'measure/credit_max'},
+            'credit_mu': {'shape': (1, 1), 'buscopy': 'measure/credit_mu'},
             }
     },
 }
-
-numloop = 3
     
 graph = OrderedDict([
     # # concurrent loop
@@ -221,7 +223,7 @@ graph = OrderedDict([
     #         'numsteps': numsteps,
     #         # graph dictionary: (id-key, {config dict})
     #         'loopblock': loopblock,
-    #         'outputs': {'credit_mu': {'shape': (3, 1)}},
+    #         'outputs': {'credit_min': {'shape': (1, numloop)}},
     #     },
     # }),
 
@@ -237,7 +239,9 @@ graph = OrderedDict([
             'loopblocksize': numsteps/numloop, # loopblocksize,
             # can't do this dynamically yet without changing init passes
             'outputs': {
-                'credit_min': {'shape': (1, numloop)}
+                'credit_min': {'shape': (1, numloop)},
+                'credit_max': {'shape': (1, numloop)},
+                'credit_mu': {'shape': (1, numloop)},
                 # 'x': {'shape': (3, numsteps)},
                 # 'y': {'shape': (1, numsteps)}
             },
@@ -251,4 +255,28 @@ graph = OrderedDict([
         },
     }),
 
+    # plotting
+    ('plot', {
+        'block': PlotBlock2,
+        'params': {
+            'id': 'plot',
+            'blocksize': numsteps,
+            'saveplot': saveplot,
+            'savetype': 'pdf',
+            'inputs': {
+                'mins_s': {'bus': 'b4/credit_min', 'shape': (1, numloop)},
+                'maxs_s': {'bus': 'b4/credit_max', 'shape': (1, numloop)},
+                'mus_s': {'bus': 'b4/credit_mu', 'shape': (1, numloop)},
+                # 'mins_p': {'bus': 'b3/credit_min', 'shape': (1, numloop)},
+                },
+            'subplots': [
+                [
+                    {
+                    'input': ['mins_s', 'maxs_s', 'mus_s'],
+                    'plot': partial(timeseries, linestyle = 'none', marker = 'o')}
+                ],
+            ],
+        },
+    })
+    
 ])
