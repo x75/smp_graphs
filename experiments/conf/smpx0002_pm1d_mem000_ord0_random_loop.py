@@ -20,6 +20,8 @@ start with innermost (fundamental drives) and outermost (raw sensors)
 layers and start to grow connecting pathways
 """
 
+# from collections import OrderedDict
+
 from smp_graphs.block import FuncBlock2
 from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2
 from smp_graphs.block_models import ModelBlock2
@@ -184,7 +186,7 @@ graph1 = OrderedDict([
 #         }
 #     }
 
-numloop = 100
+numloop = 2
 
 loopblock = {
     'block': Block2,
@@ -195,12 +197,15 @@ loopblock = {
         'topblock': False,
         'numsteps': numsteps,
         'randseed': 1,
+        # subcomponent?
+        'robot1/dim': 2,
         # contains the subgraph specified in this config file
         'subgraph': 'conf/smpx0001_pm1d_mem000_ord0_random.py',
         'subgraph_rewrite_id': True,
-        'subgraph_ignore_nodes': ['plot'],
+        'subgraph_ignore_nodes': [], # ['plot'],
         'subgraphconf': {
-            'plot/active': False
+            # 'plot/active': False
+            'robot1/dim': 1,
             },
         # 'graph': graph1,
         'outputs': {
@@ -245,38 +250,53 @@ graph = OrderedDict([
                 # 'x': {'shape': (3, numsteps)},
                 # 'y': {'shape': (1, numsteps)}
             },
-            # 'loop': [('inputs', {
-            #     'lo': {'val': np.random.uniform(-i, 0, (3, 1)), 'shape': (3, 1)}, 'hi': {'val': np.random.uniform(0.1, i, (3, 1)), 'shape': (3, 1)}}) for i in range(1, 11)],
+            
+            # 'loop': [
+            #     ('inputs', {
+            #         'lo': {
+            #             'val': np.random.uniform(-i, 0, (3, 1)),
+            #             'shape': (3, 1)},
+            #         'hi': {
+            #             'val': np.random.uniform(0.1, i, (3, 1)),
+            #             'shape': (3, 1)}
+            #         }) for i in range(1, 11)],
             # 'loop': lambda ref, i: ('inputs', {'lo': [10 * i], 'hi': [20*i]}),
-            # 'loop': [('inputs', {'x': {'val': np.random.uniform(np.pi/2, 3*np.pi/2, (3,1))]}) for i in range(1, numsteps+1)],
-            'loop': [('randseed', 1000 + i) for i in range(0, numloop)], # partial(f_loop_hpo, space = f_loop_hpo_space_f3(pdim = 3)),
+            # 'loop': [
+            #     ('inputs', {
+            #         'x': {
+            #             'val': np.random.uniform(np.pi/2, 3*np.pi/2, (3,1))}
+            #         }) for i in range(1, numsteps+1)],
+                    
+            # 'loop': [('randseed', 1000 + i) for i in range(0, numloop)],
+            'loop': [('subgraphconf', {'robot1/dim': i + 1}) for i in range(0, numloop)],
+            # partial(f_loop_hpo, space = f_loop_hpo_space_f3(pdim = 3)),
             'loopmode': 'sequential',
             'loopblock': loopblock,
         },
     }),
 
-    # plotting
-    ('plot', {
-        'block': PlotBlock2,
-        'params': {
-            'id': 'plot',
-            'blocksize': numsteps,
-            'saveplot': saveplot,
-            'savetype': 'pdf',
-            'inputs': {
-                'mins_s': {'bus': 'b4/credit_min', 'shape': (1, numloop)},
-                'maxs_s': {'bus': 'b4/credit_max', 'shape': (1, numloop)},
-                'mus_s': {'bus': 'b4/credit_mu', 'shape': (1, numloop)},
-                # 'mins_p': {'bus': 'b3/credit_min', 'shape': (1, numloop)},
-                },
-            'subplots': [
-                [
-                    {
-                    'input': ['mins_s', 'maxs_s', 'mus_s'],
-                    'plot': partial(timeseries, linestyle = 'none', marker = 'o')}
-                ],
-            ],
-        },
-    })
+    # # plotting
+    # ('plot', {
+    #     'block': PlotBlock2,
+    #     'params': {
+    #         'id': 'plot',
+    #         'blocksize': numsteps,
+    #         'saveplot': saveplot,
+    #         'savetype': 'pdf',
+    #         'inputs': {
+    #             'mins_s': {'bus': 'b4/credit_min', 'shape': (1, numloop)},
+    #             'maxs_s': {'bus': 'b4/credit_max', 'shape': (1, numloop)},
+    #             'mus_s': {'bus': 'b4/credit_mu', 'shape': (1, numloop)},
+    #             # 'mins_p': {'bus': 'b3/credit_min', 'shape': (1, numloop)},
+    #             },
+    #         'subplots': [
+    #             [
+    #                 {
+    #                 'input': ['mins_s', 'maxs_s', 'mus_s'],
+    #                 'plot': partial(timeseries, linestyle = 'none', marker = 'o')}
+    #             ],
+    #         ],
+    #     },
+    # })
     
 ])

@@ -69,8 +69,8 @@ lim = 1.0
 
 # graph
 graph = OrderedDict([
-    # # robot
-    # ('robot1', systemblock),
+    # robot
+    ('robot1', systemblock),
         
     # brain
     ('braina', {
@@ -120,8 +120,8 @@ graph = OrderedDict([
         }
     }),
     
-    # robot
-    ('robot1', systemblock),
+    # # robot
+    # ('robot1', systemblock),
 
     # measures
     ('measure', {

@@ -679,8 +679,16 @@ class Block2(object):
             
 
     def init_subgraph(self):
+        """Block2.init_subgraph
+
+        Initialize a Block2's subgraph
+
+        Subgraph is a filename of another full graph config as opposed
+        to a graph which is specified directly as a dictionary.
+        """
         subconf = get_config_raw(self.subgraph, 'conf') # 'graph')
         assert subconf is not None
+        print "Block2.init_subgraph subconf['params'] = %s" % (subconf['params'].keys(), )
         # make sure subordinate number of steps is less than top level numsteps
         assert subconf['params']['numsteps'] <= self.top.numsteps, "enclosed numsteps = %d greater than top level numsteps = %d" % (subconf['params']['numsteps'], self.top.numsteps)
 
@@ -700,9 +708,9 @@ class Block2(object):
                 (confk_id, confk_param) = confk.split("/")
                 confnode = dict_search_recursive(self.conf['params']['graph'], confk_id)
                 if confnode is None: continue
-                print "confk_param", confk_param
-                print "confv", confv
-                print "confnode", confnode.keys()
+                print "subgraphconf confnode", confnode.keys()
+                print "subgraphconf confk_param", confk_param
+                print "subgraphconf confv", confv
                 confnode['params'][confk_param] = confv
         # # debug
         # print self.conf['params']['graph']['brain_learn_proprio']['params']['graph'][confk_id]
@@ -719,8 +727,9 @@ class Block2(object):
             d_outputs = self.conf['params']['outputs']
             # print "d_outputs", d_outputs
             d_outputs = dict_replace_nodekeys_loop(d_outputs, nks_0, xid)
-            print "nks", xid, nks_0, nks_l
-            print "d_outputs", d_outputs
+            # print "nks", xid, nks_0, nks_l
+            # print "d_outputs", d_outputs
+            
             # self.conf['params']['outputs'] = dict_get_nodekeys_recursive(
             #     d = self.conf['params']['outputs'])
             # , xid = self.conf['params']['id'][-1:])
@@ -1423,10 +1432,10 @@ class SeqLoopBlock2(Block2):
 
         # loop the loop
         then = time.time()
-        print "%s-%s.step[%d]" % (self.cname, self.id, self.cnt)
+        # print "%s-%s.step[%d]" % (self.cname, self.id, self.cnt)
         # loopblock loop
         for i in range(self.numsteps/self.loopblocksize):
-            print "%s-%s.step[%d] loop iter %d" % (self.cname, self.id, self.cnt, i,)
+            # print "%s-%s.step[%d] loop iter %d" % (self.cname, self.id, self.cnt, i,)
             sys.stdout.flush()
             then = time.time()
 

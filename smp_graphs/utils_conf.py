@@ -15,6 +15,7 @@ from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2
 """
 def get_systemblock_pm(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1, lag = 1):
     global np, PointmassBlock2, meas
+    print "get_systemblock_pm dim = %d" % (dim_s_proprio, )
     return {
         'block': PointmassBlock2,
         'params': {
