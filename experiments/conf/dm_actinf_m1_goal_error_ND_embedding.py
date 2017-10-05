@@ -30,10 +30,10 @@ from smp_graphs.funcs import f_meshgrid, f_meshgrid_mdl, f_random_uniform, f_sin
 # robustness
 # FIXME: target properties like frequency matched to body (attainable / not attainable)
 # FIXME: eta
-# FIXME: motor / sensor limits, how does the model learn the limits
-# FIXME: priors: timing, limits
+# FIXME: priors: limits, learn the sensorimotor limits
+# FIXME: priors: tapping, learn tapping
 
-# FIXME: insert measure_mse, insert measure_moments, insert measure_accumulated_error
+# FIXME: x insert measure_mse, x insert measure_moments, x insert measure_accumulated_error
 
 # execution
 saveplot = False
@@ -47,8 +47,8 @@ commandline_args = ['numsteps']
 randseed = 12348
 numsteps = int(10000/5)
 loopblocksize = numsteps
-# sysname = 'pm'
-sysname = 'sa'
+sysname = 'pm'
+# sysname = 'sa'
 # sysname = 'bha'
 # sysname = 'stdr'
 # sysname = 'lpzbarrel'
