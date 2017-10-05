@@ -53,12 +53,13 @@ def nxgraph_add_node_from_conf(k, v, G, nc):
 def nxgraph_from_smp_graph(conf):
     """nxgraph_from_smp_graph
 
-    construct an nx.graph from an smp_graph configuration dictionary
+    Construct a networkx graph 'nxgraph' from an smp_graph configuration dictionary 'conf'
+
     Args:
     - conf: smp_graphs configuration dict
 
     Returns:
-    - G: the nx graph object
+    - G: the nx.graph object
     """
     # new empty graph
     G = nx.MultiDiGraph()

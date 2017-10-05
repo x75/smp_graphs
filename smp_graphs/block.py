@@ -424,9 +424,6 @@ class Block2(object):
         self.cname = self.__class__.__name__
 
         # merge Block2 base defaults with child defaults
-        # print "Block2 Block2.defaul", Block2.defaults
-        # print "Block2 self.defaults", self.defaults
-        # print "Block2 self.__class_", self.__class__.defaults
         defaults = {}
         defaults.update(Block2.defaults, **self.defaults)
         # print "defaults %s = %s" % (self.cname, defaults)
@@ -445,15 +442,6 @@ class Block2(object):
         # check id
         assert hasattr(self, 'id'), "Block2 init: id needs to be configured"
         # FIXME: check unique id, self.id not in self.topblock.ids
-        # if id not is None:
-        #     self.id = blockid
-
-        # input buffer vs. blocksize: input buffer is sliding, blocksize is jumping
-        # FIXME: obsolete? delete ibuf
-        # blocksize vs. numsteps: override config blocksize with global numsteps if numsteps < blocksize
-        # print "self.top", self.top
-        # if self.blocksize > self.ibuf:
-        #     self.ibuf = self.blocksize
 
         ################################################################################
         # 1 general top block stuff: init bus, set top to self, init logging
@@ -495,7 +483,7 @@ class Block2(object):
 
         # not topblock
         else:
-            # numsteps cl arg vs. blocksizes
+            # check numsteps commandline arg vs. config blocksizes
             self.blocksize_clamp()
             
             # get bus from topblock
@@ -515,7 +503,10 @@ class Block2(object):
         self.blocksize = min(self.top.numsteps, self.blocksize)
         
     def init_block(self):
-        """Init a graph block: topblock, hierarchical inclusion: file/dict, loop, loop_seq"""
+        """Block2.init_block
+
+        Init a graph based block: topblock, hierarchical inclusion from file or dictionary, loop, loop_seq
+        """
         ################################################################################
         # 2 copy the config dict to exec graph if hierarchical
         if hasattr(self, 'graph') or hasattr(self, 'subgraph') \
@@ -542,9 +533,10 @@ class Block2(object):
             # elif hasattr(self, 'loopblock'):
             #     self.init_loopblock()
 
-            # get the graph from the configuration dict
+            # get the graph from the configuration dictionary
             self.nxgraph = nxgraph_from_smp_graph(self.conf)
-            
+
+            ##############################################################################
             # node cloning (experimental)
             if hasattr(self, 'graph') \
               and type(self.graph) is str \
@@ -650,6 +642,9 @@ class Block2(object):
                 self.nxgraph.add_node(0, clone)
 
                 # puh!
+
+            # end node clone
+            ##############################################################################
                 
             # for n in self.nxgraph.nodes():
             #     print "%s-%s g.node[%s] = %s" % (self.cname, self.id, n, self.nxgraph.node[n])
@@ -712,13 +707,29 @@ class Block2(object):
         if hasattr(self, 'subgraphconf'):
             # modifications happen in conf space since graph init pass 1 and 2 are pending
             for confk, confv in self.subgraphconf.items():
+                # split block id from config parameter
                 (confk_id, confk_param) = confk.split("/")
+                # get the block's node
                 confnode = dict_search_recursive(self.conf['params']['graph'], confk_id)
+                # return on fail
                 if confnode is None: continue
-                print "subgraphconf confnode", confnode['block']
-                print "subgraphconf confk_param", confk_param
-                print "subgraphconf confv", confv
-                confnode['params'][confk_param] = confv
+                print "subgraphconf node = %s" % (confnode['block'], )
+                print "               param = %s" % (confk_param, )
+                print "               val_bare = %s" % (confv, )
+                print "               val_old = %s" % (confnode['params'][confk_param], )
+                # overwrite param dict
+                # tmp = {}
+                # tmp.update(confnode['params'][confk_param], **confv)
+                if type(confv) is dict:
+                    tmp_ = copy.copy(confnode['params'][confk_param])
+                    tmp_.update(**confv)
+                    print "               val_new = %s, tmp_ = %s" % (confnode['params'][confk_param], tmp_)
+                else:
+                    print "               val_new = %s" % (confv, )
+                    confnode['params'][confk_param] = confv
+                    
+                # print "               val_new = %s, val_old = %s" % (confv, confnode['params'][confk_param])
+                # debug print
                 for paramk, paramv in confnode['params'].items():
                     print "    %s = %s" % (paramk, paramv)
         # # debug

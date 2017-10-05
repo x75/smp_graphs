@@ -1,23 +1,12 @@
 """smp_graphs configuration
 
-kinesis on an n-dimensional system
+id:thesis_smpx0002
+
+Baseline statistics for randseed start ... start + numloop of id:thesis_smpx0001
 
 Oswald Berthold 2017
 
-porting from smq/experiments/conf2/kinesis_pm_1d.py
-
-components for kinesis (fom smq):
- - world (identity)
- - robot (pointmass, simplearm)
- - motivation: distance to goal
- - action: activity modulated proportionally by distance to goal
-
-now: motivation and action are of the same kind (a prediction), but
-placed on different levels. can we make the levels very general and
-self-organizing?
-
-start with innermost (fundamental drives) and outermost (raw sensors)
-layers and start to grow connecting pathways
+Multiple runs of baseline behaviour varying seed
 """
 
 # from collections import OrderedDict

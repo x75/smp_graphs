@@ -22,7 +22,20 @@ dt = 0.1
 # looparray = [('file', {'filename': fname, 'filetype': 'puppy', 'offset': random.randint(0, 500), 'length': numsteps}) for fname in filearray]
 models = ['knn', 'soesgp'] # , 'storkgp',]
 looparray = [('subgraphconf', {
-    'pre_l0/models': {'fwd': {'type': 'actinf_m1', 'algo': model, 'idim': dim * 2, 'odim': dim},},
+    'pre_l0/models': {
+        'm1': {
+            'type': 'actinf_m1',
+            'algo': model,
+            # 'type': 'actinf_m1',
+            # 'algo': algo,
+            # 'lag_past': lag_past,
+            # 'lag_future': lag_future,
+            # 'idim': dim_s_proprio * (lag_past[1] - lag_past[0]) * 2, # laglen
+            # 'odim': dim_s_proprio * (lag_future[1] - lag_future[0]), # laglen,
+            # 'laglen': laglen,
+            # 'eta': eta,
+        },
+    },
     'plot_ts/title': 'actinf_m1 1D with %s' % (model, )
     }) for (i, model) in enumerate(models)]
 
@@ -34,7 +47,7 @@ loopblock = {
         'id': 'actinf_m1_loop',
         'debug': False,
         'blocksize': 1,
-        'subgraph': 'conf/actinf_m1_goal_error_1D.py',
+        'subgraph': 'conf/dm_actinf_m1_goal_error_ND_embedding.py',
         'subgraphconf': {},
         'subgraph_rewrite_id': True,
         'outputs': {},
