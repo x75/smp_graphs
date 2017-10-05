@@ -76,10 +76,11 @@ class PointmassBlock2(SysBlock2):
             # real output variables defined by config
             # for k in ['s_proprio', 's_extero', 's_all']:
             for k in self.outputs.keys():
+                # print "k", k, getattr(self, k)
+                # print "%s.step[%d]: x = %s/%s" % (self.cname, self.cnt, self.x, self.system.x)
                 k_ = getattr(self, k)
                 k_[:,[i]] = self.x[k]
                 # setattr(self, k, self.x[k])
-                # print "%s.step[%d]: x = %s/%s" % (self.cname, self.cnt, self.x, self.system.x)
 
                 
 class SimplearmBlock2(SysBlock2):

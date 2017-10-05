@@ -1,6 +1,6 @@
 
 import traceback
-import sys, pickle, re
+import sys, pickle, re, ast
 
 from collections import OrderedDict
 
@@ -49,8 +49,64 @@ conf = {
 }
 """
 
+# loop_delim = '|'
+loop_delim = '_ll'
 
-def get_config_raw(conf, confvar = 'conf'):
+
+# AST rewriting
+class RewriteDict(ast.NodeTransformer):
+
+    def visit_Dict(self, node):
+        print "node dict", node, dir(node)
+        # return ast.copy_location(ast.Subscript(
+        #     value=ast.Name(id='data', ctx=ast.Load()),
+        #     slice=ast.Index(value=ast.Str(s=node.id)),
+        #     ctx=node.ctx
+        # ), node)
+
+class RewriteName(ast.NodeTransformer):
+
+    def visit_Name(self, node):
+        if node.id == 'lconf':
+            print "node name", node.id, node.ctx # dir(node)
+            if isinstance(node.ctx, ast.Store):
+                print "hu store", ast.parse(node.ctx)
+        # return ast.copy_location(ast.Subscript(
+        #     value=ast.Name(id='data', ctx=ast.Load()),
+        #     slice=ast.Index(value=ast.Str(s=node.id)),
+        #     ctx=node.ctx
+        # ), node)
+        
+class RewriteAssign(ast.NodeTransformer):
+    def __init__(self, lconf):
+        self.lconf = lconf
+
+    def visit_Assign(self, node):
+        # print "node.targets", node.targets
+        if isinstance(node.targets[0], ast.Name):
+            # print "Found Name", type(node.targets[0].id), node.targets[0].id
+            if node.targets[0].id == 'lconf' and self.lconf is not None:
+                # print "founde lconf", type(node.targets[0].id), node.targets[0].id
+                # print "lconf", type(self.lconf)
+                lconf_parsed = ast.parse(str(self.lconf), '<string>', 'exec')
+                # print "lconf_parsed", lconf_parsed.body[0].value
+                # print "lconf_old", node.value
+                # lconf_parsed = ast.fix_missing_locations(lconf_parsed)
+                node.value = lconf_parsed.body[0].value
+                # node = ast.fix_missing_locations(node)
+                # print "node", node.lineno, lconf_parsed.body[0].value.lineno
+                # return node
+        #         # swap old for parsed
+        # return ast.copy_location(ast.Subscript(
+        #     value=ast.Assign(id='data', ctx=ast.Load()),
+        #     slice=ast.Index(value=ast.Str(s=node.id)),
+        #     ctx=node.ctx
+        # ), node)
+        return node
+        
+
+
+def get_config_raw(conf, confvar = 'conf', lconf = None):
     """base.common.py
 
     open config file, read it and call get_config_raw_from_string on that string
@@ -63,9 +119,10 @@ def get_config_raw(conf, confvar = 'conf'):
         sys.exit(1)
 
     # compile and evaluate the dictionary code string and return the dict object
-    return get_config_raw_from_string(s_, confvar = confvar)
+    return get_config_raw_from_string(s_, confvar = confvar, lconf = lconf)
 
-def get_config_raw_from_string(conf, confvar = 'conf'):
+
+def get_config_raw_from_string(conf, confvar = 'conf', lconf = None):
     """base.common.get_config_raw_from_string
 
     Compile the 'conf' string and return the resulting 'confvar' variable
@@ -77,11 +134,51 @@ def get_config_raw_from_string(conf, confvar = 'conf'):
     lineoffset += conf_footer.count('\n')
     s   = "%s\n%s\n%s" % (conf_header, conf, conf_footer)
 
+    # new 20171002 with ast replacements
+    # tree = compile(s, "<string>", "exec", ast.PyCF_ONLY_AST)
+    tree = ast.parse(s, "<string>", "exec")
+    # print "tree", tree.body
+    rwa = RewriteAssign(lconf = lconf)
+    tree = rwa.visit(tree)
+    tree = ast.fix_missing_locations(tree)
+    
+    # sys.exit()
+    # tree = RewriteName().visit(tree)
+    # tree = RewriteDict().visit(tree)
+
+    # # print "tree", ast.dump(tree)
+    # sawlconf = False
+    # for node in ast.walk(tree):
+    #     # print "node", node, dir(node)
+    #     # print "node", node.id
+    #     if isinstance(node, ast.Name):
+    #         # print(node.name)
+    #         print "    ", node.id
+    #         if node.id == 'lconf':
+    #             print("lconf", node.id)
+    #             sawlconf = True
+    #     elif sawlconf:
+    #         print "node", node
+    #         sawlconf = False
+    # # for node in ast.walk(tree):
+    # #     print "tree", node
+
     # load config by compiling and running the configuration code
 
     # make sure to catch syntax errors in the config for debugging
     try:
-        code = compile(s, "<string>", "exec")
+        # code = compile(s, "<string>", "exec")
+        # code = compile(tree, "<ast>", "exec")
+        code = compile(tree, "<ast>", "exec")
+        
+        # ast = ast.parse(s, '<string>', 'exec')
+        # print "ast", dir(ast)
+        # print "code", dir(code)
+        # print "code.argcount", code.co_argcount
+        # print "code.cellvars", code.co_cellvars
+        # print "code.consts", code.co_consts
+        # print "code.freevars", code.co_freevars
+        # print "code.nlocals", code.co_nlocals
     except Exception, e:
         print "\n%s" % (e.text)
         print "Compilation of %s failed with %s in %s at line %d" % (conf, e.msg, e.filename, e.lineno)
@@ -90,6 +187,10 @@ def get_config_raw_from_string(conf, confvar = 'conf'):
     # prepare variables
     global_vars = {}
     local_vars  = {}
+
+    # copy lconf
+    if lconf is not None:
+        global_vars['lconf'] = lconf
     
     # run the code
     try:
@@ -102,6 +203,9 @@ def get_config_raw_from_string(conf, confvar = 'conf'):
         print "Probably causes:\n    missing parentheses or comma\n    dict key followed by , instead of :\nin config"
         sys.exit(1)
 
+    print "get_config_raw_from_string local_vars", local_vars.keys()
+    print "get_config_raw_from_string global_vars", global_vars.keys()
+        
     # return resulting variable
     return local_vars[confvar]
 
@@ -140,7 +244,7 @@ def dict_search_recursive(d, k):
 def dict_replace_idstr_recursive(d, cid, xid):
     """smp_graphs.common.dict_replace_idstr_recursive
 
-    Replace all references in dict 'd' to id 'cid' in the dictionary with 'cid|xid'
+    Replace all references in dict 'd' to id 'cid' in the dictionary with 'cid{loop_delim}xid'
     """
     assert d.has_key('params')
     # assert d['params'].has_key('id')
@@ -149,7 +253,7 @@ def dict_replace_idstr_recursive(d, cid, xid):
     
     if cid is not None:
         # change param 'id'
-        d['params']['id'] = "%s|%s" % (cid, xid)
+        d['params']['id'] = "%s%s%s" % (cid, loop_delim, xid)
 
         # change param 'inputs'
         if d['params'].has_key('inputs'):
@@ -197,7 +301,7 @@ def dict_replace_nodekeys(d, xid, idmap = {}):
     for k, v in d.items():
         # print "dict_replace_nodekeys: k = %s, v = %s, idmap = %s" % (k, v.keys(), idmap)
         # new id from old id
-        k_ = "%s|%s" % (k, xid)
+        k_ = "%s%s%s" % (k, loop_delim, xid)
         # fix key:
         d[k_] = d.pop(k) # FIXME: does this confuse .items(), FIXME: even worse, does this confuse the order in OrderedDict?
         # print "k_", k_, "v_", d[k_].keys()
@@ -329,9 +433,9 @@ def dict_get_nodekeys_recursive(d):
 def dict_replace_nodekeys_loop(d = {}, nodekeys = set(), loopiter = 0):
     for k, v in d.items():
         # new id from old id
-        # k_ = "%s|%s" % (k, xid)
+        # k_ = "%s%s%s" % (k, loop_delim, xid)
         if k in nodekeys:
-            k_ = re.sub(r'%s' % k, r'%s|%s' % loopiter, k)
+            k_ = re.sub(r'%s' % (k, ), r'%s%s%s' % (k, loop_delim, loopiter), k)
             # overwrite old key with replacement
             d[k_] = d.pop(k)
         else:
@@ -342,7 +446,7 @@ def dict_replace_nodekeys_loop(d = {}, nodekeys = set(), loopiter = 0):
         if type(d[k_]) is str:
             for nk in nodekeys:
                 # print "replacing occur of k", nk, "in d[k_]", d[k_], "with string k_", nk, loopiter
-                d[k_] = re.sub(r'%s/' % nk, r'%s|%s/' % (nk, loopiter), d[k_])
+                d[k_] = re.sub(r'%s/' % nk, r'%s%s%s/' % (nk, loop_delim, loopiter), d[k_])
             # print "replacing string k with string k_", d[k_]
         elif type(d[k_]) is dict:
             # print "d[k_]", d[k_]

@@ -147,11 +147,7 @@ class Experiment(object):
         
         self.topblock = Block2(conf = self.conf)
 
-        # plot the computation graph and the bus
-        set_interactive(True)
-
-        if args.plotgraph:
-            self.plotgraph()
+        self.plotgraph_flag = args.plotgraph
         # print "print_dict\n", print_dict(self.conf)
 
     def plotgraph(self):
@@ -202,6 +198,11 @@ class Experiment(object):
             # FIXME: progress bar / display        
             
         print "final return value topblock.x = %s" % (topblock_x)
+
+        # plot the computation graph and the bus
+        set_interactive(True)
+        if self.plotgraph_flag:
+            self.plotgraph()
 
         if self.conf['params']['showplot']:
             set_interactive(False)

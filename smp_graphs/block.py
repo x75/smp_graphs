@@ -686,7 +686,14 @@ class Block2(object):
         Subgraph is a filename of another full graph config as opposed
         to a graph which is specified directly as a dictionary.
         """
-        subconf = get_config_raw(self.subgraph, 'conf') # 'graph')
+
+        # print "lconf", self.lconf
+        # local pre-configuration
+        if hasattr(self, 'lconf'):
+            subconf = get_config_raw(self.subgraph, 'conf', lconf = self.lconf)
+        else:
+            subconf = get_config_raw(self.subgraph, 'conf') # 'graph')
+            
         assert subconf is not None
         print "Block2.init_subgraph subconf['params'] = %s" % (subconf['params'].keys(), )
         # make sure subordinate number of steps is less than top level numsteps
@@ -708,10 +715,12 @@ class Block2(object):
                 (confk_id, confk_param) = confk.split("/")
                 confnode = dict_search_recursive(self.conf['params']['graph'], confk_id)
                 if confnode is None: continue
-                print "subgraphconf confnode", confnode.keys()
+                print "subgraphconf confnode", confnode['block']
                 print "subgraphconf confk_param", confk_param
                 print "subgraphconf confv", confv
                 confnode['params'][confk_param] = confv
+                for paramk, paramv in confnode['params'].items():
+                    print "    %s = %s" % (paramk, paramv)
         # # debug
         # print self.conf['params']['graph']['brain_learn_proprio']['params']['graph'][confk_id]
 
@@ -719,7 +728,8 @@ class Block2(object):
         if hasattr(self, 'subgraph_rewrite_id') and self.subgraph_rewrite_id:
             # self.outputs_copy = copy.deepcopy(self.conf['params']['outputs'])
             nks_0 = dict_get_nodekeys_recursive(self.conf['params']['graph'])
-            xid = self.conf['params']['id'][-1:]
+            # xid = self.conf['params']['id'][-1:]
+            xid = self.conf['params']['id'].split('_')[-1]
             self.conf['params']['graph'] = dict_replace_idstr_recursive2(
                 d = self.conf['params']['graph'], xid = xid)
             nks_l = dict_get_nodekeys_recursive(self.conf['params']['graph'])

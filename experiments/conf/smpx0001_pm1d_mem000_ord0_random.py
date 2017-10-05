@@ -32,18 +32,26 @@ ros = False
 numsteps = 10000/10
 recurrent = True
 debug = False
-dim = 1
-motors = dim
-dt = 0.1
 showplot = True
-saveplot = False
+saveplot = True
 randseed = 126
 
 from smp_graphs.utils_conf import get_systemblock
 from smp_graphs.utils_conf import get_systemblock_pm
 from smp_graphs.utils_conf import get_systemblock_sa
 
-systemblock   = get_systemblock['pm'](dim_s_proprio = dim, lag = 1)
+lconf = {
+    'dim': 1,
+    'dt': 0.1,
+    'lag': 1,
+    'budget': 1000,
+    'lim': 1.0,
+}
+    
+dim = lconf['dim']
+
+systemblock   = get_systemblock['pm'](
+    dim_s_proprio = dim, dim_s_extero = dim, lag = 1)
 systemblock['params']['sysnoise'] = 0.0
 systemblock['params']['anoise_std'] = 0.0
 dim_s_proprio = systemblock['params']['dim_s_proprio']
@@ -51,8 +59,10 @@ dim_s_extero  = systemblock['params']['dim_s_extero']
 # dim_s_goal   = dim_s_extero
 dim_s_goal    = dim_s_proprio
 
-budget = 510
-lim = 1.0
+budget = lconf['budget'] # 510
+lim = lconf['lim'] # 1.0
+
+print "sysblock", systemblock['params']['dim_s_proprio']
 
 # TODO
 # 1. loop over randseed
@@ -86,8 +96,8 @@ graph = OrderedDict([
                         'blocksize': 1,
                         'blockphase': [0],
                         'ros': ros,
-                        'credit': np.ones((1, 1)) * 510,
-                        'goalsize': 0.01, # area of goal
+                        'credit': np.ones((1, 1)) * budget,
+                        'goalsize': 0.1, # np.power(0.01, 1.0/dim_s_proprio), # area of goal
                         'inputs': {                        
                             'lo': {'val': -lim, 'shape': (dim_s_proprio, 1)},
                             'hi': {'val': lim, 'shape': (dim_s_proprio, 1)},
@@ -153,7 +163,7 @@ graph = OrderedDict([
                 's_e': {'bus': 'robot1/s_extero', 'shape': (dim_s_extero, numsteps)},
                 'pre_l0': {'bus': 'pre_l0/pre', 'shape': (dim_s_goal, numsteps)},
                 'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
-                'pre_l1_credit': {'bus': 'pre_l1/credit', 'shape': (dim_s_goal, numsteps)},
+                'pre_l1_credit': {'bus': 'pre_l1/credit', 'shape': (1, numsteps)},
                 },
             'subplots': [
                 [

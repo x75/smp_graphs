@@ -277,6 +277,7 @@ def init_random_uniform_modulated(ref, conf, mconf):
     ref.credit = np.ones((1, 1)) * params['credit']
     ref.credit_ = ref.credit.copy()
     ref.goalsize = params['goalsize']
+    # print "ref.credit", ref.credit
     # setattr(ref, outk, np.ones(outv['shape']))
     # print "block_models.py: random_uniform_modulated_init %s = %s" % (outk, getattr(ref, outk))
 

@@ -16,7 +16,7 @@ from numpy import array
 from matplotlib import colors
 
 from smp_graphs.utils import print_dict
-from smp_graphs.common import dict_replace_idstr_recursive
+from smp_graphs.common import loop_delim, dict_replace_idstr_recursive
 
 colors_ = list(six.iteritems(colors.cnames))
 
@@ -153,7 +153,7 @@ def nxgraph_get_layout(G, layout_type):
             # shells =
             # print node
             # if re.search("/", node) or re.search("_", node):
-            if re.search("|", node): #  or re.search("_", node):
+            if re.search('%s' % (loop_delim, ), node): #  or re.search("_", node):
                 s2.append(node)
             else:
                 s1.append(node)
@@ -297,8 +297,8 @@ def nxgraph_plot(G, ax, pos = None, layout_type = "spring", node_color = None, n
     e2 = [] # loop edges
     for edge in G.edges():
         # edgetype = re.search("[_/]", G.node[edge[1]]['params']['id'])
-        nodetype_0 = re.search("[|]", G.node[edge[0]]['params']['id'])
-        nodetype_1 = re.search("[|]", G.node[edge[1]]['params']['id'])
+        nodetype_0 = re.search('[%s]' % (loop_delim, ), G.node[edge[0]]['params']['id'])
+        nodetype_1 = re.search('[%s]' % (loop_delim, ), G.node[edge[1]]['params']['id'])
         if nodetype_1 and not nodetype_0: # edgetype: # loop
             e2.append(edge)
             edgetype = "loop"

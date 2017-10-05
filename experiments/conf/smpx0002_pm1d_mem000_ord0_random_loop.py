@@ -33,9 +33,6 @@ ros = False
 numsteps = 10000/10
 recurrent = True
 debug = False
-dim = 1
-motors = dim
-dt = 0.1
 showplot = True
 saveplot = True
 randseed = 126
@@ -44,16 +41,20 @@ from smp_graphs.utils_conf import get_systemblock
 from smp_graphs.utils_conf import get_systemblock_pm
 from smp_graphs.utils_conf import get_systemblock_sa
 
-systemblock   = get_systemblock['pm'](dim_s_proprio = dim, lag = 1)
-systemblock['params']['sysnoise'] = 0.0
-systemblock['params']['anoise_std'] = 0.0
-dim_s_proprio = systemblock['params']['dim_s_proprio']
-dim_s_extero  = systemblock['params']['dim_s_extero']
-# dim_s_goal   = dim_s_extero
-dim_s_goal    = dim_s_proprio
+# dim = 1
+# motors = dim
+# dt = 0.1
 
-budget = 510
-lim = 1.0
+# systemblock   = get_systemblock['pm'](dim_s_proprio = dim, lag = 1)
+# systemblock['params']['sysnoise'] = 0.0
+# systemblock['params']['anoise_std'] = 0.0
+# dim_s_proprio = systemblock['params']['dim_s_proprio']
+# dim_s_extero  = systemblock['params']['dim_s_extero']
+# # dim_s_goal   = dim_s_extero
+# dim_s_goal    = dim_s_proprio
+
+# budget = 510
+# lim = 1.0
 
 # TODO
 # 1. loop over randseed
@@ -67,86 +68,86 @@ lim = 1.0
 # compute experiment/model_i hash: if exists, use pickled model i, else train
 # pimp smp_graphs graph visualisation
 
-# graph
-graph1 = OrderedDict([
-    # robot
-    ('robot1', systemblock),
+# # graph
+# graph1 = OrderedDict([
+#     # robot
+#     ('robot1', systemblock),
     
-    # brain
-    ('braina', {
-        'block': Block2,
-        'params': {
-            'numsteps': 1, # numsteps,
-            'id': 'braina',
-            'graph': OrderedDict([
-                # uniformly dist. random goals, triggered when error < goalsize
-                ('pre_l1', {
-                    'block': ModelBlock2,
-                    'params': {
-                        'blocksize': 1,
-                        'blockphase': [0],
-                        'ros': ros,
-                        'credit': np.ones((1, 1)) * 510,
-                        'goalsize': 0.01, # area of goal
-                        'inputs': {                        
-                            'lo': {'val': -lim, 'shape': (dim_s_proprio, 1)},
-                            'hi': {'val': lim, 'shape': (dim_s_proprio, 1)},
-                            'mdltr': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 1)},
-                            },
-                        'outputs': {
-                            'pre': {'shape': (dim_s_proprio, 1)},
-                            'credit': {'shape': (1,1)}},
-                        'models': {
-                            'goal': {'type': 'random_uniform_modulated'}
-                            },
-                        'rate': 1,
-                        },
-                    }),
+#     # brain
+#     ('braina', {
+#         'block': Block2,
+#         'params': {
+#             'numsteps': 1, # numsteps,
+#             'id': 'braina',
+#             'graph': OrderedDict([
+#                 # uniformly dist. random goals, triggered when error < goalsize
+#                 ('pre_l1', {
+#                     'block': ModelBlock2,
+#                     'params': {
+#                         'blocksize': 1,
+#                         'blockphase': [0],
+#                         'ros': ros,
+#                         'credit': np.ones((1, 1)) * 510,
+#                         'goalsize': 0.01, # area of goal
+#                         'inputs': {                        
+#                             'lo': {'val': -lim, 'shape': (dim_s_proprio, 1)},
+#                             'hi': {'val': lim, 'shape': (dim_s_proprio, 1)},
+#                             'mdltr': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 1)},
+#                             },
+#                         'outputs': {
+#                             'pre': {'shape': (dim_s_proprio, 1)},
+#                             'credit': {'shape': (1,1)}},
+#                         'models': {
+#                             'goal': {'type': 'random_uniform_modulated'}
+#                             },
+#                         'rate': 1,
+#                         },
+#                     }),
                     
-                # uniformly distributed random action, no modulation
-                ('pre_l0', {
-                    'block': UniformRandomBlock2,
-                    'params': {
-                        'id': 'search',
-                        'inputs': {
-                            'lo': {'val': -lim},
-                            'hi': {'val': lim}},
-                        'outputs': {
-                            'pre': {'shape': (dim_s_proprio, 1)},
-                            }
-                        },
-                    }),
-            ]),
-        }
-    }),
+#                 # uniformly distributed random action, no modulation
+#                 ('pre_l0', {
+#                     'block': UniformRandomBlock2,
+#                     'params': {
+#                         'id': 'search',
+#                         'inputs': {
+#                             'lo': {'val': -lim},
+#                             'hi': {'val': lim}},
+#                         'outputs': {
+#                             'pre': {'shape': (dim_s_proprio, 1)},
+#                             }
+#                         },
+#                     }),
+#             ]),
+#         }
+#     }),
     
-    # plotting
-    ('plot', {
-        'block': PlotBlock2,
-        'params': {
-            'id': 'plot',
-            'blocksize': numsteps,
-            'saveplot': saveplot,
-            'inputs': {
-                's_p': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
-                's_e': {'bus': 'robot1/s_extero', 'shape': (dim_s_extero, numsteps)},
-                'pre_l0': {'bus': 'pre_l0/pre', 'shape': (dim_s_goal, numsteps)},
-                'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
-                'pre_l1_credit': {'bus': 'pre_l1/credit', 'shape': (dim_s_goal, numsteps)},
-                },
-            'subplots': [
-                [
-                    {'input': ['pre_l0', 's_p', 'pre_l1'], 'plot': [timeseries, partial(timeseries, linewidth = 1.0), timeseries]},
-                    {'input': ['pre_l0', 's_p', 'pre_l1'], 'plot': histogram},
-                ],
-                [
-                    {'input': 'pre_l1_credit', 'plot': timeseries},
-                    {'input': 'pre_l1_credit', 'plot': histogram},
-                ]
-            ],
-        },
-    })
-])
+#     # plotting
+#     ('plot', {
+#         'block': PlotBlock2,
+#         'params': {
+#             'id': 'plot',
+#             'blocksize': numsteps,
+#             'saveplot': saveplot,
+#             'inputs': {
+#                 's_p': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
+#                 's_e': {'bus': 'robot1/s_extero', 'shape': (dim_s_extero, numsteps)},
+#                 'pre_l0': {'bus': 'pre_l0/pre', 'shape': (dim_s_goal, numsteps)},
+#                 'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
+#                 'pre_l1_credit': {'bus': 'pre_l1/credit', 'shape': (dim_s_goal, numsteps)},
+#                 },
+#             'subplots': [
+#                 [
+#                     {'input': ['pre_l0', 's_p', 'pre_l1'], 'plot': [timeseries, partial(timeseries, linewidth = 1.0), timeseries]},
+#                     {'input': ['pre_l0', 's_p', 'pre_l1'], 'plot': histogram},
+#                 ],
+#                 [
+#                     {'input': 'pre_l1_credit', 'plot': timeseries},
+#                     {'input': 'pre_l1_credit', 'plot': histogram},
+#                 ]
+#             ],
+#         },
+#     })
+# ])
 
 
 # loopblock = {
@@ -186,7 +187,10 @@ graph1 = OrderedDict([
 #         }
 #     }
 
-numloop = 2
+# for stats
+numloop = 100
+# for dims
+# numloop = 3
 
 loopblock = {
     'block': Block2,
@@ -199,13 +203,20 @@ loopblock = {
         'randseed': 1,
         # subcomponent?
         'robot1/dim': 2,
+        'lconf': {
+            'dim': 4,
+            'dt': 0.1,
+            'lag': 1,
+            'budget': 1000,
+            'lim': 1.0,
+        },
         # contains the subgraph specified in this config file
         'subgraph': 'conf/smpx0001_pm1d_mem000_ord0_random.py',
         'subgraph_rewrite_id': True,
-        'subgraph_ignore_nodes': [], # ['plot'],
+        'subgraph_ignore_nodes': ['plot'],
         'subgraphconf': {
             # 'plot/active': False
-            'robot1/dim': 1,
+            # 'robot1/sysdim': 1,
             },
         # 'graph': graph1,
         'outputs': {
@@ -250,53 +261,71 @@ graph = OrderedDict([
                 # 'x': {'shape': (3, numsteps)},
                 # 'y': {'shape': (1, numsteps)}
             },
+
+            # single dim config statistics
+            'loop': [('randseed', 1000 + i) for i in range(0, numloop)],
             
+            # # loop over dims
             # 'loop': [
-            #     ('inputs', {
-            #         'lo': {
-            #             'val': np.random.uniform(-i, 0, (3, 1)),
-            #             'shape': (3, 1)},
-            #         'hi': {
-            #             'val': np.random.uniform(0.1, i, (3, 1)),
-            #             'shape': (3, 1)}
-            #         }) for i in range(1, 11)],
-            # 'loop': lambda ref, i: ('inputs', {'lo': [10 * i], 'hi': [20*i]}),
+            #     ('lconf', {
+            #         'dim': (i + 1),
+            #         'dt': 0.1,
+            #         'lag': 1,
+            #         'budget': 1000,
+            #         'lim': 1.0,
+            #         }) for i in range(0, numloop)],
+
+            # # failed attempt looping subgraphconf
             # 'loop': [
-            #     ('inputs', {
-            #         'x': {
-            #             'val': np.random.uniform(np.pi/2, 3*np.pi/2, (3,1))}
-            #         }) for i in range(1, numsteps+1)],
-                    
-            # 'loop': [('randseed', 1000 + i) for i in range(0, numloop)],
-            'loop': [('subgraphconf', {'robot1/dim': i + 1}) for i in range(0, numloop)],
-            # partial(f_loop_hpo, space = f_loop_hpo_space_f3(pdim = 3)),
+            #     ('subgraphconf', {
+            #         'robot1/sysdim': i + 2,
+            #         'robot1/statedim': (i + 2) * 3,
+            #         'robot1/dim_s_proprio': (i + 2),
+            #         'robot1/dim_s_extero': (i + 2),
+            #         'robot1/outputs': {
+            #             's_proprio': {'shape': ((i + 2), 1)},
+            #             's_extero': {'shape': ((i + 2), 1)},
+            #             }
+            #         }) for i in range(0, numloop)],
+
             'loopmode': 'sequential',
             'loopblock': loopblock,
         },
     }),
 
-    # # plotting
-    # ('plot', {
-    #     'block': PlotBlock2,
-    #     'params': {
-    #         'id': 'plot',
-    #         'blocksize': numsteps,
-    #         'saveplot': saveplot,
-    #         'savetype': 'pdf',
-    #         'inputs': {
-    #             'mins_s': {'bus': 'b4/credit_min', 'shape': (1, numloop)},
-    #             'maxs_s': {'bus': 'b4/credit_max', 'shape': (1, numloop)},
-    #             'mus_s': {'bus': 'b4/credit_mu', 'shape': (1, numloop)},
-    #             # 'mins_p': {'bus': 'b3/credit_min', 'shape': (1, numloop)},
-    #             },
-    #         'subplots': [
-    #             [
-    #                 {
-    #                 'input': ['mins_s', 'maxs_s', 'mus_s'],
-    #                 'plot': partial(timeseries, linestyle = 'none', marker = 'o')}
-    #             ],
-    #         ],
-    #     },
-    # })
+    # plotting
+    ('plot', {
+        'block': PlotBlock2,
+        'params': {
+            'id': 'plot',
+            'blocksize': numsteps,
+            'saveplot': saveplot,
+            'savetype': 'pdf',
+            'inputs': {
+                'mins_s': {'bus': 'b4/credit_min', 'shape': (1, numloop)},
+                'maxs_s': {'bus': 'b4/credit_max', 'shape': (1, numloop)},
+                'mus_s': {'bus': 'b4/credit_mu', 'shape': (1, numloop)},
+                # 'mins_p': {'bus': 'b3/credit_min', 'shape': (1, numloop)},
+                },
+            'subplots': [
+                [
+                    {
+                    'input': ['mins_s', 'maxs_s', 'mus_s'],
+                    'plot': partial(
+                        timeseries,
+                        ylim = (-10, 1010),
+                        yscale = 'log',
+                        linestyle = 'none',
+                        marker = 'o')},
+                    {'input': ['mins_s'], 'plot': partial(
+                        histogram,
+                        title = 'mean/min budget hist',
+                        ylim = (-10, 1010),
+                        yscale = 'log',
+                        orientation = 'horizontal')}
+                ],
+            ],
+        },
+    })
     
 ])
