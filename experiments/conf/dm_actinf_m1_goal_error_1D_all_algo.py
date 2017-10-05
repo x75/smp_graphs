@@ -14,13 +14,13 @@ showplot = True
 
 # experiment
 randseed = 12345
-numsteps = 2000
+numsteps = int(10000/5)
 dim = 1
 motors = dim
 dt = 0.1
 
 # looparray = [('file', {'filename': fname, 'filetype': 'puppy', 'offset': random.randint(0, 500), 'length': numsteps}) for fname in filearray]
-models = ['knn', 'soesgp'] # , 'storkgp',]
+models = ['knn', 'igmm', 'soesgp'] # , 'storkgp',]
 looparray = [('subgraphconf', {
     'pre_l0/models': {
         'm1': {

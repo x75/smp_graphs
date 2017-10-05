@@ -148,8 +148,34 @@ class TFBlock2(PrimBlock2):
         return DATA
 
 ################################################################################
-# good old plain measures
+# good old plain measures: MSE, \int MSE, statistical moments, ...
+from smp_base.measures import meas_mse
 # MSE
+class MSEBlock2(PrimBlock2):
+    """MSEBlock2 class
+
+    Compute mean squared error between inputs 'x' and 'x_' over window of size 'winsize'
+    """
+    defaults = {
+        'inputs': {
+            'blocksize': 1,
+            'x': {'shape': (1, 1), 'val': np.zeros((1, 1))},
+            'x_': {'shape': (1, 1), 'val': np.zeros((1, 1))},
+            }
+        }
+    @decInit()
+    def __init__(self, conf = {}, paren = None, top = None):
+        PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
+
+    @decStep()
+    def step(self, x = None):
+        # for k, v in self.inputs.items():
+        x = self.inputs['x']['val'].T
+        x_ = self.inputs['x_']['val'].T
+        # print "MSEBlock2.step[%d] x,x_ = %s,%s" % (self.cnt, x.shape, x_.shape)
+        setattr(self, 'y', meas_mse(x = x, x_ = x_).T)
+        # print "MSEBlock2.step[%d] y = %s" % (self.cnt, self.y)
+    
 # statistical moments: mean, var, kurt, entropy, min, max
 class MomentBlock2(PrimBlock2):
     """MomentBlock2 class

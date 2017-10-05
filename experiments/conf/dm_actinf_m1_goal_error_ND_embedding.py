@@ -10,7 +10,7 @@ from actinf/active_inference_basic.py --mode m1_goal_error_nd
 
 Model variant M1, n-dimensional data, proprioceptive space
 
-Embedding: implement embedding at block boundaries
+Temporal embedding configured with lag* parameters to system and models
 """
 
 import copy
@@ -19,7 +19,7 @@ from functools import partial
 from smp_base.plot import histogramnd
 from smp_graphs.block_plot import SnsMatrixPlotBlock2, ImgPlotBlock2
 from smp_graphs.block import dBlock2, IBlock2, SliceBlock2, DelayBlock2, StackBlock2
-from smp_graphs.block_meas import XCorrBlock2
+from smp_graphs.block_meas import XCorrBlock2, MSEBlock2, MomentBlock2
 from smp_graphs.block_meas_infth import JHBlock2, MIBlock2, InfoDistBlock2, TEBlock2, CTEBlock2, MIMVBlock2, TEMVBlock2
 from smp_graphs.block_models import ModelBlock2
 from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2, BhasimulatedBlock2
@@ -28,11 +28,12 @@ from smp_graphs.block_cls_ros import STDRCircularBlock2, LPZBarrelBlock2, Sphero
 from smp_graphs.funcs import f_meshgrid, f_meshgrid_mdl, f_random_uniform, f_sin_noise
 
 # robustness
-# fix: target properties like frequency matched to body (attainable / not attainable)
-# fix: eta
-# fix: motor / sensor limits, how does the model learn the limits
+# FIXME: target properties like frequency matched to body (attainable / not attainable)
+# FIXME: eta
+# FIXME: motor / sensor limits, how does the model learn the limits
+# FIXME: priors: timing, limits
 
-# priors: timing, limits
+# FIXME: insert measure_mse, insert measure_moments, insert measure_accumulated_error
 
 # execution
 saveplot = False
@@ -57,85 +58,6 @@ sysname = 'sa'
 
 from smp_graphs.utils_conf import get_systemblock_pm
 from smp_graphs.utils_conf import get_systemblock_sa
-
-# def get_systemblock_pm(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
-#     global np, PointmassBlock2
-#     return {
-#         'block': PointmassBlock2,
-#         'params': {
-#             'id': 'robot1',
-#             'blocksize': 1, # FIXME: make pm blocksize aware!
-#             'systype': 2,
-#             'sysdim': dim_s_proprio,
-#             # initial state
-#             'x0': np.random.uniform(-0.3, 0.3, (dim_s_proprio * 3, 1)),
-#             # 'inputs': {'u': {'val': np.random.uniform(-1, 1, (3, numsteps))}},
-#             'inputs': {'u': {'bus': 'pre_l0/pre'}},
-#             'outputs': {
-#                 's_proprio': {'shape': (dim_s_proprio, 1)},
-#                 's_extero':  {'shape': (dim_s_extero, 1)}
-#                 }, # , 's_all': [(9, 1)]},
-#             'statedim': dim_s_proprio * 3,
-#             'dt': dt,
-#             'mass': 1.0,
-#             'force_max':  1.0,
-#             'force_min': -1.0,
-#             'friction': 0.01,
-#             'sysnoise': 1e-2,
-#             'debug': False,
-#             'dim_s_proprio': dim_s_proprio,
-#             'length_ratio': 3./2., # gain curve?
-#             'm_mins': [-1.] * dim_s_proprio,
-#             'm_maxs': [ 1.] * dim_s_proprio,
-#             'dim_s_extero': dim_s_extero,
-#             'minlag': 1,
-#             'maxlag': 4, # 2, # 20, # 2, # 5
-#             'lag': 5,
-#             'order': 2,
-#             'coupling_sigma': 1e-2,
-#             'transfer': 0,
-#             'anoise_mean': 0.0,
-#             'anoise_std': 1e-2,
-#             }
-#         }
-
-# def get_systemblock_sa(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
-#     global np, SimplearmBlock2
-#     return {
-#         'block': SimplearmBlock2,
-#         'params': {
-#             'id': 'robot1',
-#             'blocksize': 1, # FIXME: make pm blocksize aware!
-#             'sysdim': dim_s_proprio,
-#             # initial state
-#             'x0': np.random.uniform(-0.3, 0.3, (dim_s_proprio * 3, 1)),
-#             # 'inputs': {'u': {'val': np.random.uniform(-1, 1, (3, numsteps))}},
-#             'inputs': {'u': {'bus': 'pre_l0/pre'}},
-#             'outputs': {
-#                 's_proprio': {'shape': (dim_s_proprio, 1)},
-#                 's_extero':  {'shape': (dim_s_extero,  1)}
-#                 }, # , 's_all': [(9, 1)]},
-#             'statedim': dim_s_proprio * 3,
-#             'dt': dt,
-#             'mass': 1.0/3.0,
-#             'force_max':  1.0,
-#             'force_min': -1.0,
-#             'friction': 0.001,
-#             'sysnoise': 1e-2,
-#             'debug': False,
-#             'dim_s_proprio': dim_s_proprio,
-#             'length_ratio': 3./2.0,
-#             'm_mins': [-1.] * dim_s_proprio,
-#             'm_maxs': [ 1.] * dim_s_proprio,
-#             # 's_mins': [-1.00] * 9,
-#             # 's_maxs': [ 1.00] * 9,
-#             # 'm_mins': -1,
-#             # 'm_maxs': 1,
-#             'dim_s_extero': dim_s_extero,
-#             'minlag': 1,
-#             'maxlag': 2, # 5
-#             }
-#         }
 
 def get_systemblock_bha(dim_s_proprio = 9, dim_s_extero = 3, dt = 0.1):
     global np, BhasimulatedBlock2
@@ -335,6 +257,8 @@ eta = 0.7
 # eta = 0.1
 # eta = 0.01
 
+print "dm_actinf_m1_goal_error_ND_embedding.py: dim_s_proprio = %s" % (dim_s_proprio, )
+
 def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
     global partial
     global PlotBlock2, numsteps, timeseries, algo, dim_s_extero, dim_s_proprio, sysname, lag, lag_past, lag_future
@@ -352,6 +276,7 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             'X_fit': {'bus': '%s/X_fit' % (l0,), 'shape': (dim_s_proprio * (lag_past[1] - lag_past[0]) * 2, blocksize)},
             's_proprio':    {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, blocksize)},
             's_extero':     {'bus': 'robot1/s_extero',  'shape': (dim_s_extero, blocksize)},
+            'mse_s_p_accum': {'bus': 'mse_s_p_accum/Ix', 'shape': (dim_s_proprio, blocksize)},
             },
         'hspace': 0.2,
         'subplots': [
@@ -372,6 +297,9 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             # ],
             [
                 {'input': ['err',], 'plot': partial(timeseries, marker='.')},
+            ],
+            [
+                {'input': ['mse_s_p_accum',], 'plot': partial(timeseries, marker='.')},
             ],
             [
                 {'input': ['X_fit'], 'plot': partial(timeseries, marker='.')},
@@ -718,89 +646,89 @@ graph = OrderedDict([
         'params': {
             'graph': OrderedDict([
 
-                # goal sampler (motivation) sample_discrete_uniform_goal
-                ('pre_l1', {
-                    'block': ModelBlock2,
-                    'params': {
-                        'blocksize': 1,
-                        'blockphase': [0],
-                        'inputs': {                        
-                            'lo': {'val': m_mins, 'shape': (dim_s_proprio, 1)},
-                            'hi': {'val': m_maxs, 'shape': (dim_s_proprio, 1)},
-                            },
-                        'outputs': {'pre': {'shape': (dim_s_proprio, 1)}},
-                        'models': {
-                            'goal': {'type': 'random_uniform'}
-                            },
-                        'rate': 40,
-                        },
-                    }),
-
-                # ('cnt', {
-                #     'block': CountBlock2,
+                # # goal sampler (motivation) sample_discrete_uniform_goal
+                # ('pre_l1', {
+                #     'block': ModelBlock2,
                 #     'params': {
                 #         'blocksize': 1,
-                #         'debug': False,
-                #         'inputs': {},
-                #         'outputs': {'x': {'shape': (dim_s_proprio, 1)}},
+                #         'blockphase': [0],
+                #         'inputs': {                        
+                #             'lo': {'val': m_mins, 'shape': (dim_s_proprio, 1)},
+                #             'hi': {'val': m_maxs, 'shape': (dim_s_proprio, 1)},
+                #             },
+                #         'outputs': {'pre': {'shape': (dim_s_proprio, 1)}},
+                #         'models': {
+                #             'goal': {'type': 'random_uniform'}
+                #             },
+                #         'rate': 40,
                 #         },
                 #     }),
 
-                # # a random number generator, mapping const input to hi
-                # ('pre_l1', {
-                #     'block': FuncBlock2,
-                #     'params': {
-                #         'id': 'pre_l1',
-                #         'outputs': {'pre': {'shape': (dim_s_proprio, 1)}},
-                #         'debug': False,
-                #         'ros': ros,
-                #         'blocksize': 1,
-                #         # 'inputs': {'lo': [0, (3, 1)], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
-                #         # recurrent connection
-                #         'inputs': {
-                #             'x': {'bus': 'cnt/x'},
-                #             # 'f': {'val': np.array([[0.2355, 0.2355]]).T * 1.0}, # good with knn and eta = 0.3
-                #             # 'f': {'val': np.array([[0.23538, 0.23538]]).T * 1.0}, # good with soesgp and eta = 0.7
-                #             # 'f': {'val': np.array([[0.45]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
-                #             # 'f': {'val': np.array([[0.225]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
+                ('cnt', {
+                    'block': CountBlock2,
+                    'params': {
+                        'blocksize': 1,
+                        'debug': False,
+                        'inputs': {},
+                        'outputs': {'x': {'shape': (dim_s_proprio, 1)}},
+                        },
+                    }),
 
-                #             # barrel
-                #             # 'f': {'val': np.array([[0.23539]]).T * 10.0 * dt}, # good with soesgp and eta = 0.7
-                #             # 'f': {'val': np.array([[0.23539]]).T * 7.23 * dt}, # good with soesgp and eta = 0.7
-                #             # 'f': {'val': np.array([[0.23539]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
-                #             # 'f': {'val': np.array([[0.23539]]).T * 2.9 * dt}, # good with soesgp and eta = 0.7
-                #             # 'f': {'val': np.array([[0.23539]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
+                # a random number generator, mapping const input to hi
+                ('pre_l1', {
+                    'block': FuncBlock2,
+                    'params': {
+                        'id': 'pre_l1',
+                        'outputs': {'pre': {'shape': (dim_s_proprio, 1)}},
+                        'debug': False,
+                        'ros': ros,
+                        'blocksize': 1,
+                        # 'inputs': {'lo': [0, (3, 1)], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+                        # recurrent connection
+                        'inputs': {
+                            'x': {'bus': 'cnt/x'},
+                            # 'f': {'val': np.array([[0.2355, 0.2355]]).T * 1.0}, # good with knn and eta = 0.3
+                            # 'f': {'val': np.array([[0.23538, 0.23538]]).T * 1.0}, # good with soesgp and eta = 0.7
+                            # 'f': {'val': np.array([[0.45]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
+                            # 'f': {'val': np.array([[0.225]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
 
-                #             # pointmass
-                #             'f': {'val': np.array([[0.23539]]).T * 0.2 * dt}, # good with soesgp and eta = 0.7
+                            # barrel
+                            # 'f': {'val': np.array([[0.23539]]).T * 10.0 * dt}, # good with soesgp and eta = 0.7
+                            # 'f': {'val': np.array([[0.23539]]).T * 7.23 * dt}, # good with soesgp and eta = 0.7
+                            # 'f': {'val': np.array([[0.23539]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
+                            # 'f': {'val': np.array([[0.23539]]).T * 2.9 * dt}, # good with soesgp and eta = 0.7
+                            # 'f': {'val': np.array([[0.23539]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
+
+                            # pointmass
+                            'f': {'val': np.array([[0.23539]]).T * 0.2 * dt}, # good with soesgp and eta = 0.7
                             
-                #             # 'f': {'val': np.array([[0.23539, 0.2348, 0.14]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
-                #             # 'f': {'val': np.array([[0.14, 0.14]]).T * 1.0},
-                #             # 'f': {'val': np.array([[0.82, 0.82]]).T},
-                #             # 'f': {'val': np.array([[0.745, 0.745]]).T},
-                #             # 'f': {'val': np.array([[0.7, 0.7]]).T},
-                #             # 'f': {'val': np.array([[0.65, 0.65]]).T},
-                #             # 'f': {'val': np.array([[0.39, 0.39]]).T},
-                #             # 'f': {'val': np.array([[0.37, 0.37]]).T},
-                #             # 'f': {'val': np.array([[0.325, 0.325]]).T},
-                #             # 'f': {'val': np.array([[0.31, 0.31]]).T},
-                #             # 'f': {'val': np.array([[0.19, 0.19]]).T},
-                #             # 'f': {'val': np.array([[0.18, 0.181]]).T},
-                #             # 'f': {'val': np.array([[0.171, 0.171]]).T},
-                #             # 'f': {'val': np.array([[0.161, 0.161]]).T},
-                #             # 'f': {'val': np.array([[0.151, 0.151]]).T},
-                #             # 'f': {'val': np.array([[0.141, 0.141]]).T},
-                #             # stay in place
-                #             # 'f': {'val': np.array([[0.1, 0.1]]).T},
-                #             # 'f': {'val': np.array([[0.24, 0.24]]).T},
-                #             # 'sigma': {'val': np.array([[0.001, 0.002]]).T}}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
-                #             'sigma': {'val': np.random.uniform(0, 0.01, (dim_s_proprio, 1))},
-                #             'offset': {'val': m_mins + (m_maxs - m_mins)/2.0},
-                #             'amp': {'val': (m_maxs - m_mins)/2.0},
-                #         }, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
-                #         'func': f_sin_noise,
-                #     },
-                # }),
+                            # 'f': {'val': np.array([[0.23539, 0.2348, 0.14]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
+                            # 'f': {'val': np.array([[0.14, 0.14]]).T * 1.0},
+                            # 'f': {'val': np.array([[0.82, 0.82]]).T},
+                            # 'f': {'val': np.array([[0.745, 0.745]]).T},
+                            # 'f': {'val': np.array([[0.7, 0.7]]).T},
+                            # 'f': {'val': np.array([[0.65, 0.65]]).T},
+                            # 'f': {'val': np.array([[0.39, 0.39]]).T},
+                            # 'f': {'val': np.array([[0.37, 0.37]]).T},
+                            # 'f': {'val': np.array([[0.325, 0.325]]).T},
+                            # 'f': {'val': np.array([[0.31, 0.31]]).T},
+                            # 'f': {'val': np.array([[0.19, 0.19]]).T},
+                            # 'f': {'val': np.array([[0.18, 0.181]]).T},
+                            # 'f': {'val': np.array([[0.171, 0.171]]).T},
+                            # 'f': {'val': np.array([[0.161, 0.161]]).T},
+                            # 'f': {'val': np.array([[0.151, 0.151]]).T},
+                            # 'f': {'val': np.array([[0.141, 0.141]]).T},
+                            # stay in place
+                            # 'f': {'val': np.array([[0.1, 0.1]]).T},
+                            # 'f': {'val': np.array([[0.24, 0.24]]).T},
+                            # 'sigma': {'val': np.array([[0.001, 0.002]]).T}}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+                            'sigma': {'val': np.random.uniform(0, 0.01, (dim_s_proprio, 1))},
+                            'offset': {'val': m_mins + (m_maxs - m_mins)/2.0},
+                            'amp': {'val': (m_maxs - m_mins)/2.0},
+                        }, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+                        'func': f_sin_noise,
+                    },
+                }),
                 
                 # dev model actinf_m1: learner is basic actinf predictor proprio space learn_proprio_base_0
                 ('pre_l0', {
@@ -855,10 +783,10 @@ graph = OrderedDict([
                                 'idim': dim_s_proprio * (lag_past[1] - lag_past[0]) * 2, # laglen
                                 'odim': dim_s_proprio * (lag_future[1] - lag_future[0]), # laglen,
                                 'laglen': laglen,
+                                'eta': eta,
                                 # 'laglen_past': lag_past[1] - lag_past[0],
                                 # 'laglen_future': lag_future[1] - lag_future[0],
-                                'eta': eta,
-                                },
+                            },
                                 
                             # 'm2': {
                             #     'type': 'actinf_m2',
@@ -947,6 +875,39 @@ graph = OrderedDict([
                 #     }),
                     
                 # learn_proprio_e2p2e
+
+                # measure and introspect
+                # total MSE goal - state
+                ('mse_s_p', {
+                    'block': MSEBlock2,
+                    'params': {
+                        'blocksize': 1, # numsteps,
+                        'inputs': {
+                            'x': {'bus': 'pre_l1/pre', 'shape': (dim_s_proprio, 1)},
+                            'x_': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 1)},
+                            },
+                        'outputs': {
+                            'y': {'shape': (dim_s_proprio, 1)},
+                            },
+                        },
+                    }),
+                    
+                # accumulated MSE goal - state over time
+                ('mse_s_p_accum', {
+                    'block': IBlock2,
+                    'params': {
+                        'blocksize': numsteps,
+                        'inputs': {
+                            'x': {'bus': 'mse_s_p/y', 'shape': (dim_s_proprio, numsteps)},
+                            },
+                        'outputs': {
+                            'Ix': {'shape': (dim_s_proprio, numsteps)},
+                            },
+                        },
+                    }),
+                    
+                
+                # end brain
                 ]),
             }
         }),
@@ -980,5 +941,13 @@ graph = OrderedDict([
         
     # plot timeseries
     ('plot_ts', plot_timeseries_block(l0 = 'pre_l0', blocksize = numsteps)),
+
+    # # plot / print measures
+    # ('plot_meas', {
+    #     'block': PlotBlock2,
+    #     'params': {
+            
+    #         },
+    #     }),
     
     ])

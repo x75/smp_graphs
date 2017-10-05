@@ -1518,6 +1518,10 @@ class PrimBlock2(Block2):
     """
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
+        # merge Block2 base defaults with child defaults
+        defaults = {}
+        defaults.update(PrimBlock2.defaults, **self.defaults)
+        
         Block2.__init__(self, conf = conf, paren = paren, top = top)
 
     @decStep()
@@ -1529,18 +1533,40 @@ class PrimBlock2(Block2):
 class IBlock2(PrimBlock2):
     """IBlock2 class
 
-    Integrator block: integrate input and write current value to output
+    Integrator block: add input 'k_i' in input.keys to current value of output state 'Ik_i'
 
-    Params: inputs, outputs, leakrate
+    Params: inputs ['x'], outputs ['Ix'], leakrate [1.0]
     """
+    defaults = {
+        # 'leak': 0.0,
+        'inputs': {'x': {'shape': (1,1), 'val': np.zeros((1,1))}},
+        'outputs': {},
+        }
+        
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
-        for k in conf['params']['inputs'].keys():
-            # print "%s.init inkeys %s" % (self.__class__.__name__, k)
-            conf['params']['outputs']["I%s" % k] = [top.bus[conf['params']['inputs'][k][0]].shape]
+        # default out
+        if not conf['params'].has_key('outputs'):
+            conf['params']['outputs'] = {}
+
+        # create output states
+        for k, v in conf['params']['inputs'].items():
+            print "%s.init inkeys %s" % (self.__class__.__name__, k)
+            print "IBlock2 conf['params'] keys", conf['params'].keys()
+            print "IBlock2 conf['params']['outputs'] keys = %s" % (conf['params']['outputs'].keys(), ) # ["I%s" % k]
+            outk = 'I%s' % (k, )
+            busk = conf['params']['inputs'][k]
+            # print "IBlock2 outk = %s, busk = %s" % (outk, busk, )
+            if conf['params']['outputs'].has_key(outk):
+                # conf['params']['outputs'][outk] = {'shape': top.bus[busk['bus']].shape} # ['val'].shape]}
+                pass
+            else:
+                conf['params']['outputs'][outk] = {'shape': v['shape']} # {'shape': top.bus[busk['bus']].shape} # ['val'].shape]}
             
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
+        # print "IBlock2 outputs", self.outputs
+        
         if hasattr(self, 'leak'):# and self.leak > 0.0:
             self.step = self.step_leak
         else:
@@ -1557,14 +1583,17 @@ class IBlock2(PrimBlock2):
 
     @decStep()
     def step_all(self, x = None):
-        for ink in self.inputs.keys():
-            outk = "I%s" % ink
+        for ink, inv in self.inputs.items():
+            outk = 'I%s' % ink
             # input integral / cumsum
-            Iin = np.cumsum(self.inputs[ink][0], axis = 1) * self.d
+            Iin = np.cumsum(inv['val'], axis = 1) # * self.d
             # print getattr(self, outk)[:,[-1]].shape, self.inputs[ink][0].shape, Iin.shape
-            setattr(self, outk, getattr(self, outk)[:,[-1]] + Iin)
+            # single step
+            # setattr(self, outk, getattr(self, outk)[:,[-1]] + Iin)
             # setattr(self, outk, getattr(self, outk) + (self.inputs[ink][0] * 1.0))
-            # print getattr(self, outk).shape
+            # multi step / batch
+            setattr(self, outk, Iin)
+            print "IBlock2.step[%d] self.%s = %s / %s" % (self.cnt, outk, getattr(self, outk).shape, self.outputs[outk]['shape'])
 
 class dBlock2(PrimBlock2):
     """dBlock2 class
