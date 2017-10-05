@@ -205,7 +205,7 @@ get_systemblock = {
 # - dimensions
 # - number of modalities
     
-systemblock   = get_systemblock[sysname]()
+systemblock   = get_systemblock[sysname](lag = 0, dim_s_proprio = 2, dim_s_extero = 2)
 
 dim_s_proprio = systemblock['params']['dim_s_proprio']
 dim_s_extero  = systemblock['params']['dim_s_extero']
@@ -319,7 +319,7 @@ sweep system subgraph
  - sweep block is an open-loop system (data source) itself
  - system block is the system we want to sweep
 """
-sweepsys_steps = 6
+sweepsys_steps = 26 # 6
 sweepsys_input_flat = np.power(sweepsys_steps, dim_s_proprio)
 sweepsys = ('robot0', copy.deepcopy(systemblock))
 sweepsys[1]['params']['blocksize'] = sweepsys_input_flat
@@ -359,12 +359,30 @@ loopblock = {
                         'steps':  {'val': sweepsys_steps},
                         },
                     'outputs': {'meshgrid': {'shape': (dim_s_proprio, sweepsys_input_flat)}},
-                    'func': f_meshgrid
+                    # 'func': f_meshgrid
+                    'func': f_random_uniform,
                     },
                 }),
                 
                 # sys to sweep
                 sweepsys,
+
+            # ('sweepsys_grid', {
+            #     'block': FuncBlock2,
+            #     'params': {
+            #         'debug': False,
+            #         'blocksize': sweepsys_input_flat,
+            #         'inputs': {
+            #             'ranges': {'val': np.array([[-1, 1]] * dim_s_proprio)},
+            #             'steps':  {'val': sweepsys_steps},
+            #             },
+            #         'outputs': {'meshgrid': {'shape': (dim_s_proprio, sweepsys_input_flat)}},
+            #         'func': f_meshgrid
+            #         },
+            #     }),
+                
+            #     # sys to sweep
+            #     sweepsys,
 
             ]),
         }
@@ -590,327 +608,364 @@ loopblock_model = {
 
 # main graph
 graph = OrderedDict([
-    # # sweep system
-    # ("sweepsys", {
-    #     'debug': False,
-    #     'block': SeqLoopBlock2,
-    #     'params': {
-    #         'id': 'sweepsys',
-    #         # loop specification, check hierarchical block to completely
-    #         # pass on the contained in/out space?
-    #         'blocksize': numsteps, # execution cycle, same as global numsteps
-    #         'blockphase': [1],     # execute on first time step only
-    #         'numsteps':  numsteps,          # numsteps      / loopblocksize = looplength
-    #         'loopblocksize': loopblocksize, # loopblocksize * looplength    = numsteps
-    #         # can't do this dynamically yet without changing init passes
-    #         'outputs': {'meshgrid': {'shape': (dim_s_proprio, sweepsys_input_flat)}},
-    #         'loop': [('none', {})], # lambda ref, i, obj: ('none', {}),
-    #         'loopmode': 'sequential',
-    #         'loopblock': loopblock,
-    #     },
-    # }),
-
-    # # plot the system sweep result
-    # ('plot_sweep', {
-    #     'block': PlotBlock2,
-    #     'params': {
-    #         'debug': False,
-    #         'blocksize': numsteps, # sweepsys_input_flat,
-    #         'title': 'system sweep',
-    #         'inputs': {
-    #             'meshgrid':     {'bus': 'sweepsys_grid/meshgrid', 'shape': (dim_s_proprio, sweepsys_input_flat)},
-    #             's_proprio':    {'bus': 'robot0/s_proprio', 'shape': (dim_s_proprio, sweepsys_input_flat)},
-    #             's_extero':     {'bus': 'robot0/s_extero', 'shape': (dim_s_extero, sweepsys_input_flat)},
-    #             },
-    #             'hspace': 0.2,
-    #             'subplots': [
-    #                 [
-    #                     {'input': ['meshgrid'], 'plot': timeseries},
-    #                 ],
-    #                 [
-    #                     {'input': ['s_proprio'], 'plot': timeseries},
-    #                 ],
-    #                 [
-    #                     {'input': ['s_extero'], 'plot': timeseries},
-    #                 ],
-    #                 ],
-    #         }
-    #     }),
-
-    # system block from definition elsewhere
-    ('robot1', systemblock),
-    
-    # learning experiment
-    ('brain_learn_proprio', {
-        'block': Block2,
+    # sweep system
+    ("sweepsys", {
+        'debug': False,
+        'block': SeqLoopBlock2,
         'params': {
-            'graph': OrderedDict([
+            'id': 'sweepsys',
+            # loop specification, check hierarchical block to completely
+            # pass on the contained in/out space?
+            'blocksize': numsteps, # execution cycle, same as global numsteps
+            'blockphase': [1],     # execute on first time step only
+            'numsteps':  numsteps,          # numsteps      / loopblocksize = looplength
+            'loopblocksize': loopblocksize, # loopblocksize * looplength    = numsteps
+            # can't do this dynamically yet without changing init passes
+            'outputs': {'meshgrid': {'shape': (dim_s_proprio, sweepsys_input_flat)}},
+            'loop': [('none', {})], # lambda ref, i, obj: ('none', {}),
+            'loopmode': 'sequential',
+            'loopblock': loopblock,
+        },
+    }),
 
-                # # goal sampler (motivation) sample_discrete_uniform_goal
-                # ('pre_l1', {
-                #     'block': ModelBlock2,
-                #     'params': {
-                #         'blocksize': 1,
-                #         'blockphase': [0],
-                #         'inputs': {                        
-                #             'lo': {'val': m_mins, 'shape': (dim_s_proprio, 1)},
-                #             'hi': {'val': m_maxs, 'shape': (dim_s_proprio, 1)},
-                #             },
-                #         'outputs': {'pre': {'shape': (dim_s_proprio, 1)}},
-                #         'models': {
-                #             'goal': {'type': 'random_uniform'}
-                #             },
-                #         'rate': 40,
-                #         },
-                #     }),
-
-                ('cnt', {
-                    'block': CountBlock2,
-                    'params': {
-                        'blocksize': 1,
-                        'debug': False,
-                        'inputs': {},
-                        'outputs': {'x': {'shape': (dim_s_proprio, 1)}},
-                        },
-                    }),
-
-                # a random number generator, mapping const input to hi
-                ('pre_l1', {
-                    'block': FuncBlock2,
-                    'params': {
-                        'id': 'pre_l1',
-                        'outputs': {'pre': {'shape': (dim_s_proprio, 1)}},
-                        'debug': False,
-                        'ros': ros,
-                        'blocksize': 1,
-                        # 'inputs': {'lo': [0, (3, 1)], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
-                        # recurrent connection
-                        'inputs': {
-                            'x': {'bus': 'cnt/x'},
-                            # 'f': {'val': np.array([[0.2355, 0.2355]]).T * 1.0}, # good with knn and eta = 0.3
-                            # 'f': {'val': np.array([[0.23538, 0.23538]]).T * 1.0}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.45]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.225]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
-
-                            # barrel
-                            # 'f': {'val': np.array([[0.23539]]).T * 10.0 * dt}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.23539]]).T * 7.23 * dt}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.23539]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.23539]]).T * 2.9 * dt}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.23539]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
-
-                            # pointmass
-                            'f': {'val': np.array([[0.23539]]).T * 0.2 * dt}, # good with soesgp and eta = 0.7
-                            
-                            # 'f': {'val': np.array([[0.23539, 0.2348, 0.14]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.14, 0.14]]).T * 1.0},
-                            # 'f': {'val': np.array([[0.82, 0.82]]).T},
-                            # 'f': {'val': np.array([[0.745, 0.745]]).T},
-                            # 'f': {'val': np.array([[0.7, 0.7]]).T},
-                            # 'f': {'val': np.array([[0.65, 0.65]]).T},
-                            # 'f': {'val': np.array([[0.39, 0.39]]).T},
-                            # 'f': {'val': np.array([[0.37, 0.37]]).T},
-                            # 'f': {'val': np.array([[0.325, 0.325]]).T},
-                            # 'f': {'val': np.array([[0.31, 0.31]]).T},
-                            # 'f': {'val': np.array([[0.19, 0.19]]).T},
-                            # 'f': {'val': np.array([[0.18, 0.181]]).T},
-                            # 'f': {'val': np.array([[0.171, 0.171]]).T},
-                            # 'f': {'val': np.array([[0.161, 0.161]]).T},
-                            # 'f': {'val': np.array([[0.151, 0.151]]).T},
-                            # 'f': {'val': np.array([[0.141, 0.141]]).T},
-                            # stay in place
-                            # 'f': {'val': np.array([[0.1, 0.1]]).T},
-                            # 'f': {'val': np.array([[0.24, 0.24]]).T},
-                            # 'sigma': {'val': np.array([[0.001, 0.002]]).T}}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
-                            'sigma': {'val': np.random.uniform(0, 0.01, (dim_s_proprio, 1))},
-                            'offset': {'val': m_mins + (m_maxs - m_mins)/2.0},
-                            'amp': {'val': (m_maxs - m_mins)/2.0},
-                        }, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
-                        'func': f_sin_noise,
-                    },
-                }),
-                
-                # dev model actinf_m1: learner is basic actinf predictor proprio space learn_proprio_base_0
-                ('pre_l0', {
-                    'block': ModelBlock2,
-                    'params': {
-                        'blocksize': 1,
-                        'blockphase': [0],
-                        'debug': False,
-                        'lag': minlag,
-                        'eta': eta, # 3.7,
-                        'ros': ros,
-                        # FIXME: relative shift = minlag, block length the maxlag
-                        'inputs': {
-                            # descending prediction
-                            'pre_l1': {
-                                'bus': 'pre_l1/pre',
-                                # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag, -minlag)},
-                                # FIXME: check correctness here
-                                # training on past goal, prediction with current goal
-                                # should be possible inside step_model to use current
-                                # goal
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(lag_past[0], lag_past[1])},
-                            # ascending prediction error
-                            'pre_l0': {
-                                'bus': 'pre_l0/pre',
-                                # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)},
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(lag_past[0] + 1, lag_past[1] + 1)},
-                            # ascending prediction error
-                            'prerr_l0': {
-                                'bus': 'pre_l0/err',
-                                # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)},
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(lag_past[0] + 1, lag_past[1] + 1)},
-                            # measurement
-                            'meas_l0': {
-                                'bus': 'robot1/s_proprio',
-                                # 'shape': (dim_s_proprio, maxlag), 'lag': range(-laglen, 0)}
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(lag_future[0], lag_future[1])}
-                            },
-                        'outputs': {
-                            'pre': {'shape': (dim_s_proprio, 1)},
-                            'err': {'shape': (dim_s_proprio, 1)},
-                            'tgt': {'shape': (dim_s_proprio, 1)},
-                            'X_fit': {'shape': (dim_s_proprio * (lag_past[1] - lag_past[0]) * 2, 1)},
-                            },
-                        'models': {
-                            
-                            'm1': {
-                                'type': 'actinf_m1',
-                                'algo': algo,
-                                'lag_past': lag_past,
-                                'lag_future': lag_future,
-                                'idim': dim_s_proprio * (lag_past[1] - lag_past[0]) * 2, # laglen
-                                'odim': dim_s_proprio * (lag_future[1] - lag_future[0]), # laglen,
-                                'laglen': laglen,
-                                'eta': eta,
-                                # 'laglen_past': lag_past[1] - lag_past[0],
-                                # 'laglen_future': lag_future[1] - lag_future[0],
-                            },
-                                
-                            # 'm2': {
-                            #     'type': 'actinf_m2',
-                            #     'algo': algo,
-                            #     'idim': dim_s_proprio * laglen,
-                            #     'odim': dim_s_proprio * laglen,
-                            #     'laglen': laglen,
-                            #     'eta': eta
-                            #     },
-                            
-                            # 'm3': {
-                            #     'type': 'actinf_m3',
-                            #     'algo': algo,
-                            #     'idim': dim_s_proprio * laglen * 2,
-                            #     'odim': dim_s_proprio * laglen,
-                            #     'laglen': laglen,
-                            #     'eta': eta
-                            #     },
-                                
-                            },
-                        'rate': 1,
-                        },
-                    }),
-
-                # # dev model uniform random sampler
-                # ('pre_l0', {
-                #     'block': ModelBlock2,
-                #     'params': {
-                #         'blocksize': 1,
-                #         'blockphase': [0],
-                #         'inputs': {                        
-                #             'lo': {'val': m_mins, 'shape': (dim_s_proprio, 1)},
-                #             'hi': {'val': m_maxs, 'shape': (dim_s_proprio, 1)},
-                #             },
-                #         'outputs': {
-                #             'pre': {'shape': (dim_s_proprio, 1)},
-                #             'err': {'val': np.zeros((dim_s_proprio, 1)), 'shape': (dim_s_proprio, 1)},
-                #             'tgt': {'val': np.zeros((dim_s_proprio, 1)), 'shape': (dim_s_proprio, 1)},
-                #             },
-                #         'models': {
-                #             'goal': {'type': 'random_uniform'}
-                #             },
-                #         'rate': 50,
-                #         },
-                #     }),
-                    
-                # # dev model homeokinesis
-                # ('pre_l0', {
-                #     'block': ModelBlock2,
-                #     'params': {
-                #         'blocksize': 1,
-                #         'blockphase': [0],
-                #         'debug': False,
-                #         'lag': minlag,
-                #         'eta': eta, # 3.7,
-                #         'ros': ros,
-                #         'inputs': {
-                #             # descending prediction
-                #             'pre_l1': {
-                #                 'bus': 'pre_l1/pre',
-                #                 'shape': (dim_s_proprio, maxlag), 'lag': minlag},
-                #             # ascending prediction error
-                #             'pre_l0': {
-                #                 'bus': 'pre_l0/pre',
-                #                 'shape': (dim_s_proprio, maxlag), 'lag': minlag},
-                #             # ascending prediction error
-                #             'prerr_l0': {
-                #                 'bus': 'pre_l0/err',
-                #                 'shape': (dim_s_proprio, maxlag), 'lag': minlag},
-                #             # measurement
-                #             'meas_l0': {
-                #                 'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, maxlag)}},
-                #         'outputs': {
-                #             'pre': {'shape': (dim_s_proprio, 1)},
-                #             'err': {'shape': (dim_s_proprio, 1)},
-                #             'tgt': {'shape': (dim_s_proprio, 1)},
-                #             },
-                #         'models': {
-                #             'hk': {
-                #                 'type': 'homeokinesis', 'algo': algo, 'mode': 'hk', 'idim': dim_s_proprio, 'odim': dim_s_proprio,
-                #                 'minlag': minlag, 'maxlag': maxlag, 'laglen': laglen, 'm_mins': m_mins, 'm_maxs': m_maxs,
-                #                 'epsA': 0.01, 'epsC': 0.03, 'creativity': 0.8},
-                #             },
-                #         'rate': 1,
-                #         },
-                #     }),
-                    
-                # learn_proprio_e2p2e
-
-                # measure and introspect
-                # total MSE goal - state
-                ('mse_s_p', {
-                    'block': MSEBlock2,
-                    'params': {
-                        'blocksize': 1, # numsteps,
-                        'inputs': {
-                            'x': {'bus': 'pre_l1/pre', 'shape': (dim_s_proprio, 1)},
-                            'x_': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 1)},
-                            },
-                        'outputs': {
-                            'y': {'shape': (dim_s_proprio, 1)},
-                            },
-                        },
-                    }),
-                    
-                # accumulated MSE goal - state over time
-                ('mse_s_p_accum', {
-                    'block': IBlock2,
-                    'params': {
-                        'blocksize': numsteps,
-                        'inputs': {
-                            'x': {'bus': 'mse_s_p/y', 'shape': (dim_s_proprio, numsteps)},
-                            },
-                        'outputs': {
-                            'Ix': {'shape': (dim_s_proprio, numsteps)},
-                            },
-                        },
-                    }),
-                    
-                
-                # end brain
-                ]),
+    # plot the system sweep result
+    ('plot_sweep', {
+        'block': PlotBlock2,
+        'params': {
+            'debug': False,
+            'blocksize': numsteps, # sweepsys_input_flat,
+            'title': 'system sweep',
+            'inputs': {
+                'meshgrid': {
+                    'bus': 'sweepsys_grid/meshgrid',
+                    'shape': (dim_s_proprio, sweepsys_input_flat)},
+                's_proprio': {
+                    'bus': 'robot0/s_proprio',
+                    'shape': (dim_s_proprio, sweepsys_input_flat)},
+                's_extero': {
+                    'bus': 'robot0/s_extero',
+                    'shape': (dim_s_extero, sweepsys_input_flat)},
+                },
+                'hspace': 0.2,
+                'subplots': [
+                    [
+                        {'input': ['meshgrid'], 'plot': timeseries},
+                    ],
+                    [
+                        {'input': ['s_proprio'], 'plot': timeseries},
+                    ],
+                    [
+                        {'input': ['s_extero'], 'plot': timeseries},
+                    ],
+                    ],
             }
         }),
+
+    # sns matrix plot
+    ('plot2', {
+        'block': SnsMatrixPlotBlock2,
+        'params': {
+            'id': 'plot2',
+            'logging': False,
+            'debug': False,
+            'saveplot': saveplot,
+            'blocksize': numsteps,
+            'inputs': {
+                'meshgrid': {
+                    'bus': 'sweepsys_grid/meshgrid',
+                    'shape': (dim_s_proprio, sweepsys_input_flat)},
+                's_proprio': {
+                    'bus': 'robot0/s_proprio',
+                    'shape': (dim_s_proprio, sweepsys_input_flat)},
+                's_extero': {
+                    'bus': 'robot0/s_extero',
+                    'shape': (dim_s_extero, sweepsys_input_flat)},
+                },
+            'outputs': {},#'x': {'shape': 3, 1)}},
+            'subplots': [
+                [
+                    # stack inputs into one vector (stack, combine, concat
+                    {'input': ['meshgrid', 's_proprio', 's_extero'], 'mode': 'stack',
+                         'plot': histogramnd},
+                ],
+            ],
+        },
+    }),
+        
+    # # system block from definition elsewhere
+    # ('robot1', systemblock),
+    
+    # # learning experiment
+    # ('brain_learn_proprio', {
+    #     'block': Block2,
+    #     'params': {
+    #         'graph': OrderedDict([
+
+    #             # # goal sampler (motivation) sample_discrete_uniform_goal
+    #             # ('pre_l1', {
+    #             #     'block': ModelBlock2,
+    #             #     'params': {
+    #             #         'blocksize': 1,
+    #             #         'blockphase': [0],
+    #             #         'inputs': {                        
+    #             #             'lo': {'val': m_mins, 'shape': (dim_s_proprio, 1)},
+    #             #             'hi': {'val': m_maxs, 'shape': (dim_s_proprio, 1)},
+    #             #             },
+    #             #         'outputs': {'pre': {'shape': (dim_s_proprio, 1)}},
+    #             #         'models': {
+    #             #             'goal': {'type': 'random_uniform'}
+    #             #             },
+    #             #         'rate': 40,
+    #             #         },
+    #             #     }),
+
+    #             ('cnt', {
+    #                 'block': CountBlock2,
+    #                 'params': {
+    #                     'blocksize': 1,
+    #                     'debug': False,
+    #                     'inputs': {},
+    #                     'outputs': {'x': {'shape': (dim_s_proprio, 1)}},
+    #                     },
+    #                 }),
+
+    #             # a random number generator, mapping const input to hi
+    #             ('pre_l1', {
+    #                 'block': FuncBlock2,
+    #                 'params': {
+    #                     'id': 'pre_l1',
+    #                     'outputs': {'pre': {'shape': (dim_s_proprio, 1)}},
+    #                     'debug': False,
+    #                     'ros': ros,
+    #                     'blocksize': 1,
+    #                     # 'inputs': {'lo': [0, (3, 1)], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+    #                     # recurrent connection
+    #                     'inputs': {
+    #                         'x': {'bus': 'cnt/x'},
+    #                         # 'f': {'val': np.array([[0.2355, 0.2355]]).T * 1.0}, # good with knn and eta = 0.3
+    #                         # 'f': {'val': np.array([[0.23538, 0.23538]]).T * 1.0}, # good with soesgp and eta = 0.7
+    #                         # 'f': {'val': np.array([[0.45]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
+    #                         # 'f': {'val': np.array([[0.225]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
+
+    #                         # barrel
+    #                         # 'f': {'val': np.array([[0.23539]]).T * 10.0 * dt}, # good with soesgp and eta = 0.7
+    #                         # 'f': {'val': np.array([[0.23539]]).T * 7.23 * dt}, # good with soesgp and eta = 0.7
+    #                         # 'f': {'val': np.array([[0.23539]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
+    #                         # 'f': {'val': np.array([[0.23539]]).T * 2.9 * dt}, # good with soesgp and eta = 0.7
+    #                         # 'f': {'val': np.array([[0.23539]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
+
+    #                         # pointmass
+    #                         'f': {'val': np.array([[0.23539]]).T * 0.2 * dt}, # good with soesgp and eta = 0.7
+                            
+    #                         # 'f': {'val': np.array([[0.23539, 0.2348, 0.14]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
+    #                         # 'f': {'val': np.array([[0.14, 0.14]]).T * 1.0},
+    #                         # 'f': {'val': np.array([[0.82, 0.82]]).T},
+    #                         # 'f': {'val': np.array([[0.745, 0.745]]).T},
+    #                         # 'f': {'val': np.array([[0.7, 0.7]]).T},
+    #                         # 'f': {'val': np.array([[0.65, 0.65]]).T},
+    #                         # 'f': {'val': np.array([[0.39, 0.39]]).T},
+    #                         # 'f': {'val': np.array([[0.37, 0.37]]).T},
+    #                         # 'f': {'val': np.array([[0.325, 0.325]]).T},
+    #                         # 'f': {'val': np.array([[0.31, 0.31]]).T},
+    #                         # 'f': {'val': np.array([[0.19, 0.19]]).T},
+    #                         # 'f': {'val': np.array([[0.18, 0.181]]).T},
+    #                         # 'f': {'val': np.array([[0.171, 0.171]]).T},
+    #                         # 'f': {'val': np.array([[0.161, 0.161]]).T},
+    #                         # 'f': {'val': np.array([[0.151, 0.151]]).T},
+    #                         # 'f': {'val': np.array([[0.141, 0.141]]).T},
+    #                         # stay in place
+    #                         # 'f': {'val': np.array([[0.1, 0.1]]).T},
+    #                         # 'f': {'val': np.array([[0.24, 0.24]]).T},
+    #                         # 'sigma': {'val': np.array([[0.001, 0.002]]).T}}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+    #                         'sigma': {'val': np.random.uniform(0, 0.01, (dim_s_proprio, 1))},
+    #                         'offset': {'val': m_mins + (m_maxs - m_mins)/2.0},
+    #                         'amp': {'val': (m_maxs - m_mins)/2.0},
+    #                     }, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+    #                     'func': f_sin_noise,
+    #                 },
+    #             }),
+                
+    #             # dev model actinf_m1: learner is basic actinf predictor proprio space learn_proprio_base_0
+    #             ('pre_l0', {
+    #                 'block': ModelBlock2,
+    #                 'params': {
+    #                     'blocksize': 1,
+    #                     'blockphase': [0],
+    #                     'debug': False,
+    #                     'lag': minlag,
+    #                     'eta': eta, # 3.7,
+    #                     'ros': ros,
+    #                     # FIXME: relative shift = minlag, block length the maxlag
+    #                     'inputs': {
+    #                         # descending prediction
+    #                         'pre_l1': {
+    #                             'bus': 'pre_l1/pre',
+    #                             # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag, -minlag)},
+    #                             # FIXME: check correctness here
+    #                             # training on past goal, prediction with current goal
+    #                             # should be possible inside step_model to use current
+    #                             # goal
+    #                             'shape': (dim_s_proprio, maxlag), 'lag': range(lag_past[0], lag_past[1])},
+    #                         # ascending prediction error
+    #                         'pre_l0': {
+    #                             'bus': 'pre_l0/pre',
+    #                             # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)},
+    #                             'shape': (dim_s_proprio, maxlag), 'lag': range(lag_past[0] + 1, lag_past[1] + 1)},
+    #                         # ascending prediction error
+    #                         'prerr_l0': {
+    #                             'bus': 'pre_l0/err',
+    #                             # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)},
+    #                             'shape': (dim_s_proprio, maxlag), 'lag': range(lag_past[0] + 1, lag_past[1] + 1)},
+    #                         # measurement
+    #                         'meas_l0': {
+    #                             'bus': 'robot1/s_proprio',
+    #                             # 'shape': (dim_s_proprio, maxlag), 'lag': range(-laglen, 0)}
+    #                             'shape': (dim_s_proprio, maxlag), 'lag': range(lag_future[0], lag_future[1])}
+    #                         },
+    #                     'outputs': {
+    #                         'pre': {'shape': (dim_s_proprio, 1)},
+    #                         'err': {'shape': (dim_s_proprio, 1)},
+    #                         'tgt': {'shape': (dim_s_proprio, 1)},
+    #                         'X_fit': {'shape': (dim_s_proprio * (lag_past[1] - lag_past[0]) * 2, 1)},
+    #                         },
+    #                     'models': {
+                            
+    #                         'm1': {
+    #                             'type': 'actinf_m1',
+    #                             'algo': algo,
+    #                             'lag_past': lag_past,
+    #                             'lag_future': lag_future,
+    #                             'idim': dim_s_proprio * (lag_past[1] - lag_past[0]) * 2, # laglen
+    #                             'odim': dim_s_proprio * (lag_future[1] - lag_future[0]), # laglen,
+    #                             'laglen': laglen,
+    #                             'eta': eta,
+    #                             # 'laglen_past': lag_past[1] - lag_past[0],
+    #                             # 'laglen_future': lag_future[1] - lag_future[0],
+    #                         },
+                                
+    #                         # 'm2': {
+    #                         #     'type': 'actinf_m2',
+    #                         #     'algo': algo,
+    #                         #     'idim': dim_s_proprio * laglen,
+    #                         #     'odim': dim_s_proprio * laglen,
+    #                         #     'laglen': laglen,
+    #                         #     'eta': eta
+    #                         #     },
+                            
+    #                         # 'm3': {
+    #                         #     'type': 'actinf_m3',
+    #                         #     'algo': algo,
+    #                         #     'idim': dim_s_proprio * laglen * 2,
+    #                         #     'odim': dim_s_proprio * laglen,
+    #                         #     'laglen': laglen,
+    #                         #     'eta': eta
+    #                         #     },
+                                
+    #                         },
+    #                     'rate': 1,
+    #                     },
+    #                 }),
+
+    #             # # dev model uniform random sampler
+    #             # ('pre_l0', {
+    #             #     'block': ModelBlock2,
+    #             #     'params': {
+    #             #         'blocksize': 1,
+    #             #         'blockphase': [0],
+    #             #         'inputs': {                        
+    #             #             'lo': {'val': m_mins, 'shape': (dim_s_proprio, 1)},
+    #             #             'hi': {'val': m_maxs, 'shape': (dim_s_proprio, 1)},
+    #             #             },
+    #             #         'outputs': {
+    #             #             'pre': {'shape': (dim_s_proprio, 1)},
+    #             #             'err': {'val': np.zeros((dim_s_proprio, 1)), 'shape': (dim_s_proprio, 1)},
+    #             #             'tgt': {'val': np.zeros((dim_s_proprio, 1)), 'shape': (dim_s_proprio, 1)},
+    #             #             },
+    #             #         'models': {
+    #             #             'goal': {'type': 'random_uniform'}
+    #             #             },
+    #             #         'rate': 50,
+    #             #         },
+    #             #     }),
+                    
+    #             # # dev model homeokinesis
+    #             # ('pre_l0', {
+    #             #     'block': ModelBlock2,
+    #             #     'params': {
+    #             #         'blocksize': 1,
+    #             #         'blockphase': [0],
+    #             #         'debug': False,
+    #             #         'lag': minlag,
+    #             #         'eta': eta, # 3.7,
+    #             #         'ros': ros,
+    #             #         'inputs': {
+    #             #             # descending prediction
+    #             #             'pre_l1': {
+    #             #                 'bus': 'pre_l1/pre',
+    #             #                 'shape': (dim_s_proprio, maxlag), 'lag': minlag},
+    #             #             # ascending prediction error
+    #             #             'pre_l0': {
+    #             #                 'bus': 'pre_l0/pre',
+    #             #                 'shape': (dim_s_proprio, maxlag), 'lag': minlag},
+    #             #             # ascending prediction error
+    #             #             'prerr_l0': {
+    #             #                 'bus': 'pre_l0/err',
+    #             #                 'shape': (dim_s_proprio, maxlag), 'lag': minlag},
+    #             #             # measurement
+    #             #             'meas_l0': {
+    #             #                 'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, maxlag)}},
+    #             #         'outputs': {
+    #             #             'pre': {'shape': (dim_s_proprio, 1)},
+    #             #             'err': {'shape': (dim_s_proprio, 1)},
+    #             #             'tgt': {'shape': (dim_s_proprio, 1)},
+    #             #             },
+    #             #         'models': {
+    #             #             'hk': {
+    #             #                 'type': 'homeokinesis', 'algo': algo, 'mode': 'hk', 'idim': dim_s_proprio, 'odim': dim_s_proprio,
+    #             #                 'minlag': minlag, 'maxlag': maxlag, 'laglen': laglen, 'm_mins': m_mins, 'm_maxs': m_maxs,
+    #             #                 'epsA': 0.01, 'epsC': 0.03, 'creativity': 0.8},
+    #             #             },
+    #             #         'rate': 1,
+    #             #         },
+    #             #     }),
+                    
+    #             # learn_proprio_e2p2e
+
+    #             # measure and introspect
+    #             # total MSE goal - state
+    #             ('mse_s_p', {
+    #                 'block': MSEBlock2,
+    #                 'params': {
+    #                     'blocksize': 1, # numsteps,
+    #                     'inputs': {
+    #                         'x': {'bus': 'pre_l1/pre', 'shape': (dim_s_proprio, 1)},
+    #                         'x_': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 1)},
+    #                         },
+    #                     'outputs': {
+    #                         'y': {'shape': (dim_s_proprio, 1)},
+    #                         },
+    #                     },
+    #                 }),
+                    
+    #             # accumulated MSE goal - state over time
+    #             ('mse_s_p_accum', {
+    #                 'block': IBlock2,
+    #                 'params': {
+    #                     'blocksize': numsteps,
+    #                     'inputs': {
+    #                         'x': {'bus': 'mse_s_p/y', 'shape': (dim_s_proprio, numsteps)},
+    #                         },
+    #                     'outputs': {
+    #                         'Ix': {'shape': (dim_s_proprio, numsteps)},
+    #                         },
+    #                     },
+    #                 }),
+                    
+                
+    #             # end brain
+    #             ]),
+    #         }
+    #     }),
 
     ################################################################################
     # use a sequential loop block to insert probes running orthogonally in time

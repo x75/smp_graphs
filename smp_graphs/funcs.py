@@ -230,9 +230,9 @@ def f_random_uniform(args):
     ranges = get_input(args, 'ranges')
     steps = get_input(args, 'steps')
 
-    meshgrid = np.random.uniform(ranges[:,[0]], ranges[:,[1]], (ranges.shape[0], int(steps[0,0])))
+    meshgrid = np.random.uniform(ranges[:,[0]], ranges[:,[1]], (ranges.shape[0], int(steps[0,0]**ranges.shape[0])))
 
-    # print "f_random_uniform meshgrid = %s" % (meshgrid, )
+    print "f_random_uniform meshgrid = %s" % (meshgrid, )
     
     return {'meshgrid': meshgrid}
 
