@@ -319,7 +319,7 @@ sweep system subgraph
  - sweep block is an open-loop system (data source) itself
  - system block is the system we want to sweep
 """
-sweepsys_steps = 26 # 6
+sweepsys_steps = 40 # 6
 sweepsys_input_flat = np.power(sweepsys_steps, dim_s_proprio)
 sweepsys = ('robot0', copy.deepcopy(systemblock))
 sweepsys[1]['params']['blocksize'] = sweepsys_input_flat
