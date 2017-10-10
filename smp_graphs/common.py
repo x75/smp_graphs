@@ -179,6 +179,7 @@ def get_config_raw_from_string(conf, confvar = 'conf', lconf = None):
         # print "code.consts", code.co_consts
         # print "code.freevars", code.co_freevars
         # print "code.nlocals", code.co_nlocals
+        
     except Exception, e:
         print "\n%s" % (e.text)
         print "Compilation of %s failed with %s in %s at line %d" % (conf, e.msg, e.filename, e.lineno)
@@ -203,8 +204,8 @@ def get_config_raw_from_string(conf, confvar = 'conf', lconf = None):
         print "Probably causes:\n    missing parentheses or comma\n    dict key followed by , instead of :\nin config"
         sys.exit(1)
 
-    print "get_config_raw_from_string local_vars", local_vars.keys()
-    print "get_config_raw_from_string global_vars", global_vars.keys()
+    # print "get_config_raw_from_string local_vars", local_vars.keys()
+    # print "get_config_raw_from_string global_vars", global_vars.keys()
         
     # return resulting variable
     return local_vars[confvar]

@@ -82,12 +82,18 @@ def make_expr_id_configfile(name = "experiment", configfile = "conf/default2.py"
 
     Make experiment signature from name and timestamp
     """
+    # split configuration path
     confs = configfile.split("/")
+    # get last element config filename
     confs = confs[-1].split(".")[0]
-    # print "configfile", confs
+    # format and return
     return "%s_%s_%s" % (name, make_expr_sig(), confs)
 
 def make_expr_id(name = "experiment"):
+    """Experiment.py.make_expr_id
+
+    Dummy callback
+    """
     pass
 
 def make_expr_sig(args =  None):
@@ -117,33 +123,80 @@ class Experiment(object):
         Arguments:
         - args: argparse configuration namespace (key, value) containing args.conf
         """
+        # get global func pointer
         global make_expr_id
-        make_expr_id = partial(make_expr_id_configfile, configfile = args.conf)
+        # point at other func, global make_expr_id is used in common (FIXME please)
+        make_expr_id = partial(make_expr_id_configfile, name = 'smpx', configfile = args.conf)
+        # get configuration from file
         self.conf = get_config_raw(args.conf)
+        # print "conf.params.id", self.conf['params']['id']
         assert self.conf is not None, "%s.init: Couldn't read config file %s" % (self.__class__.__name__, args.conf)
+        # fill in missing defaults
         self.conf = set_config_defaults(self.conf)
-
-        # update conf with commandline arguments
+        # update conf from commandline arguments
         self.conf = set_config_commandline_args(self.conf, args)
-
         # initialize ROS if needed
         if self.conf['params']['ros']:
             import rospy
             rospy.init_node("smp_graph")
 
-        # print "%s.init: conf keys = %s\n\n\n\n" % (self.__class__.__name__, self.conf.keys())
-        
+        # store all conf entries in self
+        # print "%s-%s.init\n" % (self.__class__.__name__, None),
         for k in self.conf.keys():
             setattr(self, k, self.conf[k])
-            # print "%s.init: self.%s = %s\n" % (self.__class__.__name__, k, getattr(self, k))
-        # self.numsteps = self.conf['params']['numsteps']
+            # selfattr = getattr(self, k)
+            # if type(selfattr) is dict:
+            #     print "        self.%s = %s\n" % (k, print_dict(selfattr))
+            # else:
+            #     print "        self.%s = %s\n" % (k, selfattr)
+        """
+        Hash functions
+        - hashlib md5/sha
+        - locally sensitive hashes, lshash. this is not independent of input size, would need maxsize kludge
+        """
+            
+        # new experiment / topblock id is hash of config
+        import hashlib
+        # print "self.conf", str(self.conf)
+        m = hashlib.md5(str(self.conf))
+        self.conf['params']['md5'] = m.hexdigest() #  + "-" + self.conf['params']['id']
 
-        # print "Experiment.init\n", print_dict(self.conf)
+        # storage: hdf5, couchdb, nosql, mongodb, ...
+        # storage: a dict with pickle
+        # storage: elastic (overdone, dependency) or pandas (no strings in dataframes?)
+        # storage: tinydb
+        
+        import pandas as pd
+        
+        # self.experiments = pickle.load('data/experiments_store.pkl')
+        # from tinydb import TinyDB, Query
+        # self.experiments = TinyDB('data/experiments_store.json')
+        
+        try:
+            self.experiments = pd.read_hdf('data/experiments_store.h5')
+        except Exception, e:
+            # store doesn't exist, create one
+            self.experiments = pd.DataFrame(columns = ['md5', 'block', 'params'])
+            self.experiments = pd.DataFrame.from_dict({'md5': m.hexdigest(), 'block': str(self.conf['block']), 'params': str(self.conf['params'])})
 
-        # self.topblock = Block(
-        #     block = self.conf['block'],
-        #     conf = self.conf['params'],
-        # )
+        # md5 = m.hexdigest()
+        # print "md5", type(md5)
+        # bytearrays = map(bytearray, [md5, str(self.conf['block']), str(self.conf['params'])])
+        # srs = pd.Series([md5, str(self.conf['block']), str(self.conf['params'])], dtype = [object, object, object])
+                             
+        # print "srs", srs
+        # self.experiments = self.experiments.append(
+        #     srs,
+        #     # other = {'md5': md5, 'block': str(self.conf['block']), 'params': str(self.conf['params'])},
+        #     # other = bytearrays,
+        #     ignore_index = True)
+        print "expr", self.experiments.dtypes
+        # self.experiments = self.experiments.append({'md5': m.hexdigest(), 'block': self.conf['block'], 'params': self.conf['params']})
+        # self.experiments = self.experiments.append([m.hexdigest(), str(self.conf['block']), str(self.conf['params'])])
+        # self.experiments.to_hdf('data/experiments_store.h5', 'data')
+        # self.experiments[m.hexdigest()] = self.experiments.append([m.hexdigest(), str(self.conf['block']), str(self.conf['params'])])
+
+        # self.experiments.insert({'md5': m.hexdigest(), 'block': self.conf['block'], 'params': self.conf['params']})
         
         self.topblock = Block2(conf = self.conf)
 
@@ -199,6 +252,9 @@ class Experiment(object):
             
         print "final return value topblock.x = %s" % (topblock_x)
 
+        # write store
+        self.experiments.to_hdf('data/experiments_store.h5', 'data')
+        
         # plot the computation graph and the bus
         set_interactive(True)
         if self.plotgraph_flag:

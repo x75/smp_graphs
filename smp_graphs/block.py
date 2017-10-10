@@ -427,8 +427,7 @@ class Block2(object):
         # merge Block2 base defaults with child defaults
         defaults = {}
         defaults.update(Block2.defaults, **self.defaults)
-        # print "defaults %s = %s" % (self.cname, defaults)
-                
+        
         # load defaults
         # set_attr_from_dict(self, self.defaults)
         set_attr_from_dict(self, copy.copy(defaults))
@@ -444,6 +443,7 @@ class Block2(object):
         # check id
         assert hasattr(self, 'id'), "Block2 init: id needs to be configured"
         # FIXME: check unique id, self.id not in self.topblock.ids
+        # print "%s-%s.defaults = %s" % (self.cname, self.id, defaults)
 
         ################################################################################
         # 1 general top block stuff: init bus, set top to self, init logging
@@ -494,8 +494,8 @@ class Block2(object):
             # init block
             self.init_block()
 
-        print "Block2-%s.super   conf = %s" % (self.id, print_dict(self.conf))
-        print "Block2-%s.super inputs = %s" % (self.id, print_dict(self.inputs))
+        # print "Block2-%s.super   conf = %s" % (self.id, print_dict(self.conf))
+        # print "Block2-%s.super inputs = %s" % (self.id, print_dict(self.inputs))
             
         # numsteps / blocksize
         # print "%s-%s end of init blocksize = %d" % (self.cname, self.id, self.blocksize)
