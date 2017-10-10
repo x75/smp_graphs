@@ -140,6 +140,7 @@ class PlotBlock2(FigPlotBlock2):
                     for input_spec_key in ['input', 'ndslice', 'shape']:
                         if subplotconf.has_key(input_spec_key):
                             subplotconf[input_spec_key] = subplot_input_fix(subplotconf[input_spec_key])
+                            # print "    id: %s, subplotconf[%s] = %s" % (self.id, input_spec_key, subplotconf[input_spec_key])
 
                     # subplot index from rows*cols
                     idx = (i*self.fig_cols)+j
@@ -215,13 +216,16 @@ class PlotBlock2(FigPlotBlock2):
                         #     print "plotblock2", self.inputs[ink]['val'].shape
                         #     print "plotblock2", self.inputs[ink]['val'][0,...,:]
                         ink_ = "%s_%d" % (ink, k)
+                        # print "      input shape %s: %s" % (ink, self.inputs[ink]['val'].shape)
                         if subplotconf.has_key('ndslice'):
                             # plotdata[ink_] = myt(self.inputs[ink_]['val'])[-1,subplotconf['ndslice'][0],subplotconf['ndslice'][1],:] # .reshape((21, -1))
                             plotdata[ink_] = myt(self.inputs[ink]['val'])[subplotconf['ndslice'][k]]
+                            # print "      ndslice %s: %s, numslice = %d" % (ink, subplotconf['ndslice'][k], len(subplotconf['ndslice']))
                         else:
                             plotdata[ink_] = myt(self.inputs[ink]['val'])[xslice] # .reshape((xslice.stop - xslice.start, -1))
 
-                        # print "ink = %s, plotdata = %s, plotshape = %s" % (ink_, plotdata[ink_].shape, plotshape)
+                        assert plotdata[ink_].shape != (0,), "no data to plot"
+                        # print "      id %s, ink = %s, plotdata = %s, plotshape = %s" % (self.id, ink_, plotdata[ink_].shape, plotshape)
                         # plotdata[ink_] = plotdata[ink_].reshape((plotshape[1], plotshape[0])).T
                         plotdata[ink_] = plotdata[ink_].reshape(plotshape)
                         

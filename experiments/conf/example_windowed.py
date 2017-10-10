@@ -8,6 +8,8 @@ numsteps = bs_win_2*10
 bs_win = 128*4
 num_win = (numsteps/bs_win)-1
 
+print "steps and wins", bs_win_2, numsteps, bs_win, num_win
+    
 graph = OrderedDict([
     # file source
     ('wav', {
@@ -16,7 +18,7 @@ graph = OrderedDict([
             'blocksize': 1,
             'type': 'wav',
             # 'file': ['data/res_out.wav'],
-            'file': {'filename': 'data/res_out.wav', 'filetype': 'wav', 'offset': 100000, 'length': numsteps},
+            # 'file': {'filename': 'data/res_out.wav', 'filetype': 'wav', 'offset': 100000, 'length': numsteps},
             'file': {'filename': '../../smp/sequence/data/blackbird_XC330200/XC330200-1416_299-01hipan.wav', 'filetype': 'wav', 'offset': 0, 'length': numsteps},
             
             'outputs': {'x': {'shape': (2, 1)}}
@@ -40,6 +42,7 @@ graph = OrderedDict([
         'block': PlotBlock2,
         'params': {
             'blocksize': numsteps,
+            'debug': False,
             'inputs': {'d1': {'bus': 'wav/x', 'shape': (2, numsteps)},
                        'd2': {'bus': 'xgram/x', 'shape': (2, num_win * bs_win_2)}},
             'subplots': [
