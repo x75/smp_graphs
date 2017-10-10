@@ -431,12 +431,13 @@ class Block2(object):
                 
         # load defaults
         # set_attr_from_dict(self, self.defaults)
-        set_attr_from_dict(self, defaults)
+        set_attr_from_dict(self, copy.copy(defaults))
                     
         # fetch existing configuration arguments
         if type(self.conf) == dict and self.conf.has_key('params'):
             # print "Block2 init params", self.conf['params']
-            set_attr_from_dict(self, self.conf['params'])
+            params = copy.deepcopy(self.conf['params'])
+            set_attr_from_dict(self, params)
         else:
             print "What could it be? Look at %s" % (self.conf)
 
@@ -493,6 +494,9 @@ class Block2(object):
             # init block
             self.init_block()
 
+        print "Block2-%s.super   conf = %s" % (self.id, print_dict(self.conf))
+        print "Block2-%s.super inputs = %s" % (self.id, print_dict(self.inputs))
+            
         # numsteps / blocksize
         # print "%s-%s end of init blocksize = %d" % (self.cname, self.id, self.blocksize)
 
@@ -900,7 +904,11 @@ class Block2(object):
         #     self.bus[nodeoutkey] = np.zeros((self.nodes[nk].odim, 1))
                                 
     def init_pass_2(self):
-        """second init pass which needs to be done after all outputs have been initialized"""
+        """Block2.init_pass_2
+
+        Second init pass which is needed for connecting inputs to outputs after
+        they have been initialized to infer the bus shapes.
+        """
         if not self.topblock:
             # create inputs by mapping from constants or bus
             # that's actually for pass 2 to enable recurrent connections
@@ -927,6 +935,7 @@ class Block2(object):
 
                         # clamp input_shape[1] to min(numsteps, input_shape[1])
                         # FIXME: collision args.numsteps and overproducing nodes (example_windowed)
+                        #        input clamp necessary at all?
                         if self.inputs_clamp:
                             v['shape'] = (v['shape'][0], min(self.top.numsteps, v['shape'][1]))
                         
