@@ -15,7 +15,7 @@ from smp_graphs.block import PrimBlock2
 from smp_graphs.utils import myt, mytupleroll
 
 from smp_base.dimstack import dimensional_stacking, digitize_pointcloud
-from smp_base.plot     import makefig, timeseries, histogram, plot_img
+from smp_base.plot     import makefig, timeseries, histogram, plot_img, plotfuncs
 
 ################################################################################
 # Plotting blocks
@@ -165,7 +165,20 @@ class PlotBlock2(FigPlotBlock2):
                     if not subplotconf.has_key('plot'): subplotconf['plot'] = timeseries
 
                     if type(subplotconf['plot']) is list:
-                        subplotconf_plot = subplotconf['plot'][0]
+                        subplotconf_plot = subplotconf['plot'][j]
+                        assert subplotconf_plot is not type(str), "FIXME: plot callbacks is array of strings, eval strings"
+                    elif type(subplotconf['plot']) is str:
+                        gv = plotfuncs # {'timeseries': timeseries, 'histogram': histogram}
+                        lv = {}
+                        code = compile("f_ = %s" % (subplotconf['plot'], ), "<string>", "exec")
+                        # print "code", code
+                        # subplotconf_plot = eval(code)
+                        exec(code, gv, lv)
+                        subplotconf['plot'] = lv['f_']
+                        subplotconf_plot = lv['f_']
+                        # subplotconf_plot = eval(subplotconf['plot'])
+                        print "subplotconf_plot", subplotconf_plot
+                        # subplotconf_plot = eval(subplotconf['plot'])
                     else:
                         subplotconf_plot = subplotconf['plot']
                         

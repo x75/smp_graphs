@@ -19,7 +19,7 @@ from smp_graphs.block import FuncBlock2, LoopBlock2, SeqLoopBlock2
 from smp_graphs.block_ols import FileBlock2
 from smp_graphs.block_plot import PlotBlock2
 
-from smp_base.plot import timeseries, histogram, rp_timeseries_embedding
+from smp_base.plot import timeseries, histogram # , rp_timeseries_embedding
 
 import numpy as np
 
@@ -35,7 +35,7 @@ conf_footer = """# top block
 conf = {
     'block': Block2,
     'params': {
-        'id': make_expr_id(),
+        'id': None,
         'debug': debug,
         'topblock': True,
         'numsteps': numsteps,
@@ -48,6 +48,9 @@ conf = {
     }
 }
 """
+
+#         'id': make_expr_id(),
+
 
 # loop_delim = '|'
 loop_delim = '_ll'
@@ -104,9 +107,7 @@ class RewriteAssign(ast.NodeTransformer):
         # ), node)
         return node
         
-
-
-def get_config_raw(conf, confvar = 'conf', lconf = None):
+def get_config_raw(conf, confvar = 'conf', lconf = None, fexec = True):
     """base.common.py
 
     Open config file, read it and call get_config_raw_from_string on that string
@@ -119,8 +120,11 @@ def get_config_raw(conf, confvar = 'conf', lconf = None):
         sys.exit(1)
 
     # compile and evaluate the dictionary code string and return the dict object
-    return get_config_raw_from_string(s_, confvar = confvar, lconf = lconf)
-
+    if fexec:
+        return get_config_raw_from_string(s_, confvar = confvar, lconf = lconf)
+    # or just return the string
+    else:
+        return s_
 
 def get_config_raw_from_string(conf, confvar = 'conf', lconf = None):
     """base.common.get_config_raw_from_string

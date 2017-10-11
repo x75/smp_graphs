@@ -452,7 +452,7 @@ class Block2(object):
             # print "Block2.init topblock conf.keys", self.conf['params'].keys()
             # print "Block2.init topblock numsteps", self.numsteps
             # fix the random seed
-            np.random.seed(self.randseed)
+            # np.random.seed(self.randseed)
                 
             self.top = self
             self.bus = Bus()
@@ -1263,7 +1263,7 @@ class LoopBlock2(Block2):
     variation one after the other.
 
     Parallel / LoopBlock2 parameters:
-    - loop: the loop specification, either a list of tuples or a function returning tuples. Tuples have the form ('param', value) and param is a configuration parameter of the inner loopblock.
+    - loop: the loop specification. either a list of tuples or a function returning tuples. Tuples have the form ('param', value) and param is a configuration parameter of the inner loopblock.
     - loopblock: conf dict for the block which is being looped
     - loopmode: used during graph construction (graphs.py)
 

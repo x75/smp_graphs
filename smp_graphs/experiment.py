@@ -1,4 +1,4 @@
-"""smp_graphs - sensorimotor experiments as computation graphs (smp)
+"""smp_graphs.experiment.py - sensorimotor experiments as computation graphs (smp)
 
 2017 Oswald Berthold
 
@@ -7,7 +7,7 @@ Experiment: basic experiment shell for
  - loading and drawing a graph (networkx)
 """
 
-import argparse, os
+import argparse, os, re, sys
 import time
 
 from collections import OrderedDict
@@ -88,7 +88,7 @@ def make_expr_id_configfile(name = "experiment", configfile = "conf/default2.py"
     # get last element config filename
     confs = confs[-1].split(".")[0]
     # format and return
-    return "%s_%s_%s" % (name, make_expr_sig(), confs)
+    return "%s_%s_%s" % (name, confs, make_expr_sig())
 
 def make_expr_id(name = "experiment"):
     """Experiment.py.make_expr_id
@@ -115,6 +115,53 @@ def md5(obj):
 def make_expr_md5(obj):
     return md5(str(obj))
 
+def set_random_seed(args):
+    """set_random_seed
+    
+    Extract randseed parameter from args.conf, override with args.randseed if set and seed the numpy prng.
+
+    Arguments:
+    - args: argparse Namespace
+
+    Returns:
+    - randseed: the seed
+    """
+    assert hasattr(args, 'conf')
+    randseed = 0
+    
+    conf = get_config_raw(args.conf, confvar = 'conf', fexec = False)
+
+    pattern = re.compile('(randseed *= *[0-9]*)')
+    # pattern = re.compile('.*(randseed).*')
+    # print "pattern", pattern
+    m = pattern.search(conf)
+    # print "m[:] = %s" % (m.groups(), )
+    # print "m[0] = %s" % (m.group(0), )
+    # print "lv = %s" % (lv, )
+    # m = re.search(r'(.*)(randseed *= *[0-9]*)', conf)
+    # conf_ = re.sub(r'\n', r' ', conf)
+    # conf_ = re.sub(r' +', r' ', conf_)
+    # print "m", conf_
+    # m = re.search(r'.*(randseed).*', conf)
+    # print "m", m.group(1)
+    if m is not None:
+        code = compile(m.group(0), "<string>", "exec")
+        gv = {}
+        lv = {}
+        exec(code, gv, lv)
+        randseed = lv['randseed']
+        # print "args.conf randseed match %s" % (randseed, )
+
+    if hasattr(args, 'randseed') and args.randseed is not None:
+        randseed = args.randseed
+
+    # print "m", m
+    # print "conf", conf
+    # print "randseed", randseed
+        
+    np.random.seed(randseed)
+    return randseed
+
 class Experiment(object):
     """Experiment class
 
@@ -139,7 +186,11 @@ class Experiment(object):
         global make_expr_id
         # point at other func, global make_expr_id is used in common (FIXME please)
         make_expr_id = partial(make_expr_id_configfile, name = 'smpx', configfile = args.conf)
-        # get configuration from file
+
+        # set random seed _before_ compiling conf
+        set_random_seed(args)
+
+        # get configuration from file # , this implicitly sets the id via global make_expr_id which is crap
         self.conf = get_config_raw(args.conf)
         # print "conf.params.id", self.conf['params']['id']
         assert self.conf is not None, "%s.init: Couldn't read config file %s" % (self.__class__.__name__, args.conf)
@@ -195,9 +246,14 @@ class Experiment(object):
          3. storage: hdf5 via pandas dataframe, works, current
          4. maybe upgrade to nosql / distributed a la mongodb, couchdb, or current favorite elasticsearch
         """
+
+        f = open('conf-%s.txt' % (time.strftime('%H%M%S')), 'wa')
+        f.write(str(self.conf))
+        f.flush()
     
         # hash the experiment
         m = make_expr_md5(self.conf)
+        self.conf['params']['id'] = make_expr_id() + "-" + m.hexdigest()
 
         experiments_store = 'data/experiments_store.h5'
         columns = ['md5', 'block', 'params']
@@ -208,18 +264,26 @@ class Experiment(object):
         if os.path.exists(experiments_store):
             try:
                 self.experiments = pd.read_hdf(experiments_store, key = 'experiments')
+                print "Experiment.update_experiments_store loaded experiments_store = %s with shape = %s" % (experiments_store, self.experiments)
+                # search for hash
             except Exception, e:
                 print "Loading store %s failed with %s" % (experiments_store, e)
                 sys.exit(1)
-            else:
-                # store doesn't exist, create an empty one
-                self.experiments = pd.DataFrame(columns = columns)
+        else:
+            # store doesn't exist, create an empty one
+            self.experiments = pd.DataFrame(columns = columns)
+        self.cache = self.experiments[:][self.experiments['md5'] == m.hexdigest()]
+        print "Experiment.update_experiments_store found cached results = %s" % (self.cache, )
 
         # temp dataframe
         df = pd.DataFrame(values, columns = columns, index = [self.experiments.shape[0]])
 
+        dfs = [self.experiments, df]
+
+        print "dfs", dfs
+        
         # concatenated onto main df
-        self.experiments = pd.concat([self.experiments, df])
+        self.experiments = pd.concat(dfs)
 
         # write store 
         self.experiments.to_hdf('data/experiments_store.h5', key = 'experiments')

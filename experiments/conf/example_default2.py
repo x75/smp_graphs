@@ -5,6 +5,7 @@ the config is python, so we
  - put the graph config into a dict
 """
 
+randseed = 18
 # reused variables
 numsteps = 100
 
@@ -51,12 +52,12 @@ graph = OrderedDict([
             'outputs': {}, # 'x': {'shape': (3, 1)}
             'subplots': [
                 [
-                    {'input': 'd1', 'ndslice': (slice(None), slice(None)), 'shape': (3, numsteps), 'plot': timeseries},
-                    {'input': 'd1', 'ndslice': (slice(None), slice(None)), 'shape': (3, numsteps), 'plot': histogram},
+                    {'input': 'd1', 'ndslice': (slice(None), slice(None)), 'shape': (3, numsteps), 'plot': 'timeseries'},
+                    {'input': 'd1', 'ndslice': (slice(None), slice(None)), 'shape': (3, numsteps), 'plot': 'histogram'},
                 ],
                 [
-                    {'input': 'd2', 'ndslice': (slice(None), slice(2)), 'shape': (2, numsteps), 'plot': timeseries},
-                    {'input': 'd2', 'ndslice': (slice(None), slice(None)), 'shape': (3, numsteps), 'plot': histogram},
+                    {'input': 'd2', 'ndslice': (slice(None), slice(2)), 'shape': (2, numsteps), 'plot': 'timeseries'},
+                    {'input': 'd2', 'ndslice': (slice(None), slice(None)), 'shape': (3, numsteps), 'plot': 'histogram'},
                 ],
             ]
         }
