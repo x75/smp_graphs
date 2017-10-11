@@ -16,6 +16,7 @@ from functools import partial
 import matplotlib.pyplot as plt
 
 import numpy as np
+import pandas as pd
 
 # for config reading
 from numpy import array
@@ -103,6 +104,17 @@ def make_expr_sig(args =  None):
     """
     return time.strftime("%Y%m%d_%H%M%S")
 
+def md5(obj):
+    import hashlib
+    # print "self.conf", str(self.conf)
+    # if type(obj) is not str:
+    #     obj = str(obj)
+    m = hashlib.md5(obj)
+    return m
+
+def make_expr_md5(obj):
+    return md5(str(obj))
+
 class Experiment(object):
     """Experiment class
 
@@ -156,47 +168,44 @@ class Experiment(object):
         """
             
         # new experiment / topblock id is hash of config
-        import hashlib
-        # print "self.conf", str(self.conf)
-        m = hashlib.md5(str(self.conf))
-        self.conf['params']['md5'] = m.hexdigest() #  + "-" + self.conf['params']['id']
-
-        # storage: hdf5, couchdb, nosql, mongodb, ...
-        # storage: a dict with pickle
-        # storage: elastic (overdone, dependency) or pandas (no strings in dataframes?)
-        # storage: tinydb
+        m = make_expr_md5(self.conf)
         
-        import pandas as pd
-        
+        # storage: a dict with pickle (fail)
         # self.experiments = pickle.load('data/experiments_store.pkl')
+        # storage: tinydb (fail)
         # from tinydb import TinyDB, Query
         # self.experiments = TinyDB('data/experiments_store.json')
+        # storage: hdf5 via pandas dataframe (works)
+        # storage: nosql a la mongodb, couchdb, elasticsearch (overdone, dependency) or pandas (no strings in dataframes?)
         
-        try:
-            self.experiments = pd.read_hdf('data/experiments_store.h5')
-        except Exception, e:
+        experiments_store = 'data/experiments_store.h5'
+        columns = ['md5', 'block', 'params']
+        values = [[m.hexdigest(), str(self.conf['block']), str(self.conf['params'])]]
+        # values = [[m.hexdigest(), self.conf['block'], self.conf['params']]]
+        
+        if os.path.exists(experiments_store):
+            try:
+                self.experiments = pd.read_hdf(experiments_store, key = 'experiments')
+            except Exception, e:
+                print "Loading store %s failed with %s" % (experiments_store, e)
+                sys.exit(1)
+        else:
             # store doesn't exist, create one
-            self.experiments = pd.DataFrame(columns = ['md5', 'block', 'params'])
-            self.experiments = pd.DataFrame.from_dict({'md5': m.hexdigest(), 'block': str(self.conf['block']), 'params': str(self.conf['params'])})
+            # self.experiments = pd.DataFrame(columns = ['md5', 'block', 'params'])
+            # experiment_dict = {'md5': m.hexdigest(), 'block': str(self.conf['block']), 'params': str(self.conf['params'])}
+            self.experiments = pd.DataFrame(columns = columns)
+            # self.experiments = pd.DataFrame.from_dict(experiment_dict)
 
-        # md5 = m.hexdigest()
-        # print "md5", type(md5)
-        # bytearrays = map(bytearray, [md5, str(self.conf['block']), str(self.conf['params'])])
-        # srs = pd.Series([md5, str(self.conf['block']), str(self.conf['params'])], dtype = [object, object, object])
-                             
-        # print "srs", srs
-        # self.experiments = self.experiments.append(
-        #     srs,
-        #     # other = {'md5': md5, 'block': str(self.conf['block']), 'params': str(self.conf['params'])},
-        #     # other = bytearrays,
-        #     ignore_index = True)
-        print "expr", self.experiments.dtypes
-        # self.experiments = self.experiments.append({'md5': m.hexdigest(), 'block': self.conf['block'], 'params': self.conf['params']})
-        # self.experiments = self.experiments.append([m.hexdigest(), str(self.conf['block']), str(self.conf['params'])])
-        # self.experiments.to_hdf('data/experiments_store.h5', 'data')
-        # self.experiments[m.hexdigest()] = self.experiments.append([m.hexdigest(), str(self.conf['block']), str(self.conf['params'])])
+        df = pd.DataFrame(values, columns = columns, index = [self.experiments.shape[0]])
+        # print "mini df with current data = %s" % (df, )
+        self.experiments = pd.concat([self.experiments, df])
+        # print "experiments db prior to writing", self.experiments
+        # write store 
+        self.experiments.to_hdf('data/experiments_store.h5', key = 'experiments')
 
-        # self.experiments.insert({'md5': m.hexdigest(), 'block': self.conf['block'], 'params': self.conf['params']})
+        self.conf['params']['md5'] = m.hexdigest() #  + "-" + self.conf['params']['id']
+
+        print "self.experiments dtypes = %s" % (self.experiments.dtypes, )
         
         self.topblock = Block2(conf = self.conf)
 
@@ -252,8 +261,8 @@ class Experiment(object):
             
         print "final return value topblock.x = %s" % (topblock_x)
 
-        # write store
-        self.experiments.to_hdf('data/experiments_store.h5', 'data')
+        # # write store
+        # self.experiments.to_hdf('data/experiments_store.h5', 'data')
         
         # plot the computation graph and the bus
         set_interactive(True)
