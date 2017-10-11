@@ -166,52 +166,67 @@ class Experiment(object):
         - hashlib md5/sha
         - locally sensitive hashes, lshash. this is not independent of input size, would need maxsize kludge
         """
+
+        # update experiments database with the current expr
+        m = self.update_experiments_store()
             
-        # new experiment / topblock id is hash of config
+        # store md5 in params _after_ we computed the md5 hash
+        self.conf['params']['md5'] = m.hexdigest()
+
+        # instantiate topblock
+        self.topblock = Block2(conf = self.conf)
+
+        # plotting
+        self.plotgraph_flag = args.plotgraph
+
+    def update_experiments_store(self):
+        """Experiment.update_experiments_store
+
+        Update the global store of experiments with the current one.
+
+        The idea is to take a hash of the configuration and store the
+        experiment's results with its hash as a key. If the experiment
+        is rerun with the same config, only the logfile is loaded
+        instead of recomputing everything.
+
+        Storage options:
+         1. a dict with pickle, fail
+         2. tinydb, fail
+         3. storage: hdf5 via pandas dataframe, works, current
+         4. maybe upgrade to nosql / distributed a la mongodb, couchdb, or current favorite elasticsearch
+        """
+    
+        # hash the experiment
         m = make_expr_md5(self.conf)
-        
-        # storage: a dict with pickle (fail)
-        # self.experiments = pickle.load('data/experiments_store.pkl')
-        # storage: tinydb (fail)
-        # from tinydb import TinyDB, Query
-        # self.experiments = TinyDB('data/experiments_store.json')
-        # storage: hdf5 via pandas dataframe (works)
-        # storage: nosql a la mongodb, couchdb, elasticsearch (overdone, dependency) or pandas (no strings in dataframes?)
-        
+
         experiments_store = 'data/experiments_store.h5'
         columns = ['md5', 'block', 'params']
         values = [[m.hexdigest(), str(self.conf['block']), str(self.conf['params'])]]
+        print "%s.update_experiments_store values = %s" % (self.__class__.__name__, values)
         # values = [[m.hexdigest(), self.conf['block'], self.conf['params']]]
-        
+    
         if os.path.exists(experiments_store):
             try:
                 self.experiments = pd.read_hdf(experiments_store, key = 'experiments')
             except Exception, e:
                 print "Loading store %s failed with %s" % (experiments_store, e)
                 sys.exit(1)
-        else:
-            # store doesn't exist, create one
-            # self.experiments = pd.DataFrame(columns = ['md5', 'block', 'params'])
-            # experiment_dict = {'md5': m.hexdigest(), 'block': str(self.conf['block']), 'params': str(self.conf['params'])}
-            self.experiments = pd.DataFrame(columns = columns)
-            # self.experiments = pd.DataFrame.from_dict(experiment_dict)
+            else:
+                # store doesn't exist, create an empty one
+                self.experiments = pd.DataFrame(columns = columns)
 
+        # temp dataframe
         df = pd.DataFrame(values, columns = columns, index = [self.experiments.shape[0]])
-        # print "mini df with current data = %s" % (df, )
+
+        # concatenated onto main df
         self.experiments = pd.concat([self.experiments, df])
-        # print "experiments db prior to writing", self.experiments
+
         # write store 
         self.experiments.to_hdf('data/experiments_store.h5', key = 'experiments')
 
-        self.conf['params']['md5'] = m.hexdigest() #  + "-" + self.conf['params']['id']
-
-        print "self.experiments dtypes = %s" % (self.experiments.dtypes, )
+        # return the hash
+        return m
         
-        self.topblock = Block2(conf = self.conf)
-
-        self.plotgraph_flag = args.plotgraph
-        # print "print_dict\n", print_dict(self.conf)
-
     def plotgraph(self):
         """Experiment.plotgraph
 

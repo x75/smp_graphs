@@ -1263,26 +1263,27 @@ class LoopBlock2(Block2):
     variation one after the other.
 
     Parallel / LoopBlock2 parameters:
-    - loop: the loop specification, either a list of tuples or a
-      function returning tuples. Tuples have the form ('param', value)
-      and param is a configuration parameter of the inner loopblock.
-    - loopblock: conf dict for block to be loooped
-    - loopmode: used in graph construction (graphs.py)
+    - loop: the loop specification, either a list of tuples or a function returning tuples. Tuples have the form ('param', value) and param is a configuration parameter of the inner loopblock.
+    - loopblock: conf dict for the block which is being looped
+    - loopmode: used during graph construction (graphs.py)
 
-    Examples for loop specification
+    Examples for loop specification::
 
-            [('inputs', {'x': {'val': 1}}), ('inputs', {'x': {'val': 2}})]
-            or
+        [('inputs', {'x': {'val': 1}}), ('inputs', {'x': {'val': 2}})]
+
+    or::
+
+        [
             [
-                [
-                    ('inputs',  {'x': {'val': 1}}),
-                    ('gain',    0.5),
-                    ],
-                [
-                    ('inputs', {'x': {'val': 2}})
-                    ('gain',    0.75),
-                    ]
+                ('inputs',  {'x': {'val': 1}}),
+                ('gain',    0.5),
+                ],
+            [
+                ('inputs', {'x': {'val': 2}})
+                ('gain',    0.75),
                 ]
+            ]
+
     """
     def __init__(self, conf = {}, paren = None, top = None):
         self.defaults['loop'] = [1]

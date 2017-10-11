@@ -109,7 +109,7 @@ class RewriteAssign(ast.NodeTransformer):
 def get_config_raw(conf, confvar = 'conf', lconf = None):
     """base.common.py
 
-    open config file, read it and call get_config_raw_from_string on that string
+    Open config file, read it and call get_config_raw_from_string on that string
     """
     # open and read config file containing a python dictionary
     try:
