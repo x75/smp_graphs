@@ -247,20 +247,25 @@ class Experiment(object):
          4. maybe upgrade to nosql / distributed a la mongodb, couchdb, or current favorite elasticsearch
         """
 
-        f = open('conf-%s.txt' % (time.strftime('%H%M%S')), 'wa')
-        f.write(str(self.conf))
-        f.flush()
+        # # debug configuration invariance vs. randseed and function pointers
+        # f = open('conf-%s.txt' % (time.strftime('%H%M%S')), 'wa')
+        # f.write(str(self.conf))
+        # f.flush()
     
-        # hash the experiment
+        # compute id hash of the experiment from the configuration dict string
         m = make_expr_md5(self.conf)
+        
+        # set the experiment's id
         self.conf['params']['id'] = make_expr_id() + "-" + m.hexdigest()
 
+        # prepare experiment database
         experiments_store = 'data/experiments_store.h5'
         columns = ['md5', 'block', 'params']
         values = [[m.hexdigest(), str(self.conf['block']), str(self.conf['params'])]]
         print "%s.update_experiments_store values = %s" % (self.__class__.__name__, values)
         # values = [[m.hexdigest(), self.conf['block'], self.conf['params']]]
-    
+
+        # load experiment database if one exists
         if os.path.exists(experiments_store):
             try:
                 self.experiments = pd.read_hdf(experiments_store, key = 'experiments')
@@ -269,13 +274,17 @@ class Experiment(object):
             except Exception, e:
                 print "Loading store %s failed with %s" % (experiments_store, e)
                 sys.exit(1)
+        # create a new experiment database if it does not exist
         else:
-            # store doesn't exist, create an empty one
             self.experiments = pd.DataFrame(columns = columns)
-            
+
+        # query database about current experiment
         self.cache = self.experiments[:][self.experiments['md5'] == m.hexdigest()]
+
+        # load the cached experiment if it exists
         if self.cache is not None and self.cache.shape[0] != 0:
             print "Experiment.update_experiments_store found cached results = %s%s" % (self.cache.shape, self.cache)
+        # store the experiment in the cache if it doesn't exist
         else:
             # temp dataframe
             df = pd.DataFrame(values, columns = columns, index = [self.experiments.shape[0]])
@@ -288,7 +297,7 @@ class Experiment(object):
             self.experiments = pd.concat(dfs)
 
         # write store 
-        self.experiments.to_hdf('data/experiments_store.h5', key = 'experiments')
+        self.experiments.to_hdf(experiments_store, key = 'experiments')
 
         # return the hash
         return m
