@@ -74,9 +74,9 @@ graph = OrderedDict([
             'inputs': {'d1': {'bus': 'b1/x', 'shape': (3, numsteps)},
                        'd2': {'bus': 'b2/x', 'shape': (3, numsteps)},
                        # that's cheating
-                       'd3': {'bus': 'b3|0/x', 'shape': (3, numsteps)},
-                       'd4': {'bus': 'b3|1/x', 'shape': (3, numsteps)},
-                       'd5': {'bus': 'b3|2/x', 'shape': (3, numsteps)}},
+                       'd3': {'bus': 'b3_ll0/x', 'shape': (3, numsteps)},
+                       'd4': {'bus': 'b3_ll1/x', 'shape': (3, numsteps)},
+                       'd5': {'bus': 'b3_ll2/x', 'shape': (3, numsteps)}},
             'outputs': {},
             'subplots': [
                 [

@@ -18,6 +18,7 @@ graph = OrderedDict([
             'numsteps': 1,
             # contains the subgraph specified in this config file
             'subgraph': graphconf,
+            'subgraph_rewrite_id': False,
         },
     }),
 ])

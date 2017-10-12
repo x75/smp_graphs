@@ -257,7 +257,7 @@ def dict_replace_idstr_recursive(d, cid, xid):
     # print "dict_replace_idstr_recursive", print_dict(d)
     
     if cid is not None:
-        # change param 'id'
+        # change param 'id' with loop marker and number
         d['params']['id'] = "%s%s%s" % (cid, loop_delim, xid)
 
         # change param 'inputs'
@@ -272,7 +272,6 @@ def dict_replace_idstr_recursive(d, cid, xid):
                     # print "bus new", inv['bus']
                     
         # change param '?'
-        
 
     if d['params'].has_key('graph') and type(d['params']['graph']) is not str:
         tgraph = OrderedDict()

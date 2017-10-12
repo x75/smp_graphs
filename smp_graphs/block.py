@@ -749,10 +749,11 @@ class Block2(object):
             self.conf['params']['graph'] = dict_replace_idstr_recursive2(
                 d = self.conf['params']['graph'], xid = xid)
             nks_l = dict_get_nodekeys_recursive(self.conf['params']['graph'])
-            
-            d_outputs = self.conf['params']['outputs']
-            # print "d_outputs", d_outputs
-            d_outputs = dict_replace_nodekeys_loop(d_outputs, nks_0, xid)
+
+            if self.conf['params'].has_key('outputs'):
+                d_outputs = self.conf['params']['outputs']
+                # print "d_outputs", d_outputs
+                d_outputs = dict_replace_nodekeys_loop(d_outputs, nks_0, xid)
             # print "nks", xid, nks_0, nks_l
             # print "d_outputs", d_outputs
             

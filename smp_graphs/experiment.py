@@ -309,11 +309,11 @@ class Experiment(object):
         experiment in 'self.topblock.nxgraph'.
         """
         graph_fig = makefig(
-            rows = 1, cols = 3, wspace = 0.1, hspace = 0.0,
-            axesspec = [(0, 0), (0, slice(1, None))], title = "Nxgraph and Bus")
+            rows = 1, cols = 4, wspace = 0.1, hspace = 0.0,
+            axesspec = [(0, 0), (0, 1), (0, slice(2, None))], title = "Nxgraph and Bus")
         
         # nxgraph_plot(self.topblock.nxgraph, ax = graph_fig.axes[0])
-        
+
         # flatten for drawing, quick hack
         G = nxgraph_flatten(self.topblock.nxgraph)
         # # debug flattened graph
@@ -323,19 +323,46 @@ class Experiment(object):
         # add edges to flattened graph
         G = nxgraph_add_edges(G)
         # for edge in G.edges_iter():
-        #     print "edge", edge
+        #     print "experiment.plotgraph: edge after add_edges = %s" %( edge,)
 
-        # plot the thing
+        # plot the flattened graph
         nxgraph_plot(G, ax = graph_fig.axes[0], layout_type = "spring", node_size = 300)
-        # recursive_draw(self.topblock.nxgraph, ax = graph_fig.axes[0], node_size = 300, currentscalefactor = 0.1)
+        
+        # plot the nested graph
+        recursive_draw(
+            self.topblock.nxgraph,
+            ax = graph_fig.axes[1],
+            node_size = 100,
+            currentscalefactor = 1.0,
+            shrink = 0.8)
 
         # plot the bus with its builtin plot method
-        self.topblock.bus.plot(graph_fig.axes[1])
+        self.topblock.bus.plot(graph_fig.axes[2])
 
         # save the plot if 'saveplot' is set
         if self.conf['params']['saveplot']:
             filename = "data/%s_%s.%s" % (self.topblock.id, "graph_bus", 'jpg')
             graph_fig.savefig(filename, dpi=300, bbox_inches="tight")
+
+    def printgraph_recursive(self, G, lvl = 0):
+        indent = " " * 4 * lvl
+        for node in G.nodes_iter():
+            print "%snode = %s" % (indent, G.node[node]['block_'].id, )
+            if hasattr(G.node[node]['block_'], 'nxgraph'):
+                G_ = G.node[node]['block_'].nxgraph                
+                lvl += 1
+                print "%sG%d.name = %s" % (indent, lvl, G_.name)
+                print "%s  .nodes = %s" % (indent, ", ".join([G_.node[n]['params']['id'] for n in G_.nodes()]))
+                self.printgraph_recursive(G = G_, lvl = lvl)
+                
+    def printgraph(self):
+        print "\nPrinting graph\n", 
+        G = self.topblock.nxgraph
+        print "G.name  = %s" % (G,)
+        # print "G.nodes = %s" % ([(G.node[n]['params']['id'], G.node[n].keys()) for n in G.nodes()])
+        print " .nodes = %s" % (", ".join([G.node[n]['params']['id'] for n in G.nodes()]))
+
+        self.printgraph_recursive(G, lvl = 1)
             
     def run(self):
         """Experiment.run
@@ -363,6 +390,8 @@ class Experiment(object):
 
         # # write store
         # self.experiments.to_hdf('data/experiments_store.h5', 'data')
+
+        self.printgraph()
         
         # plot the computation graph and the bus
         set_interactive(True)

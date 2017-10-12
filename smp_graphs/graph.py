@@ -53,13 +53,16 @@ def nxgraph_add_node_from_conf(k, v, G, nc):
 def nxgraph_from_smp_graph(conf):
     """nxgraph_from_smp_graph
 
-    Construct a networkx graph 'nxgraph' from an smp_graph configuration dictionary 'conf'
+    Construct a networkx graph 'nxgraph' from an smp_graph configuration dictionary 'conf'.
+
 
     Args:
     - conf: smp_graphs configuration dict
 
     Returns:
     - G: the nx.graph object
+
+    FIXME: graph G has no edges
     """
     # new empty graph
     G = nx.MultiDiGraph()
@@ -176,9 +179,11 @@ def nxgraph_flatten(G):
 
     Flatten a nested nxgraph 'G' to a single level
     """
+    # print "nxgraph_flatten: G = %s with edges = %s" % (G.name, G.edges())
+    
     # new graph
     G_ = nx.MultiDiGraph()
-    
+
     # loop nodes and descend nesting hierarchy
     for node in G.nodes_iter():
         if hasattr(G.node[node]['block_'], 'nxgraph'):
@@ -257,6 +262,7 @@ def nxgraph_add_edges(G):
 
     Add edges to an nxgraph indicating block interactions via the bus or via looping.
     """
+    # print "nxgraph_add_edges: G = %s with nodes = %s" % (G.name, G.nodes())
     # init edges
     edges = []
     # loop nodes
@@ -273,7 +279,7 @@ def nxgraph_add_edges(G):
             # if v['params'].has_key('loopblock') and len(v['params']['loopblock']) == 0:
             if childnode != node: # cnode.id:
                 # k_from = node.split("_")[0]
-                print "nxgraph_add_edges: loop edge %s -> %s", node, childnode
+                # print "nxgraph_add_edges: loop edge %s -> %s" % (node, childnode)
                 edges.append((node, childnode))
                 # G.add_edge(k_from, node)
 
@@ -281,17 +287,21 @@ def nxgraph_add_edges(G):
         for k, v in cnode.inputs.items():
             # ignore constant inputs
             if not v.has_key('bus'): continue
+
             # get node id and output variable of current input source
             k_from_str, v_from_str = v['bus'].split('/')
-            print "nxgraph_add_edges: bus edge %s -> %s" % (k_from_str, cnode.id)
+            # print "nxgraph_add_edges: cnode = %s, input = %s, bus edge %s -> %s" % (cnode.id, k, k_from_str, cnode.id)
             # print nx.get_node_attributes(self.top.nxgraph, 'params')
 
             # check from nodes exist
-            k_from = (n for n in G if G.node[n]['params']['id'] == k_from_str)
+            # k_from = (n for n in G if G.node[n]['params']['id'] == k_from_str)
+            k_from = (n for n in G if G.node[n]['block_'].id == k_from_str)
             k_from_l = list(k_from)
             # check to nodes exist
             k_to   = (n for n in G if G.node[n]['params']['id'] == cnode.id)
             k_to_l = list(k_to)
+
+            # print "   k_from_l = %s\n     k_to_l = %s\n" % (k_from_l, k_to_l)
             
             # append edge if both exist
             if len(k_from_l) > 0 and len(k_to_l) > 0:
@@ -372,20 +382,25 @@ def nxgraph_plot(G, ax, pos = None, layout_type = "spring", node_color = None, n
 
 def scale(pos = {}, sf = 1):
     for k, v in pos.items():
-        print "k, v", k, v,
+        # print "nxgraph.scale k, v", k, v,
         v = v * sf
-        print v
+        # print v
         pos[k] = v
 
 def shift(pos = {}, cl = 0):
     for k, v in pos.items():
-        print "k, v", k, v,
+        # print "nxgraph.shift k, v", k, v,
         v = v + array(cl)
-        print v
+        # print v
         pos[k] = v
-            
-# from https://stackoverflow.com/questions/31457213/drawing-nested-networkx-graphs
+
 def recursive_draw(G, currentscalefactor = 0.1, center_loc = (0, 0), node_size = 300, shrink = 0.1, ax = None, layout_type = "spring"):
+    """recursively draw nested graph
+
+    from https://stackoverflow.com/questions/31457213/drawing-nested-networkx-graphs
+
+    FIXME: draw edges across hierarchy boundaries
+    """
     if ax is not None:
         ax.grid(0)
 
@@ -402,15 +417,10 @@ def recursive_draw(G, currentscalefactor = 0.1, center_loc = (0, 0), node_size =
     for node in G.nodes_iter():
         # if type(node)==Graph: # or diGraph etc...
         if hasattr(G.node[node]['block_'], 'nxgraph'):
-            recursive_draw(G.node[node]['block_'].nxgraph, currentscalefactor = shrink * currentscalefactor, center_loc = pos[node], node_size = node_size*shrink, shrink = shrink, ax = ax)
-# def nxgraph_add_edge(conf):
-#             # if not v['params'].has_key('inputs'): continue
-#             # for inputkey, inputval in v['params']['inputs'].items():
-#             #     print "ink", inputkey
-#             #     print "inv", inputval
-#             #     if not inputval.has_key('bus'): continue
-#             #     # get the buskey for that input
-#             #     if inputval['bus'] not in ['None']:
-#             #         k_from, v_to = inputval['bus'].split('/')
-#             #         G.add_edge(k_from, k)
-#     pass
+            recursive_draw(
+                G.node[node]['block_'].nxgraph,
+                currentscalefactor = shrink * currentscalefactor,
+                center_loc = pos[node],
+                node_size = node_size*shrink,
+                shrink = shrink,
+                ax = ax)
