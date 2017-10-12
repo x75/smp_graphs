@@ -80,16 +80,16 @@ graph = OrderedDict([
             'outputs': {},
             'subplots': [
                 [
-                    {'input': 'd1', 'xslice': (0, numsteps), 'plot': timeseries},
-                    {'input': 'd1', 'xslice': (0, numsteps), 'plot': histogram},
+                    {'input': 'd1', 'xslice': (0, numsteps), 'plot': 'timeseries'},
+                    {'input': 'd1', 'xslice': (0, numsteps), 'plot': 'histogram'},
                 ],
                 [
-                    {'input': 'd2', 'slice': (3, 6), 'plot': timeseries},
-                    {'input': 'd2', 'slice': (3, 6), 'plot': histogram},
+                    {'input': 'd2', 'slice': (3, 6), 'plot': 'timeseries'},
+                    {'input': 'd2', 'slice': (3, 6), 'plot': 'histogram'},
                 ],
             ] + [[
-                {'input': 'd%d' % i, 'slice': (1, 1), 'plot': timeseries},
-                {'input': 'd%d' % i, 'slice': (1, 1), 'plot': histogram},
+                {'input': 'd%d' % i, 'slice': (1, 1), 'plot': 'timeseries'},
+                {'input': 'd%d' % i, 'slice': (1, 1), 'plot': 'histogram'},
                 ] for i in range(3, 6)
                 ]
         }

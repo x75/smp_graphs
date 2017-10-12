@@ -25,7 +25,7 @@ import smp_graphs.logging as log
 from smp_graphs.utils import print_dict, xproduct, myt
 
 from smp_graphs.common import conf_header, conf_footer, get_input
-from smp_graphs.common import get_config_raw, get_config_raw_from_string
+from smp_graphs.common import md5, get_config_raw, get_config_raw_from_string
 
 from smp_graphs.common import set_attr_from_dict
 from smp_graphs.common import dict_get_nodekeys_recursive, dict_replace_nodekeys_loop
@@ -328,7 +328,6 @@ class decStep():
     
     def __call__(self, f):
         def wrap(xself, *args, **kwargs):
-
             # print "xself", xself.__dict__.keys()
             # print xself.id, xself.inputs
             # if not xself.topblock and hasattr(xself, 'inputs') and xself.inputs['blk_mode'] == 0.0:
@@ -375,7 +374,36 @@ class decStep():
                         xself.pubs[k].publish(xself.msgs[k])
             else:
                 f_out = None
-            
+
+            # print "Block2.step[%d] not topblock" % (xself.cnt,)
+            if xself.cnt == xself.top.numsteps and hasattr(xself, 'isprimitive') and xself.isprimitive:
+                print "Block2.step end of episode and primitive"
+                
+                def update_block_store(block = None, top = None):
+                    import datetime
+                    assert block is not None, "Need some block to work on"
+                    # if not block.isprimitive: return
+
+                    # m = md5(str(block.conf))
+                    print "update_block_store block = %s (%s)" % (block, block.md5)
+
+                    print "block_store", block.top.block_store.keys()
+                    
+                    # create entry and save
+                    # columns = ['md5', 'timestamp', 'block', 'params', 'log_store'] # 'experiment', 
+                    # values = [[block.md5, pd.to_datetime(datetime.datetime.now()), str(block.conf['block']), str(block.conf['params']), 'bla.h5']]
+                    # df = pd.DataFrame(data = values, columns = columns)
+                    # print "df", df
+
+                    # block store is empty
+                    # if len(block.top.block_store.keys()) < 1:
+                    #     xself.top.block_store['blocks'] = df
+                    # else:
+                    # xself.top.block_store['blocks'] = pd.concat([xself.top.block_store['blocks'], df])
+                    # xself.top.block_store['blocks']['md5' == self.md5][] = 
+
+                # update_block_store(block = xself)
+                
             # count calls
             xself.cnt += 1 # should be min_blocksize
             # xself.ibufidx = xself.cnt % xself.ibufsize
@@ -456,6 +484,14 @@ class Block2(object):
                 
             self.top = self
             self.bus = Bus()
+            
+            # block_store init, topblock only
+            def init_block_store():
+                block_store_filename = 'data/block_store.h5'
+                return pd.HDFStore(block_store_filename)
+
+            self.block_store = init_block_store()
+
             # initialize pandas based hdf5 logging
             log.log_pd_init(self.conf)
 
@@ -671,13 +707,60 @@ class Block2(object):
 
         Initialize primitive block
         """
+        # remember being primitive
+        self.isprimitive = True
+        
         # initialize block output
         self.init_outputs()
             
         # initialize block logging
         self.init_logging()
-            
 
+        self.init_block_cache()
+        
+    def init_block_cache(self):
+        """init_block_cache
+
+        Block result caching. FIXME: unclear about exec spec / blocksize, step-wise or batch output
+        """
+        # initialize block cache
+        def check_block_store(block = None, top = None):
+            import datetime
+            assert block is not None, "Need some block to work on"
+            # if not block.isprimitive: return
+            m = md5(str(block.conf))
+            self.md5 = m.hexdigest()
+            self.cache = None
+            
+            # store exists?
+            if len(block.top.block_store.keys()) > 0:
+                # print "check_block_store", block.top.block_store['blocks'].shape
+                self.cache = block.top.block_store['blocks'][:][block.top.block_store['blocks']['md5'] == self.md5]
+                print "check_block_store", self.md5, block.top.block_store['blocks']['md5']
+
+            # found cache
+            if self.cache is not None and self.cache.shape[0] != 0:
+                print "Block2.init check_block_store: found cache %s = %s" % (self.md5, self.cache)
+                # load cached data
+                
+            else:
+                print "Block2.init check_block_store: no cache exists, storing %s at %s" % (self.conf, self.md5)
+                
+                # create entry and save
+                columns = ['md5', 'timestamp', 'block', 'params', 'log_store'] # 'experiment',
+                values = [[self.md5, pd.to_datetime(datetime.datetime.now()), str(block.conf['block']), str(block.conf['params']), log.log_store.filename]]
+                df = pd.DataFrame(data = values, columns = columns)
+                # print "df", df
+
+                # block store is empty
+                if len(block.top.block_store.keys()) < 1:
+                    block.top.block_store['blocks'] = df
+                else:
+                    block.top.block_store['blocks'] = pd.concat([block.top.block_store['blocks'], df])
+
+                
+        check_block_store(block = self)
+        
     def init_subgraph(self):
         """Block2.init_subgraph
 
@@ -784,8 +867,8 @@ class Block2(object):
         # for n in self.nxgraph.nodes_iter():
         for i in range(self.nxgraph.number_of_nodes()):
             v = self.nxgraph.node[i]
-            # print "%s.init_graph_pass_1 node = %s" % (self.cname, v)
             k = v['params']['id']
+            # print "%s-%s.init_graph_pass_1 node = %s" % (self.cname, k, v.keys())
             # v = n['params']
             # self.debug_print("__init__: pass 1\nk = %s,\nv = %s", (k, print_dict(v)))
 
@@ -795,7 +878,7 @@ class Block2(object):
 
             # print v['block_']
             
-            # actual instantiation
+            # instantiate block standard
             # self.graph[k]['block'] = self.graph[k]['block'](conf = v, paren = self, top = self.top)
             v['block_'] = v['block'](conf = v, paren = self, top = self.top)
 
@@ -1088,7 +1171,7 @@ class Block2(object):
                 self.log_attr()
                 # close the file
                 log.log_pd_deinit()
-
+                    
                 # final hook
                 # print "Block2.step", self.bus.keys()
                 # print "Block2.step jh", self.bus['jh/jh'], "jhloop", self.bus['jhloop/jh'], "jhloop_0", self.bus['jhloop_0/jh']
@@ -1394,7 +1477,7 @@ class SeqLoopBlock2(Block2):
             
             # create dynamic conf, beware the copy (!!!)
             loopblock_conf = {'block': self.loopblock['block'], 'params': copy.deepcopy(loopblock_params)}
-            # instantiate block
+            # instantiate block loopblock
             self.dynblock = self.loopblock['block'](
                 conf = loopblock_conf,
                 paren = self.paren,

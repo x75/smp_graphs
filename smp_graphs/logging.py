@@ -87,7 +87,7 @@ Arguments:
     lognodes[nodeid].append(data)
 
 ################################################################################
-# pandas mediated tables logging
+# pandas tables based logging
 import pandas as pd
 
 log_store = 0

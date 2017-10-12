@@ -312,7 +312,9 @@ def nxgraph_add_edges(G):
     # update the graph with edges
     G.add_edges_from(edges)
     return G
-                
+
+################################################################################
+# plotting funcs
 def nxgraph_plot(G, ax, pos = None, layout_type = "spring", node_color = None, node_size = 1):
     """nxgraph_plot
 

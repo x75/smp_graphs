@@ -26,7 +26,7 @@ from smp_base.plot import set_interactive, makefig
 from smp_graphs.block import Block2
 from smp_graphs.utils import print_dict
 from smp_graphs.common import conf_header, conf_footer
-from smp_graphs.common import get_config_raw
+from smp_graphs.common import md5, get_config_raw
 from smp_graphs.graph import nxgraph_plot, recursive_draw, nxgraph_flatten, nxgraph_add_edges
 
 ################################################################################
@@ -103,14 +103,6 @@ def make_expr_sig(args =  None):
     Return formatted timestamp
     """
     return time.strftime("%Y%m%d_%H%M%S")
-
-def md5(obj):
-    import hashlib
-    # print "self.conf", str(self.conf)
-    # if type(obj) is not str:
-    #     obj = str(obj)
-    m = hashlib.md5(obj)
-    return m
 
 def make_expr_md5(obj):
     return md5(str(obj))

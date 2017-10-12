@@ -13,6 +13,7 @@ import seaborn as sns
 from smp_graphs.block import decStep, decInit
 from smp_graphs.block import PrimBlock2
 from smp_graphs.utils import myt, mytupleroll
+import smp_graphs.logging as log
 
 from smp_base.dimstack import dimensional_stacking, digitize_pointcloud
 from smp_base.plot     import makefig, timeseries, histogram, plot_img, plotfuncs
@@ -77,6 +78,17 @@ class FigPlotBlock2(PrimBlock2):
 
         # make sure that data has been generated
         if (self.cnt % self.blocksize) in self.blockphase: # or (xself.cnt % xself.rate) == 0:
+
+            # override block inputs with log.log_store
+            print "log.log_store", log.log_store.keys()
+            log.log_pd_store()
+            for ink, inv in self.inputs.items():
+                bus = '/%s' % (inv['bus'], )
+                print "ink", ink, "inv", inv['bus'], inv['shape'], inv['val'].shape
+                if bus in log.log_store.keys():
+                    print "overriding bus", bus, "with log", log.log_store[bus].shape
+                    inv['val'] = log.log_store[bus].values.copy().T # reshape(inv['shape'])
+            
             # for ink, inv in self.inputs.items():
             #     self.debug_print("[%s]step in[%s].shape = %s", (self.id, ink, inv['shape']))
 

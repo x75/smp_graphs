@@ -477,3 +477,14 @@ def read_puppy_hk_pickles(lfile, key = None):
     # print "x.shape", data.keys()
     return (data, rate, offset, d['x'].shape[0])
 
+def md5(obj):
+    """md5
+
+    Compute md5 hash for obj using hashlib
+    """
+    import hashlib
+    # print "self.conf", str(self.conf)
+    # if type(obj) is not str:
+    #     obj = str(obj)
+    m = hashlib.md5(obj)
+    return m
