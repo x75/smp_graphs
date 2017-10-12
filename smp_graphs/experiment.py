@@ -272,18 +272,20 @@ class Experiment(object):
         else:
             # store doesn't exist, create an empty one
             self.experiments = pd.DataFrame(columns = columns)
+            
         self.cache = self.experiments[:][self.experiments['md5'] == m.hexdigest()]
-        print "Experiment.update_experiments_store found cached results = %s" % (self.cache, )
+        if self.cache is not None and self.cache.shape[0] != 0:
+            print "Experiment.update_experiments_store found cached results = %s%s" % (self.cache.shape, self.cache)
+        else:
+            # temp dataframe
+            df = pd.DataFrame(values, columns = columns, index = [self.experiments.shape[0]])
 
-        # temp dataframe
-        df = pd.DataFrame(values, columns = columns, index = [self.experiments.shape[0]])
+            dfs = [self.experiments, df]
 
-        dfs = [self.experiments, df]
-
-        print "dfs", dfs
+            print "dfs", dfs
         
-        # concatenated onto main df
-        self.experiments = pd.concat(dfs)
+            # concatenated onto main df
+            self.experiments = pd.concat(dfs)
 
         # write store 
         self.experiments.to_hdf('data/experiments_store.h5', key = 'experiments')
