@@ -1,8 +1,8 @@
-"""smp_graphs.experiment.py - sensorimotor experiments as computation graphs (smp)
+"""Define, load and run the experiment defined in the configuration
 
-2017 Oswald Berthold
+.. moduleauthor:: Oswald Berthold, 2017
 
-Experiment: basic experiment shell for
+Experiment class provides the basic shell for running an experiment with methods for
  - running a graph
  - loading and drawing a graph (networkx)
 """
@@ -262,14 +262,14 @@ class Experiment(object):
         experiments_store = 'data/experiments_store.h5'
         columns = ['md5', 'block', 'params']
         values = [[m.hexdigest(), str(self.conf['block']), str(self.conf['params'])]]
-        print "%s.update_experiments_store values = %s" % (self.__class__.__name__, values)
+        # print "%s.update_experiments_store values = %s" % (self.__class__.__name__, values)
         # values = [[m.hexdigest(), self.conf['block'], self.conf['params']]]
 
         # load experiment database if one exists
         if os.path.exists(experiments_store):
             try:
                 self.experiments = pd.read_hdf(experiments_store, key = 'experiments')
-                print "Experiment.update_experiments_store loaded experiments_store = %s with shape = %s" % (experiments_store, self.experiments)
+                print "Experiment.update_experiments_store loaded experiments_store = %s with shape = %s" % (experiments_store, self.experiments.shape)
                 # search for hash
             except Exception, e:
                 print "Loading store %s failed with %s" % (experiments_store, e)
@@ -283,7 +283,7 @@ class Experiment(object):
 
         # load the cached experiment if it exists
         if self.cache is not None and self.cache.shape[0] != 0:
-            print "Experiment.update_experiments_store found cached results = %s%s" % (self.cache.shape, self.cache)
+            print "Experiment.update_experiments_store found cached results = %s\n%s" % (self.cache.shape, self.cache)
         # store the experiment in the cache if it doesn't exist
         else:
             # temp dataframe
@@ -305,7 +305,8 @@ class Experiment(object):
     def plotgraph(self):
         """Experiment.plotgraph
 
-        Show a visualization of the graph of the experiment
+        Show a visualization of the initialized top graph defining the
+        experiment in 'self.topblock.nxgraph'.
         """
         graph_fig = makefig(
             rows = 1, cols = 3, wspace = 0.1, hspace = 0.0,
@@ -315,7 +316,7 @@ class Experiment(object):
         # flatten for drawing, quick hack
         G = nxgraph_flatten(self.topblock.nxgraph)
         # for node,noded in G.nodes_iter(data=True):
-        #     print "node", node, G.node[node], noded
+        #     print "node.id = %s\n    .data = %s\n    .graphnode = %s\n" % (node, noded, G.node[node])
         G = nxgraph_add_edges(G)
         # for edge in G.edges_iter():
         #     print "edge", edge

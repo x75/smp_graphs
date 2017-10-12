@@ -1,9 +1,9 @@
-"""smp_graphs graph.py
+"""Graph functions
 
-2017 Oswald Berthold
+.. moduleauthor:: Oswald Berthold, 2017
 
-basic graph operations for networkx based smp graphs: construction from
-smp_graphs config, manipulation, plotting, searching
+Basic graph operations for networkx based smp graphs: construction from
+smp_graphs configuration dictionary, manipulation, plotting, searching
 """
 
 import networkx as nx
@@ -26,8 +26,8 @@ colors_ = list(six.iteritems(colors.cnames))
 def nxgraph_add_nodes_from_dict(conf, G, nc):
     """nxgraph_add_nodes_from_dict
 
-    take an smp_graphs dict with id, {block config} and create
-    a graph node for every item in the dict
+    Take an smp_graphs dict with (id, block configuration) tuples and create a graph node for every item in the dict
+
     Args:
      - conf: configuration dict
      - G: the graph
