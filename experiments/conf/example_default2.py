@@ -5,9 +5,9 @@ the config is python, so we
  - put the graph config into a dict
 """
 
-randseed = 18
+randseed = 22
 # reused variables
-numsteps = 100
+numsteps = 10000
 
 # graph
 graph = OrderedDict([
@@ -17,7 +17,7 @@ graph = OrderedDict([
         'params': {
             'id': 'b1',
             'blocksize': 1,
-            'inputs': {'c': {'val': np.random.uniform(-1, 1, (3, 1))}},
+            'inputs': {'c': {'val': np.random.uniform(-1, 0.999, (3, 1))}},
             'outputs': {'x': {'shape': (3,1)}},
             'debug': False,
         },

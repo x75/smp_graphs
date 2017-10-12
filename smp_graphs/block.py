@@ -325,7 +325,16 @@ class decStep():
                 # # debug in to out copy
                 # print "%s.%s[%d]  self.%s = %s" % (esname, sname, escnt, k, esk)
                 # print "%s.%s[%d] outkeys = %s" % (esname, sname, escnt, xself.outputs.keys())
-    
+
+    def process_blk_mode(self, xself):
+        if hasattr(xself, 'inputs') and xself.inputs.has_key('blk_mode'):
+            # print "blk_mode", xself.id, np.sum(xself.inputs['blk_mode']['val']) # xself.inputs['blk_mode']['val'], xself.inputs['blk_mode']['val'] < 0.1
+            if np.sum(xself.inputs['blk_mode']['val']) < 0.1:
+                # print "blub"
+                xself.cnt += 1
+                return True
+        return False
+            
     def __call__(self, f):
         def wrap(xself, *args, **kwargs):
             # print "xself", xself.__dict__.keys()
@@ -333,12 +342,7 @@ class decStep():
             # if not xself.topblock and hasattr(xself, 'inputs') and xself.inputs['blk_mode'] == 0.0:
             self.process_input(xself)
 
-            if hasattr(xself, 'inputs') and xself.inputs.has_key('blk_mode'):
-                # print "blk_mode", xself.id, np.sum(xself.inputs['blk_mode']['val']) # xself.inputs['blk_mode']['val'], xself.inputs['blk_mode']['val'] < 0.1
-                if np.sum(xself.inputs['blk_mode']['val']) < 0.1:
-                    # print "blub"
-                    xself.cnt += 1
-                    return None
+            if self.process_blk_mode(xself): return None
             
             # call the function on blocksize boundaries
             # FIXME: might not be the best idea to control that on the wrapper level as some
@@ -347,9 +351,18 @@ class decStep():
             # print "xself.cnt", xself.cnt, "blocksize", xself.blocksize, "blockphase", xself.blockphase
             if (xself.cnt % xself.blocksize) in xself.blockphase: # or (xself.cnt % xself.rate) == 0:
                 # if count aligns with block's execution blocksize
-                
-                # compute the block with step()
-                f_out = f(xself, None)
+
+                if xself.top.cached and hasattr(xself, 'isprimitive') and xself.isprimitive and xself.cache is not None and xself.cache.shape[0] != 0:
+                    # pass
+                    # print xself.cache_data['x'].shape
+                    for outk, outv in xself.outputs.items():
+                        setattr(xself, outk, xself.cache_data[outk][xself.cnt-xself.blocksize:xself.cnt,...].T)
+                        # print "%s-%s" % (xself.cname, xself.id), "outk", outk, getattr(xself, outk).T
+                        # print "outk", outk, xself.cache_data[outk] # [xself.cnt-xself.blocksize:xself.cnt]
+                    f_out = None
+                else:
+                    # compute the block with step()
+                    f_out = f(xself, None)
 
                 # copy output to bus
                 for k, v in xself.outputs.items():
@@ -739,10 +752,17 @@ class Block2(object):
                 print "check_block_store", self.md5, block.top.block_store['blocks']['md5']
 
             # found cache
-            if self.cache is not None and self.cache.shape[0] != 0:
-                print "Block2.init check_block_store: found cache %s = %s" % (self.md5, self.cache)
-                # load cached data
+            if self.top.cached and self.cache is not None and self.cache.shape[0] != 0:
+                print "Block2.init check_block_store: found cache %s = %s" % (self.md5, self.cache['log_store'].values)
                 
+                # FIXME: check experiment.cache to catch randseed and numsteps
+                # load cached data
+                self.cache_h5 = pd.HDFStore(self.cache['log_store'].values[0])
+                self.cache_data = {}
+                for outk in self.outputs.keys():
+                    x_ = self.cache_h5['%s/%s' % (self.id, outk)].values
+                    print "output %s cached data = %s" % (outk, x_.shape)
+                    self.cache_data[outk] = x_.copy()
             else:
                 print "Block2.init check_block_store: no cache exists, storing %s at %s" % (self.conf, self.md5)
                 

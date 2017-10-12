@@ -215,7 +215,8 @@ class Experiment(object):
             
         # store md5 in params _after_ we computed the md5 hash
         self.conf['params']['md5'] = m.hexdigest()
-
+        self.conf['params']['cached'] = self.cache is not None and self.cache.shape[0]
+        
         # instantiate topblock
         self.topblock = Block2(conf = self.conf)
 
