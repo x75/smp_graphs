@@ -142,7 +142,7 @@ def nxgraph_from_smp_graph(conf):
     return G
 
 def nxgraph_get_layout(G, layout_type):
-    """!@brief get an nx.graph layout from a config string"""
+    """get an nx.graph layout from a config string"""
     if layout_type == "spring":
         # spring
         layout = nx.spring_layout(G)
@@ -172,21 +172,32 @@ def nxgraph_get_layout(G, layout_type):
     return layout
             
 def nxgraph_flatten(G):
-    """!@brief flatten a nested nx.graph to a single level"""
+    """nxgraph_flatten
+
+    Flatten a nested nxgraph 'G' to a single level
+    """
+    # new graph
     G_ = nx.MultiDiGraph()
+    
+    # loop nodes and descend nesting hierarchy
     for node in G.nodes_iter():
         if hasattr(G.node[node]['block_'], 'nxgraph'):
             # print "nxgraph_flatten: descending + 1"
             G_ = nx.compose(G_, nxgraph_flatten(G.node[node]['block_'].nxgraph))
 
-    # final level
+    # bottom level
+    # generator for graph node ids
     ids_gen = (G.node[n]['params']['id'] for n in G)
+    # generate ids
     ids = list(ids_gen)
+    # map nx ids to smp_graph ids
     mapping = dict(zip(G.nodes(), ids))
+    # relabel nodes
     rG = nx.relabel_nodes(G, mapping)
+    # merge this graph into flat graph
     qG = nx.compose(rG, G_)
     # print "nxgraph_flatten: relabeled graph", rG.nodes(), "composed graph", qG.nodes()
-    # FIXME: consider edges
+    # FIXME: currently dropping edges?
     return qG
 
 def nxgraph_to_smp_graph(G, level = 0):
@@ -206,7 +217,7 @@ def nxgraph_to_smp_graph(G, level = 0):
     return gstr
 
 def nxgraph_node_by_id(G, nid):
-    """!@brief get a node key from an nx.graph by searching for an smp_graphs id"""
+    """get a node key from an nx.graph by searching for an smp_graphs id"""
     if nid is None: return
     gen = (n for n in G if G.node[n]['params']['id'] == nid)
     tmp = list(gen)
@@ -214,7 +225,7 @@ def nxgraph_node_by_id(G, nid):
     return tmp
         
 def nxgraph_node_by_id_recursive(G, nid):
-    """!@brief get a node key from a nested nxgraph by searching for an smp_graphs id
+    """get a node key from a nested nxgraph by searching for an smp_graphs id
 
     Args:
         G: nxgraph
@@ -242,64 +253,108 @@ def nxgraph_node_by_id_recursive(G, nid):
     return []
 
 def nxgraph_add_edges(G):
-    # add nxgraph edges
+    """nxgraph_add_edges
+
+    Add edges to an nxgraph indicating block interactions via the bus or via looping.
+    """
+    # init edges
     edges = []
+    # loop nodes
     for node in G.nodes_iter():
-    # for node in G.nodes():
         # print "node", node
+        # get the current node's block instance
         cnode = G.node[node]['block_']
-        gen = (n for n in G if G.node[n]['block_'].id.startswith(node))
-        for loopchild in list(gen):
-            # print "graph.nxgraph_add_edges: loopchild = %s" %( loopchild,)
+
+        # get child nodes of the current node by matching block ids indicating loop interaction
+        childgen = (n for n in G if G.node[n]['block_'].id.startswith(node))
+        # loop child nodes
+        for childnode in list(childgen):
+            # print "graph.nxgraph_add_edges: node = %s, childnode = %s" %(node, childnode,)
             # if v['params'].has_key('loopblock') and len(v['params']['loopblock']) == 0:
-            if loopchild != node: # cnode.id:
+            if childnode != node: # cnode.id:
                 # k_from = node.split("_")[0]
-                # print "k_from", node, loopchild
-                edges.append((node, loopchild))
+                print "nxgraph_add_edges: loop edge %s -> %s", node, childnode
+                edges.append((node, childnode))
                 # G.add_edge(k_from, node)
-                
+
+        # get child nodes of the current nodes by matching input bus ids indicating signal-based interaction
         for k, v in cnode.inputs.items():
+            # ignore constant inputs
             if not v.has_key('bus'): continue
+            # get node id and output variable of current input source
             k_from_str, v_from_str = v['bus'].split('/')
-            # print "edge from %s to %s" % (k_from_str, cnode.id)
+            print "nxgraph_add_edges: bus edge %s -> %s" % (k_from_str, cnode.id)
             # print nx.get_node_attributes(self.top.nxgraph, 'params')
+
+            # check from nodes exist
             k_from = (n for n in G if G.node[n]['params']['id'] == k_from_str)
-            k_to   = (n for n in G if G.node[n]['params']['id'] == cnode.id)
             k_from_l = list(k_from)
+            # check to nodes exist
+            k_to   = (n for n in G if G.node[n]['params']['id'] == cnode.id)
             k_to_l = list(k_to)
+            
+            # append edge if both exist
             if len(k_from_l) > 0 and len(k_to_l) > 0:
                 # print "fish from", k_from_l[0], "to", k_to_l[0]
                 edges.append((k_from_l[0], k_to_l[0]))
                 # G.add_edge(k_from_l[0], k_to_l[0])
-                
+
+    # update the graph with edges
     G.add_edges_from(edges)
     return G
-    # pass
                 
 def nxgraph_plot(G, ax, pos = None, layout_type = "spring", node_color = None, node_size = 1):
+    """nxgraph_plot
+
+    Graph plotting func for flat graphs
+    """
+    # set grid off
     ax.grid(0)
+
+    # compute layout if not supplied as argument
     if pos is None:
         layout = nxgraph_get_layout(G, layout_type)
+    # or use precomputed layout from argument
     else:
         layout = pos
 
+    # set node color default
     if node_color is None:
         node_color = random.choice(colors_)
 
+    # # debug
     # print "G.nodes", G.nodes(data=True)
     # print "layout", layout
+
+    # label all nodes with id and blocktype
     labels = {node[0]: '%s\n%s' % (node[1]['block_'].id, node[1]['block_'].cname[:-6]) for node in G.nodes(data = True)}
     # print "labels = %s" % labels
+
+    # draw the nodes of 'G' into axis 'ax' using positions 'layout' etc
     nx.draw_networkx_nodes(G, ax = ax, pos = layout, node_color = node_color, node_shape = '8', node_size = node_size)
+
+    # # global shift?
     # shift(layout, (0, -2 * node_size))
+
+    # draw the node labels
     nx.draw_networkx_labels(G, ax = ax, pos = layout, labels = labels, font_color = 'r', font_size = 8, fontsize = 6)
+    
     # edges
-    e1 = [] # std edges
+    e1 = [] # bus edges
     e2 = [] # loop edges
+
+    # loop over edges
     for edge in G.edges():
         # edgetype = re.search("[_/]", G.node[edge[1]]['params']['id'])
-        nodetype_0 = re.search('[%s]' % (loop_delim, ), G.node[edge[0]]['params']['id'])
-        nodetype_1 = re.search('[%s]' % (loop_delim, ), G.node[edge[1]]['params']['id'])
+        
+        # this works for '|' style loop-id delimiter
+        # nodetype_0 = re.search(r'[%s]' % (loop_delim, ), G.node[edge[0]]['params']['id'])
+        # nodetype_1 = re.search(r'[%s]' % (loop_delim, ), G.node[edge[1]]['params']['id'])
+        
+        # this works for '_ll' style delimiter
+        nodetype_0 = re.search(r'%s' % (loop_delim, ), G.node[edge[0]]['params']['id'])
+        nodetype_1 = re.search(r'%s' % (loop_delim, ), G.node[edge[1]]['params']['id'])
+        # print "node types = %s, %s based on loop_delim %s" % (nodetype_0, nodetype_1, loop_delim)
         if nodetype_1 and not nodetype_0: # edgetype: # loop
             e2.append(edge)
             edgetype = "loop"
