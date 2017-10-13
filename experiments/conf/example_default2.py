@@ -9,6 +9,7 @@ randseed = 24
 # reused variables
 numsteps = 10000
 
+
 # graph
 graph = OrderedDict([
     # a constant

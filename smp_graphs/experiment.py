@@ -27,7 +27,7 @@ from smp_graphs.block import Block2
 from smp_graphs.utils import print_dict
 from smp_graphs.common import conf_header, conf_footer
 from smp_graphs.common import md5, get_config_raw
-from smp_graphs.graph import nxgraph_plot, recursive_draw, recursive_hierarchical, nxgraph_flatten, nxgraph_add_edges
+from smp_graphs.graph import nxgraph_plot, recursive_draw, recursive_hierarchical, nxgraph_flatten, nxgraph_add_edges, nxgraph_get_node_colors
 
 ################################################################################
 # utils, TODO: move to utils.py
@@ -337,7 +337,10 @@ class Experiment(object):
         # plot the flattened graph
         nxgraph_plot(G, ax = graph_fig.axes[0], layout_type = "spring", node_size = 300)
 
-        nxgraph_plot(recursive_hierarchical(self.topblock.nxgraph), ax = graph_fig.axes[1], layout_type = "linear_hierarchical", node_size = 300)
+        G_ = recursive_hierarchical(self.topblock.nxgraph)
+        G_cols = nxgraph_get_node_colors(G_)
+        print "G_cols", G_cols
+        nxgraph_plot(G_, ax = graph_fig.axes[1], layout_type = "linear_hierarchical", node_color = G_cols, node_size = 300)
         
         # plot the nested graph
         recursive_draw(

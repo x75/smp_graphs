@@ -574,3 +574,11 @@ def recursive_hierarchical(G, lvlx = 0, lvly = 0):
         G_ = nxgraph_add_edges(G_)
         # nxgraph_plot2(G_)
     return G_
+
+
+def nxgraph_get_node_colors(G):
+    G_cols = []
+    for n in G.nodes_iter():
+        print "n", n, "block_color", G.node[n]['block_'].block_color
+        G_cols.append(G.node[n]['block_'].block_color)
+    return G_cols

@@ -11,6 +11,9 @@ from collections import OrderedDict, MutableMapping
 import itertools
 from functools import partial
 
+
+# import lshash
+
 import networkx as nx
 
 import numpy as np
@@ -19,7 +22,7 @@ import pandas as pd
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from smp_base.plot import makefig, set_interactive
+from smp_base.plot import plot_colors, makefig, set_interactive
 
 import smp_graphs.logging as log
 from smp_graphs.utils import print_dict, xproduct, myt
@@ -497,6 +500,7 @@ class Block2(object):
                 
             self.top = self
             self.bus = Bus()
+            # self.lsh_colors = lshash.LSHash(hash_size = 3, input_dim = 1000)
             
             # block_store init, topblock only
             def init_block_store():
@@ -555,12 +559,36 @@ class Block2(object):
         Clamp blocksize to numsteps if numsteps < blocksize
         """
         self.blocksize = min(self.top.numsteps, self.blocksize)
+
+    def init_colors(self):
+        # print "type", type(plot_colors)
+        linelen = 20 # len(plot_colors.keys()) # 1000
+        b = np.fromstring(str(self.conf), dtype=np.uint8)
+        bmod = b.shape[0] % linelen
+        print "id", self.id, "b", b.shape, "mod", bmod
+        # if bmod != 0:
+        b = np.pad(b, (0, linelen - bmod), mode = 'constant')
+        print "id", self.id, "b", b.shape
+        # c = b.reshape((-1, linelen)).mean(axis = 0)
+        # c = (b.min(), b.mean(), b.max())
+        # c = np.mean(b/np.max(b))
+        c = int(np.sum(b) % linelen)
         
+        ck = plot_colors.keys()[c]
+        print "c, ck, color", c, ck, plot_colors[ck]
+        
+        # block color
+        self.block_color = plot_colors[ck]
+    
     def init_block(self):
         """Block2.init_block
 
         Init a graph based block: topblock, hierarchical inclusion from file or dictionary, loop, loop_seq
         """
+
+        # init block color
+        self.init_colors()
+        
         ################################################################################
         # 2 copy the config dict to exec graph if hierarchical
         if hasattr(self, 'graph') or hasattr(self, 'subgraph') \
@@ -588,6 +616,24 @@ class Block2(object):
             #     self.init_loopblock()
 
             # get the graph from the configuration dictionary
+            # compute color from with lsh?
+            # a = ''.join([chr(np.random.randint(32, 120)) for i in range(np.random.randint(10, 200))])
+
+            # linelen = 1000
+            # b = np.fromstring(str(self.conf), dtype=np.uint8)
+            # bmod = b.shape[0] % linelen
+            # print "b", b.shape, "mod", bmod
+            # # if bmod != 0:
+            # b = np.pad(b, (0, linelen - bmod), mode = 'constant')
+            # print "b", b.shape
+            # c = b.reshape((-1, linelen)).mean(axis = 0)
+            
+            # print "c", c.shape
+            # # d = self.lsh_colors.index(c)
+            # # d_ = self.lsh_colors.query(c)
+            # print "d_", d_[0][0]
+            # # np.pad(b, (0, max(0, (b.shape[0]/10) * 11)), mode = 'constant').shape
+            
             self.nxgraph = nxgraph_from_smp_graph(self.conf)
 
             ##############################################################################
@@ -901,7 +947,8 @@ class Block2(object):
             # instantiate block standard
             # self.graph[k]['block'] = self.graph[k]['block'](conf = v, paren = self, top = self.top)
             v['block_'] = v['block'](conf = v, paren = self, top = self.top)
-
+            # print "block_color", self.nxgraph.node[i]['block_'].block_color
+            
             # print "%s init self.top.graph = %s" % (self.cname, self.top.graph.keys())
             
             # complete time measurement
@@ -935,6 +982,7 @@ class Block2(object):
         # format: variable: [shape]
         # new format: outkey = str: outval = {val: value, shape: shape, dst: destination, ...}
         self.oblocksize = 0
+        
         # ros?
         if hasattr(self, 'ros') and self.ros:
             self.pubs = {}
@@ -978,6 +1026,9 @@ class Block2(object):
             
             # output item initialized
             v['init'] = True
+
+    # def init_colors(self):
+    #     self.nodecolor
 
     def init_logging(self):
         # initialize block logging
