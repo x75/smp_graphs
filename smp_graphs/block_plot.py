@@ -195,7 +195,7 @@ class PlotBlock2(FigPlotBlock2):
                         subplotconf['plot'] = lv['f_']
                         subplotconf_plot = lv['f_']
                         # subplotconf_plot = eval(subplotconf['plot'])
-                        print "subplotconf_plot", subplotconf_plot
+                        # print "subplotconf_plot", subplotconf_plot
                         # subplotconf_plot = eval(subplotconf['plot'])
                     else:
                         subplotconf_plot = subplotconf['plot']
