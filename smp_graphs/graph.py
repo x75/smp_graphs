@@ -39,10 +39,13 @@ def nxgraph_add_nodes_from_dict(conf, G, nc):
     # assert conf.has_key('params'), "config needs params dict"
     
     for k, v in conf.items():
+        assert type(v) is dict, "Block config not a dict, check configuration"
+        assert v.has_key('block')
         (G, nc) = nxgraph_add_node_from_conf(k, v, G, nc)
     return (G, nc)
 
 def nxgraph_add_node_from_conf(k, v, G, nc):
+    assert type(v) is dict, "Expected type(v) = dict, got type %s, %s\n    node conf not a tuple?" % (type(v), v)
     if not v.has_key('params'): v['params'] = {}
     v['params']['id'] = k
     # print "graphs.py: adding node = %s" % (v,)
@@ -64,6 +67,7 @@ def nxgraph_from_smp_graph(conf):
 
     FIXME: graph G has no edges
     """
+    print "smp_graphs conf", conf.keys()
     # new empty graph
     G = nx.MultiDiGraph()
     G.name = conf['params']['id']
@@ -538,7 +542,7 @@ def recursive_hierarchical(G, lvlx = 0, lvly = 0):
 
     G_ = nx.MultiDiGraph()
 
-    xincr = 0.2/float(G.number_of_nodes())
+    xincr = 0.2/float(G.number_of_nodes() + 1)
     
     for i, node in enumerate(G.nodes_iter()):
         G.node[node]['layout'] = {}

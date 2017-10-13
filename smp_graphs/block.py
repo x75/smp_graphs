@@ -793,7 +793,10 @@ class Block2(object):
             
             # store exists?
             if len(block.top.block_store.keys()) > 0:
+                print "block.top.block_store.keys()", block.top.block_store.keys()
                 # print "check_block_store", block.top.block_store['blocks'].shape
+                print "self.md5", self.cname, self.id, self.md5
+                # print "blocks", type(block.top.block_store['blocks'])
                 self.cache = block.top.block_store['blocks'][:][block.top.block_store['blocks']['md5'] == self.md5]
                 # print "check_block_store", self.md5, block.top.block_store['blocks']['md5']
 
@@ -824,8 +827,8 @@ class Block2(object):
                 else:
                     block.top.block_store['blocks'] = pd.concat([block.top.block_store['blocks'], df])
 
-                
-        check_block_store(block = self)
+        if self.top.cached:
+            check_block_store(block = self)
         
     def init_subgraph(self):
         """Block2.init_subgraph
@@ -1479,6 +1482,9 @@ class SeqLoopBlock2(Block2):
     """SeqLoopBlock2 class
 
     A sequential loop block: dynamic instantiation of Blocks within loop iterations
+
+    FIXME: clean up primitive / decstep issues, in/out rewriting, etc
+    FIXME: work with nxgraph
     """
     def __init__(self, conf = {}, paren = None, top = None):
         self.defaults['loop'] = [1]
@@ -1490,7 +1496,12 @@ class SeqLoopBlock2(Block2):
 
         Block2.__init__(self, conf = conf, paren = paren, top = top)
 
-        self.init_primitive()
+        # # aha
+        # self.init_primitive()
+        
+        # initialize block output
+        self.init_outputs()
+            
         
         # check 'loop' parameter type and set the loop function
         if type(self.loop) is list: # it's a list
@@ -1498,6 +1509,10 @@ class SeqLoopBlock2(Block2):
             # assert len(self.loop) == (self.numsteps/self.blocksize), "%s step numsteps / blocksize (%s/%s = %s) needs to be equal the loop length (%d)" % (self.cname, self.numsteps, self.blocksize, self.numsteps/self.blocksize, len(self.loop))
         else: # it's a func
             self.f_loop = self.f_loop_func
+
+        # store dynamically constructed graph for visualization / debugging
+        self.confgraph = OrderedDict([])
+        # self.nxgraph = None
 
     # loop function for self.loop = list 
     def f_loop_list(self, i, f_obj):
@@ -1548,15 +1563,21 @@ class SeqLoopBlock2(Block2):
             
             # create dynamic conf, beware the copy (!!!)
             loopblock_conf = {'block': self.loopblock['block'], 'params': copy.deepcopy(loopblock_params)}
+            
             # instantiate block loopblock
             self.dynblock = self.loopblock['block'](
                 conf = loopblock_conf,
                 paren = self.paren,
                 top = self.top)
+
+            loopblock_conf['block_'] = self.dynblock
             
             # second pass
             self.dynblock.init_pass_2()
 
+            # add to dynamic graph conf
+            self.confgraph['%s' % loopblock_params['id']] = copy.copy(loopblock_conf)
+            
             # this is needed for using SeqLoop as a sequencer / timeline with full sideway time
             # run the block starting from cnt = 1
             for j in range(1, self.dynblock.numsteps+1):
@@ -1673,6 +1694,11 @@ class SeqLoopBlock2(Block2):
                 outvar[:,outslice] = getattr(self.dynblock, outk).copy()
                 print "outslice", outslice, "outvar", outvar.shape, outvar[...,:], outvar[:,outslice], "dynblock[%s] = %s" % (outk, getattr(self.dynblock, outk))
         sys.stdout.write('\n')
+
+        confgraph_full = {'block': Block2, 'params': {'id': self.id, 'graph': self.confgraph}}
+
+        print "params id", confgraph_full['params']['id']
+        self.nxgraph = nxgraph_from_smp_graph(confgraph_full)
         
         # # hack for checking hpo minimum
         # if hasattr(self, 'hp_bests'):
