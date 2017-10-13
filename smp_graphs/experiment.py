@@ -27,7 +27,7 @@ from smp_graphs.block import Block2
 from smp_graphs.utils import print_dict
 from smp_graphs.common import conf_header, conf_footer
 from smp_graphs.common import md5, get_config_raw
-from smp_graphs.graph import nxgraph_plot, recursive_draw, nxgraph_flatten, nxgraph_add_edges
+from smp_graphs.graph import nxgraph_plot, recursive_draw, recursive_hierarchical, nxgraph_flatten, nxgraph_add_edges
 
 ################################################################################
 # utils, TODO: move to utils.py
@@ -315,9 +315,11 @@ class Experiment(object):
         Show a visualization of the initialized top graph defining the
         experiment in 'self.topblock.nxgraph'.
         """
+        axesspec = [(0, 0), (0, 1), (0, 2), (0, slice(3, None))]
+        axesspec = [(0, 0), (0,1), (1, 0), (1,1)]
         graph_fig = makefig(
-            rows = 1, cols = 4, wspace = 0.1, hspace = 0.0,
-            axesspec = [(0, 0), (0, 1), (0, slice(2, None))], title = "Nxgraph and Bus")
+            rows = 2, cols = 2, wspace = 0.1, hspace = 0.1,
+            axesspec = axesspec, title = "Nxgraph and Bus")
         
         # nxgraph_plot(self.topblock.nxgraph, ax = graph_fig.axes[0])
 
@@ -334,17 +336,19 @@ class Experiment(object):
 
         # plot the flattened graph
         nxgraph_plot(G, ax = graph_fig.axes[0], layout_type = "spring", node_size = 300)
+
+        nxgraph_plot(recursive_hierarchical(self.topblock.nxgraph), ax = graph_fig.axes[1], layout_type = "linear_hierarchical", node_size = 300)
         
         # plot the nested graph
         recursive_draw(
             self.topblock.nxgraph,
-            ax = graph_fig.axes[1],
+            ax = graph_fig.axes[2],
             node_size = 100,
             currentscalefactor = 1.0,
             shrink = 0.8)
 
         # plot the bus with its builtin plot method
-        self.topblock.bus.plot(graph_fig.axes[2])
+        self.topblock.bus.plot(graph_fig.axes[3])
 
         # save the plot if 'saveplot' is set
         if self.conf['params']['saveplot']:

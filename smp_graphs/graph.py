@@ -172,6 +172,76 @@ def nxgraph_get_layout(G, layout_type):
     elif layout_type == "random":
         layout = nx.random_layout(G)
     # FIXME: include custom nested layout
+    elif layout_type == "linear_hierarchical":
+        # print 'G.nodes', G.nodes()
+        pos = {}
+        for node in G.nodes():
+            pos[node] = array([G.node[node]['layout']['x'], G.node[node]['layout']['y']])
+
+        return pos
+        
+    elif layout_type == "linear_hierarchical2":
+        # print 'G.nodes', G.nodes()
+        pos = {}
+        lvly = {-1: 0}
+        lvln = {}
+        y_ = -1
+        snodes = G.nodes()
+        snodes.sort()
+        print "snodes", snodes
+        for node in snodes:
+            lvl = int(node[1:2])
+            lvln[node] = lvl
+            # print "lvl", lvl # , lvly.keys()
+
+            # # start each level from 0
+            # if lvly.has_key(lvl):
+            #     lvly[lvl] += 1
+            # else:
+            #     if lvl == 0: lvly[lvl] = 0
+            #     else:
+            #         lvly[lvl] = lvly[lvl-1]-1
+            # y_ = lvly[lvl]
+
+            # # shared y for all levels
+            # y_ += 1
+            
+            # start each level's y at parent's y
+            if not lvly.has_key(lvl): # new level, search parent
+                print "lvl %d first = %s" % (lvl, node)
+                
+                # parentnode = None
+                # # # assume edge
+                # # for e in G.edges_iter():
+                # #     # print "e", e, node, e[1] == node
+                # #     if e[1] == node and parentnode is None:
+                # #         parentnode = e[0]
+                        
+                # # parentnode = G.edge[node]
+                # # if parentnode is not None and len(parentnode) > 0:
+                # print "node %s's parentnode is %s" % (node, parentnode) #, G.node[parentnode] #['graph_level'], lvl
+                # if parentnode is None:
+                #     lvly[lvl] = 0
+                # else:
+                #     lvly[lvl] = lvln[parentnode]
+                #     # shift all lvl-1 nodes after parentnode by numthislvl
+                lvly[lvl] = lvly[lvl-1]
+                y_ = lvly[lvl]
+            else:
+                # print "has outgoing edge?", node, G.edge[node].keys()
+                lvly[lvl] += 1
+                
+                numedges = len(G.edge[node].keys())
+                y_ = lvly[lvl]
+                if numedges > 0:
+                    lvly[lvl+1] = lvly[lvl] - 1
+                    lvly[lvl] += numedges - 1
+                
+            pos[node] = array([lvl, y_])
+        # layout = nx.random_layout(G)
+        # print "layout1", layout
+        # print "layout2", pos
+        layout = pos
     return layout
             
 def nxgraph_flatten(G):
@@ -280,8 +350,9 @@ def nxgraph_add_edges(G):
             if childnode != node: # cnode.id:
                 # k_from = node.split("_")[0]
                 # print "nxgraph_add_edges: loop edge %s -> %s" % (node, childnode)
-                edges.append((node, childnode))
-                # G.add_edge(k_from, node)
+                # edges.append((node, childnode))
+                # edges.append((node, childnode, {'type': 'loop'}))
+                G.add_edge(node, childnode, type = 'loop')
 
         # get child nodes of the current nodes by matching input bus ids indicating signal-based interaction
         for k, v in cnode.inputs.items():
@@ -307,19 +378,21 @@ def nxgraph_add_edges(G):
             if len(k_from_l) > 0 and len(k_to_l) > 0:
                 # print "fish from", k_from_l[0], "to", k_to_l[0]
                 edges.append((k_from_l[0], k_to_l[0]))
-                # G.add_edge(k_from_l[0], k_to_l[0])
+                # edges.append((k_from_l[0], k_to_l[0], {'type': 'data'}))
+                G.add_edge(k_from_l[0], k_to_l[0], type = 'data')
 
     # update the graph with edges
-    G.add_edges_from(edges)
+    # G.add_edges_from(edges)
     return G
 
 ################################################################################
 # plotting funcs
-def nxgraph_plot(G, ax, pos = None, layout_type = "spring", node_color = None, node_size = 1):
+def nxgraph_plot(G, ax = None, pos = None, layout_type = "spring", node_color = None, node_size = 1):
     """nxgraph_plot
 
     Graph plotting func for flat graphs
     """
+    assert ax is not None, "Need to pass 'ax' argument not None"
     # set grid off
     ax.grid(0)
 
@@ -352,32 +425,42 @@ def nxgraph_plot(G, ax, pos = None, layout_type = "spring", node_color = None, n
     nx.draw_networkx_labels(G, ax = ax, pos = layout, labels = labels, font_color = 'r', font_size = 8, fontsize = 6)
     
     # edges
-    e1 = [] # bus edges
-    e2 = [] # loop edges
+    typededges = {'data': [], 'loop': [], 'hier': []}
+    # e1 = [] # bus edges
+    # e2 = [] # loop edges
 
     # loop over edges
-    for edge in G.edges():
+    for edge in G.edges_iter(data = True):
         # edgetype = re.search("[_/]", G.node[edge[1]]['params']['id'])
         
         # this works for '|' style loop-id delimiter
         # nodetype_0 = re.search(r'[%s]' % (loop_delim, ), G.node[edge[0]]['params']['id'])
         # nodetype_1 = re.search(r'[%s]' % (loop_delim, ), G.node[edge[1]]['params']['id'])
-        
-        # this works for '_ll' style delimiter
-        nodetype_0 = re.search(r'%s' % (loop_delim, ), G.node[edge[0]]['params']['id'])
-        nodetype_1 = re.search(r'%s' % (loop_delim, ), G.node[edge[1]]['params']['id'])
-        # print "node types = %s, %s based on loop_delim %s" % (nodetype_0, nodetype_1, loop_delim)
-        if nodetype_1 and not nodetype_0: # edgetype: # loop
-            e2.append(edge)
-            edgetype = "loop"
-        else:
-            e1.append(edge)
-            edgetype = "data"
-            
-        # print "edge type = %s, %s" % (edgetype, edge)
 
-    nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = e1, edge_color = "g", width = 2)
-    nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = e2, edge_color = "k")
+        if type(edge[2]) is dict and edge[2].has_key('type'):
+            if edge[2]['type'] == 'hier':
+                if edge[2].has_key('main') and edge[2]['main']:
+                    typededges[edge[2]['type']].append(edge)
+            else:
+                typededges[edge[2]['type']].append(edge)
+                
+        else: # infer type
+            # this works for '_ll' style delimiter
+            nodetype_0 = re.search(r'%s' % (loop_delim, ), G.node[edge[0]]['params']['id'])
+            nodetype_1 = re.search(r'%s' % (loop_delim, ), G.node[edge[1]]['params']['id'])
+            # print "node types = %s, %s based on loop_delim %s" % (nodetype_0, nodetype_1, loop_delim)
+            if nodetype_1 and not nodetype_0: # edgetype: # loop
+                typededges['loop'].append(edge)
+                edgetype = "loop"
+            else:
+                typededges['data'].append(edge)
+                edgetype = "data"
+            
+            # print "edge type = %s, %s" % (edgetype, edge)
+
+    nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = typededges['loop'], edge_color = "g", width = 1.0, alpha = 0.5)
+    nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = typededges['data'], edge_color = "k", width = 1.0, alpha = 0.5)
+    nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = typededges['hier'], edge_color = "c", width = 0.8, alpha = 0.5)
 
     # set title
     ax.set_title(G.name + " nxgraph")
@@ -426,3 +509,67 @@ def recursive_draw(G, currentscalefactor = 0.1, center_loc = (0, 0), node_size =
                 node_size = node_size*shrink,
                 shrink = shrink,
                 ax = ax)
+
+def nxgraph_plot2(G):
+    import matplotlib.pyplot as plt
+    G_ = G
+    # nxgraph_plot(G_)
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    layout_type = 'linear_hierarchical' # shell, pygraphviz, random
+    pos = nxgraph_get_layout(G_, layout_type)
+
+    nxgraph_plot(G = G_, pos = pos, ax = ax, node_size = 300)
+    # print "pos", pos
+    # labels = {node[0]: '%s\n%s' % (node[1]['block_'].id, node[1]['block_'].cname[:-6]) for node in G_.nodes(data = True)}
+    # nx.draw_networkx_nodes(G_, pos = pos, ax = ax)
+    # nx.draw_networkx_labels(G_, ax = ax, pos = pos, labels = labels, font_color = 'k', font_size = 8, fontsize = 6)
+    # plt.draw()
+    # plt.pause(0)
+            
+def recursive_hierarchical(G, lvlx = 0, lvly = 0):
+    """another recursive graph drawing func
+
+    1) draw the hierarchy without scaling of subgraphs (like printgraph)
+    2) construct flattened graph during draw recursion
+    3) draw edges across hierarchy boundaries
+    """
+
+    G_ = nx.MultiDiGraph()
+
+    xincr = 0.2/float(G.number_of_nodes())
+    
+    for i, node in enumerate(G.nodes_iter()):
+        G.node[node]['layout'] = {}
+        G.node[node]['layout']['level'] = lvlx
+        G.node[node]['layout']['x'] = lvlx + (i * xincr)
+        G.node[node]['layout']['y'] = lvly
+        # G_.add_node('l%d_%s_%s' % (lvl, node, G.node[node]['block_'].id), G.node[node])
+        nodeid_ = 'l%d_%s' % (lvlx, G.node[node]['block_'].id)
+        # print "node", nodeid_ # G.node[node]['block_'].id # .keys()
+        G_.add_node(nodeid_, G.node[node])
+        if hasattr(G.node[node]['block_'], 'nxgraph'):
+            # print "node.nxgraph:", G.node[node]['block_'].nxgraph
+            # lvlx += 1
+            G2 = recursive_hierarchical(G.node[node]['block_'].nxgraph, lvlx = lvlx + 1, lvly = lvly)
+            lvly += G2.number_of_nodes()
+            # print "G2", G2.nodes()
+            G_ = nx.compose(G2, G_)
+            mainedge = True
+            for g2node in G2:
+                g2nodelyt = G2.node[g2node]['layout']
+                g2x = g2nodelyt['x']
+                g2y = g2nodelyt['y']
+                # print "node %s - g2node %s[%d/%d]" % (nodeid_, g2node, g2x, g2y)
+                if lvlx == g2x-1 and G_.node[nodeid_]['layout']['y'] == g2y:
+                    G_.add_edge(nodeid_, g2node, type = 'hier', main = mainedge)
+                    mainedge = False
+            # print "G_", G_.nodes(), G_.edges()
+        else:
+            lvly += 1
+
+    if lvlx == 0:
+        G_.name = G.name
+        G_ = nxgraph_add_edges(G_)
+        # nxgraph_plot2(G_)
+    return G_

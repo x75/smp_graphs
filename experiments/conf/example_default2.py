@@ -53,12 +53,14 @@ graph = OrderedDict([
             'subplots': [
                 [
                     {'input': 'd1', 'ndslice': (slice(None), slice(None)), 'shape': (3, numsteps), 'plot': 'timeseries'},
-                    {'input': 'd1', 'ndslice': (slice(None), slice(None)), 'shape': (3, numsteps), 'plot': 'partial(histogram, orientation = \'horizontal\')'},
+                    {'input': 'd1', 'ndslice': (slice(None), slice(None)), 'shape': (3, numsteps),
+                         'plot': 'partial(histogram, orientation = \'horizontal\')'},
                 ],
                 [
                     # {'input': 'd2', 'ndslice': (slice(None), slice(2)), 'shape': (2, numsteps), 'plot': 'timeseries'},
                     {'input': 'd2', 'ndslice': (slice(None), slice(None)), 'shape': (3, numsteps), 'plot': 'timeseries'},
-                    {'input': 'd2', 'ndslice': (slice(None), slice(None)), 'shape': (3, numsteps), 'plot': 'partial(histogram, orientation = \'horizontal\')'},
+                    {'input': 'd2', 'ndslice': (slice(None), slice(None)), 'shape': (3, numsteps),
+                         'plot': 'partial(histogram, orientation = \'horizontal\')'},
                 ],
             ]
         }
