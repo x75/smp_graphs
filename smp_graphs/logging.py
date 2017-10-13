@@ -222,6 +222,10 @@ Arguments:
     # print "log_pd tbl_name = %s, data.shape = %s" % (tbl_name, data.flatten().shape), log_lognodes_idx[tbl_name]
     # infer blocksize from data
     blocksize = data.shape[-1]
+    assert blocksize > 0, \
+      "logging.log_pd: table = %s's blocksize > 1 false with blocksize = %d\n    probably wrong output of source block %s" \
+      % (tbl_name, blocksize, tbl_name, )
+      
     # get last index
     cloc = log_lognodes_idx[tbl_name]
 
@@ -254,14 +258,14 @@ Arguments:
 
     # always copy current data into array
     sl = slice(sl1, sl2)
-    # print "sl", sl
+    # print "logging: sl", sl
     # assert len(data.shape) == 2, "data of %s is multidimensional array with shape %s, not fully supported yet" % (tbl_name, data.shape)
     
     # print "%s log_pd sl = %s, data.shape = %s" % (tbl_name, sl, data.shape)
     # if cloc == 1 and blocksize > 1:
     #     log_logarray[tbl_name][:,sl] = data[:,1:].copy()
     # else:
-    # print "tbl_name", tbl_name, "log_pd data.shape", data.shape
+    # print "logging: tbl_name", tbl_name, "log_pd data.shape", data.shape, "blocksize", blocksize
     tmplogdata = data.copy().reshape((-1, blocksize))
     # print "tmplogdata.sh", tmplogdata.shape
     

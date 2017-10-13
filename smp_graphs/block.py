@@ -749,11 +749,11 @@ class Block2(object):
             if len(block.top.block_store.keys()) > 0:
                 # print "check_block_store", block.top.block_store['blocks'].shape
                 self.cache = block.top.block_store['blocks'][:][block.top.block_store['blocks']['md5'] == self.md5]
-                print "check_block_store", self.md5, block.top.block_store['blocks']['md5']
+                # print "check_block_store", self.md5, block.top.block_store['blocks']['md5']
 
             # found cache
             if self.top.cached and self.cache is not None and self.cache.shape[0] != 0:
-                print "Block2.init check_block_store: found cache %s = %s" % (self.md5, self.cache['log_store'].values)
+                print "Block2.init check_block_store: found cache for %s\n   cache['log_stores'] = %s" % (self.md5, self.cache['log_store'].values)
                 
                 # FIXME: check experiment.cache to catch randseed and numsteps
                 # load cached data

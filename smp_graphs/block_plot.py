@@ -2,6 +2,8 @@
 # import itertools
 
 from collections import OrderedDict
+from functools import partial
+
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 from  matplotlib import rcParams
@@ -184,6 +186,7 @@ class PlotBlock2(FigPlotBlock2):
                         assert subplotconf_plot is not type(str), "FIXME: plot callbacks is array of strings, eval strings"
                     elif type(subplotconf['plot']) is str:
                         gv = plotfuncs # {'timeseries': timeseries, 'histogram': histogram}
+                        gv['partial'] = partial
                         lv = {}
                         code = compile("f_ = %s" % (subplotconf['plot'], ), "<string>", "exec")
                         # print "code", code

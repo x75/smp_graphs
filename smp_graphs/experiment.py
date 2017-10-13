@@ -41,18 +41,21 @@ def get_args():
     default_numsteps = None # 10
     # create parser
     parser = argparse.ArgumentParser()
-    # add required arguments
-    parser.add_argument("-c", "--conf",     type=str, default=default_conf,     help="Configuration file [%s]" % default_conf)
-    parser.add_argument("-dr", "--do-ros",  dest="ros", action="store_true",    default = None, help = "Do / enable ROS?")
-    parser.add_argument("-nr", "--no-ros",  dest="ros", action="store_false",   default = None, help = "No / disable ROS?")
-    parser.add_argument("-m", "--mode",     type=str, default="run",            help="Which subprogram to run [run], one of [run, graphviz]")
-    parser.add_argument("-n", "--numsteps", type=int, default=default_numsteps, help="Number of outer loop steps [%s]" % default_numsteps)
-    parser.add_argument("-s", "--randseed",     type=int, default=None,             help="Random seed [None], seed is taken from config file")
+    
+    # add commandline arguments
+    parser.add_argument("-c", "--conf",       type=str, default=default_conf,     help="Configuration file [%s]" % default_conf)
+    parser.add_argument("-nc", "--no-cache",  dest='docache', action='store_false', help="Disable experiment and block caching mechanisms.")
+    parser.add_argument("-dr", "--do-ros",    dest="ros", action="store_true",    default = None, help = "Do / enable ROS?")
+    parser.add_argument("-nr", "--no-ros",    dest="ros", action="store_false",   default = None, help = "No / disable ROS?")
+    parser.add_argument("-m", "--mode",       type=str, default="run",            help="Which subprogram to run [run], one of [run, graphviz]")
+    parser.add_argument("-n", "--numsteps",   type=int, default=default_numsteps, help="Number of outer loop steps [%s]" % default_numsteps)
+    parser.add_argument("-s", "--randseed",   type=int, default=None,             help="Random seed [None], seed is taken from config file")
     parser.add_argument("-pg", "--plotgraph", dest="plotgraph", action="store_true", default = False, help = "Plot smp graph")
     # parser.add_argument("-sp", "--saveplot", type=int, default=None,             help="Random seed [None], seed is taken from config file")
-    # 
+
     # parse arguments
     args = parser.parse_args()
+    
     # return arguments
     return args
 
@@ -72,7 +75,7 @@ def set_config_commandline_args(conf, args):
     """
     # for commandline_arg in conf['params'].has_key("numsteps"):
     #     conf['params']['numsteps'] = 100
-    gparams = ['numsteps', 'randseed', 'ros']
+    gparams = ['numsteps', 'randseed', 'ros', 'docache']
     for clarg in gparams:
         if getattr(args, clarg) is not None:
             conf['params'][clarg] = getattr(args, clarg)
@@ -190,6 +193,7 @@ class Experiment(object):
         self.conf = set_config_defaults(self.conf)
         # update conf from commandline arguments
         self.conf = set_config_commandline_args(self.conf, args)
+        
         # initialize ROS if needed
         if self.conf['params']['ros']:
             import rospy
@@ -199,23 +203,28 @@ class Experiment(object):
         # print "%s-%s.init\n" % (self.__class__.__name__, None),
         for k in self.conf.keys():
             setattr(self, k, self.conf[k])
-            # selfattr = getattr(self, k)
+            selfattr = getattr(self, k)
             # if type(selfattr) is dict:
             #     print "        self.%s = %s\n" % (k, print_dict(selfattr))
             # else:
             #     print "        self.%s = %s\n" % (k, selfattr)
         """
+
         Hash functions
         - hashlib md5/sha
         - locally sensitive hashes, lshash. this is not independent of input size, would need maxsize kludge
         """
 
+        # compute id hash of the experiment from the configuration dict string
+        m = make_expr_md5(self.conf)
+        
         # update experiments database with the current expr
-        m = self.update_experiments_store()
+        xid = self.update_experiments_store(xid = m.hexdigest())
             
         # store md5 in params _after_ we computed the md5 hash
-        self.conf['params']['md5'] = m.hexdigest()
-        self.conf['params']['cached'] = self.cache is not None and self.cache.shape[0]
+        self.conf['params']['md5'] = xid
+        self.conf['params']['cached'] = self.params['docache'] and self.cache is not None and self.cache.shape[0]
+        print "experiment cached = %s" % (self.conf['params']['cached'], )
         
         # instantiate topblock
         self.topblock = Block2(conf = self.conf)
@@ -223,7 +232,7 @@ class Experiment(object):
         # plotting
         self.plotgraph_flag = args.plotgraph
 
-    def update_experiments_store(self):
+    def update_experiments_store(self, xid = None):
         """Experiment.update_experiments_store
 
         Update the global store of experiments with the current one.
@@ -244,19 +253,24 @@ class Experiment(object):
         # f = open('conf-%s.txt' % (time.strftime('%H%M%S')), 'wa')
         # f.write(str(self.conf))
         # f.flush()
-    
-        # compute id hash of the experiment from the configuration dict string
-        m = make_expr_md5(self.conf)
-        
-        # set the experiment's id
-        self.conf['params']['id'] = make_expr_id() + "-" + m.hexdigest()
 
+        # compute hash if it hasn't been supplied
+        if xid is None:
+            m = make_expr_md5(self.conf)
+            xid = m.hexdigest()
+
+        # set the experiment's id
+        self.conf['params']['id'] = make_expr_id() + "-" + xid
+
+        # check no-cache argument
+        if not self.params['docache']: return xid
+        
         # prepare experiment database
         experiments_store = 'data/experiments_store.h5'
         columns = ['md5', 'block', 'params']
-        values = [[m.hexdigest(), str(self.conf['block']), str(self.conf['params'])]]
+        values = [[xid, str(self.conf['block']), str(self.conf['params'])]]
         # print "%s.update_experiments_store values = %s" % (self.__class__.__name__, values)
-        # values = [[m.hexdigest(), self.conf['block'], self.conf['params']]]
+        # values = [[xid, self.conf['block'], self.conf['params']]]
 
         # load experiment database if one exists
         if os.path.exists(experiments_store):
@@ -272,7 +286,7 @@ class Experiment(object):
             self.experiments = pd.DataFrame(columns = columns)
 
         # query database about current experiment
-        self.cache = self.experiments[:][self.experiments['md5'] == m.hexdigest()]
+        self.cache = self.experiments[:][self.experiments['md5'] == xid]
 
         # load the cached experiment if it exists
         if self.cache is not None and self.cache.shape[0] != 0:
@@ -293,7 +307,7 @@ class Experiment(object):
         self.experiments.to_hdf(experiments_store, key = 'experiments')
 
         # return the hash
-        return m
+        return xid
         
     def plotgraph(self):
         """Experiment.plotgraph
@@ -351,7 +365,7 @@ class Experiment(object):
     def printgraph(self):
         print "\nPrinting graph\n", 
         G = self.topblock.nxgraph
-        print "G.name  = %s" % (G,)
+        print "G.name  = %s" % (G.name,)
         # print "G.nodes = %s" % ([(G.node[n]['params']['id'], G.node[n].keys()) for n in G.nodes()])
         print " .nodes = %s" % (", ".join([G.node[n]['params']['id'] for n in G.nodes()]))
 
