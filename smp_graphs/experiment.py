@@ -186,7 +186,9 @@ class Experiment(object):
         set_random_seed(args)
 
         # get configuration from file # , this implicitly sets the id via global make_expr_id which is crap
-        self.conf = get_config_raw(args.conf)
+        self.conf_localvars = get_config_raw(args.conf, confvar = None)
+        # print "experiment.py conf_localvars", self.conf_localvars.keys()
+        self.conf = self.conf_localvars['conf']
         # print "conf.params.id", self.conf['params']['id']
         assert self.conf is not None, "%s.init: Couldn't read config file %s" % (self.__class__.__name__, args.conf)
         # fill in missing defaults
@@ -217,6 +219,7 @@ class Experiment(object):
 
         # compute id hash of the experiment from the configuration dict string
         m = make_expr_md5(self.conf)
+        # FIXME: 1) block class knows which params to hash, 2) append localvars to retain environment
         
         # update experiments database with the current expr
         xid = self.update_experiments_store(xid = m.hexdigest())
@@ -227,7 +230,7 @@ class Experiment(object):
         print "experiment cached = %s" % (self.conf['params']['cached'], )
         
         # instantiate topblock
-        self.topblock = Block2(conf = self.conf)
+        self.topblock = Block2(conf = self.conf, conf_localvars = self.conf_localvars)
 
         # plotting
         self.plotgraph_flag = args.plotgraph

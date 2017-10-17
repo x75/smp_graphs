@@ -416,17 +416,15 @@ class Block2(object):
     }
 
     @decInit()
-    def __init__(self, conf = {}, paren = None, top = None, blockid = None):
+    def __init__(self, conf = {}, paren = None, top = None, blockid = None, conf_localvars = None):
         # general stuff
         self.conf = conf
         self.paren = paren
         self.top = top
         self.cname = self.__class__.__name__
+        self.conf_localvars = conf_localvars
 
         # merge Block2 base defaults with child defaults
-        # print "Block2 Block2.defaul", Block2.defaults
-        # print "Block2 self.defaults", self.defaults
-        # print "Block2 self.__class_", self.__class__.defaults
         defaults = {}
         defaults.update(Block2.defaults, **self.defaults)
         # print "defaults %s = %s" % (self.cname, defaults)
@@ -703,11 +701,16 @@ class Block2(object):
                 }
             }
         else:
+            print "init_subgraph config globals", self.top.conf_localvars.keys()
             if hasattr(self, 'lconf'):
-                subconf = get_config_raw(self.subgraph, 'conf', lconf = self.lconf)
+                # print "lconf", self.lconf
+                subconf_localvars = get_config_raw(conf = self.subgraph, confvar = None, lconf = self.lconf)
+                # print "init_subgraph returning localvars", subconf_localvars.keys()
+                subconf = subconf_localvars['conf']
             else:
-                subconf = get_config_raw(self.subgraph, 'conf') # 'graph')
-            
+                subconf_localvars = get_config_raw(self.subgraph, confvar = None, lconf = self.top.conf_localvars) # 'graph')
+                subconf = subconf_localvars['conf']
+                
         assert subconf is not None
         # print "type(subconf)", type(subconf)
         print "Block2.init_subgraph subconf keys = %s, subconf['params'].keys = %s" % (subconf.keys(), subconf['params'].keys(), )

@@ -200,10 +200,12 @@ def get_config_raw_from_string(conf, confvar = 'conf', lconf = None):
 
     # copy lconf
     if lconf is not None:
-        global_vars['lconf'] = lconf
-    
+        # global_vars['lconf'] = lconf
+        local_vars.update(lconf)
+        
     # run the code
     try:
+        print "gv", global_vars
         exec(code, global_vars, local_vars)
     except Exception, e:
         # FIXME: how to get more stack context?
@@ -217,7 +219,10 @@ def get_config_raw_from_string(conf, confvar = 'conf', lconf = None):
     # print "get_config_raw_from_string global_vars", global_vars.keys()
         
     # return resulting variable
-    return local_vars[confvar]
+    if confvar is None:
+        return local_vars
+    else:
+        return local_vars[confvar]
 
 def get_input(inputs, inkey):
     """smp_graphs.common.get_input
