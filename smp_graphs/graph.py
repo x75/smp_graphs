@@ -18,7 +18,10 @@ from matplotlib import colors
 from smp_graphs.utils import print_dict
 from smp_graphs.common import loop_delim, dict_replace_idstr_recursive
 
+# colors
 colors_ = list(six.iteritems(colors.cnames))
+
+from smp_base.plot import plot_colors
 
 # colors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)
 # colors = dict(mcolors.BASE_COLORS)
@@ -67,7 +70,7 @@ def nxgraph_from_smp_graph(conf):
 
     FIXME: graph G has no edges
     """
-    print "graph.py nxgraph_from_smp_graph kwargs[conf] = %s" % ( conf.keys(), )
+    # print "graph.py nxgraph_from_smp_graph kwargs[conf] = %s" % ( conf.keys(), )
     # new empty graph
     G = nx.MultiDiGraph()
     G.name = conf['params']['id']
@@ -581,12 +584,20 @@ def recursive_hierarchical(G, lvlx = 0, lvly = 0):
 
 
 def nxgraph_get_node_colors(G):
+    """nxgraph_get_node_colors
+
+    Get the block's color from 'block_color' attribute and return it
+    """
     G_cols = []
-    for n in G.nodes_iter():
+    pcks = plot_colors.keys()
+    pcks.sort()
+    for i, n in enumerate(G.nodes_iter()):
         if hasattr(G.node[n]['block_'], 'block_color'):
             block_color = G.node[n]['block_'].block_color
         else:
-            block_color = "k"
-        print "n", n, "block_color", block_color
+            # block_color = "k"
+            # block_color = random.choice(colors_)[1]
+            block_color = plot_colors[pcks[i]]
+        # print "nxgraph_get_node_colors node", n, "block_color", block_color
         G_cols.append(block_color)
     return G_cols

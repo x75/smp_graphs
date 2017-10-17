@@ -72,7 +72,7 @@ class PointmassBlock2(SysBlock2):
             #     self.mode *= -1.0
             
             self.x = self.system.step(self.u * self.mode)
-            # print "self.u", self.u
+            # print "PointmassBlock2-%s.step[%d] self.u = %s" % (self.id, self.cnt, self.u)
             # real output variables defined by config
             # for k in ['s_proprio', 's_extero', 's_all']:
             for k in self.outputs.keys():
@@ -81,7 +81,6 @@ class PointmassBlock2(SysBlock2):
                 k_ = getattr(self, k)
                 k_[:,[i]] = self.x[k]
                 # setattr(self, k, self.x[k])
-
                 
 class SimplearmBlock2(SysBlock2):
     """!@brief Simplearm system block, very thin wrapper around smp_sys.systems.SimplearmSys"""

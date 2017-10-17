@@ -453,6 +453,10 @@ class Block2(object):
         # if self.blocksize > self.ibuf:
         #     self.ibuf = self.blocksize
 
+        # get the nesting level in composite graph
+        self.nesting_level = self.get_nesting_level()
+        self.nesting_indent = " " * 4 * self.nesting_level
+        
         ################################################################################
         # 1 general top block stuff: init bus, set top to self, init logging
         #   all the rest should be the same as for hier from file, hier from dict, loop, loop_seq
@@ -504,6 +508,19 @@ class Block2(object):
 
         # numsteps / blocksize
         # print "%s-%s end of init blocksize = %d" % (self.cname, self.id, self.blocksize)
+
+    def get_nesting_level(self):
+        nl = 0
+        np = self
+        while np is not None and not np.topblock:
+            nl += 1
+            # print "nl", nl, np, 
+            if np == np.paren:
+                np is None
+            else:
+                np = np.paren
+                
+        return nl + 1
 
     def blocksize_clamp(self):
         """Block2.blocksize_clamp
@@ -684,24 +701,27 @@ class Block2(object):
         Subgraph is a filename of another full graph config as opposed
         to a graph which is specified directly as a dictionary.
         """
-        print "subgraph", type(self.subgraph)
+        # print "Block2.init_subgraph type(subgraph) = %s" % ( type(self.subgraph), )
         # print "lconf", self.lconf
-        # local pre-configuration
+        
+        # subgrah dictionary / orderdeddict
         if type(self.subgraph) is OrderedDict:
-            subconf = {}
             subconfk = 'sweepsys_grid'
-            # subconf = self.subgraph[subconfk]
-            # ['params']['graph']
-            subconf = {
-                'block': Block2,
-                'params': {
-                    'id': subconfk,
-                    'numsteps': self.numsteps,
-                    'graph': self.subgraph[subconfk]
-                }
-            }
+            subconf_ = OrderedDict([
+                ('%s' % (subconfk, ), {
+                    'block': Block2,
+                    'params': {
+                        'id': None,
+                        'numsteps': self.numsteps,
+                        'graph': self.subgraph, # [subconfk]
+                    },
+                }),
+            ])
+            subconf = subconf_[subconfk]
+            
+        # subgraph file containing the OrderedDict
         else:
-            print "init_subgraph config globals", self.top.conf_localvars.keys()
+            # print "init_subgraph config globals", self.top.conf_localvars.keys()
             if hasattr(self, 'lconf'):
                 # print "lconf", self.lconf
                 subconf_localvars = get_config_raw(conf = self.subgraph, confvar = None, lconf = self.lconf)
@@ -711,15 +731,18 @@ class Block2(object):
                 subconf_localvars = get_config_raw(self.subgraph, confvar = None, lconf = self.top.conf_localvars) # 'graph')
                 subconf = subconf_localvars['conf']
                 
-        assert subconf is not None
+        assert subconf is not None, "Block2.init_subgraph subconf not initialized"
+        assert type(subconf) is dict
         # print "type(subconf)", type(subconf)
-        print "Block2.init_subgraph subconf keys = %s, subconf['params'].keys = %s" % (subconf.keys(), subconf['params'].keys(), )
+        # print "subconf = %s" % (subconf, )
+        # print "subconf['params']['graph'] = %s" % (subconf['params']['graph'], )
+        # print "Block2.init_subgraph subconf keys = %s, subconf['params'].keys = %s" % (subconf.keys(), subconf['params'].keys(), )
         # make sure subordinate number of steps is less than top level numsteps
         assert subconf['params']['numsteps'] <= self.top.numsteps, "enclosed numsteps = %d greater than top level numsteps = %d" % (subconf['params']['numsteps'], self.top.numsteps)
 
         # set the graph params
-        # self.conf['params']['graph'] = copy.deepcopy(subconf['params']['graph'])
-        self.conf['params']['graph'] = subconf['params']['graph']
+        self.conf['params']['graph'] = copy.deepcopy(subconf['params']['graph'])
+        # self.conf['params']['graph'] = subconf['params']['graph']
 
         # selectively ignore nodes in 'subgraph_ignore_nodes' list from included subgraph
         if hasattr(self, 'subgraph_ignore_nodes'):
@@ -744,6 +767,7 @@ class Block2(object):
 
         # rewrite id strings?
         if hasattr(self, 'subgraph_rewrite_id') and self.subgraph_rewrite_id:
+            # print "self.conf['params']", self.conf['params']
             # self.outputs_copy = copy.deepcopy(self.conf['params']['outputs'])
             nks_0 = dict_get_nodekeys_recursive(self.conf['params']['graph'])
             # xid = self.conf['params']['id'][-1:]
@@ -774,7 +798,7 @@ class Block2(object):
         # if we're coming from non topblock init
         # self.graph = self.conf['params']['graph']
 
-        print "{0: <20}.init_graph_pass_1 graph.keys = {1}".format(self.cname[:20], self.nxgraph.nodes())
+        print "{2}{0: <20}.init_graph_pass_1 graph.keys = {1}".format(self.cname[:20], self.nxgraph.nodes(), self.nesting_indent)
         
         # if hasattr(self, 'graph'):
         #     print "    graph", self.graph, "\n"
@@ -789,9 +813,10 @@ class Block2(object):
             k = v['params']['id']
             # v = n['params']
             # self.debug_print("__init__: pass 1\nk = %s,\nv = %s", (k, print_dict(v)))
-
+            # print "nesting_level", self.nesting_level
             # debug timing
-            print "{0: <20}.init pass 1 k = {1: >5}, v = {2: >20}".format(self.__class__.__name__[:20], k[:20], v['block'].__name__)
+            print "{3}{0: <20}.init pass 1 k = {1: >5}, v = {2: >20}".format(
+                self.__class__.__name__[:20], k[:20], v['block'].__name__, self.nesting_indent)
             then = time.time()
 
             # print v['block_']
@@ -943,8 +968,8 @@ class Block2(object):
                             # FIXME: hacky
                             for i in range(1): # 5
                                 # print "%s-%s init (pass 2) WARNING: bus %s doesn't exist yet and will possibly not be written to by any block, buskeys = %s" % (self.cname, self.id, v['bus'], self.bus.keys())
-                                print "%s-%s init (pass 2) WARNING: nonexistent bus %s" % (self.cname, self.id, v['bus'])
-                                if not self.top.recurrent: time.sleep(1)
+                                print "\n    %s-%s init (pass 2) WARNING: nonexistent bus %s" % (self.cname, self.id, v['bus'])
+                                # if not self.top.recurrent: time.sleep(1)
                                     
                             # pre-init that bus from constant
                             self.bus[v['bus']] = v['val'].copy()
@@ -1403,7 +1428,7 @@ class SeqLoopBlock2(Block2):
                 # print self.dynblock.x.shape, self.dynblock.y.shape
                 self.dynblock.step()
 
-            print "%s.step.f_obj did %d %s.steps" % (self.cname, j, self.dynblock.cname)
+            # print "%s.step.f_obj did %d %s.steps" % (self.cname, j, self.dynblock.cname)
 
             # FIXME: randseed hack
             if lparams[0] == 'randseed':
@@ -1510,7 +1535,7 @@ class SeqLoopBlock2(Block2):
                     
                 # print "    dynblock = %s.%s" % (self.dynblock.cname)
                 outvar[:,outslice] = getattr(self.dynblock, outk).copy()
-                print "dynblock-%s outslice = %s, outvar = %s/%s%s, dynblock.out[%s] = %s" %(self.dynblock.id, outslice, outvar.shape, outvar[...,:].shape, outvar[...,outslice].shape, outk, getattr(self.dynblock, outk).shape)
+                # print "dynblock-%s outslice = %s, outvar = %s/%s%s, dynblock.out[%s] = %s" %(self.dynblock.id, outslice, outvar.shape, outvar[...,:].shape, outvar[...,outslice].shape, outk, getattr(self.dynblock, outk).shape)
         sys.stdout.write('\n')
         
         # # hack for checking hpo minimum
@@ -1634,7 +1659,7 @@ class DelayBlock2(PrimBlock2):
             
         for ink in params['inputs'].keys():
             # get input shape
-            print "buskeys", top.bus.keys()
+            # print "buskeys", top.bus.keys()
             inshape = top.bus[params['inputs'][ink]['bus']].shape
             # print "DelayBlock2 inshape", inshape
             # alloc delay block

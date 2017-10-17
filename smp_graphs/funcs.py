@@ -232,7 +232,7 @@ def f_random_uniform(args):
 
     meshgrid = np.random.uniform(ranges[:,[0]], ranges[:,[1]], (ranges.shape[0], int(steps[0,0]**ranges.shape[0])))
 
-    print "f_random_uniform meshgrid = %s" % (meshgrid.shape, )
+    # print "f_random_uniform meshgrid = %s" % (meshgrid.shape, )
     
     return {'meshgrid': meshgrid}
 

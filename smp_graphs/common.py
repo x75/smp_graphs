@@ -201,11 +201,12 @@ def get_config_raw_from_string(conf, confvar = 'conf', lconf = None):
     # copy lconf
     if lconf is not None:
         # global_vars['lconf'] = lconf
-        local_vars.update(lconf)
+        # local_vars.update(lconf)
+        global_vars.update(lconf)
         
     # run the code
     try:
-        print "gv", global_vars
+        # print "gv", global_vars
         exec(code, global_vars, local_vars)
     except Exception, e:
         # FIXME: how to get more stack context?
@@ -437,7 +438,7 @@ def dict_get_nodekeys_recursive(d):
     """
     nodekeys = set(d.keys())
     for nk in nodekeys:
-        print "nodekey", nk
+        # print "nodekey", nk
         # print "graphkeys", d[nk]['params'].keys()
         if d[nk]['params'].has_key('graph'):
             # print "graphkeys", d[nk]['params']['graph'].keys()

@@ -66,53 +66,38 @@ loopblock = {
         'outputs': {
             'meshgrid': {
                 'shape': (dim_s_proprio, sweepsys_input_flat),
-                'buscopy': 'sweepsys_grid/meshgrid'
-            }
+                'buscopy': 'sweepsys_grid/meshgrid',
+            },
         },
         'subgraph_rewrite_id': True,
-        # subgraph
-        'subgraph': 'conf/sweepsys_grid.py'
+        
+        # # subgraph file
+        # 'subgraph': 'conf/sweepsys_grid.py'
+
+        # subgraph dict
         # 'subgraph': OrderedDict([
-        # 'graph': OrderedDict([
-        #     ('sweepsys_grid', {
-        #         'block': FuncBlock2,
-        #         'params': {
-        #             'debug': False,
-        #             'numsteps': sweepsys_input_flat,
-        #             'blocksize': sweepsys_input_flat,
-        #             'inputs': {
-        #                 'ranges': {'val': np.array([[-1, 1]] * dim_s_proprio)},
-        #                 'steps':  {'val': sweepsys_steps},
-        #                 },
-        #             'outputs': {'meshgrid': {'shape': (dim_s_proprio, sweepsys_input_flat)}},
-        #             # 'func': f_meshgrid
-        #             'func': f_random_uniform,
-        #         },
-        #     }),
-                
-        #     # sys to sweep
-        #     sweepsys,
-
-        #     # ('sweepsys_grid', {
-        #     #     'block': FuncBlock2,
-        #     #     'params': {
-        #     #         'debug': False,
-        #     #         'blocksize': sweepsys_input_flat,
-        #     #         'inputs': {
-        #     #             'ranges': {'val': np.array([[-1, 1]] * dim_s_proprio)},
-        #     #             'steps':  {'val': sweepsys_steps},
-        #     #             },
-        #     #         'outputs': {'meshgrid': {'shape': (dim_s_proprio, sweepsys_input_flat)}},
-        #     #         'func': f_meshgrid
-        #     #         },
-        #     #     }),
-                
-        #     #     # sys to sweep
-        #     #     sweepsys,
-
-             # ]),
-        }
-    }
+        'graph': OrderedDict([
+            ('sweepsys_grid', {
+                'block': FuncBlock2,
+                'params': {
+                    'debug': False,
+                    'numsteps': sweepsys_input_flat,
+                    'blocksize': sweepsys_input_flat,
+                    'inputs': {
+                        'ranges': {'val': np.array([[-1, 1]] * dim_s_proprio)},
+                        'steps':  {'val': sweepsys_steps},
+                        },
+                    'outputs': {'meshgrid': {'shape': (dim_s_proprio, sweepsys_input_flat)}},
+                    # 'func': f_meshgrid
+                    'func': f_random_uniform,
+                },
+            }),
+            # sys to sweep
+            sweepsys,
+        ]),
+        
+    },
+}
 
 
 graph = OrderedDict([
@@ -163,10 +148,10 @@ graph = OrderedDict([
                     'bus': 'motordel/dy',
                     'shape': (dim_s_proprio, sweepsys_input_flat)},
                 's_proprio': {
-                    'bus': 'robot0/s_proprio',
+                    'bus': 'robot0_ll0/s_proprio',
                     'shape': (dim_s_proprio, sweepsys_input_flat)},
                 's_extero': {
-                    'bus': 'robot0/s_extero',
+                    'bus': 'robot0_ll0/s_extero',
                     'shape': (dim_s_extero, sweepsys_input_flat)},
                 },
                 'hspace': 0.2,
@@ -199,10 +184,10 @@ graph = OrderedDict([
                     'bus': 'motordel/dy',
                     'shape': (dim_s_proprio, sweepsys_input_flat)},
                 's_proprio': {
-                    'bus': 'robot0/s_proprio',
+                    'bus': 'robot0_ll0/s_proprio',
                     'shape': (dim_s_proprio, sweepsys_input_flat)},
                 's_extero': {
-                    'bus': 'robot0/s_extero',
+                    'bus': 'robot0_ll0/s_extero',
                     'shape': (dim_s_extero, sweepsys_input_flat)},
                 },
             'outputs': {},#'x': {'shape': 3, 1)}},

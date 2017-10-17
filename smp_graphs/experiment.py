@@ -227,7 +227,7 @@ class Experiment(object):
         # store md5 in params _after_ we computed the md5 hash
         self.conf['params']['md5'] = xid
         self.conf['params']['cached'] = self.params['docache'] and self.cache is not None and self.cache.shape[0]
-        print "experiment cached = %s" % (self.conf['params']['cached'], )
+        # print "experiment cached = %s" % (self.conf['params']['cached'], )
         
         # instantiate topblock
         self.topblock = Block2(conf = self.conf, conf_localvars = self.conf_localvars)
@@ -366,7 +366,7 @@ class Experiment(object):
         for node in G.nodes_iter():
             print "%snode = %s" % (indent, G.node[node]['block_'].id, )
             if hasattr(G.node[node]['block_'], 'nxgraph'):
-                G_ = G.node[node]['block_'].nxgraph                
+                G_ = G.node[node]['block_'].nxgraph
                 lvl += 1
                 print "%sG%d.name = %s" % (indent, lvl, G_.name)
                 print "%s  .nodes = %s" % (indent, ", ".join([G_.node[n]['params']['id'] for n in G_.nodes()]))
