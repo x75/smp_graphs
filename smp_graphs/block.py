@@ -559,14 +559,14 @@ class Block2(object):
 
     def get_nesting_level(self):
         nl = 0
-        np = self
-        while np is not None and not np.topblock:
+        newparen = self
+        while newparen is not None and not newparen.topblock:
             nl += 1
-            # print "nl", nl, np, 
-            if np == np.paren:
-                np is None
+            # print "nl", nl, newparen, 
+            if newparen == newparen.paren:
+                newparen is None
             else:
-                np = np.paren
+                newparen = newparen.paren
                 
         return nl + 1
 
@@ -1917,7 +1917,7 @@ class dBlock2(PrimBlock2):
             setattr(self, outk, din)
             # store current input
             setattr(self, ink_, self.inputs[ink]['val'].copy())
-            print "dBlock2.step", self.id, self.cnt, getattr(self, outk), din
+            # print "dBlock2.step", self.id, self.cnt, getattr(self, outk), din
 
 class DelayBlock2(PrimBlock2):
     """DelayBlock2 class

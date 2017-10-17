@@ -18,7 +18,7 @@ from smp_graphs.utils import myt, mytupleroll
 import smp_graphs.logging as log
 
 from smp_base.dimstack import dimensional_stacking, digitize_pointcloud
-from smp_base.plot     import makefig, timeseries, histogram, plot_img, plotfuncs
+from smp_base.plot     import makefig, timeseries, histogram, plot_img, plotfuncs, uniform_divergence
 
 ################################################################################
 # Plotting blocks
@@ -42,6 +42,35 @@ class AnalysisBlock2(PrimBlock2):
     def __init__(self, conf = {}, paren = None, top = None):
         self.inputs_log = None
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
+
+        
+    def check_plot_type(self, conf, defaults = {}):
+        # default plot type
+        # if not conf.has_key('plot'): conf['plot'] = timeseries
+        # print "defaults", defaults
+        defaults.update(conf)
+        conf = defaults
+        # print "conf", conf
+
+        if type(conf['plot']) is list:
+            conf_plot = conf['plot'][j]
+            assert conf_plot is not type(str), "FIXME: plot callbacks is array of strings, eval strings"
+        elif type(conf['plot']) is str:
+            gv = plotfuncs # {'timeseries': timeseries, 'histogram': histogram}
+            gv['partial'] = partial
+            lv = {}
+            code = compile("f_ = %s" % (conf['plot'], ), "<string>", "exec")
+            # print "code", code
+            # conf_plot = eval(code)
+            exec(code, gv, lv)
+            conf['plot'] = lv['f_']
+            conf_plot = lv['f_']
+            # conf_plot = eval(conf['plot'])
+            # print "conf_plot", conf_plot
+            # conf_plot = eval(conf['plot'])
+        else:
+            conf_plot = conf['plot']
+        return conf_plot
     
 class FigPlotBlock2(AnalysisBlock2):
     """FigPlotBlock2 class
@@ -189,27 +218,7 @@ class PlotBlock2(FigPlotBlock2):
                     title = ""
                     if subplotconf.has_key('title'): title += subplotconf['title']
                         
-                    # default plot type
-                    if not subplotconf.has_key('plot'): subplotconf['plot'] = timeseries
-
-                    if type(subplotconf['plot']) is list:
-                        subplotconf_plot = subplotconf['plot'][j]
-                        assert subplotconf_plot is not type(str), "FIXME: plot callbacks is array of strings, eval strings"
-                    elif type(subplotconf['plot']) is str:
-                        gv = plotfuncs # {'timeseries': timeseries, 'histogram': histogram}
-                        gv['partial'] = partial
-                        lv = {}
-                        code = compile("f_ = %s" % (subplotconf['plot'], ), "<string>", "exec")
-                        # print "code", code
-                        # subplotconf_plot = eval(code)
-                        exec(code, gv, lv)
-                        subplotconf['plot'] = lv['f_']
-                        subplotconf_plot = lv['f_']
-                        # subplotconf_plot = eval(subplotconf['plot'])
-                        # print "subplotconf_plot", subplotconf_plot
-                        # subplotconf_plot = eval(subplotconf['plot'])
-                    else:
-                        subplotconf_plot = subplotconf['plot']
+                    subplotconf_plot = self.check_plot_type(subplotconf)
                         
                     if hasattr(subplotconf_plot, 'func_name'):
                         # plain function
@@ -524,7 +533,7 @@ class ImgPlotBlock2(FigPlotBlock2):
 
 ################################################################################
 # non FigPlot plot blocks
-class SnsMatrixPlotBlock2(PrimBlock2):
+class SnsMatrixPlotBlock2(AnalysisBlock2):
     """SnsMatrixPlotBlock2 class
 
     Plot block for seaborn pairwaise matrix plots: e.g. scatter, hexbin, ...
@@ -542,7 +551,8 @@ class SnsMatrixPlotBlock2(PrimBlock2):
     def __init__(self, conf = {}, paren = None, top = None):
         self.saveplot = False
         self.savetype = 'jpg'
-        PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
+        AnalysisBlock2.__init__(self, conf = conf, paren = paren, top = top)
+
 
     @decStep()
     def step(self, x = None):
@@ -550,9 +560,15 @@ class SnsMatrixPlotBlock2(PrimBlock2):
 
         subplotconf = self.subplots[0][0]
         
-        # different 
+        # vector combination
         if not subplotconf.has_key('mode'):
             subplotconf['mode'] = 'stack'
+
+        # plotting func
+        subplotconf_plot = self.check_plot_type(subplotconf, defaults = {'plot': plt.hexbin})
+        
+        # if not subplotconf.has_key('plot'):
+        #     subplotconf['plot'] = plt.hexbin
             
         ilbls = [[['%s%d' % (self.inputs[ink]['bus'], j)] for j in range(self.inputs[ink]['shape'][0])] for i, ink in enumerate(subplotconf['input'])]
         print "ilbls", ilbls
@@ -577,9 +593,10 @@ class SnsMatrixPlotBlock2(PrimBlock2):
         g = sns.PairGrid(df)
         g.map_diag(plt.hist)
         # g.map_diag(sns.kdeplot)
-        g.map_offdiag(plt.hexbin, cmap="gray", gridsize=40, bins="log");
+        # g.map_offdiag(plt.hexbin, cmap="gray", gridsize=40, bins="log");
         # g.map_offdiag(plt.histogram2d, cmap="gray", bins=30)
         # g.map_offdiag(plt.plot, linestyle = "None", marker = "o", alpha = 0.5) # , bins="log");
+        g.map_offdiag(partial(uniform_divergence, f = subplotconf_plot)) #, cmap="gray", gridsize=40, bins='log')
         self.fig = g.fig
         self.fig_rows, self.fig_cols = g.axes.shape
         # print "dir(g)", dir(g)

@@ -4,6 +4,7 @@ from smp_graphs.utils_conf import get_systemblock
 randseed = 2
 numsteps = 1000
 loopblocksize = numsteps
+saveplot = not True
 
 lconf = {
     'dim': 1,
@@ -160,6 +161,7 @@ graph = OrderedDict([
             'debug': False,
             'blocksize': numsteps, # sweepsys_input_flat,
             'title': 'system sweep',
+            'saveplot': saveplot,
             'logging': False,
             'inputs_log': None,
             'inputs': {
@@ -236,7 +238,7 @@ graph = OrderedDict([
                 [
                     # stack inputs into one vector (stack, combine, concat
                     {'input': ['meshgrid_d0', 'meshgrid_d1', 's_proprio0', 's_proprio1', 's_extero', 'ds_extero'], 'mode': 'stack',
-                         'plot': histogramnd},
+                         'plot': 'hist2d'},
                 ],
             ],
         },
