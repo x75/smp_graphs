@@ -965,7 +965,7 @@ class Block2(object):
                 d_outputs = self.conf['params']['outputs']
                 # replace bus references
                 d_outputs = dict_replace_nodekeys_loop(d_outputs, nks_0, xid)
-                # copy to outputs attribute
+                # update outputs attribute
                 self.outputs = d_outputs
 
             # print "nks", xid, nks_0, nks_l
@@ -1023,16 +1023,22 @@ class Block2(object):
         # done pass 1 init
 
     def init_graph_pass_2(self):
-        # print "bbbhhh", self.graph.keys()
-        # pass 2 init
-        # for k, v in self.graph.items():
+        """Block2.init_graph_pass_2
+
+        Pass 2 of graph initialization: Iterate nodes and call pass2 of block instance init.
+
+        Arguments: None
+
+        Returns: None
+        """
+        # iterate over nxgraph's nodes
         for i in range(self.nxgraph.number_of_nodes()):
             v = self.nxgraph.node[i]
             k = v['params']['id']
             
             self.debug_print("__init__: pass 2\nk = %s,\nv = %s", (k, print_dict(v)))
             # print "%s.init pass 2 k = %s, v = %s" % (self.__class__.__name__, k, v['block'].cname)
-            print "{0: <20}.init pass 2 k = {1: >5}, v = {2: >20}".format(self.__class__.__name__[:20], k, v['block_'].cname),
+            print "{3}{0: <20}.init pass 2 k = {1: >5}, v = {2: >20}".format(self.__class__.__name__[:20], k, v['block_'].cname, self.nesting_indent),
             then = time.time()
             # self.graph[k]['block'].init_pass_2()
             v['block_'].init_pass_2()
@@ -1042,9 +1048,14 @@ class Block2(object):
         #     v['block'].step()
             
     def init_outputs(self):
+        """Block2.init_outputs
+
+        Initialize this block's outputs:
+        1. check if ROS enabled and create pub/sub dicts
+        2. iterate over self.outputs and init logging, outkey self attr, bus
+        """
         # print "%s.init_outputs: inputs = %s" % (self.cname, self.inputs)
         # create outputs
-        # format: variable: [shape]
         # new format: outkey = str: outval = {val: value, shape: shape, dst: destination, ...}
         self.oblocksize = 0
         

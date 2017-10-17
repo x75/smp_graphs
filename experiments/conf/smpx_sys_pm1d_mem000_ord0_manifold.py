@@ -1,7 +1,7 @@
 
 from smp_graphs.utils_conf import get_systemblock
 
-randseed = 1
+randseed = 2
 numsteps = 1000
 loopblocksize = numsteps
 
@@ -142,6 +142,7 @@ graph = OrderedDict([
             'logging': False,
             'blocksize': numsteps, # sweepsys_input_flat,
             'title': 'system sweep',
+            'inputs_log': True,
             'inputs': {
                 'meshgrid': {
                     # 'bus': 'sweepsys/meshgrid',

@@ -38,10 +38,15 @@ def subplot_input_fix(input_spec):
         return input_spec
 
 
-class FigPlotBlock2(PrimBlock2):
-    """!@brief Basic plotting block
+class AnalysisBlock2(PrimBlock2):
+    def __init__(self, conf = {}, paren = None, top = None):
+        self.inputs_log = None
+        PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
+    
+class FigPlotBlock2(AnalysisBlock2):
+    """FigPlotBlock2 class
 
-    matplotlib figure based plot, creates the figure and a gridspec on init, uses fig.axes in the step function
+    Plotting block base class for matplotlib figure-based plots. Creates the figure and a gridspec on init, uses fig.axes in the step function
     
     Arguments:
         - blocksize: usually numsteps (meaning plot all data created by that episode/experiment)
@@ -55,7 +60,7 @@ class FigPlotBlock2(PrimBlock2):
         self.hspace = 0.0
         self.saveplot = False
         self.savetype = "jpg"
-        PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
+        AnalysisBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
         # configure figure and plot axes
         self.fig_rows = len(self.subplots)
@@ -84,19 +89,25 @@ class FigPlotBlock2(PrimBlock2):
         # make sure that data has been generated
         if (self.cnt % self.blocksize) in self.blockphase: # or (xself.cnt % xself.rate) == 0:
 
-            # # HACK: override block inputs with log.log_store
-            print "log.log_store", log.log_store.keys()
-            # log.log_pd_store()
-            # for ink, inv in self.inputs.items():
-            #     bus = '/%s' % (inv['bus'], )
-            #     print "ink", ink, "inv", inv['bus'], inv['shape'], inv['val'].shape
-            #     if bus in log.log_store.keys():
-            #         print "overriding bus", bus, "with log", log.log_store[bus].shape
-            #         inv['val'] = log.log_store[bus].values.copy().T # reshape(inv['shape'])
+            # HACK: override block inputs with log.log_store
+            if self.inputs_log is not None:
+                print "Using inputs from log.log_store = %s with keys = %s instead of bus" % (log.log_store.filename, log.log_store.keys(), )
+                # commit data
+                log.log_pd_store()
+                # iterate input items
+                for ink, inv in self.inputs.items():
+                    bus = '/%s' % (inv['bus'], )
+                    # print "ink", ink, "inv", inv['bus'], inv['shape'], inv['val'].shape
+                    # check if a log exists
+                    if bus in log.log_store.keys():
+                        # print "overriding bus", bus, "with log", log.log_store[bus].shape
+                        # copy log data to input value
+                        inv['val'] = log.log_store[bus].values.copy().T # reshape(inv['shape'])
             
             # for ink, inv in self.inputs.items():
             #     self.debug_print("[%s]step in[%s].shape = %s", (self.id, ink, inv['shape']))
 
+            # run the plots
             plots = self.plot_subplots()
             
             # set figure title and show the fig
