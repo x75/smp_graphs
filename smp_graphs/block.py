@@ -1507,7 +1507,7 @@ class SeqLoopBlock2(Block2):
                     
                 # print "    dynblock = %s.%s" % (self.dynblock.cname)
                 outvar[:,outslice] = getattr(self.dynblock, outk).copy()
-                print "outslice", outslice, "outvar", outvar.shape, outvar[...,:], outvar[:,outslice], "dynblock[%s] = %s" % (outk, getattr(self.dynblock, outk))
+                print "dynblock-%s outslice = %s, outvar = %s/%s%s, dynblock.out[%s] = %s" %(self.dynblock.id, outslice, outvar.shape, outvar[...,:].shape, outvar[...,outslice].shape, outk, getattr(self.dynblock, outk).shape)
         sys.stdout.write('\n')
         
         # # hack for checking hpo minimum

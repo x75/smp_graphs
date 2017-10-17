@@ -67,7 +67,7 @@ def nxgraph_from_smp_graph(conf):
 
     FIXME: graph G has no edges
     """
-    print "smp_graphs conf", conf.keys()
+    print "graph.py nxgraph_from_smp_graph kwargs[conf] = %s" % ( conf.keys(), )
     # new empty graph
     G = nx.MultiDiGraph()
     G.name = conf['params']['id']
