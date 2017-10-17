@@ -514,16 +514,18 @@ class ImgPlotBlock2(FigPlotBlock2):
 ################################################################################
 # non FigPlot plot blocks
 class SnsMatrixPlotBlock2(PrimBlock2):
-    """!@brief Plotting block doing seaborn pairwaise matrix plots: e.g. scatter, hexbin, ...
+    """SnsMatrixPlotBlock2 class
 
-Seaborne manages figures itself, so it can't be a FigPlotBlock2
+    Plot block for seaborn pairwaise matrix plots: e.g. scatter, hexbin, ...
+
+    Seaborne (stubornly) manages figures itself, so it can't be a FigPlotBlock2
     
-params
- - blocksize: usually numsteps (meaning plot all data created by that episode/experiment)
- - f_plot_diag: diagonal cells
- - f_plot_matrix: off diagonal cells
- - numpy matrix of data, plot iterates over all pairs with given function
-"""
+    Arguments:
+    - blocksize: usually numsteps (meaning plot all data created by that episode/experiment)
+    - f_plot_diag: diagonal cells
+    - f_plot_matrix: off diagonal cells
+    - numpy matrix of data, plot iterates over all pairs with given function
+    """
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
         self.saveplot = False

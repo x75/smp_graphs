@@ -17,12 +17,14 @@ import copy
 
 from smp_graphs.block import Block2, ConstBlock2, CountBlock2, UniformRandomBlock2
 from smp_graphs.block import FuncBlock2, LoopBlock2, SeqLoopBlock2
+from smp_graphs.block import DelayBlock2
 from smp_graphs.block_ols import FileBlock2
 from smp_graphs.block_plot import PlotBlock2
+from smp_graphs.block_plot import SnsMatrixPlotBlock2, ImgPlotBlock2
 
 from smp_graphs.funcs import f_sin, f_motivation, f_motivation_bin, f_random_uniform
 
-from smp_base.plot import timeseries, histogram # , rp_timeseries_embedding
+from smp_base.plot import timeseries, histogram, histogramnd # , rp_timeseries_embedding
 
 import numpy as np
 
@@ -430,7 +432,7 @@ def dict_get_nodekeys_recursive(d):
     """
     nodekeys = set(d.keys())
     for nk in nodekeys:
-        # print "nodekey", nk
+        print "nodekey", nk
         # print "graphkeys", d[nk]['params'].keys()
         if d[nk]['params'].has_key('graph'):
             # print "graphkeys", d[nk]['params']['graph'].keys()

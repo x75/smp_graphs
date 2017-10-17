@@ -36,7 +36,7 @@ sweep system subgraph
  - sweep block is an open-loop system (data source) itself
  - system block is the system we want to sweep
 """
-sweepsys_steps = 40 # 6
+sweepsys_steps = 1000 # 6
 sweepsys_input_flat = np.power(sweepsys_steps, dim_s_proprio)
 sweepsys = ('robot0', copy.deepcopy(systemblock))
 sweepsys[1]['params']['blocksize'] = sweepsys_input_flat
@@ -61,15 +61,24 @@ loopblock = {
         'topblock': False,
         'logging': False,
         'numsteps': sweepsys_input_flat,  # inner numsteps when used as loopblock (sideways time)
-        'blocksize': 1,           # compute single steps, has to be 1 so inner cnt is correct etc
+        'blocksize': 1, # compute single steps
         'blockphase': [0],        # phase = 0
-        'outputs': {'meshgrid': {'shape': (dim_s_proprio, sweepsys_input_flat), 'buscopy': 'sweepsys_grid/meshgrid'}},
+        'outputs': {
+            'meshgrid': {
+                'shape': (dim_s_proprio, sweepsys_input_flat),
+                'buscopy': 'sweepsys_grid/meshgrid'
+            }
+        },
+        'subgraph_rewrite_id': True,
         # subgraph
-        'graph': OrderedDict([
+        # 'subgraph': 'conf/sweepsys_grid.py'
+        'subgraph': OrderedDict([
+        # 'graph': OrderedDict([
             ('sweepsys_grid', {
                 'block': FuncBlock2,
                 'params': {
                     'debug': False,
+                    'numsteps': sweepsys_input_flat,
                     'blocksize': sweepsys_input_flat,
                     'inputs': {
                         'ranges': {'val': np.array([[-1, 1]] * dim_s_proprio)},
@@ -78,30 +87,30 @@ loopblock = {
                     'outputs': {'meshgrid': {'shape': (dim_s_proprio, sweepsys_input_flat)}},
                     # 'func': f_meshgrid
                     'func': f_random_uniform,
-                    },
-                }),
+                },
+            }),
                 
-                # sys to sweep
-                sweepsys,
+            # sys to sweep
+            sweepsys,
 
-            # ('sweepsys_grid', {
-            #     'block': FuncBlock2,
-            #     'params': {
-            #         'debug': False,
-            #         'blocksize': sweepsys_input_flat,
-            #         'inputs': {
-            #             'ranges': {'val': np.array([[-1, 1]] * dim_s_proprio)},
-            #             'steps':  {'val': sweepsys_steps},
-            #             },
-            #         'outputs': {'meshgrid': {'shape': (dim_s_proprio, sweepsys_input_flat)}},
-            #         'func': f_meshgrid
-            #         },
-            #     }),
+        #     # ('sweepsys_grid', {
+        #     #     'block': FuncBlock2,
+        #     #     'params': {
+        #     #         'debug': False,
+        #     #         'blocksize': sweepsys_input_flat,
+        #     #         'inputs': {
+        #     #             'ranges': {'val': np.array([[-1, 1]] * dim_s_proprio)},
+        #     #             'steps':  {'val': sweepsys_steps},
+        #     #             },
+        #     #         'outputs': {'meshgrid': {'shape': (dim_s_proprio, sweepsys_input_flat)}},
+        #     #         'func': f_meshgrid
+        #     #         },
+        #     #     }),
                 
-            #     # sys to sweep
-            #     sweepsys,
+        #     #     # sys to sweep
+        #     #     sweepsys,
 
-            ]),
+             ]),
         }
     }
 
@@ -122,15 +131,26 @@ graph = OrderedDict([
             'loopblocksize': loopblocksize, # loopblocksize * looplength    = numsteps
             # can't do this dynamically yet without changing init passes
             'outputs': {'meshgrid': {'shape': (dim_s_proprio, sweepsys_input_flat)}},
-            'loop': [('none', {}) for i in range(3)], # lambda ref, i, obj: ('none', {}),
+            'loop': [('none', {})], # lambda ref, i, obj: ('none', {}),
             'loopmode': 'sequential',
             'loopblock': loopblock,
             'subgraph_rewrite_id': True,
         },
     }),
 
+    # meshgrid delayed
+    ('motordel', {
+        'block': DelayBlock2,
+        'params': {
+            'id': 'motordel',
+            'blocksize': numsteps,
+            'inputs': {'y': {'bus': 'sweepsys/meshgrid'}},
+            'delays': {'y': 1},
+            }
+        }),
+        
     # plot the system sweep result
-    ('plot_sweep', {
+    ('plot_sweep_1', {
         'block': PlotBlock2,
         'params': {
             'debug': False,
@@ -139,7 +159,8 @@ graph = OrderedDict([
             'title': 'system sweep',
             'inputs': {
                 'meshgrid': {
-                    'bus': 'sweepsys_grid/meshgrid',
+                    # 'bus': 'sweepsys/meshgrid',
+                    'bus': 'motordel/dy',
                     'shape': (dim_s_proprio, sweepsys_input_flat)},
                 's_proprio': {
                     'bus': 'robot0/s_proprio',
@@ -162,5 +183,38 @@ graph = OrderedDict([
                     ],
             }
         }),
-    
+
+    # sns matrix plot
+    ('plot_sweep_2', {
+        'block': SnsMatrixPlotBlock2,
+        'params': {
+            'id': 'plot2',
+            'logging': False,
+            'debug': False,
+            'saveplot': saveplot,
+            'blocksize': numsteps,
+            'inputs': {
+                'meshgrid': {
+                    #'bus': 'sweepsys_grid/meshgrid',
+                    'bus': 'motordel/dy',
+                    'shape': (dim_s_proprio, sweepsys_input_flat)},
+                's_proprio': {
+                    'bus': 'robot0/s_proprio',
+                    'shape': (dim_s_proprio, sweepsys_input_flat)},
+                's_extero': {
+                    'bus': 'robot0/s_extero',
+                    'shape': (dim_s_extero, sweepsys_input_flat)},
+                },
+            'outputs': {},#'x': {'shape': 3, 1)}},
+            'subplots': [
+                [
+                    # stack inputs into one vector (stack, combine, concat
+                    {'input': ['meshgrid', 's_proprio', 's_extero'], 'mode': 'stack',
+                         'plot': histogramnd},
+                ],
+            ],
+        },
+    }),
+
+        
     ])

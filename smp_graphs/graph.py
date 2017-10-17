@@ -583,6 +583,10 @@ def recursive_hierarchical(G, lvlx = 0, lvly = 0):
 def nxgraph_get_node_colors(G):
     G_cols = []
     for n in G.nodes_iter():
-        print "n", n, "block_color", G.node[n]['block_'].block_color
-        G_cols.append(G.node[n]['block_'].block_color)
+        if hasattr(G.node[n]['block_'], 'block_color'):
+            block_color = G.node[n]['block_'].block_color
+        else:
+            block_color = "k"
+        print "n", n, "block_color", block_color
+        G_cols.append(block_color)
     return G_cols
