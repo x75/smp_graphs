@@ -92,8 +92,38 @@ loopblock = {
                     'func': f_random_uniform,
                 },
             }),
+            
             # sys to sweep
             sweepsys,
+            
+            # meshgrid delayed
+            ('motordel', {
+                'block': DelayBlock2,
+                'params': {
+                    'id': 'motordel',
+                    'blocksize': sweepsys_input_flat, # 1,
+                    'inputs': {
+                        'y0': {'bus': 'sweepsys_grid/meshgrid', 'delay': 0, },
+                        'y1': {'bus': 'sweepsys_grid/meshgrid', 'delay': 1, },
+                        's_proprio0': {'bus': 'robot0/s_proprio', 'delay': 0, },
+                        's_proprio1': {'bus': 'robot0/s_proprio', 'delay': 1, },
+                        },
+                    }
+                }),
+        
+            # velocity difference
+            ('sdiff', {
+                'block': dBlock2,
+                'params': {
+                    'id': 'sdiff',
+                    'blocksize': sweepsys_input_flat, # 1,
+                    'inputs': {
+                        's_extero': {'bus': 'robot0/s_extero', },
+                        },
+                    'd': 1/dt,
+                    # 'leak': 0.01,
+                    }
+                }),
         ]),
         
     },
@@ -123,45 +153,46 @@ graph = OrderedDict([
         },
     }),
 
-    # meshgrid delayed
-    ('motordel', {
-        'block': DelayBlock2,
-        'params': {
-            'id': 'motordel',
-            'blocksize': numsteps,
-            'inputs': {'y': {'bus': 'sweepsys/meshgrid'}},
-            'delays': {'y': 1},
-            }
-        }),
-        
     # plot the system sweep result
     ('plot_sweep_1', {
         'block': PlotBlock2,
         'params': {
             'debug': False,
-            'logging': False,
             'blocksize': numsteps, # sweepsys_input_flat,
             'title': 'system sweep',
-            'inputs_log': True,
+            'logging': False,
+            'inputs_log': None,
             'inputs': {
-                'meshgrid': {
+                'meshgrid_d0': {
                     # 'bus': 'sweepsys/meshgrid',
-                    'bus': 'motordel/dy',
+                    'bus': 'motordel_ll0/dy0',
                     'shape': (dim_s_proprio, sweepsys_input_flat)},
-                's_proprio': {
-                    'bus': 'robot0_ll0/s_proprio',
+                'meshgrid_d1': {
+                    'bus': 'motordel_ll0/dy1',
+                    'shape': (dim_s_proprio, sweepsys_input_flat)},
+                's_proprio0': {
+                    'bus': 'motordel_ll0/ds_proprio0',
+                    'shape': (dim_s_proprio, sweepsys_input_flat)},
+                's_proprio1': {
+                    'bus': 'motordel_ll0/ds_proprio1',
                     'shape': (dim_s_proprio, sweepsys_input_flat)},
                 's_extero': {
                     'bus': 'robot0_ll0/s_extero',
+                    'shape': (dim_s_extero, sweepsys_input_flat)},
+                'ds_extero': {
+                    'bus': 'sdiff_ll0/ds_extero',
                     'shape': (dim_s_extero, sweepsys_input_flat)},
                 },
                 'hspace': 0.2,
                 'subplots': [
                     [
-                        {'input': ['meshgrid'], 'plot': timeseries},
+                        {'input': ['meshgrid_d0', 'meshgrid_d1'], 'plot': timeseries},
                     ],
                     [
-                        {'input': ['s_proprio'], 'plot': timeseries},
+                        {'input': ['s_proprio0'], 'plot': timeseries},
+                    ],
+                    [
+                        {'input': ['s_proprio0', 'ds_extero'], 'plot': timeseries},
                     ],
                     [
                         {'input': ['s_extero'], 'plot': timeseries},
@@ -180,22 +211,31 @@ graph = OrderedDict([
             'saveplot': saveplot,
             'blocksize': numsteps,
             'inputs': {
-                'meshgrid': {
+                'meshgrid_d0': {
                     #'bus': 'sweepsys_grid/meshgrid',
-                    'bus': 'motordel/dy',
+                    'bus': 'motordel_ll0/dy0',
                     'shape': (dim_s_proprio, sweepsys_input_flat)},
-                's_proprio': {
-                    'bus': 'robot0_ll0/s_proprio',
+                'meshgrid_d1': {
+                    'bus': 'motordel_ll0/dy1',
+                    'shape': (dim_s_proprio, sweepsys_input_flat)},
+                's_proprio0': {
+                    'bus': 'motordel_ll0/ds_proprio0',
+                    'shape': (dim_s_proprio, sweepsys_input_flat)},
+                's_proprio1': {
+                    'bus': 'motordel_ll0/ds_proprio1',
                     'shape': (dim_s_proprio, sweepsys_input_flat)},
                 's_extero': {
                     'bus': 'robot0_ll0/s_extero',
+                    'shape': (dim_s_extero, sweepsys_input_flat)},
+                'ds_extero': {
+                    'bus': 'sdiff_ll0/ds_extero',
                     'shape': (dim_s_extero, sweepsys_input_flat)},
                 },
             'outputs': {},#'x': {'shape': 3, 1)}},
             'subplots': [
                 [
                     # stack inputs into one vector (stack, combine, concat
-                    {'input': ['meshgrid', 's_proprio', 's_extero'], 'mode': 'stack',
+                    {'input': ['meshgrid_d0', 'meshgrid_d1', 's_proprio0', 's_proprio1', 's_extero', 'ds_extero'], 'mode': 'stack',
                          'plot': histogramnd},
                 ],
             ],

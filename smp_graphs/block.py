@@ -1874,9 +1874,15 @@ class dBlock2(PrimBlock2):
 
     Params: inputs, outputs, leakrate / smoothrate?
     """
+    defaults = {
+        'd': 1.0,
+    }
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
         """dBlock2 init"""
+        if not conf['params'].has_key('outputs'):
+            conf['params']['outputs'] = {}
+            
         for ink in conf['params']['inputs'].keys():
             # get input shape
             inshape = top.bus[conf['params']['inputs'][ink]['bus']].shape
@@ -1904,13 +1910,14 @@ class dBlock2(PrimBlock2):
             # slice -(blocksize + 1) until now
             tmp_sl = slice(self.blocksize - 1, self.blocksize * 2)
             # compute the diff in the input
-            din = np.diff(tmp_[:,tmp_sl], axis = 1) # * self.d
+            din = np.diff(tmp_[:,tmp_sl], axis = 1) * self.d
             # which should be same shape is input
             assert din.shape == self.inputs[ink]['val'].shape
-            # print getattr(self, outk)[:,[-1]].shape, self.inputs[ink][0].shape, din.shape
+            print "dBlock2.step", self.id, self.cnt, getattr(self, outk)[:,[-1]].shape, self.inputs[ink]['val'].shape, din.shape
             setattr(self, outk, din)
             # store current input
             setattr(self, ink_, self.inputs[ink]['val'].copy())
+            print "dBlock2.step", self.id, self.cnt, getattr(self, outk), din
 
 class DelayBlock2(PrimBlock2):
     """DelayBlock2 class
@@ -1925,16 +1932,29 @@ class DelayBlock2(PrimBlock2):
         params = conf['params']
         if not params.has_key('outputs'):
             params['outputs'] = {}
+
+        delays_ = {}
             
-        for ink in params['inputs'].keys():
+        for ink, inv in params['inputs'].items():
             # get input shape
-            inshape = top.bus[params['inputs'][ink]['bus']].shape
-            # print "DelayBlock2 inshape", inshape
+            # assert top.bus.has_key(params['inputs'][ink]['bus']), "DelayBlock2 needs existing bus item at %s to infer delay shape" % (params['inputs'][ink]['bus'], )
+            if top.bus.has_key(params['inputs'][ink]['bus']):
+                inshape = top.bus[params['inputs'][ink]['bus']].shape
+            else:
+                inshape = inv['shape']
             # alloc delay block
-            # print ink, params['delays'][ink]
-            setattr(self, "%s_" % ink, np.zeros((inshape[0], inshape[1] + params['delays'][ink])))
+            if params.has_key('delays'):
+                delays_ = params['delays'][ink]
+                # setattr(self, "%s_" % ink, np.zeros((inshape[0], inshape[1] + params['delays'][ink])))
+            else:
+                delays_[ink] = inv['delay']
+                # setattr(self, "%s_" % ink, np.zeros((inshape[0], inshape[1] + inv['delay'])))
+            setattr(self, "%s_" % ink, np.zeros((inshape[0], inshape[1] + delays_[ink])))
+                
             # set output members
             params['outputs']["d%s" % ink] = {'shape': inshape}
+
+        params['delays'] = delays_
             
         # base block init
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
@@ -1952,15 +1972,16 @@ class DelayBlock2(PrimBlock2):
             # slice -(blocksize + 1) until now
             inv_ = getattr(self, ink_)
             sl = slice(self.delays[ink], self.delays[ink]+self.blocksize)
-            # print "sl", sl
-            inv_[:,sl] = self.inputs[ink]['val'].copy()
+            # print "DelayBlock2: ink", ink, "sl", sl, "inv_", inv_.shape, "input", self.inputs[ink]['val'].shape
+            inv_[...,sl] = self.inputs[ink]['val'].copy()
+            # print "DelayBlock2: ink", ink, inv_[...,sl].shape
             
             # compute the diff in the input
             # din = np.diff(tmp_[:,tmp_sl], axis = 1) # * self.d
             # which should be same shape is input
             # assert din.shape == self.inputs[ink][0].shape
-            # print getattr(self, outk)[:,[-1]].shape, self.inputs[ink][0].shape, din.shape
-            setattr(self, outk, inv_[:,slice(0, self.blocksize)])
+            setattr(self, outk, inv_[...,slice(0, self.blocksize)])
+            # print "DelayBlock2 outk %s shape" %(outk,), self.inputs[ink]['val'].shape, getattr(self, ink_).shape, getattr(self, outk) # [...,[-1]].shape, self.inputs[ink]['val'].shape #, din.shape
             # store current input
             setattr(self, ink_, np.roll(inv_, shift = -self.blocksize, axis = 1))
                         

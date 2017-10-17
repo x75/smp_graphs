@@ -537,6 +537,7 @@ class SnsMatrixPlotBlock2(PrimBlock2):
     - f_plot_matrix: off diagonal cells
     - numpy matrix of data, plot iterates over all pairs with given function
     """
+    
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
         self.saveplot = False
@@ -550,19 +551,25 @@ class SnsMatrixPlotBlock2(PrimBlock2):
         subplotconf = self.subplots[0][0]
         
         # different 
-        if subplotconf.has_key('mode'):
-            ivecs = tuple(self.inputs[ink]['val'].T for k, ink in enumerate(subplotconf['input']))
-            # for ivec in ivecs:
-            #     print "ivec.shape", ivec.shape
-            plotdata = {}
-            if subplotconf['mode'] in ['stack', 'combine', 'concat']:
-                plotdata['all'] = np.hstack(ivecs)
-
+        if not subplotconf.has_key('mode'):
+            subplotconf['mode'] = 'stack'
+            
+        ilbls = [[['%s%d' % (self.inputs[ink]['bus'], j)] for j in range(self.inputs[ink]['shape'][0])] for i, ink in enumerate(subplotconf['input'])]
+        print "ilbls", ilbls
+        ivecs = tuple(self.inputs[ink]['val'].T for k, ink in enumerate(subplotconf['input']))
+        # for ivec in ivecs:
+        #     print "ivec.shape", ivec.shape
+        plotdata = {}
+        if subplotconf['mode'] in ['stack', 'combine', 'concat']:
+            plotdata['all'] = np.hstack(ivecs)
+                
         data = plotdata['all']
 
         # print "SnsPlotBlock2:", data.shape
         scatter_data_raw  = data
-        scatter_data_cols = ["x_%d" % (i,) for i in range(data.shape[1])]
+        # scatter_data_cols = ["x_%d" % (i,) for i in range(data.shape[1])]
+        
+        scatter_data_cols = np.array(ilbls).flatten().tolist()
 
         # prepare dataframe
         df = pd.DataFrame(scatter_data_raw, columns=scatter_data_cols)

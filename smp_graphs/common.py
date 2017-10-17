@@ -19,6 +19,7 @@ import numpy as np
 
 from smp_graphs.block import Block2, ConstBlock2, CountBlock2, DelayBlock2, UniformRandomBlock2
 from smp_graphs.block import FuncBlock2, LoopBlock2, SeqLoopBlock2
+from smp_graphs.block import dBlock2, IBlock2, DelayBlock2
 from smp_graphs.block_ols import FileBlock2
 from smp_graphs.block_plot import PlotBlock2
 from smp_graphs.block_plot import SnsMatrixPlotBlock2, ImgPlotBlock2
