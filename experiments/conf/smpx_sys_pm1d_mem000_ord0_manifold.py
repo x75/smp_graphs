@@ -75,8 +75,8 @@ loopblock = {
         # 'subgraph': 'conf/sweepsys_grid.py'
 
         # subgraph dict
-        # 'subgraph': OrderedDict([
-        'graph': OrderedDict([
+        'subgraph': OrderedDict([
+        # 'graph': OrderedDict([
             ('sweepsys_grid', {
                 'block': FuncBlock2,
                 'params': {
@@ -116,10 +116,10 @@ graph = OrderedDict([
             'loopblocksize': loopblocksize, # loopblocksize * looplength    = numsteps
             # can't do this dynamically yet without changing init passes
             'outputs': {'meshgrid': {'shape': (dim_s_proprio, sweepsys_input_flat)}},
-            'loop': [('none', {})], # lambda ref, i, obj: ('none', {}),
+            'loop': [('none', {}) for i in range(3)], # lambda ref, i, obj: ('none', {}),
             'loopmode': 'sequential',
             'loopblock': loopblock,
-            'subgraph_rewrite_id': True,
+            'subgraph_rewrite_id': False,
         },
     }),
 

@@ -15,18 +15,17 @@ from collections import OrderedDict
 from functools import partial
 import copy 
 
-from smp_graphs.block import Block2, ConstBlock2, CountBlock2, UniformRandomBlock2
+import numpy as np
+
+from smp_graphs.block import Block2, ConstBlock2, CountBlock2, DelayBlock2, UniformRandomBlock2
 from smp_graphs.block import FuncBlock2, LoopBlock2, SeqLoopBlock2
-from smp_graphs.block import DelayBlock2
 from smp_graphs.block_ols import FileBlock2
 from smp_graphs.block_plot import PlotBlock2
 from smp_graphs.block_plot import SnsMatrixPlotBlock2, ImgPlotBlock2
 
 from smp_graphs.funcs import f_sin, f_motivation, f_motivation_bin, f_random_uniform
 
-from smp_base.plot import timeseries, histogram, histogramnd # , rp_timeseries_embedding
-
-import numpy as np
+from smp_base.plot import timeseries, histogram, histogramnd
 
 debug = False
 showplot = True
@@ -203,10 +202,9 @@ def get_config_raw_from_string(conf, confvar = 'conf', lconf = None):
         # global_vars['lconf'] = lconf
         # local_vars.update(lconf)
         global_vars.update(lconf)
-        
+    
     # run the code
     try:
-        # print "gv", global_vars
         exec(code, global_vars, local_vars)
     except Exception, e:
         # FIXME: how to get more stack context?

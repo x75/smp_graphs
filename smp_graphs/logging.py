@@ -219,6 +219,7 @@ Arguments:
       data: the data as a dim x 1 numpy vector
 """
     global log_lognodes, log_lognodes_idx, log_blocksize, log_logarray, log_lognodes_blockidx
+    assert log_lognodes_idx.has_key(tbl_name), "Logtable key = %s is not in keys = %s" % (tbl_name, log_lognodes_idx.keys())
     # print "log_pd tbl_name = %s, data.shape = %s" % (tbl_name, data.flatten().shape), log_lognodes_idx[tbl_name]
     # infer blocksize from data
     blocksize = data.shape[-1]
