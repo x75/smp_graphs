@@ -1,8 +1,15 @@
-"""smp_graphs - sensorimotor experiments as computation graphs (smp)
+"""block.py: Basic computation blocks and support structure for smp_graphs
 
-block.py: Basic computation blocks and supporting structures
+.. moduleauthor:: 2017 Oswald Berthold
 
-2017 Oswald Berthold
+The Base class is :class:`Block2` supported by decorators
+:class:`decInit` and :class:`decStep` and the :class:`Bus` class. 
+
+The set of standard blocks includes :class:`FuncBlock2`,
+:class:`LoopBlock2`, :class:`SeqLoopBlock2`, :class:`PrimBlock2`,
+:class:`IBlock2`, :class:`dBlock2`, :class:`DelayBlock2`,
+:class:`SliceBlock2`, :class:`StackBlock2`, :class:`ConstBlock2`,
+:class:`CountBlock2`, :class:`UniformRandomBlock2`
 """
 
 import pdb
@@ -147,6 +154,7 @@ class Bus(MutableMapping):
                 xspacing = len(k) + 2
             else:
                 xspacing = 10
+                
             ax.text(xpos, ypos, "{0: <8}\n{1: <12}".format(k, v.shape), family = 'monospace', fontsize = 8)
             # elementary shape without buffersize
             ax.add_patch(
@@ -183,6 +191,11 @@ class Bus(MutableMapping):
         # ax.set_ylim((-100, 0))
         ax.set_xlim((0, xmax + xspacing))
         ax.set_ylim((-ymax, 0))
+
+        ax.set_xticks([])
+        ax.set_xticklabels([])
+        ax.set_yticks([])
+        ax.set_yticklabels([])
         
         plt.draw()
         plt.pause(1e-6)
@@ -484,6 +497,8 @@ class Block2(object):
         else:
             print "What could it be? Look at %s" % (self.conf)
 
+        # FIXME: no changes to conf['params'] after this?
+            
         # check id
         assert hasattr(self, 'id'), "Block2 init: id needs to be configured"
         # FIXME: check unique id, self.id not in self.topblock.ids
@@ -544,6 +559,9 @@ class Block2(object):
         else:
             # check numsteps commandline arg vs. config blocksizes
             self.blocksize_clamp()
+
+            # get top level configuration variables
+            self.set_attr_from_top_conf()
             
             # get bus from topblock
             self.bus = self.top.bus
@@ -556,6 +574,14 @@ class Block2(object):
             
         # numsteps / blocksize
         # print "%s-%s end of init blocksize = %d" % (self.cname, self.id, self.blocksize)
+        
+    def set_attr_from_top_conf(self):
+        for attr in ['saveplot']:
+            top_attr = getattr(self.top, attr)
+            if top_attr is not None and self.conf['params'].has_key(attr):
+                print "Block2.set_attr_from_top_conf copying top.%s = %s to conf['params'] %s" % (attr, top_attr, self.conf['params']['saveplot'])
+                self.conf['params'][attr] = top_attr
+                setattr(self, attr, top_attr)
 
     def get_nesting_level(self):
         nl = 0
@@ -1306,43 +1332,66 @@ class Block2(object):
             #         # print "%s step outk = %s, outv = %s, bus.sh = %s" % (self.cname, k_o, v_o, self.bus[buskey].shape)
             #         log.log_pd(tbl_name = buskey, data = self.bus[buskey])
 
-            # store log
+            # store log incrementally
             if (self.cnt) % 500 == 0 or self.cnt == (self.numsteps - 1):
                 print "storing log @iter % 4d/%d" % (self.cnt, self.numsteps)
                 log.log_pd_store()
 
-            # store on final step and copy data attributes to log attributes
+            # store log finally: on final step, also copy data attributes to log attributes
             if self.cnt == self.numsteps:
-                print "storing log @iter %04d final" % (self.cnt)
-                # store
-                log.log_pd_store()
-                # recursively copy the attributes
-                self.log_attr()
-                # close the file
-                log.log_pd_deinit()
-                    
-                # final hook
-                # print "Block2.step", self.bus.keys()
-                # print "Block2.step jh", self.bus['jh/jh'], "jhloop", self.bus['jhloop/jh'], "jhloop_0", self.bus['jhloop_0/jh']
-                # print "Block2.step data/x", self.bus['ldata/x'].shape, "data/y", self.bus['ldata/y'].shape
-
-        # if self.cnt % self.blocksize == 0:
-        if (self.cnt % self.blocksize) in self.blockphase:
-            # if self.id.startswith('b4'):
-            #     print "%s.%s cnt modulo blocksize" % (self.cname, self.id), self.cnt, self.blocksize, self.cname, self.id
-            # copy outputs from subblocks as configured in enclosing block outputs spec
-            for k, v in self.outputs.items():
-                if v.has_key('buscopy'):
-                    # print "Block2-%s.step[%d].buscopy: buskey = %s, buskeys = %s" % (self.id, self.cnt, v['buscopy'], self.bus.keys())
-                    buskey = v['buscopy']
-                    # if self.bus.has_key(buskey):
-                    setattr(self, k, self.bus[buskey])
-                    # else:
-                    # print "%s-%s[%d] self.%s = %s from bus %s / %s" % (self.cname, self.id, self.cnt, k, getattr(self, k), v['buscopy'], self.bus[v['buscopy']])
+                # store and close logging
+                self.log_close()
+                # save plot figures
+                self.plot_close()
                 
+        # all Block2's
+        if (self.cnt % self.blocksize) in self.blockphase:
+            # buscopy: copy outputs from subblocks as configured in enclosing block outputs spec
+            self.bus_copy()
+            
         # need to to count ourselves
         # self.cnt += 1
 
+    def bus_copy(self):
+        for k, v in [(k_, v_) for k_, v_ in self.outputs.items() if v_.has_key('buscopy')]:
+            buskey = v['buscopy']
+            setattr(self, k, self.bus[buskey])
+            
+        # for k, v in self.outputs.items():
+        #     if v.has_key('buscopy'):
+        #         # print "Block2-%s.step[%d].buscopy: buskey = %s, buskeys = %s" % (self.id, self.cnt, v['buscopy'], self.bus.keys())
+        #         buskey = v['buscopy']
+        #         # if self.bus.has_key(buskey):
+        #         setattr(self, k, self.bus[buskey])
+        #         # else:
+        #         # print "%s-%s[%d] self.%s = %s from bus %s / %s" % (
+        #         #     self.cname, self.id, self.cnt, k, getattr(self, k), v['buscopy'], self.bus[v['buscopy']])
+
+    def plot_close(self):
+        # print "%s-%s\n    .plot_close closing %d nodes" % (self.cname, self.id, self.nxgraph.number_of_nodes())
+        for n in self.nxgraph.nodes_iter():
+            node = self.nxgraph.node[n]['block_']
+            if hasattr(node, 'nxgraph'):
+                # descend
+                node.plot_close()
+
+            if hasattr(node, 'saveplot'):
+                # print "%s-%s\n    .plot_close examining node %s (%s)" % (self.cname, self.id, node.id, node.saveplot)
+            
+                # if type(node) is Block2 and hasattr(node, 'saveplot') and node.saveplot:
+                if node.saveplot:
+                    # print "%s-%s\n    .plot_close closing node saving plot %s" % (self.cname, self.id, node.id,)
+                    node.save()
+            
+    def log_close(self):
+        print "storing log @final iter %04d" % (self.cnt, )
+        # store
+        log.log_pd_store()
+        # recursively copy the attributes
+        self.log_attr()
+        # close the file
+        log.log_pd_deinit()
+                    
     def log_attr(self):
         """Block2.log_attr: enumerate all nodes in hierarchical graph and copy the node's output attributes to table attributes"""
         for i in range(self.nxgraph.number_of_nodes()):

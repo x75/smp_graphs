@@ -429,7 +429,7 @@ def nxgraph_plot(G, ax = None, pos = None, layout_type = "spring", node_color = 
     # shift(layout, (0, -2 * node_size))
 
     # draw the node labels
-    nx.draw_networkx_labels(G, ax = ax, pos = layout, labels = labels, font_color = 'r', font_size = 8, fontsize = 6)
+    nx.draw_networkx_labels(G, ax = ax, pos = layout, labels = labels, font_color = 'k', font_size = 8, fontsize = 6, alpha = 0.5)
     
     # edges
     typededges = {'data': [], 'loop': [], 'hier': []}
@@ -472,6 +472,11 @@ def nxgraph_plot(G, ax = None, pos = None, layout_type = "spring", node_color = 
     # set title to config filename removing timestamp and hash
     title = re.sub(r'_[0-9]+_[0-9]+', r'', G.name.split("-")[0])
     ax.set_title(title + " nxgraph", fontsize = 8)
+
+    ax.set_xticks([])
+    ax.set_xticklabels([])
+    ax.set_yticks([])
+    ax.set_yticklabels([]) 
 
 def scale(pos = {}, sf = 1):
     for k, v in pos.items():

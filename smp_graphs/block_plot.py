@@ -39,12 +39,35 @@ def subplot_input_fix(input_spec):
 
 
 class AnalysisBlock2(PrimBlock2):
+    defaults = {
+        'saveplot': False,
+        'savetype': 'jpg',
+        }
     def __init__(self, conf = {}, paren = None, top = None):
+        # use inputs from logfile even in no-cached epxeriment
         self.inputs_log = None
+        # saving plots
+        self.saveplot = False
+        self.savetype = "jpg"
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
+        print "AnalysisBlock2.init", conf['params']['saveplot'], self.conf['params']['saveplot']
+        print "AnalysisBlock2.init", self.saveplot
 
+        # default title?
+        if not hasattr(self, 'title'):
+            # self.title = "%s - %s-%s" % (self.top.id, self.cname, self.id)
+            self.title = "%s of %s" % (self.cname, self.top.id[:20], )
+        
+    def save(self):
+        """Save the analysis, redirect to corresponding class method, passing the instance
+        """
+        # FigPlotBlock2.save
+        if isinstance(self, FigPlotBlock2) or isinstance(self, SnsMatrixPlotBlock2):
+            FigPlotBlock2.savefig(self)
         
     def check_plot_type(self, conf, defaults = {}):
+        """Get and if necessary type-fix the 'plot' subplot configuration param, translating from string to func.
+        """
         # default plot type
         # if not conf.has_key('plot'): conf['plot'] = timeseries
         # print "defaults", defaults
@@ -77,28 +100,22 @@ class FigPlotBlock2(AnalysisBlock2):
 
     Plotting block base class for matplotlib figure-based plots. Creates the figure and a gridspec on init, uses fig.axes in the step function
     
-    Arguments:
-        - blocksize: usually numsteps (meaning plot all data created by that episode/experiment)
-        - subplots: array of arrays, each cell of that matrix hold on subplot configuration dict
-        - subplotconf: dict with inputs: list of input keys, plot: plotting function pointer
+    Args:
+     - blocksize(int): usually numsteps (meaning plot all data created by that episode/experiment)
+     - subplots(list): an array of arrays, each cell of that matrix contains one subplot configuration dict
+     - subplotconf(dict): inputs: list of input keys, plot: plotting function pointer
     """
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
         # defaults
         self.wspace = 0.0
         self.hspace = 0.0
-        self.saveplot = False
-        self.savetype = "jpg"
         AnalysisBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
         # configure figure and plot axes
         self.fig_rows = len(self.subplots)
         self.fig_cols = len(self.subplots[0])
 
-        if not hasattr(self, 'title'):
-            # self.title = "%s - %s-%s" % (self.top.id, self.cname, self.id)
-            self.title = "%s" % (self.top.id, )
-        
         # create figure
         self.fig = makefig(
             rows = self.fig_rows, cols = self.fig_cols,
@@ -143,29 +160,45 @@ class FigPlotBlock2(AnalysisBlock2):
             # self.fig.suptitle("%s: %s-%s" % (self.top.id, self.cname, self.id))
             self.fig.show()
 
-            if self.saveplot:
-                print "%s.step saving plot" % (self.cname,)
-                FigPlotBlock2.save(self)
+            # if self.saveplot:
+            #     self.save_fig()
         else:
             self.debug_print("%s.step", (self.__class__.__name__,))
 
     def plot_subplots(self):
         print "%s.plot_subplots(): implement me" % (self.cname,)
 
+    # def save(self):
+    #     FigPlotBlock2.save(self)
+
     @staticmethod
-    def save(plotinst):
-        """save the figure using configuration options"""
+    def savefig(plotinst):
+        """Save the figure 'fig' using configurable options
+
+        Args:
+         - plotinst(*PlotBlock2): a plot block instance
+
+        Returns:
+         - None
+        """
         subplotstr = "_".join(np.array([["r%d_c%d_%s" % (r, c, "_".join(subplot_input_fix(sbc['input'])),) for c,sbc in enumerate(sbr)] for r, sbr in enumerate(plotinst.subplots)]).flatten())
         # filename = "data/%s_%s_%s_%s.%s" % (plotinst.top.id, plotinst.id, "_".join(plotinst.inputs.keys()), subplotstr, plotinst.savetype)
         # filename = "data/%s_%s_%s.%s" % (plotinst.top.id, plotinst.id, "_".join(plotinst.inputs.keys()), plotinst.savetype)
         filename = "data/%s_%s.%s" % (plotinst.top.id, plotinst.id, plotinst.savetype)
         # print "%s.save filename = %s, subplotstr = %s" % (plotinst.cname, filename, subplotstr)
-        print "%s.save filename = %s" % (plotinst.cname, filename)
-        plotinst.fig.set_size_inches((min(plotinst.fig_cols * 2 * 2.5, 20), min(plotinst.fig_rows * 1.2 * 2.5, 12)))
+        # plotinst.fig.set_size_inches((min(plotinst.fig_cols * 2 * 2.5, 20), min(plotinst.fig_rows * 1.2 * 2.5, 12)))
+        if not hasattr(plotinst, 'savesize'):
+            plotinst.savesize = (min(plotinst.fig_cols * 5, 20), min(plotinst.fig_rows * 3.0, 12))
+            
+        print "savesize w/h = %f/%f, fig_cols/fig_rows = %s/%s" % (plotinst.savesize[0], plotinst.savesize[1], plotinst.fig_cols, plotinst.fig_rows)
+        plotinst.fig.set_size_inches(plotinst.savesize)
+
+        # write the figure to file
         try:
+            print "%s-%s.save saving plot %s to filename = %s" % (plotinst.cname, plotinst.id, plotinst.title, filename)
             plotinst.fig.savefig(filename, dpi=300, bbox_inches="tight")
         except Exception, e:
-            print "%s error %s" % ('FigPlotBlock2', e)
+            print "%s.save saving failed with %s" % ('FigPlotBlock2', e)
 
 class PlotBlock2(FigPlotBlock2):
     """PlotBlock2 class
@@ -549,8 +582,8 @@ class SnsMatrixPlotBlock2(AnalysisBlock2):
     
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
-        self.saveplot = False
-        self.savetype = 'jpg'
+        # self.saveplot = False
+        # self.savetype = 'jpg'
         AnalysisBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
 
@@ -597,13 +630,16 @@ class SnsMatrixPlotBlock2(AnalysisBlock2):
         # g.map_offdiag(plt.histogram2d, cmap="gray", bins=30)
         # g.map_offdiag(plt.plot, linestyle = "None", marker = "o", alpha = 0.5) # , bins="log");
         g.map_offdiag(partial(uniform_divergence, f = subplotconf_plot)) #, cmap="gray", gridsize=40, bins='log')
+
+        # clean up figure
         self.fig = g.fig
         self.fig_rows, self.fig_cols = g.axes.shape
+        self.fig.suptitle(self.title)
         # print "dir(g)", dir(g)
         # print g.diag_axes
         # print g.axes
-        if self.saveplot:
-            FigPlotBlock2.save(self)
+        # if self.saveplot:
+        #     FigPlotBlock2.save(self)
         # for i in range(data.shape[1]):
         #     for j in range(data.shape[1]): # 1, 2; 0, 2; 0, 1
         #         if i == j:

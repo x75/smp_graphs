@@ -32,26 +32,29 @@ from smp_graphs.graph import nxgraph_plot, recursive_draw, recursive_hierarchica
 ################################################################################
 # utils, TODO: move to utils.py
 def get_args():
-    """Experiment.py.get_args
+    """Get commandline arguments for an :class:`Experiment`
 
-    Define argparse commandline arguments
+    Set up an :class:`argparse.ArgumentParser` and add common set of
+    commandline arguments for controlling global experiment parameters.
     """
     # define defaults
     default_conf     = "conf/default.py"
-    default_numsteps = None # 10
+    default_numsteps = None
+    
     # create parser
     parser = argparse.ArgumentParser()
     
     # add commandline arguments
     parser.add_argument("-c", "--conf",       type=str, default=default_conf,     help="Configuration file [%s]" % default_conf)
-    parser.add_argument("-nc", "--no-cache",  dest='docache', action='store_false', help="Disable experiment and block caching mechanisms.")
+    parser.add_argument("-nc", "--no-cache",  dest='docache', action='store_false', help="Enable experiment and block caching mechanisms [True].")
     parser.add_argument("-dr", "--do-ros",    dest="ros", action="store_true",    default = None, help = "Do / enable ROS?")
     parser.add_argument("-nr", "--no-ros",    dest="ros", action="store_false",   default = None, help = "No / disable ROS?")
     parser.add_argument("-m", "--mode",       type=str, default="run",            help="Which subprogram to run [run], one of [run, graphviz]")
     parser.add_argument("-n", "--numsteps",   type=int, default=default_numsteps, help="Number of outer loop steps [%s]" % default_numsteps)
-    parser.add_argument("-s", "--randseed",   type=int, default=None,             help="Random seed [None], seed is taken from config file")
-    parser.add_argument("-pg", "--plotgraph", dest="plotgraph", action="store_true", default = False, help = "Plot smp graph")
-    # parser.add_argument("-sp", "--saveplot", type=int, default=None,             help="Random seed [None], seed is taken from config file")
+    parser.add_argument("-s", "--randseed",   type=int, default=None,             help="Random seed [None], if None, seed is taken from config file")
+    parser.add_argument("-pg", "--plotgraph", dest="plotgraph", action="store_true", default = False, help = "Enable plot of smp graph [False]")
+    parser.add_argument("-sp",  "--saveplot",     dest="saveplot",  action="store_true", default = None, help = "Enable saving the plots of this experiment [None]")
+    parser.add_argument("-nsp", "--no-saveplot",  dest="saveplot",  action="store_false", default = None, help = "Disable saving the plots of this experiment [None]")
 
     # parse arguments
     args = parser.parse_args()
@@ -75,7 +78,7 @@ def set_config_commandline_args(conf, args):
     """
     # for commandline_arg in conf['params'].has_key("numsteps"):
     #     conf['params']['numsteps'] = 100
-    gparams = ['numsteps', 'randseed', 'ros', 'docache']
+    gparams = ['numsteps', 'randseed', 'ros', 'docache', 'saveplot']
     for clarg in gparams:
         if getattr(args, clarg) is not None:
             conf['params'][clarg] = getattr(args, clarg)
@@ -195,7 +198,7 @@ class Experiment(object):
         self.conf = set_config_defaults(self.conf)
         # update conf from commandline arguments
         self.conf = set_config_commandline_args(self.conf, args)
-        
+
         # initialize ROS if needed
         if self.conf['params']['ros']:
             import rospy
@@ -318,10 +321,11 @@ class Experiment(object):
         Show a visualization of the initialized top graph defining the
         experiment in 'self.topblock.nxgraph'.
         """
-        axesspec = [(0, 0), (0, 1), (0, 2), (0, slice(3, None))]
-        axesspec = [(0, 0), (0,1), (1, 0), (1,1)]
+        # axesspec = [(0, 0), (0, 1), (0, 2), (0, slice(3, None))]
+        # axesspec = [(0, 0), (0,1), (1, 0), (1,1)]
+        axesspec = None
         graph_fig = makefig(
-            rows = 2, cols = 2, wspace = 0.1, hspace = 0.1,
+            rows = 1, cols = 3, wspace = 0.1, hspace = 0.1,
             axesspec = axesspec, title = "Nxgraph and Bus")
         
         # nxgraph_plot(self.topblock.nxgraph, ax = graph_fig.axes[0])
@@ -345,21 +349,26 @@ class Experiment(object):
         print "G_cols", G_cols
         nxgraph_plot(G_, ax = graph_fig.axes[1], layout_type = "linear_hierarchical", node_color = G_cols, node_size = 300)
         
-        # plot the nested graph
-        recursive_draw(
-            self.topblock.nxgraph,
-            ax = graph_fig.axes[2],
-            node_size = 100,
-            currentscalefactor = 1.0,
-            shrink = 0.8)
+        # # plot the nested graph
+        # recursive_draw(
+        #     self.topblock.nxgraph,
+        #     ax = graph_fig.axes[2],
+        #     node_size = 100,
+        #     currentscalefactor = 1.0,
+        #     shrink = 0.8)
 
         # plot the bus with its builtin plot method
-        self.topblock.bus.plot(graph_fig.axes[3])
+        self.topblock.bus.plot(graph_fig.axes[2])
 
-        # save the plot if 'saveplot' is set
-        if self.conf['params']['saveplot']:
+        # save the plot if saveplot is set
+        if self.params['saveplot']:
             filename = "data/%s_%s.%s" % (self.topblock.id, "graph_bus", 'jpg')
-            graph_fig.savefig(filename, dpi=300, bbox_inches="tight")
+            try:
+                print "Saving experiment graph plot to %s" % (filename, )
+                graph_fig.set_size_inches(9, 3)
+                graph_fig.savefig(filename, dpi=300, bbox_inches="tight")
+            except Exception, e:
+                print "Saving experiment graph plot to %s failed with %s" % (filename, e,)
 
     def printgraph_recursive(self, G, lvl = 0):
         indent = " " * 4 * lvl
@@ -403,11 +412,11 @@ class Experiment(object):
             # pdb.set_trace()
             # FIXME: progress bar / display        
             
-        print "final return value topblock.x = %s" % (topblock_x)
+        # print "final return value topblock.x = %s" % (topblock_x)
 
-        # # write store
-        # self.experiments.to_hdf('data/experiments_store.h5', 'data')
-
+        # final writes: log store, experiment/block store?, graphics, models
+        # self.topblock.bus.plot(graph_fig.axes[3])
+        
         self.printgraph()
         
         # plot the computation graph and the bus
