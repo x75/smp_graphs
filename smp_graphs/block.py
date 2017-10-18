@@ -604,22 +604,30 @@ class Block2(object):
         self.blocksize = min(self.top.numsteps, self.blocksize)
 
     def init_colors(self):
-        # print "type", type(plot_colors)
-        linelen = 20 # len(plot_colors.keys()) # 1000
-        b = np.fromstring(str(self.conf), dtype=np.uint8)
-        bmod = b.shape[0] % linelen
-        # print "Block2-%s.init_colors conf bitvec = %s, modlen = %s" % (self.id, b.shape, bmod)
-        # if bmod != 0:
-        b = np.pad(b, (0, linelen - bmod), mode = 'constant')
-        # print "id", self.id, "b", b.shape
-        # print "Block2-%s.init_colors conf bitvec = %s, modlen = %s" % (self.id, b.shape, bmod)
-        # c = b.reshape((-1, linelen)).mean(axis = 0)
-        # c = (b.min(), b.mean(), b.max())
-        # c = np.mean(b/np.max(b))
-        c = int(np.sum(b) % linelen)
+        """Compute block identity in color
+        """
+
+        def get_color_from_confstr(confstr):
+            # print "type", type(plot_colors)
+            linelen = 20 # len(plot_colors.keys()) # 1000
+            b = np.fromstring(str(self.conf), dtype=np.uint8)
+            bmod = b.shape[0] % linelen
+            # print "Block2-%s.init_colors conf bitvec = %s, modlen = %s" % (self.id, b.shape, bmod)
+            # if bmod != 0:
+            b = np.pad(b, (0, linelen - bmod), mode = 'constant')
+            # print "id", self.id, "b", b.shape
+            # print "Block2-%s.init_colors conf bitvec = %s, modlen = %s" % (self.id, b.shape, bmod)
+            # c = b.reshape((-1, linelen)).mean(axis = 0)
+            # c = (b.min(), b.mean(), b.max())
+            # c = np.mean(b/np.max(b))
+            c = int(np.sum(b) % linelen)
         
-        ck = plot_colors.keys()[c]
-        # print "Block2-%s.init_colors k = %s, ck = %s, color = %s" % (self.id, c, ck, plot_colors[ck])
+            ck = plot_colors.keys()[c]
+            # print "Block2-%s.init_colors k = %s, ck = %s, color = %s" % (self.id, c, ck, plot_colors[ck])
+            return ck
+
+        # def get_color_from_mapping():
+            
         
         # block color
         self.block_color = plot_colors[ck]
