@@ -239,7 +239,7 @@ graph = OrderedDict([
                     # stack inputs into one vector (stack, combine, concat)
                     # {'input': ['meshgrid_d0', 'meshgrid_d1', 's_proprio0', 's_proprio1', 's_extero', 'ds_extero'], 'mode': 'stack',
                     #      'plot': 'hist2d'},
-                    {'input': ['meshgrid_d0', 's_proprio0'], 'mode': 'stack',
+                    {'input': ['meshgrid_d1', 's_proprio0'], 'mode': 'stack',
                          'plot': 'hist2d'},
                 ],
             ],

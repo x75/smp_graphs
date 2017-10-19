@@ -626,8 +626,14 @@ class Block2(object):
             # print "Block2-%s.init_colors k = %s, ck = %s, color = %s" % (self.id, c, ck, plot_colors[ck])
             return ck
 
-        # def get_color_from_mapping():
+        def get_color_from_mapping():
+            if not hasattr(self.top, 'colorcnt'):
+                self.top.colorcnt = 0
+            else:
+                self.top.colorcnt += 1
+            return plot_colors.keys()[self.top.colorcnt]
             
+        ck = get_color_from_mapping()
         
         # block color
         self.block_color = plot_colors[ck]
