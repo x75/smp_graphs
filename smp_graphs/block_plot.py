@@ -685,8 +685,8 @@ class SnsMatrixPlotBlock2(BaseplotBlock2):
             else:
                 plotdata_shape = subplotconf['shape']
             print "       ndslice plotshape", plotdata_shape
-                        
-            plotdata = plotdata.T.reshape(plotdata_shape)
+
+            plotdata = myt(plotdata).reshape(plotdata_shape)
             print "       ndslice plotdata", plotdata.shape
     
             return plotdata    
