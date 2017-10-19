@@ -52,6 +52,37 @@ from hyperopt import STATUS_OK, STATUS_FAIL
 
 BLOCKSIZE_MAX = 10000
 
+# snacked from http://matplotlib.org/mpl_examples/color/colormaps_reference.py
+block_cmaps = dict([('perceptually_uniform_sequential', [
+            'viridis', 'plasma', 'inferno', 'magma']),
+         ('sequential', [
+            'Greys', 'Purples', 'Blues', 'Greens', 'Oranges', 'Reds',
+            'YlOrBr', 'YlOrRd', 'OrRd', 'PuRd', 'RdPu', 'BuPu',
+            'GnBu', 'PuBu', 'YlGnBu', 'PuBuGn', 'BuGn', 'YlGn']),
+         ('sequential2', [
+            'binary', 'gist_yarg', 'gist_gray', 'gray', 'bone', 'pink',
+            'spring', 'summer', 'autumn', 'winter', 'cool', 'Wistia',
+            'hot', 'afmhot', 'gist_heat', 'copper']),
+         ('diverging', [
+            'PiYG', 'PRGn', 'BrBG', 'PuOr', 'RdGy', 'RdBu',
+            'RdYlBu', 'RdYlGn', 'Spectral', 'coolwarm', 'bwr', 'seismic']),
+         ('qualitative', [
+            'Pastel1', 'Pastel2', 'Paired', 'Accent',
+            'Dark2', 'Set1', 'Set2', 'Set3',
+            'tab10', 'tab20', 'tab20b', 'tab20c']),
+         ('miscellaneous', [
+            'flag', 'prism', 'ocean', 'gist_earth', 'terrain', 'gist_stern',
+            'gnuplot', 'gnuplot2', 'CMRmap', 'cubehelix', 'brg', 'hsv',
+            'gist_rainbow', 'rainbow', 'jet', 'nipy_spectral', 'gist_ncar'])])
+
+block_groups = {
+    'graph': {'cmap': block_cmaps['sequential2'][5]}, # 'bone'},
+    'data': {'cmap': block_cmaps['sequential2'][6]}, # 'pink'},
+    'comp': {'cmap': block_cmaps['sequential2'][7]}, # 'hot'},
+    'measure': {'cmap': block_cmaps['sequential2'][8]}, # 'cool'},
+    'output': {'cmap': block_cmaps['sequential2'][9]}, # 'copper'},
+}
+
 ################################################################################
 # utils, TODO move to utils.py
 def ordereddict_insert(ordereddict = None, insertionpoint = None, itemstoadd = []):
@@ -470,6 +501,7 @@ class Block2(object):
         'phase': [0],
         'subgraph_rewrite_id': True, #
         'inputs_clamp': False,
+        'block_group': 'graph',
     }
 
     @decInit()
@@ -507,6 +539,10 @@ class Block2(object):
         # get the nesting level in composite graph
         self.nesting_level = self.get_nesting_level()
         self.nesting_indent = " " * 4 * self.nesting_level
+
+        # fix the block's group
+        print "Block2 %s self.block_group" % (self.id,), self.block_group
+        if type(self.block_group) is str: self.block_group = [self.block_group]
         
         ################################################################################
         # 1 general top block stuff: init bus, set top to self, init logging
@@ -606,7 +642,7 @@ class Block2(object):
     def init_colors(self):
         """Compute block identity in color
         """
-
+        # print "block_cmaps", block_cmaps
         def get_color_from_confstr(confstr):
             # print "type", type(plot_colors)
             linelen = 20 # len(plot_colors.keys()) # 1000
@@ -624,19 +660,35 @@ class Block2(object):
         
             ck = plot_colors.keys()[c]
             # print "Block2-%s.init_colors k = %s, ck = %s, color = %s" % (self.id, c, ck, plot_colors[ck])
-            return ck
+            return plot_colors[ck]
 
-        def get_color_from_mapping():
+        def get_color_from_plot_colors():
             if not hasattr(self.top, 'colorcnt'):
                 self.top.colorcnt = 0
             else:
                 self.top.colorcnt += 1
-            return plot_colors.keys()[self.top.colorcnt]
+            ck =  plot_colors.keys()[self.top.colorcnt]
+            return plot_colors[ck]
             
-        ck = get_color_from_mapping()
+        def get_color_from_cmap():
+            # if not hasattr(self.top, 'colormap'):
+            #     self.top.colormap = plt.get_cmap('gist_ncar')
+                
+            if not hasattr(self.top, 'colorcnt'):
+                self.top.colorcnt = 0
+            else:
+                self.top.colorcnt += 1
+                
+            # return plot_colors.keys()[self.top.colorcnt]
+            group_cmap = block_groups[self.block_group[0]]['cmap']
+            print "%s init_colors is group %s, cmap = %s" % (self.id, self.block_group[0], group_cmap)
+            return plt.get_cmap(group_cmap)(self.top.colorcnt / 77.0)
+            
+        # ck = get_color_from_plot_colors()
         
         # block color
-        self.block_color = plot_colors[ck]
+        # self.block_color = get_color_from_plot_colors()
+        self.block_color = get_color_from_cmap()
     
     def init_block(self):
         """Block2.init_block
@@ -864,16 +916,26 @@ class Block2(object):
             
             # store exists?
             if len(block.top.block_store.keys()) > 0:
-                print "block.top.block_store.keys()", block.top.block_store.keys()
+                # print "init_block_cache: block.top.block_store.keys()", block.top.block_store.keys()
+                # print "init_block_cache: block.top.block_store.has_key('/blocks')", '/blocks' in block.top.block_store.keys()
                 # print "check_block_store", block.top.block_store['blocks'].shape
-                print "self.md5", self.cname, self.id, self.md5
-                # print "blocks", type(block.top.block_store['blocks'])
-                self.cache = block.top.block_store['blocks'][:][block.top.block_store['blocks']['md5'] == self.md5]
+                # print "init_block_cache: self.md5", self.cname, self.id, self.md5
+                # print "blocks", type(block.top.block_store['/blocks'])
+                # print block.top.block_store['blocks']['md5'] == self.md5
+                # print block.top.block_store['/blocks']
+                
+                try:
+                    self.cache = block.top.block_store['blocks'][:][block.top.block_store['blocks']['md5'] == self.md5]
+                except Exception, e:
+                    print "%s-%s.check_block_store cache retrieval for %s failed with %s" % (self.cname, self.id, self.md5, e)
+                    self.cache = None
+                    
                 # print "check_block_store", self.md5, block.top.block_store['blocks']['md5']
-
+                # print "init_block_cache: self.cache", self.cache
+                
             # found cache
             if self.top.cached and self.cache is not None and self.cache.shape[0] != 0:
-                print "Block2.init check_block_store: found cache for %s\n   cache['log_stores'] = %s" % (self.md5, self.cache['log_store'].values)
+                print "%s-%s.check_block_store: found cache for %s\n   cache['log_stores'] = %s" % (self.cname, self.id, self.md5, self.cache['log_store'].values)
                 
                 # FIXME: check experiment.cache to catch randseed and numsteps
                 # load cached data
@@ -884,19 +946,19 @@ class Block2(object):
                     print "output %s cached data = %s" % (outk, x_.shape)
                     self.cache_data[outk] = x_.copy()
             else:
-                print "Block2.init check_block_store: no cache exists, storing %s at %s" % (self.conf, self.md5)
+                print "%s-%s.check_block_store: no cache exists for %s, storing %s at %s" % (self.cname, self.id, self.md5, self.conf, self.md5)
                 
                 # create entry and save
                 columns = ['md5', 'timestamp', 'block', 'params', 'log_store'] # 'experiment',
                 values = [[self.md5, pd.to_datetime(datetime.datetime.now()), str(block.conf['block']), str(block.conf['params']), log.log_store.filename]]
                 df = pd.DataFrame(data = values, columns = columns)
-                # print "df", df
+                # print "df =\n", df
 
                 # block store is empty
                 if len(block.top.block_store.keys()) < 1:
-                    block.top.block_store['blocks'] = df
+                    block.top.block_store['/blocks'] = df
                 else:
-                    block.top.block_store['blocks'] = pd.concat([block.top.block_store['blocks'], df])
+                    block.top.block_store['/blocks'] = pd.concat([block.top.block_store['/blocks'], df])
 
         if self.top.cached:
             check_block_store(block = self)
@@ -1509,11 +1571,12 @@ class FuncBlock2(Block2):
         'func': lambda x: {'x': x['x']['val']},
         'inputs': {
             'x': {'bus': 'cnt/x'},
-            },
+        },
         'outputs': {
             'x': {'shape': (1,1)},
-            }
-        }
+        },
+        'block_group': 'comp',
+    }
         
     def __init__(self, conf = {}, paren = None, top = None):
         """FuncBlock2.__init__
@@ -1851,11 +1914,16 @@ class PrimBlock2(Block2):
     Base class for primitive blocks as opposed to compositional ones
     containing graphs themselves.
     """
+    defaults = {
+        'block_group': 'comp',
+    }
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
         # merge Block2 base defaults with child defaults
         defaults = {}
+        defaults.update(Block2.defaults)
         defaults.update(PrimBlock2.defaults, **self.defaults)
+        self.defaults = defaults
         
         Block2.__init__(self, conf = conf, paren = paren, top = top)
 
@@ -2108,6 +2176,9 @@ class ConstBlock2(PrimBlock2):
 
     Constant block: output is a constant vector
     """
+    defaults = {
+        'block_group': 'data',
+        }
     def __init__(self, conf = {}, paren = None, top = None):
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
         
@@ -2132,6 +2203,7 @@ class CountBlock2(PrimBlock2):
         'outputs': {
             'x': {'shape': (1,1)}
             },
+        'block_group': 'data',
         }
         
     @decInit()
@@ -2171,6 +2243,9 @@ class UniformRandomBlock2(PrimBlock2):
     Generate uniform random numbers, output is a vector random sample
     from uniform distribution.
     """
+    defaults = {
+        'block_group': 'data',
+    }
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)

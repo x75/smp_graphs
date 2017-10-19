@@ -10,6 +10,9 @@ from smp_graphs.block  import PrimBlock2
 
 class FileBlock2(Block2):
     """!@brief File block: read some log or data file and output blocksize lines each step"""
+    defaults = {
+        'block_group': 'data',
+    }
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
         # ad hoc default
@@ -272,6 +275,9 @@ class SequencerBlock2(PrimBlock2):
     Emit a predefined sequence of values, usually slowly changing constants
     specified by dict sequences of key (time): value: dict
     """
+    defaults = {
+        'block_group': 'data',
+    }
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
 

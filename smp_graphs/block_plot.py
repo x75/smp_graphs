@@ -42,6 +42,7 @@ class AnalysisBlock2(PrimBlock2):
     defaults = {
         'saveplot': False,
         'savetype': 'jpg',
+        'block_group': 'measure',
         }
     def __init__(self, conf = {}, paren = None, top = None):
         # use inputs from logfile even in no-cached epxeriment
@@ -49,8 +50,14 @@ class AnalysisBlock2(PrimBlock2):
         # saving plots
         self.saveplot = False
         self.savetype = "jpg"
+
+        defaults = {}
+        # defaults.update(Block2.defaults)
+        defaults.update(PrimBlock2.defaults, **self.defaults)
+        self.defaults = defaults
+        
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
-        print "AnalysisBlock2.init", conf['params']['saveplot'], self.conf['params']['saveplot']
+        # print "AnalysisBlock2.init", conf['params']['saveplot'], self.conf['params']['saveplot']
         print "AnalysisBlock2.init", self.saveplot
 
         # default title?
@@ -94,8 +101,33 @@ class AnalysisBlock2(PrimBlock2):
         else:
             conf_plot = conf['plot']
         return conf_plot
+
+class BaseplotBlock2(AnalysisBlock2):
+    """Plotting base class
     
-class FigPlotBlock2(AnalysisBlock2):
+    Common features for all plots.
+
+    Variants:
+     - :class:`FigPlotBlock2' is :mod:`matplotlib` figure based plot block
+     - :class:`SnsMatrixPlotBlock2` is a :mod:`seaborn` based plot which do not cooperate with external figure handles
+
+    Plot block_group is both measure _and_ output [wins]
+    """
+    defaults = {
+        'block_group': ['output', 'measure'],
+    }
+    @decInit()
+    def __init__(self, conf = {}, paren = None, top = None):
+        # update child class 'self' defaults
+        # self.defaults.update(BaseplotBlock2.defaults)
+        defaults = {}
+        # defaults.update(Block2.defaults)
+        defaults.update(AnalysisBlock2.defaults, **self.defaults)
+        self.defaults = defaults
+        # super init
+        AnalysisBlock2.__init__(self, conf = conf, paren = paren, top = top)
+    
+class FigPlotBlock2(BaseplotBlock2):
     """FigPlotBlock2 class
 
     Plotting block base class for matplotlib figure-based plots. Creates the figure and a gridspec on init, uses fig.axes in the step function
@@ -110,7 +142,7 @@ class FigPlotBlock2(AnalysisBlock2):
         # defaults
         self.wspace = 0.0
         self.hspace = 0.0
-        AnalysisBlock2.__init__(self, conf = conf, paren = paren, top = top)
+        BaseplotBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
         # configure figure and plot axes
         self.fig_rows = len(self.subplots)
@@ -216,7 +248,8 @@ class PlotBlock2(FigPlotBlock2):
     
     def __init__(self, conf = {}, paren = None, top = None):
         FigPlotBlock2.__init__(self, conf = conf, paren = paren, top = top)
-
+        print "PlotBlock2 block_group", self.block_group
+        
     def plot_subplots(self):
         """loop over configured subplot and plot the data according to config"""
         self.debug_print("%s plot_subplots self.inputs = %s",
@@ -353,11 +386,8 @@ class PlotBlock2(FigPlotBlock2):
                     inkc = 0
                     for ink, inv in plotdata.items():
                         # print "%s.plot_subplots: ink = %s, plotvar = %s, inv.sh = %s, t.sh = %s" % (self.cname, ink, plotvar, inv.shape, t.shape)
-                        if type(subplotconf['plot']) is list:
-                            plotfunc_conf = subplotconf['plot'][inkc]
-                        else:
-                            plotfunc_conf = subplotconf['plot']
-                            
+                        plotfunc_conf = self.check_plot_type(subplotconf, defaults = {'plot': plt.hexbin})
+
                         # this is the plotfunction from the config
                         plotfunc_conf(self.fig.axes[idx], data = inv, ordinate = t, label = "%s" % ink, title = title)
                         # labels.append("%s" % ink)
@@ -566,7 +596,7 @@ class ImgPlotBlock2(FigPlotBlock2):
 
 ################################################################################
 # non FigPlot plot blocks
-class SnsMatrixPlotBlock2(AnalysisBlock2):
+class SnsMatrixPlotBlock2(BaseplotBlock2):
     """SnsMatrixPlotBlock2 class
 
     Plot block for seaborn pairwaise matrix plots: e.g. scatter, hexbin, ...
@@ -584,8 +614,8 @@ class SnsMatrixPlotBlock2(AnalysisBlock2):
     def __init__(self, conf = {}, paren = None, top = None):
         # self.saveplot = False
         # self.savetype = 'jpg'
-        AnalysisBlock2.__init__(self, conf = conf, paren = paren, top = top)
-
+        BaseplotBlock2.__init__(self, conf = conf, paren = paren, top = top)
+        
 
     @decStep()
     def step(self, x = None):

@@ -9,7 +9,7 @@ TODO
 
 import numpy as np
 
-from smp_graphs.block import decStep, PrimBlock2
+from smp_graphs.block import decStep, Block2, PrimBlock2
 from smp_sys.systems import PointmassSys, Pointmass2Sys
 from smp_sys.systems import SimplearmSys
 from smp_sys.systems_bhasim import BhaSimulatedSys
@@ -23,9 +23,16 @@ from mpl_toolkits.mplot3d import Axes3D
 
 class SysBlock2(PrimBlock2):
     """!@brief Basic system block"""
+    defaults = {
+        'block_group': 'data',
+    }
     def __init__(self, conf = {}, paren = None, top = None):
+        defaults = {}
+        defaults.update(Block2.defaults)
+        defaults.update(PrimBlock2.defaults, **self.defaults)
+        self.defaults = defaults
+        
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
-
 
 class PointmassBlock2(SysBlock2):
     """!@brief Pointmass system block, very thin wrapper around smp_sys.systems.PointmassSys"""
