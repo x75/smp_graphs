@@ -103,9 +103,10 @@ loopblock = {
                 'params': {
                     'id': 'motordel',
                     'blocksize': sweepsys_input_flat, # 1,
+                    'flat': True, # False,
                     'inputs': {
-                        'y0': {'bus': 'sweepsys_grid/meshgrid', 'delay': 0, },
-                        'y1': {'bus': 'sweepsys_grid/meshgrid', 'delay': 1, },
+                        'y0': {'bus': 'sweepsys_grid/meshgrid', 'delay': [0], },
+                        'y1': {'bus': 'sweepsys_grid/meshgrid', 'delay': [1], },
                         's_proprio0': {'bus': 'robot0/s_proprio', 'delay': 0, },
                         's_proprio1': {'bus': 'robot0/s_proprio', 'delay': 1, },
                         },
@@ -168,7 +169,7 @@ graph = OrderedDict([
                 'meshgrid_d0': {
                     # 'bus': 'sweepsys/meshgrid',
                     'bus': 'motordel_ll0/dy0',
-                    'shape': (dim_s_proprio, sweepsys_input_flat)},
+                    'shape': (dim_s_proprio, 1, sweepsys_input_flat)},
                 'meshgrid_d1': {
                     'bus': 'motordel_ll0/dy1',
                     'shape': (dim_s_proprio, sweepsys_input_flat)},
@@ -188,7 +189,8 @@ graph = OrderedDict([
                 'hspace': 0.2,
                 'subplots': [
                     [
-                        {'input': ['meshgrid_d0', 's_proprio0'], 'plot': timeseries},
+                        # 'ndslice': (slice(None), slice(None), slice(None)), 
+                        {'input': ['meshgrid_d1', 's_proprio0'], 'shape': (dim_s_proprio, sweepsys_input_flat), 'plot': timeseries},
                     ],
                     # [
                     #     {'input': ['s_proprio0'], 'plot': timeseries},

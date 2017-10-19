@@ -590,7 +590,39 @@ class ImgPlotBlock2(FigPlotBlock2):
         # update
         plt.draw()
         plt.pause(1e-9)
-                        
+
+################################################################################
+# from input vector of size n: set of vector elements, set of all undirected pairs
+# from input time offsets: set of all time offset for a pair
+# matrix of binary measure for all pairs (rows) for all time offsets (cols)
+
+# compute delay bank (block)
+# compute full variable stack vector (block)
+
+# compute measure
+# compute image0d
+#  - avg MI
+# compute image2d
+#  - hexbin(x,y) or hexbin(x,y,C)
+#  - hist2d
+#  - scatter2d
+#  - recurrence_plot_2d
+#  - dimstack(imagend)
+# compute imagend
+#  - histnd
+#  - scatternd
+
+# plot stack of images: single array, list of arrays, list of lists of array
+#  - subplotgrid
+#  - imagegrid
+
+
+class MatrixPlotBlock2(FigPlotBlock2):
+    def __init__(self, conf = {}, paren = None, top = None):
+        FigPlotBlock2.__init__(self, conf = conf, paren = paren, top = top)
+
+    def plot_subplots(self):
+        pass
 
 ################################################################################
 # non FigPlot plot blocks

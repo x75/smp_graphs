@@ -277,11 +277,13 @@ class decStep():
         FIXME: make dump environment configurable: pdb, InteractiveConsole, ...
         FIXME: make try/except depend on __debug__, xself.top.debug, xself.debug
         """
-        try:
-            return self.wrap_l1(xself, f, args, kwargs)
-        except Exception, e:
-            pdb.set_trace()
-            return None
+        # try:
+        #     return self.wrap_l1(xself, f, args, kwargs)
+        # except Exception, e:
+        #     pdb.set_trace()
+        #     return None
+
+        return self.wrap_l1(xself, f, args, kwargs)
     
     def wrap_l1(self, xself, f, *args, **kwargs):
         """Block2.step decorator (decStep) wrapper level 1
@@ -2075,65 +2077,129 @@ class DelayBlock2(PrimBlock2):
     Delay block: delay signal with internal ringbuffer delay line.
 
     Params: inputs, delay in steps / shift
+
+    FIXME: mdp's TimeDelaySlidingWindowNode
     """
+    defaults = {
+        'flat': False, # flatten output
+        'full': False, # full contiguous output up to delay_max
+        'outputs': {},
+    }
     @decInit() # outputs from inputs block decorator
     def __init__(self, conf = {}, paren = None, top = None):
         """DelayBlock2 init"""
         params = conf['params']
-        if not params.has_key('outputs'):
-            params['outputs'] = {}
+
+        for dk, dv in self.defaults.items():
+            if not params.has_key(dk):
+                params[dk] = dv
 
         delays_ = {}
-            
+
+        # loop over input items
         for ink, inv in params['inputs'].items():
             # get input shape
             # assert top.bus.has_key(params['inputs'][ink]['bus']), "DelayBlock2 needs existing bus item at %s to infer delay shape" % (params['inputs'][ink]['bus'], )
-            if top.bus.has_key(params['inputs'][ink]['bus']):
-                inshape = top.bus[params['inputs'][ink]['bus']].shape
+            if top.bus.has_key(inv['bus']):
+                inshape = top.bus[inv['bus']].shape
             else:
                 inshape = inv['shape']
+                
             # alloc delay block
             if params.has_key('delays'):
-                delays_ = params['delays'][ink]
+                # assert params['inputs'].keys() == params['delays'].keys()
+                delays_[ink] = params['delays'][ink]
                 # setattr(self, "%s_" % ink, np.zeros((inshape[0], inshape[1] + params['delays'][ink])))
             else:
                 delays_[ink] = inv['delay']
                 # setattr(self, "%s_" % ink, np.zeros((inshape[0], inshape[1] + inv['delay'])))
-            setattr(self, "%s_" % ink, np.zeros((inshape[0], inshape[1] + delays_[ink])))
                 
-            # set output members
-            params['outputs']["d%s" % ink] = {'shape': inshape}
+            # fix lazy one-element lists
+            if type(delays_[ink]) is not list:
+                delays_[ink] = [delays_[ink]]
+                
+            # get max delay
+            delay_max = np.max(delays_[ink])
+            delay_num = len(delays_[ink])
 
+            # set output members
+            # params['outputs']["d%s" % ink] = {'shape': inshape}
+            # params['outputs']["d%s" % ink] = {'shape': getattr(self, '%s_' % ink).shape}
+            if params['flat']:
+                outshape = (inshape[0], inshape[1] * (delay_num + 1) )
+            else:
+                outshape = (inshape[0], (delay_num + 1), inshape[1] )
+            params['outputs']["d%s" % ink] = {'shape': outshape}
+            bufshape = (inshape[0], inshape[1] + (delay_max + 1) )
+            setattr(self, "%s_" % ink, np.zeros(bufshape))
+
+        # rename to canonical
         params['delays'] = delays_
-            
+
+        # self.delaytaps
+        
         # base block init
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
+        self.delaytaps = {}
+        for k, v in self.delays.items():
+            print "Adding delayed input %s / %s to delaytaps" % (k, v)
+            delay_tap = -np.array(v) - 1
+            delay_tap_bs = (delay_tap - np.tile(np.array(range(self.blocksize, 0, -1)), (delay_tap.shape[0],1)).T).T
+            if self.flat:
+                delay_tap_bs = delay_tap_bs.flatten()
+            self.delaytaps[k] = delay_tap_bs.copy()
+            print "added ", self.delaytaps[k]
+
+        
+        print "DelayBlock2.init blocksize", self.blocksize
+        print "DelayBlock2.init delays", self.delays
+        print "DelayBlock2.init delays", self.delaytaps
+        
     @decStep()
     def step(self, x = None):
         """DelayBlock2 step"""
+        # loop over input items
         for ink in self.inputs.keys():
-            # output key
+            # get output key
             outk = "d%s" % ink
-            # input from last block
+            # get buffer key
             ink_ = "%s_" % ink
             # stack last and current block input
-            # tmp_   = np.hstack((inv_, self.inputs[ink][0]))
-            # slice -(blocksize + 1) until now
             inv_ = getattr(self, ink_)
-            sl = slice(self.delays[ink], self.delays[ink]+self.blocksize)
-            # print "DelayBlock2: ink", ink, "sl", sl, "inv_", inv_.shape, "input", self.inputs[ink]['val'].shape
-            inv_[...,sl] = self.inputs[ink]['val'].copy()
-            # print "DelayBlock2: ink", ink, inv_[...,sl].shape
+
+            # print "outk", outk,"ink_", ink_, "inv_", inv_.shape
+            # # copy current input into beginning of delay line inv_
+            # # sl = slice()
+            # inv_[...,-self.blocksize:] = self.inputs[ink]['val'].copy()
+
+            # # copy delayed input into output
+            # delay_tap = -np.array(self.delays[ink]) - 1
+            # print "delay_tap", delay_tap
+            # setattr(self, outk, inv_[...,delay_tap])
             
-            # compute the diff in the input
-            # din = np.diff(tmp_[:,tmp_sl], axis = 1) # * self.d
-            # which should be same shape is input
-            # assert din.shape == self.inputs[ink][0].shape
-            setattr(self, outk, inv_[...,slice(0, self.blocksize)])
+            # sl = slice(self.delays[ink], self.delays[ink]+self.blocksize)
+            
+            # write blocksize most current input data into buffer
+            sl = slice(-self.blocksize, None)
+            inv_[...,sl] = self.inputs[ink]['val'].copy()
+            
+            # print "DelayBlock2: ink", ink, "sl", sl, "inv_", inv_.shape, "input", self.inputs[ink]['val'].shape
+            # print "DelayBlock2: ink", ink, inv_[...,sl].shape
+
+            # outputs
+
+            delaytap = self.delaytaps[ink]
+            print "delaytap", delaytap.shape, delaytap, self.blocksize
+            setattr(self, outk, inv_[...,delaytap])
+
+            
+            # setattr(self, outk, inv_[...,slice(0, self.blocksize)])
+
             # print "DelayBlock2 outk %s shape" %(outk,), self.inputs[ink]['val'].shape, getattr(self, ink_).shape, getattr(self, outk) # [...,[-1]].shape, self.inputs[ink]['val'].shape #, din.shape
-            # store current input
-            setattr(self, ink_, np.roll(inv_, shift = -self.blocksize, axis = 1))
+            
+            # delay current input for blocksize steps
+            setattr(self, ink_, np.roll(inv_, shift = -self.blocksize, axis = -1))
                         
 class SliceBlock2(PrimBlock2):
     """SliceBlock2

@@ -1,6 +1,8 @@
 """smp_graphs puppy recurrence plot conf
 """
 
+from smp_base.plot import rp_timeseries_embedding
+
 # reuse
 numsteps = 500
 blocksize = 100
