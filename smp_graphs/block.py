@@ -31,7 +31,7 @@ import matplotlib.patches as patches
 from smp_base.plot import plot_colors, makefig, set_interactive
 
 import smp_graphs.logging as log
-from smp_graphs.utils import print_dict, xproduct, myt
+from smp_graphs.utils import print_dict, ordereddict_insert, xproduct, myt
 
 from smp_graphs.common import conf_header, conf_footer, get_input
 from smp_graphs.common import md5, get_config_raw, get_config_raw_from_string
@@ -82,34 +82,6 @@ block_groups = {
     'measure': {'cmap': block_cmaps['sequential2'][8]}, # 'cool'},
     'output': {'cmap': block_cmaps['sequential2'][9]}, # 'copper'},
 }
-
-################################################################################
-# utils, TODO move to utils.py
-def ordereddict_insert(ordereddict = None, insertionpoint = None, itemstoadd = []):
-    """ordereddict_insert
-
-    Self rolled ordered dict insertion from http://stackoverflow.com/questions/29250479/insert-into-ordereddict-behind-key-foo-inplace
-    """
-    assert ordereddict is not None
-    assert insertionpoint in ordereddict.keys(), "insp = %s, keys = %s, itemstoadd = %s" % (insertionpoint, ordereddict.keys(), itemstoadd)
-    new_ordered_dict = ordereddict.__class__()
-    for key, value in ordereddict.items():
-        new_ordered_dict[key] = value
-        if key == insertionpoint:
-            # check if itemstoadd is list or dict
-            if type(itemstoadd) is list:
-                for item in itemstoadd:
-                    keytoadd, valuetoadd = item
-                    new_ordered_dict[keytoadd] = valuetoadd
-            else:
-                for keytoadd, valuetoadd in itemstoadd.items():
-                    new_ordered_dict[keytoadd] = valuetoadd
-        # else:
-        #     print "insertionpoint %s doesn't exist in dict" % (insertionpoint)
-        #     sys.exit(1)
-    ordereddict.clear()
-    ordereddict.update(new_ordered_dict)
-    return ordereddict
 
 ################################################################################
 # smp_graphs types: create some types for use in configurations like const, bus, generator, func, ...
@@ -264,6 +236,8 @@ class decInit():
     def __call__(self, f):
         def wrap(xself, *args, **kwargs):
 
+            # FIXME: default propagation goes here probably
+            
             # # print "decInit", kwargs['conf']
             # if not kwargs['conf'].has_key('inputs'):
             #     kwargs['conf']['inputs'] = {}
@@ -282,7 +256,61 @@ class decStep():
 
     Wrap around Block2.step to perform tasks common to all Block2's.
     """
+    def __call__(self, f):
+        """decStep.__call__ is called when decorator is called
 
+        It is only executed once during parse (?) and returns the function pointer to f_wrap(f_orig) composite
+        """
+        def wrap(xself, *args, **kwargs):
+            # return pointer to wrap_l0
+            # print "__debug__", __debug__
+            return self.wrap_l0(xself, f, args, kwargs)
+                
+        # return the composite function
+        return wrap
+
+    def wrap_l0(self, xself, f, *args, **kwargs):
+        """Block2.step decorator (decStep) wrapper level 0
+
+        Wrap the function 'f' inside a try/except and enter pdb shell on exception
+        """
+        try:
+            return self.wrap_l1(xself, f, args, kwargs)
+        except Exception, e:
+            pdb.set_trace()
+            return None
+    
+    def wrap_l1(self, xself, f, *args, **kwargs):
+        """Block2.step decorator (decStep) wrapper level 1
+
+        The actual worker function consisting of
+         1. process_input: copy bus to inputs, copy inputs to outputs with the same name
+         2. check for blk_mode inputs (wip)
+         3. evaluate the original function
+         4. post-process outputs: copy outputs in xself.attr to bus[id/attr]
+        """
+        self.process_input(xself)
+
+        if self.process_blk_mode(xself): return None
+        
+        f_out = self.f_eval(xself, f)
+            
+        self.process_output(xself)
+        
+        # count calls
+        xself.cnt += 1 # should be min_blocksize
+        
+        return f_out
+
+    def process_blk_mode(self, xself):
+        if hasattr(xself, 'inputs') and xself.inputs.has_key('blk_mode'):
+            # print "blk_mode", xself.id, np.sum(xself.inputs['blk_mode']['val']) # xself.inputs['blk_mode']['val'], xself.inputs['blk_mode']['val'] < 0.1
+            if np.sum(xself.inputs['blk_mode']['val']) < 0.1:
+                # print "blub"
+                xself.cnt += 1
+                return True
+        return False
+            
     def process_input(self, xself):
         sname  = self.__class__.__name__
         esname = xself.cname
@@ -371,106 +399,111 @@ class decStep():
                 # # debug in to out copy
                 # print "%s.%s[%d]  self.%s = %s" % (esname, sname, escnt, k, esk)
                 # print "%s.%s[%d] outkeys = %s" % (esname, sname, escnt, xself.outputs.keys())
+                
+    def process_output(self, xself):
+        """post-process xself's outputs by copying output attributes to the bus
+        """
+        # if scheduled by exec timing
+        if self.block_is_scheduled(xself):
+            # for all output items
+            for k, v in xself.outputs.items():
+                # get buskey and sanity check
+                buskey = "%s/%s" % (xself.id, k)
+                
+                # if __debug__:
+                #     print "copy[%d] %s.outputs[%s] = %s / %s to bus[%s], bs = %d" % (
+                #         xself.cnt, xself.id, k, getattr(xself, k), getattr(xself, k).shape,
+                #         buskey, xself.blocksize)
+                
+                assert xself.bus[v['buskey']].shape == v['shape'], "real and desired output shapes need to agree block %s, outk = %s, %s != %s" % (xself.id, k, xself.bus[v['buskey']].shape, v['shape'])
 
-    def process_blk_mode(self, xself):
-        if hasattr(xself, 'inputs') and xself.inputs.has_key('blk_mode'):
-            # print "blk_mode", xself.id, np.sum(xself.inputs['blk_mode']['val']) # xself.inputs['blk_mode']['val'], xself.inputs['blk_mode']['val'] < 0.1
-            if np.sum(xself.inputs['blk_mode']['val']) < 0.1:
-                # print "blub"
-                xself.cnt += 1
-                return True
-        return False
+                # FIXME: for all items in output channels = [bus, log, ros, pdf, latex, ...]
+                
+                # copy data onto bus
+                xself.bus[v['buskey']] = getattr(xself, k).copy()
+                # print "xself.bus[v['buskey'] = %s]" % (v['buskey'], ) , xself.bus[v['buskey']]
+                
+                # copy data into logging
+                if xself.logging:
+                    # try:
+                    log.log_pd(tbl_name = v['buskey'], data = xself.bus[v['buskey']])
+                    # except:
+                    # print "Logging failed"
+
+                # copy data onto ros
+                if hasattr(xself, 'ros') and xself.ros:
+                    theattr = getattr(xself, k).flatten().tolist()
+                    # print "theattr", k, v, theattr
+                    xself.msgs[k].data = theattr
+                    xself.pubs[k].publish(xself.msgs[k])
+        
+        # print "Block2.step[%d] not topblock" % (xself.cnt,)
+        if self.block_is_finished(xself) and hasattr(xself, 'isprimitive') and xself.isprimitive:
+            # print "Block2.step end of episode and primitive"
             
-    def __call__(self, f):
-        def wrap(xself, *args, **kwargs):
-            # print "xself", xself.__dict__.keys()
-            # print xself.id, xself.inputs
-            # if not xself.topblock and hasattr(xself, 'inputs') and xself.inputs['blk_mode'] == 0.0:
-            self.process_input(xself)
+            def update_block_store(block = None, top = None):
+                import datetime
+                assert block is not None, "Need some block to work on"
+                # if not block.isprimitive: return
 
-            if self.process_blk_mode(xself): return None
-            
-            # call the function on blocksize boundaries
-            # FIXME: might not be the best idea to control that on the wrapper level as some
-            #        blocks might need to be called every step nonetheless?
-            # if (xself.cnt % xself.blocksize) == 0: # or (xself.cnt % xself.rate) == 0:
-            # print "xself.cnt", xself.cnt, "blocksize", xself.blocksize, "blockphase", xself.blockphase
-            if (xself.cnt % xself.blocksize) in xself.blockphase: # or (xself.cnt % xself.rate) == 0:
-                # if count aligns with block's execution blocksize
+                # m = md5(str(block.conf))
+                print "update_block_store block = %s (%s)" % (block, block.md5)
 
-                if xself.top.cached and hasattr(xself, 'isprimitive') and xself.isprimitive and xself.cache is not None and xself.cache.shape[0] != 0:
-                    # pass
-                    # print xself.cache_data['x'].shape
-                    for outk, outv in xself.outputs.items():
-                        setattr(xself, outk, xself.cache_data[outk][xself.cnt-xself.blocksize:xself.cnt,...].T)
-                        # print "%s-%s" % (xself.cname, xself.id), "outk", outk, getattr(xself, outk).T
-                        # print "outk", outk, xself.cache_data[outk] # [xself.cnt-xself.blocksize:xself.cnt]
-                    f_out = None
-                else:
-                    # compute the block with step()
-                    f_out = f(xself, None)
+                print "block_store", block.top.block_store.keys()
+                
+                # create entry and save
+                # columns = ['md5', 'timestamp', 'block', 'params', 'log_store'] # 'experiment', 
+                # values = [[block.md5, pd.to_datetime(datetime.datetime.now()), str(block.conf['block']), str(block.conf['params']), 'bla.h5']]
+                # df = pd.DataFrame(data = values, columns = columns)
+                # print "df", df
 
-                # copy output to bus
-                for k, v in xself.outputs.items():
-                    buskey = "%s/%s" % (xself.id, k)
-                    # print "copy[%d] %s.outputs[%s] = %s / %s to bus[%s], bs = %d" % (xself.cnt, xself.id, k, getattr(xself, k), getattr(xself, k).shape, buskey, xself.blocksize)
-                    assert xself.bus[v['buskey']].shape == v['shape'], "real and desired output shapes need to agree block %s, outk = %s, %s != %s" % (xself.id, k, xself.bus[v['buskey']].shape, v['shape'])
-                    # copy data onto bus
-                    xself.bus[v['buskey']] = getattr(xself, k).copy()
-                    # print "xself.bus[v['buskey'] = %s]" % (v['buskey'], ) , xself.bus[v['buskey']]
-                    
-                    # do logging
-                    if xself.logging:
-                        # try:
-                        log.log_pd(tbl_name = v['buskey'], data = xself.bus[v['buskey']])
-                        # except:
-                        # print "Logging failed"
+                # block store is empty
+                # if len(block.top.block_store.keys()) < 1:
+                #     xself.top.block_store['blocks'] = df
+                # else:
+                # xself.top.block_store['blocks'] = pd.concat([xself.top.block_store['blocks'], df])
+                # xself.top.block_store['blocks']['md5' == self.md5][] = 
 
-                    if hasattr(xself, 'ros') and xself.ros:
-                        theattr = getattr(xself, k).flatten().tolist()
-                        # print "theattr", k, v, theattr
-                        xself.msgs[k].data = theattr
-                        xself.pubs[k].publish(xself.msgs[k])
-            else:
+            # update_block_store(block = xself)
+
+    def f_eval(self, xself, f):
+        # call the function on blocksize boundaries
+        # FIXME: might not be the best idea to control that on the wrapper level as some
+        #        blocks might need to be called every step nonetheless?
+        # if (xself.cnt % xself.blocksize) == 0: # or (xself.cnt % xself.rate) == 0:
+        # print "xself.cnt", xself.cnt, "blocksize", xself.blocksize, "blockphase", xself.blockphase
+        # if (xself.cnt % xself.blocksize) in xself.blockphase: # or (xself.cnt % xself.rate) == 0:
+        # if count aligns with block's execution blocksize
+        if self.block_is_scheduled(xself):
+
+            if xself.top.cached and hasattr(xself, 'isprimitive') and xself.isprimitive and xself.cache is not None and xself.cache.shape[0] != 0:
+                # pass
+                # print xself.cache_data['x'].shape
+                for outk, outv in xself.outputs.items():
+                    setattr(xself, outk, xself.cache_data[outk][xself.cnt-xself.blocksize:xself.cnt,...].T)
+                    # print "%s-%s" % (xself.cname, xself.id), "outk", outk, getattr(xself, outk).T
+                    # print "outk", outk, xself.cache_data[outk] # [xself.cnt-xself.blocksize:xself.cnt]
                 f_out = None
-
-            # print "Block2.step[%d] not topblock" % (xself.cnt,)
-            if xself.cnt == xself.top.numsteps and hasattr(xself, 'isprimitive') and xself.isprimitive:
-                # print "Block2.step end of episode and primitive"
+            else:
+                # compute the block with step()
+                f_out = f(xself, None)
                 
-                def update_block_store(block = None, top = None):
-                    import datetime
-                    assert block is not None, "Need some block to work on"
-                    # if not block.isprimitive: return
+        else:
+            f_out = None
 
-                    # m = md5(str(block.conf))
-                    print "update_block_store block = %s (%s)" % (block, block.md5)
+        return f_out
 
-                    print "block_store", block.top.block_store.keys()
-                    
-                    # create entry and save
-                    # columns = ['md5', 'timestamp', 'block', 'params', 'log_store'] # 'experiment', 
-                    # values = [[block.md5, pd.to_datetime(datetime.datetime.now()), str(block.conf['block']), str(block.conf['params']), 'bla.h5']]
-                    # df = pd.DataFrame(data = values, columns = columns)
-                    # print "df", df
+    def block_is_scheduled(self, xself):
+        """Block is scheduled when its count modulo its blocksize is element of the blockphase array
+        """
+        return (xself.cnt % xself.blocksize) in xself.blockphase
 
-                    # block store is empty
-                    # if len(block.top.block_store.keys()) < 1:
-                    #     xself.top.block_store['blocks'] = df
-                    # else:
-                    # xself.top.block_store['blocks'] = pd.concat([xself.top.block_store['blocks'], df])
-                    # xself.top.block_store['blocks']['md5' == self.md5][] = 
-
-                # update_block_store(block = xself)
-                
-            # count calls
-            xself.cnt += 1 # should be min_blocksize
-            # xself.ibufidx = xself.cnt % xself.ibufsize
-            
-            return f_out
-        # return the new func
-        return wrap
-
+    def block_is_finished(self, xself):
+        """Block is finished when its count equals toplevel number of steps
+        """
+        # and hasattr(xself, 'isprimitive') and xself.isprimitive:    
+        return xself.cnt == xself.top.numsteps
+    
 ################################################################################
 # Base block class
 class Block2(object):
@@ -943,7 +976,8 @@ class Block2(object):
                 self.cache_data = {}
                 for outk in self.outputs.keys():
                     x_ = self.cache_h5['%s/%s' % (self.id, outk)].values
-                    print "output %s cached data = %s" % (outk, x_.shape)
+                    print "%s-%s.check_block_store:     loading output %s cached data = %s" % (outk, x_.shape)
+                    # FIXME: check cache and runtime shape geometry
                     self.cache_data[outk] = x_.copy()
             else:
                 print "%s-%s.check_block_store: no cache exists for %s, storing %s at %s" % (self.cname, self.id, self.md5, self.conf, self.md5)

@@ -69,6 +69,34 @@ def print_dict(pdict = {}, level = 1, indent = None):
     #     print "array", pstring, level, indent
     return pstring
 
+################################################################################
+# utils, TODO move to utils.py
+def ordereddict_insert(ordereddict = None, insertionpoint = None, itemstoadd = []):
+    """ordereddict_insert
+
+    Self rolled ordered dict insertion from http://stackoverflow.com/questions/29250479/insert-into-ordereddict-behind-key-foo-inplace
+    """
+    assert ordereddict is not None
+    assert insertionpoint in ordereddict.keys(), "insp = %s, keys = %s, itemstoadd = %s" % (insertionpoint, ordereddict.keys(), itemstoadd)
+    new_ordered_dict = ordereddict.__class__()
+    for key, value in ordereddict.items():
+        new_ordered_dict[key] = value
+        if key == insertionpoint:
+            # check if itemstoadd is list or dict
+            if type(itemstoadd) is list:
+                for item in itemstoadd:
+                    keytoadd, valuetoadd = item
+                    new_ordered_dict[keytoadd] = valuetoadd
+            else:
+                for keytoadd, valuetoadd in itemstoadd.items():
+                    new_ordered_dict[keytoadd] = valuetoadd
+        # else:
+        #     print "insertionpoint %s doesn't exist in dict" % (insertionpoint)
+        #     sys.exit(1)
+    ordereddict.clear()
+    ordereddict.update(new_ordered_dict)
+    return ordereddict
+
 def xproduct(f, tup):
     """compute the cartesian product of a variable number of tensor dimensions"""
     assert len(tup) > 0

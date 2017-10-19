@@ -379,7 +379,6 @@ class PlotBlock2(FigPlotBlock2):
                     # else:
                     # plotvar = self.inputs[subplotconf['input'][0]][2]
                         
-                        
                     # plot the plotdata
                     labels = []
                     self.fig.axes[idx].clear()
