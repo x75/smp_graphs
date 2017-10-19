@@ -273,6 +273,9 @@ class decStep():
         """Block2.step decorator (decStep) wrapper level 0
 
         Wrap the function 'f' inside a try/except and enter pdb shell on exception
+
+        FIXME: make dump environment configurable: pdb, InteractiveConsole, ...
+        FIXME: make try/except depend on __debug__, xself.top.debug, xself.debug
         """
         try:
             return self.wrap_l1(xself, f, args, kwargs)
@@ -1413,34 +1416,16 @@ class Block2(object):
         # mode 1 for handling hierarchical blocks: graph is flattened during init, only topblock iterates nodes
         # first step all
         for i in range(self.nxgraph.number_of_nodes()):
+            # get node
             v = self.nxgraph.node[i]
+            # get node id
             k = v['params']['id']
-            
-            # for k, v in self.graph.items():
+            # step node
             v['block_'].step()
-            # try:
-            #     v['block_'].step()
-            # except:
-            #     pdb.set_trace()
+            # debug
             # print "%s-%s.step[%d]: k = %s, v = %s" % (self.cname, self.id, self.cnt, k, type(v))
 
         if self.topblock:
-            # # then log all
-            # # for k, v in self.graph.items(): # self.bus.items():
-            # for i in range(self.nxgraph.number_of_nodes()):
-            #     v = self.nxgraph.node[i]
-            #     k = v['params']['id']
-            #     # return if block doesn't want logging
-            #     if not v['block_'].logging: continue
-            #     # if (self.cnt % v['block'].blocksize) != (v['block'].blocksize - 1): continue
-            #     if (self.cnt % v['block_'].blocksize) > 0: continue
-            #     # print debug foo
-            #     self.debug_print("step: node k = %s, v = %s", (k, v))
-            #     # do logging for all of the node's output variables
-            #     for k_o, v_o in v['block_'].outputs.items():
-            #         buskey = "%s/%s" % (v['block_'].id, k_o)
-            #         # print "%s step outk = %s, outv = %s, bus.sh = %s" % (self.cname, k_o, v_o, self.bus[buskey].shape)
-            #         log.log_pd(tbl_name = buskey, data = self.bus[buskey])
 
             # store log incrementally
             if (self.cnt) % 500 == 0 or self.cnt == (self.numsteps - 1):

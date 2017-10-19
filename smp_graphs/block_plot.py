@@ -248,8 +248,7 @@ class PlotBlock2(FigPlotBlock2):
     
     def __init__(self, conf = {}, paren = None, top = None):
         FigPlotBlock2.__init__(self, conf = conf, paren = paren, top = top)
-        print "PlotBlock2 block_group", self.block_group
-        
+         
     def plot_subplots(self):
         """loop over configured subplot and plot the data according to config"""
         self.debug_print("%s plot_subplots self.inputs = %s",
