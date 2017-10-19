@@ -2126,9 +2126,9 @@ class DelayBlock2(PrimBlock2):
             # params['outputs']["d%s" % ink] = {'shape': inshape}
             # params['outputs']["d%s" % ink] = {'shape': getattr(self, '%s_' % ink).shape}
             if params['flat']:
-                outshape = (inshape[0], inshape[1] * (delay_num + 1) )
+                outshape = (inshape[0], inshape[1] * delay_num )
             else:
-                outshape = (inshape[0], (delay_num + 1), inshape[1] )
+                outshape = (inshape[0], delay_num, inshape[1] )
             params['outputs']["d%s" % ink] = {'shape': outshape}
             bufshape = (inshape[0], inshape[1] + (delay_max + 1) )
             setattr(self, "%s_" % ink, np.zeros(bufshape))

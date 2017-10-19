@@ -663,18 +663,56 @@ class SnsMatrixPlotBlock2(BaseplotBlock2):
         # if not subplotconf.has_key('plot'):
         #     subplotconf['plot'] = plt.hexbin
             
-        ilbls = [[['%s%d' % (self.inputs[ink]['bus'], j)] for j in range(self.inputs[ink]['shape'][0])] for i, ink in enumerate(subplotconf['input'])]
+        # ilbls = [[['%s%d' % (self.inputs[ink]['bus'], j)] for j in range(self.inputs[ink]['shape'][0])] for i, ink in enumerate(subplotconf['input'])]
+        # print "ilbls", ilbls
+        # ivecs = tuple(self.inputs[ink]['val'].T for k, ink in enumerate(subplotconf['input']))
+        
+        def unwrap_ndslice(self, subplotconf, k, ink):
+            xslice = slice(None)
+            if subplotconf.has_key('ndslice'):
+                # plotdata[ink_] = myt(self.inputs[ink_]['val'])[-1,subplotconf['ndslice'][0],subplotconf['ndslice'][1],:] # .reshape((21, -1))
+                print "      ndslice %s: %s, numslice = %d" % (ink, subplotconf['ndslice'][k], len(subplotconf['ndslice']))
+                plotdata = myt(self.inputs[ink]['val'])
+                print "      ndslice plotdata", plotdata.shape
+                plotdata = plotdata[subplotconf['ndslice'][k]]
+                print "      ndslice plotdata", plotdata.shape
+            else:
+                plotdata = myt(self.inputs[ink]['val'])[xslice] # .reshape((xslice.stop - xslice.start, -1))
+            print "       ndslice plotdata", plotdata.shape
+            # apply shape
+            if type(subplotconf['shape']) is list:
+                plotdata_shape = subplotconf['shape'][k]
+            else:
+                plotdata_shape = subplotconf['shape']
+            print "       ndslice plotshape", plotdata_shape
+                        
+            plotdata = plotdata.T.reshape(plotdata_shape)
+            print "       ndslice plotdata", plotdata.shape
+    
+            return plotdata    
+            
+        ivecs = []
+        ilbls = []
+        for k, ink in enumerate(subplotconf['input']):
+            # ivec = myt(self.inputs[ink]['val'])
+            ivec = unwrap_ndslice(self, subplotconf, k, ink)
+            ivecs.append(ivec)
+            ilbls += ['%s%d' % (self.inputs[ink]['bus'], j) for j in range(ivec.shape[0])] # range(self.inputs[ink]['shape'][0])]
+            # ilbls.append(ilbl)
         print "ilbls", ilbls
-        ivecs = tuple(self.inputs[ink]['val'].T for k, ink in enumerate(subplotconf['input']))
+        
+        # ivecs = tuple(myt(self.inputs[ink]['val']) for k, ink in enumerate(subplotconf['input']))
         # for ivec in ivecs:
         #     print "ivec.shape", ivec.shape
         plotdata = {}
         if subplotconf['mode'] in ['stack', 'combine', 'concat']:
-            plotdata['all'] = np.hstack(ivecs)
-                
-        data = plotdata['all']
+            # plotdata['all'] = np.hstack(ivecs)
+            plotdata['all'] = np.vstack(ivecs).T
 
-        # print "SnsPlotBlock2:", data.shape
+        data = plotdata['all']
+        print "data", data
+        
+        print "SnsPlotBlock2:", data.shape
         scatter_data_raw  = data
         # scatter_data_cols = ["x_%d" % (i,) for i in range(data.shape[1])]
         

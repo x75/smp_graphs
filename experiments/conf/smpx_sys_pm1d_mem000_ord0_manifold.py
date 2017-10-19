@@ -103,10 +103,10 @@ loopblock = {
                 'params': {
                     'id': 'motordel',
                     'blocksize': sweepsys_input_flat, # 1,
-                    'flat': True, # False,
+                    'flat': False,
                     'inputs': {
                         'y0': {'bus': 'sweepsys_grid/meshgrid', 'delay': [0], },
-                        'y1': {'bus': 'sweepsys_grid/meshgrid', 'delay': [1], },
+                        'y1': {'bus': 'sweepsys_grid/meshgrid', 'delay': [0, 1, 2], },
                         's_proprio0': {'bus': 'robot0/s_proprio', 'delay': 0, },
                         's_proprio1': {'bus': 'robot0/s_proprio', 'delay': 1, },
                         },
@@ -169,10 +169,10 @@ graph = OrderedDict([
                 'meshgrid_d0': {
                     # 'bus': 'sweepsys/meshgrid',
                     'bus': 'motordel_ll0/dy0',
-                    'shape': (dim_s_proprio, 1, sweepsys_input_flat)},
+                    'shape': (dim_s_proprio, 3, sweepsys_input_flat)},
                 'meshgrid_d1': {
                     'bus': 'motordel_ll0/dy1',
-                    'shape': (dim_s_proprio, sweepsys_input_flat)},
+                    'shape': (dim_s_proprio, 3, sweepsys_input_flat)},
                 's_proprio0': {
                     'bus': 'motordel_ll0/ds_proprio0',
                     'shape': (dim_s_proprio, sweepsys_input_flat)},
@@ -189,8 +189,13 @@ graph = OrderedDict([
                 'hspace': 0.2,
                 'subplots': [
                     [
-                        # 'ndslice': (slice(None), slice(None), slice(None)), 
-                        {'input': ['meshgrid_d1', 's_proprio0'], 'shape': (dim_s_proprio, sweepsys_input_flat), 'plot': timeseries},
+                        {'input': ['meshgrid_d0', 's_proprio0'],
+                             'shape': (dim_s_proprio, sweepsys_input_flat),
+                        'plot': timeseries},
+                        {'input': ['meshgrid_d1',],
+                             'ndslice': (slice(None), slice(None), slice(None)),
+                             'shape': (dim_s_proprio * 3, sweepsys_input_flat),
+                        'plot': timeseries},
                     ],
                     # [
                     #     {'input': ['s_proprio0'], 'plot': timeseries},
@@ -218,10 +223,10 @@ graph = OrderedDict([
                 'meshgrid_d0': {
                     #'bus': 'sweepsys_grid/meshgrid',
                     'bus': 'motordel_ll0/dy0',
-                    'shape': (dim_s_proprio, sweepsys_input_flat)},
+                    'shape': (dim_s_proprio, 3, sweepsys_input_flat)},
                 'meshgrid_d1': {
                     'bus': 'motordel_ll0/dy1',
-                    'shape': (dim_s_proprio, sweepsys_input_flat)},
+                    'shape': (dim_s_proprio, 3, sweepsys_input_flat)},
                 's_proprio0': {
                     'bus': 'motordel_ll0/ds_proprio0',
                     'shape': (dim_s_proprio, sweepsys_input_flat)},
@@ -242,7 +247,15 @@ graph = OrderedDict([
                     # {'input': ['meshgrid_d0', 'meshgrid_d1', 's_proprio0', 's_proprio1', 's_extero', 'ds_extero'], 'mode': 'stack',
                     #      'plot': 'hist2d'},
                     {'input': ['meshgrid_d1', 's_proprio0'], 'mode': 'stack',
-                         'plot': 'hist2d'},
+                         'ndslice': [
+                             (slice(None), slice(None), slice(None)),
+                             (slice(None), slice(None)),
+                             ],
+                         'shape': [
+                             (dim_s_proprio * 3, sweepsys_input_flat),
+                             (dim_s_proprio * 1, sweepsys_input_flat),
+                             ],
+                    'plot': 'hist2d'},
                 ],
             ],
         },
