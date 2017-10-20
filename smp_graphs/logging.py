@@ -1,9 +1,15 @@
 """smp_graphs logging module
 
-2017 Oswald Berthold
+.. moduleauthor:: 2017 Oswald Berthold
 
-log_tb snatched from smpblocks
-log_pd snatched from smq
+Log variables are global in smp_graphs. There are two logging mechanisms
+ - :func:`log_tb` logs to hdf5 using pytables, snatched from :mod:`smpblocks`
+ - :func:`log_pd` logs to hdf5 using pandas, originally from :mod:`smq`
+
+.. warning::
+ - Merge this with python's own :mod:`logging`
+ - Merge with more general output layer idea
+
 """
 
 import numpy as np

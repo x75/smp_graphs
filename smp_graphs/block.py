@@ -16,7 +16,7 @@ import pdb
 import uuid, sys, time, copy, re
 from collections import OrderedDict, MutableMapping
 import itertools
-from functools import partial
+from functools import partial, wraps
 
 # import lshash
 
@@ -204,9 +204,9 @@ class Bus(MutableMapping):
         plt.pause(1e-6)
 
 def get_blocksize_input(G, buskey):
-    """block.py.get_blocksize_input
+    """Get the blocksize of input element from the bus at 'buskey'
 
-    Get the blocksize of input element from the bus at 'buskey'
+    .. warning:: Move this to :class:`Bus`?
     """
     # print "G", G.nodes(), "buskey", buskey
     (srcid, srcvar) = buskey.split("/") # [-1]
@@ -255,17 +255,30 @@ class decStep():
     """decStep Block2 step decorator class
 
     Wrap around Block2.step to perform tasks common to all Block2's.
+
+    .. warning:: Fix the docstring issue with wrapping using any one
+       of :mod:`functools` :func:`wraps`, manually copying __doc__,
+       __name__, __module__, or the autoclass/automethod approach.
     """
     def __call__(self, f):
         """decStep.__call__ is called when decorator is called
 
         It is only executed once during parse (?) and returns the function pointer to f_wrap(f_orig) composite
         """
+        @wraps(f)
         def wrap(xself, *args, **kwargs):
             # return pointer to wrap_l0
             # print "__debug__", __debug__
             return self.wrap_l0(xself, f, args, kwargs)
-                
+            
+        # # manual attribute copy
+        # if f.__doc__ is not None:
+        #     wrap.__doc__ = f.__doc__
+        # if f.__name__ is not None:
+        #     wrap.__name__ = f.__name__
+        # if f.__module__ is not None:
+        #     wrap.__module__ = f.__module__
+            
         # return the composite function
         return wrap
 
@@ -2078,7 +2091,7 @@ class DelayBlock2(PrimBlock2):
 
     Params: inputs, delay in steps / shift
 
-    FIXME: mdp's TimeDelaySlidingWindowNode
+    FIXME: pull and sift existing embedding code: smp/sequence, pointmasslearner/reservoir, smp/neural, mdp's TimeDelaySlidingWindowNode
     """
     defaults = {
         'flat': False, # flatten output

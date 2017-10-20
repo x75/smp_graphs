@@ -27,6 +27,9 @@ from smp_base.plot     import makefig, timeseries, histogram, plot_img, plotfunc
 # ...
 
 # FIXME: do some clean up here
+#        - unify subplot spec and options handling
+#        - clarify preprocessing inside / outside plotblock
+#        - general matrix / systematic combinations plotting for n-dimensional data
 
 rcParams['figure.titlesize'] = 8
 
@@ -68,7 +71,6 @@ class AnalysisBlock2(PrimBlock2):
     def save(self):
         """Save the analysis, redirect to corresponding class method, passing the instance
         """
-        # FigPlotBlock2.save
         if isinstance(self, FigPlotBlock2) or isinstance(self, SnsMatrixPlotBlock2):
             FigPlotBlock2.savefig(self)
         
@@ -111,7 +113,7 @@ class BaseplotBlock2(AnalysisBlock2):
      - :class:`FigPlotBlock2' is :mod:`matplotlib` figure based plot block
      - :class:`SnsMatrixPlotBlock2` is a :mod:`seaborn` based plot which do not cooperate with external figure handles
 
-    Plot block_group is both measure _and_ output [wins]
+    Plot block_group is both measure *and* output [wins]
     """
     defaults = {
         'block_group': ['output', 'measure'],
@@ -130,12 +132,14 @@ class BaseplotBlock2(AnalysisBlock2):
 class FigPlotBlock2(BaseplotBlock2):
     """FigPlotBlock2 class
 
-    Plotting block base class for matplotlib figure-based plots. Creates the figure and a gridspec on init, uses fig.axes in the step function
+    PlotBlock base class for matplotlib figure-based plots. Creates
+    the figure and a gridspec on init, uses fig.axes in the step
+    function
     
     Args:
-     - blocksize(int): usually numsteps (meaning plot all data created by that episode/experiment)
+     - blocksize(int): the blocksize
      - subplots(list): an array of arrays, each cell of that matrix contains one subplot configuration dict
-     - subplotconf(dict): inputs: list of input keys, plot: plotting function pointer
+     - subplotconf(dict): dict with entries *inputs*, a list of input keys, *plot*, a plot function pointer
     """
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
@@ -159,8 +163,46 @@ class FigPlotBlock2(BaseplotBlock2):
         # FIXME: too special
         self.isprimitive = False
         
+    @staticmethod
+    def savefig(plotinst):
+        """Save the figure 'fig' using configurable options
+
+        Args:
+         - plotinst(BaseplotBlock2): a plot block instance
+
+        Returns:
+         - None
+        """
+        subplotstr = "_".join(np.array([["r%d_c%d_%s" % (r, c, "_".join(subplot_input_fix(sbc['input'])),) for c,sbc in enumerate(sbr)] for r, sbr in enumerate(plotinst.subplots)]).flatten())
+        # filename = "data/%s_%s_%s_%s.%s" % (plotinst.top.id, plotinst.id, "_".join(plotinst.inputs.keys()), subplotstr, plotinst.savetype)
+        # filename = "data/%s_%s_%s.%s" % (plotinst.top.id, plotinst.id, "_".join(plotinst.inputs.keys()), plotinst.savetype)
+        filename = "data/%s_%s.%s" % (plotinst.top.id, plotinst.id, plotinst.savetype)
+        # print "%s.save filename = %s, subplotstr = %s" % (plotinst.cname, filename, subplotstr)
+        # plotinst.fig.set_size_inches((min(plotinst.fig_cols * 2 * 2.5, 20), min(plotinst.fig_rows * 1.2 * 2.5, 12)))
+        if not hasattr(plotinst, 'savesize'):
+            plotinst.savesize = (min(plotinst.fig_cols * 5, 20), min(plotinst.fig_rows * 3.0, 12))
+            
+        print "savesize w/h = %f/%f, fig_cols/fig_rows = %s/%s" % (plotinst.savesize[0], plotinst.savesize[1], plotinst.fig_cols, plotinst.fig_rows)
+        plotinst.fig.set_size_inches(plotinst.savesize)
+
+        # write the figure to file
+        try:
+            print "%s-%s.save saving plot %s to filename = %s" % (plotinst.cname, plotinst.id, plotinst.title, filename)
+            plotinst.fig.savefig(filename, dpi=300, bbox_inches="tight")
+        except Exception, e:
+            print "%s.save saving failed with %s" % ('FigPlotBlock2', e)
+            
     @decStep()
     def step(self, x = None):
+        """Call the :func:`plot_subplots` function
+
+        Makes sure
+         - that there is some data to plot
+         - that the data is loaded from the :data:`log_store` instead
+           of the :class:`Bus` inputs if the :data:`inputs_log` is
+           set.
+        """
+        
         # have inputs at all?
         if len(self.inputs) < 1: return
 
@@ -198,39 +240,11 @@ class FigPlotBlock2(BaseplotBlock2):
             self.debug_print("%s.step", (self.__class__.__name__,))
 
     def plot_subplots(self):
-        print "%s.plot_subplots(): implement me" % (self.cname,)
+        """FigPlotBlock2.plot_subplots
 
-    # def save(self):
-    #     FigPlotBlock2.save(self)
-
-    @staticmethod
-    def savefig(plotinst):
-        """Save the figure 'fig' using configurable options
-
-        Args:
-         - plotinst(*PlotBlock2): a plot block instance
-
-        Returns:
-         - None
+        This is a stub and has to be implement by children classes.
         """
-        subplotstr = "_".join(np.array([["r%d_c%d_%s" % (r, c, "_".join(subplot_input_fix(sbc['input'])),) for c,sbc in enumerate(sbr)] for r, sbr in enumerate(plotinst.subplots)]).flatten())
-        # filename = "data/%s_%s_%s_%s.%s" % (plotinst.top.id, plotinst.id, "_".join(plotinst.inputs.keys()), subplotstr, plotinst.savetype)
-        # filename = "data/%s_%s_%s.%s" % (plotinst.top.id, plotinst.id, "_".join(plotinst.inputs.keys()), plotinst.savetype)
-        filename = "data/%s_%s.%s" % (plotinst.top.id, plotinst.id, plotinst.savetype)
-        # print "%s.save filename = %s, subplotstr = %s" % (plotinst.cname, filename, subplotstr)
-        # plotinst.fig.set_size_inches((min(plotinst.fig_cols * 2 * 2.5, 20), min(plotinst.fig_rows * 1.2 * 2.5, 12)))
-        if not hasattr(plotinst, 'savesize'):
-            plotinst.savesize = (min(plotinst.fig_cols * 5, 20), min(plotinst.fig_rows * 3.0, 12))
-            
-        print "savesize w/h = %f/%f, fig_cols/fig_rows = %s/%s" % (plotinst.savesize[0], plotinst.savesize[1], plotinst.fig_cols, plotinst.fig_rows)
-        plotinst.fig.set_size_inches(plotinst.savesize)
-
-        # write the figure to file
-        try:
-            print "%s-%s.save saving plot %s to filename = %s" % (plotinst.cname, plotinst.id, plotinst.title, filename)
-            plotinst.fig.savefig(filename, dpi=300, bbox_inches="tight")
-        except Exception, e:
-            print "%s.save saving failed with %s" % ('FigPlotBlock2', e)
+        print "%s-%s.plot_subplots(): implement me" % (self.cname, self.id,)
 
 class PlotBlock2(FigPlotBlock2):
     """PlotBlock2 class
@@ -540,7 +554,6 @@ class ImgPlotBlock2(FigPlotBlock2):
                         
                         # plotdata_cand = digitize_pointcloud(data = plotdata_cand, argdims = argdims, numbins = numbins, valdims = valdims)
                         plotdata_cand = digitize_pointcloud(data = plotdata_cand, argdims = argdims, numbins = numbins, valdims = valdims, f_fval = np.mean)
-                        
                     plotdata = {}
 
                     # if we're dimstacking, now is the time
