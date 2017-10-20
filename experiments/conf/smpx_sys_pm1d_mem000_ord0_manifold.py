@@ -105,8 +105,8 @@ loopblock = {
                     'blocksize': sweepsys_input_flat, # 1,
                     'flat': False,
                     'inputs': {
-                        'y0': {'bus': 'sweepsys_grid/meshgrid', 'delay': [0], },
-                        'y1': {'bus': 'sweepsys_grid/meshgrid', 'delay': [0, 1, 2], },
+                        # 'y0': {'bus': 'sweepsys_grid/meshgrid', 'delay': [0], },
+                        'y': {'bus': 'sweepsys_grid/meshgrid', 'delay': [0, 1, 2], },
                         's_proprio0': {'bus': 'robot0/s_proprio', 'delay': 0, },
                         's_proprio1': {'bus': 'robot0/s_proprio', 'delay': 1, },
                         },
@@ -166,12 +166,12 @@ graph = OrderedDict([
             'logging': False,
             'inputs_log': None,
             'inputs': {
-                'meshgrid_d0': {
-                    # 'bus': 'sweepsys/meshgrid',
-                    'bus': 'motordel_ll0/dy0',
-                    'shape': (dim_s_proprio, 3, sweepsys_input_flat)},
+                # 'meshgrid_d0': {
+                #     # 'bus': 'sweepsys/meshgrid',
+                #     'bus': 'motordel_ll0/dy0',
+                #     'shape': (dim_s_proprio, 3, sweepsys_input_flat)},
                 'meshgrid_d1': {
-                    'bus': 'motordel_ll0/dy1',
+                    'bus': 'motordel_ll0/dy',
                     'shape': (dim_s_proprio, 3, sweepsys_input_flat)},
                 's_proprio0': {
                     'bus': 'motordel_ll0/ds_proprio0',
@@ -189,9 +189,9 @@ graph = OrderedDict([
                 'hspace': 0.2,
                 'subplots': [
                     [
-                        {'input': ['meshgrid_d0', 's_proprio0'],
-                             'shape': (dim_s_proprio, sweepsys_input_flat),
-                        'plot': timeseries},
+                        # {'input': ['meshgrid_d0', 's_proprio0'],
+                        #      'shape': (dim_s_proprio, sweepsys_input_flat),
+                        # 'plot': timeseries},
                         {'input': ['meshgrid_d1',],
                              'ndslice': (slice(None), slice(None), slice(None)),
                              'shape': (dim_s_proprio * 3, sweepsys_input_flat),
@@ -212,6 +212,7 @@ graph = OrderedDict([
 
     # sns matrix plot
     ('plot_sweep_2', {
+        'enable': 0,
         'block': SnsMatrixPlotBlock2,
         'params': {
             'id': 'plot2',
@@ -220,12 +221,12 @@ graph = OrderedDict([
             'saveplot': saveplot,
             'blocksize': numsteps,
             'inputs': {
-                'meshgrid_d0': {
-                    #'bus': 'sweepsys_grid/meshgrid',
-                    'bus': 'motordel_ll0/dy0',
-                    'shape': (dim_s_proprio, 3, sweepsys_input_flat)},
+                # 'meshgrid_d0': {
+                #     #'bus': 'sweepsys_grid/meshgrid',
+                #     'bus': 'motordel_ll0/dy0',
+                #     'shape': (dim_s_proprio, 3, sweepsys_input_flat)},
                 'meshgrid_d1': {
-                    'bus': 'motordel_ll0/dy1',
+                    'bus': 'motordel_ll0/dy',
                     'shape': (dim_s_proprio, 3, sweepsys_input_flat)},
                 's_proprio0': {
                     'bus': 'motordel_ll0/ds_proprio0',

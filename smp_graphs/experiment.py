@@ -27,7 +27,9 @@ from smp_graphs.block import Block2
 from smp_graphs.utils import print_dict
 from smp_graphs.common import conf_header, conf_footer
 from smp_graphs.common import md5, get_config_raw
-from smp_graphs.graph import nxgraph_plot, recursive_draw, recursive_hierarchical, nxgraph_flatten, nxgraph_add_edges, nxgraph_get_node_colors
+from smp_graphs.graph import nxgraph_plot, recursive_draw, recursive_hierarchical
+from smp_graphs.graph import nxgraph_flatten, nxgraph_add_edges, nxgraph_get_node_colors
+from smp_graphs.graph import nxgraph_nodes_iter
 
 ################################################################################
 # utils, TODO: move to utils.py
@@ -372,7 +374,8 @@ class Experiment(object):
 
     def printgraph_recursive(self, G, lvl = 0):
         indent = " " * 4 * lvl
-        for node in G.nodes_iter():
+        # for node in G.nodes_iter():
+        for node in nxgraph_nodes_iter(G, 'enable'):
             print "%snode = %s" % (indent, G.node[node]['block_'].id, )
             if hasattr(G.node[node]['block_'], 'nxgraph'):
                 G_ = G.node[node]['block_'].nxgraph

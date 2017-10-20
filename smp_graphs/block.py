@@ -42,6 +42,7 @@ from smp_graphs.common import dict_search_recursive, dict_replace_idstr_recursiv
 
 from smp_graphs.graph import nxgraph_from_smp_graph, nxgraph_to_smp_graph
 from smp_graphs.graph import nxgraph_node_by_id, nxgraph_node_by_id_recursive
+from smp_graphs.graph import nxgraph_nodes_iter
 
 # finally, ros
 import rospy
@@ -1146,7 +1147,8 @@ class Block2(object):
         # pass 1 init
         # for k, v in self.graph.items():
         # for n in self.nxgraph.nodes_iter():
-        for i in range(self.nxgraph.number_of_nodes()):
+        # for i in range(self.nxgraph.number_of_nodes()):
+        for i in nxgraph_nodes_iter(self.nxgraph, 'enable'):
             v = self.nxgraph.node[i]
             k = v['params']['id']
             # print "%s-%s.init_graph_pass_1 node = %s" % (self.cname, k, v.keys()), v['params'].keys()
@@ -1186,7 +1188,8 @@ class Block2(object):
         Returns: None
         """
         # iterate over nxgraph's nodes
-        for i in range(self.nxgraph.number_of_nodes()):
+        # for i in range(self.nxgraph.number_of_nodes()):
+        for i in nxgraph_nodes_iter(self.nxgraph, 'enable'):
             v = self.nxgraph.node[i]
             k = v['params']['id']
             
@@ -1430,7 +1433,8 @@ class Block2(object):
         # if hasattr(self, 'graph') or hasattr(self, 'subgraph'):
         # mode 1 for handling hierarchical blocks: graph is flattened during init, only topblock iterates nodes
         # first step all
-        for i in range(self.nxgraph.number_of_nodes()):
+        # for i in range(self.nxgraph.number_of_nodes()):
+        for i in nxgraph_nodes_iter(self.nxgraph, 'enable'):
             # get node
             v = self.nxgraph.node[i]
             # get node id
@@ -1479,7 +1483,8 @@ class Block2(object):
 
     def plot_close(self):
         # print "%s-%s\n    .plot_close closing %d nodes" % (self.cname, self.id, self.nxgraph.number_of_nodes())
-        for n in self.nxgraph.nodes_iter():
+        # for n in self.nxgraph.nodes_iter():
+        for n in nxgraph_nodes_iter(self.nxgraph, 'enable'):
             node = self.nxgraph.node[n]['block_']
             if hasattr(node, 'nxgraph'):
                 # descend
@@ -1504,7 +1509,8 @@ class Block2(object):
                     
     def log_attr(self):
         """Block2.log_attr: enumerate all nodes in hierarchical graph and copy the node's output attributes to table attributes"""
-        for i in range(self.nxgraph.number_of_nodes()):
+        # for i in range(self.nxgraph.number_of_nodes()):
+        for i in nxgraph_nodes_iter(self.nxgraph, 'enable'):
             # assume output's initialized
             node = self.nxgraph.node[i]['block_']
             # print "%s-%s log_attr\n    node = %s, logging = %s" % (self.cname, self.id, node, node.logging)
