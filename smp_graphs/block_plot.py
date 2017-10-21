@@ -27,9 +27,12 @@ from smp_base.plot     import makefig, timeseries, histogram, plot_img, plotfunc
 # ...
 
 # FIXME: do some clean up here
-#        - unify subplot spec and options handling
-#        - clarify preprocessing inside / outside plotblock
-#        - general matrix / systematic combinations plotting for n-dimensional data
+#  - unify subplot spec and options handling
+#  - clarify preprocessing inside / outside plotblock
+#  - general matrix / systematic combinations plotting for n-dimensional data
+#   - from scatter_matrix to modality-timedelay matrix
+#   - modality-timedelay matrix is: modalities on x, timedelay on y
+#   - modality-timedelay matrix is: different dependency measures xcorr, expansion-xcorr, mi, rp, kldiv, ...
 
 rcParams['figure.titlesize'] = 8
 

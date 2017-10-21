@@ -212,7 +212,7 @@ graph = OrderedDict([
 
     # sns matrix plot
     ('plot_sweep_2', {
-        'enable': 0,
+        'enable': 1,
         'block': SnsMatrixPlotBlock2,
         'params': {
             'id': 'plot2',
