@@ -2162,18 +2162,18 @@ class DelayBlock2(PrimBlock2):
 
         self.delaytaps = {}
         for k, v in self.delays.items():
-            print "Adding delayed input %s / %s to delaytaps" % (k, v)
+            # print "Adding delayed input %s / %s to delaytaps" % (k, v)
             delay_tap = -np.array(v) - 1
             delay_tap_bs = (delay_tap - np.tile(np.array(range(self.blocksize, 0, -1)), (delay_tap.shape[0],1)).T).T
             if self.flat:
                 delay_tap_bs = delay_tap_bs.flatten()
             self.delaytaps[k] = delay_tap_bs.copy()
-            print "added ", self.delaytaps[k]
+            # print "added ", self.delaytaps[k]
 
         
-        print "DelayBlock2.init blocksize", self.blocksize
-        print "DelayBlock2.init delays", self.delays
-        print "DelayBlock2.init delays", self.delaytaps
+        # print "DelayBlock2.init blocksize", self.blocksize
+        # print "DelayBlock2.init delays", self.delays
+        # print "DelayBlock2.init delays", self.delaytaps
         
     @decStep()
     def step(self, x = None):
@@ -2209,7 +2209,7 @@ class DelayBlock2(PrimBlock2):
             # outputs
 
             delaytap = self.delaytaps[ink]
-            print "delaytap", delaytap.shape, delaytap, self.blocksize
+            # print "delaytap", delaytap.shape, delaytap, self.blocksize
             setattr(self, outk, inv_[...,delaytap])
 
             
@@ -2300,7 +2300,8 @@ class ConstBlock2(PrimBlock2):
 class CountBlock2(PrimBlock2):
     """CountBlock2 class
 
-    Count block: output is a counter
+    Count block, output is a counter value updated every blocksize
+    steps by incr
     """
     defaults = {
         # 'cnt': np.ones((1,1)),
@@ -2320,6 +2321,7 @@ class CountBlock2(PrimBlock2):
         self.outk = self.outputs.keys()[0]
         # init cnt_ of blocksize
         # self.cnt_ = np.zeros(self.outputs[self.outk]['shape'] + (self.blocksize,))
+        self.cnt = None
         self.cnt_ = np.zeros(self.outputs[self.outk]['shape'])
         # print self.inputs
         # FIXME: modulo / cout range with reset/overflow

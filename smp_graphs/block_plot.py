@@ -12,6 +12,9 @@ import pandas as pd
 # FIXME: soft import
 import seaborn as sns
 
+# perceptually uniform colormaps
+import colorcet as cc
+
 from smp_graphs.block import decStep, decInit
 from smp_graphs.block import PrimBlock2
 from smp_graphs.utils import myt, mytupleroll
@@ -19,6 +22,7 @@ import smp_graphs.logging as log
 
 from smp_base.dimstack import dimensional_stacking, digitize_pointcloud
 from smp_base.plot     import makefig, timeseries, histogram, plot_img, plotfuncs, uniform_divergence
+from smp_base.plot     import get_colorcycler
 
 ################################################################################
 # Plotting blocks
@@ -33,7 +37,8 @@ from smp_base.plot     import makefig, timeseries, histogram, plot_img, plotfunc
 #   - from scatter_matrix to modality-timedelay matrix
 #   - modality-timedelay matrix is: modalities on x, timedelay on y
 #   - modality-timedelay matrix is: different dependency measures xcorr, expansion-xcorr, mi, rp, kldiv, ...
-
+#   - information decomposition matrix (ica?)
+# 
 rcParams['figure.titlesize'] = 8
 
 def subplot_input_fix(input_spec):
@@ -267,7 +272,29 @@ class PlotBlock2(FigPlotBlock2):
         FigPlotBlock2.__init__(self, conf = conf, paren = paren, top = top)
          
     def plot_subplots(self):
-        """loop over configured subplot and plot the data according to config"""
+        """loop over configured subplots and plot the data according to the configuration
+
+        The function does not take any arguments. Instead, the args
+        are taken from the :data:`subplots` member.
+
+        subplots is a list of lists, specifying a the subplot
+        grid. `subplots[:]` are rows and `subplots[:][:]` are the
+        columns.
+
+        Each subplot entry is a dictionary with the following keys:
+         - input: list of block.inputs label keys
+         - plot: function pointer for a plotting function like
+           :func:`timeseries`, :func:`histogram`, ...
+         - ndslice: a multidimensional slice selecting data from tensor input
+         - shape: the shape of the data after nd-slicing
+         - xslice: just the x-axis slice, usually time
+
+        Arguments:
+         - None
+
+        Returns:
+         - None
+        """
         self.debug_print("%s plot_subplots self.inputs = %s",
                              (self.cname, self.inputs))
         if True:
@@ -275,6 +302,7 @@ class PlotBlock2(FigPlotBlock2):
                 for j, subplotconf in enumerate(subplot):
                     assert subplotconf.has_key('input'), "PlotBlock2 needs 'input' key in the plot spec = %s" % (subplotconf,)
                     # assert subplotconf.has_key('plot'), "PlotBlock2 needs 'plot' key in the plot spec = %s" % (subplotconf,)
+                    
                     # make it a list if it isn't
                     for input_spec_key in ['input', 'ndslice', 'shape']:
                         if subplotconf.has_key(input_spec_key):
@@ -312,10 +340,13 @@ class PlotBlock2(FigPlotBlock2):
                         # unknown func type
                         plottype = timeseries # "unk plottype"
 
-                    # append to title
+                    # append plot type to title
                     title += " " + plottype
-                        
+
+                    # loop over inputs
                     for k, ink in enumerate(subplotconf['input']):
+                        # FIXME: array'ize this loop
+                        # vars: input, ndslice, shape, xslice, ...
                         plotlen = self.inputs[subplotconf['input'][0]]['shape'][-1]
                         xslice = slice(0, plotlen)
                         plotshape = mytupleroll(self.inputs[subplotconf['input'][k]]['shape'])
@@ -738,12 +769,28 @@ class SnsMatrixPlotBlock2(BaseplotBlock2):
         df = pd.DataFrame(scatter_data_raw, columns=scatter_data_cols)
         
         g = sns.PairGrid(df)
-        g.map_diag(plt.hist)
+        # ud_cmap = cc.cm['diverging_cwm_80_100_c22'] # rainbow
+        histcolorcycler = get_colorcycler('isoluminant_cgo_70_c39')
+        # print histcolorcycler
+        histcolor = histcolorcycler.by_key()['color'][:df.shape[1]]
+        # print histcolor
+        
+        # # rcParams['axes.prop_cycle'] = histcolorcycler
+        # g.map_diag(plt.hist, histtype = 'step')
+        # for i in range(df.shape[1]):
+        #     ax_diag = g.axes[i,i]
+        #     # print type(ax_diag), dir(ax_diag)
+        #     ax_diag.grid()
+        #     ax_diag.set_prop_cycle(histcolorcycler)
+            
         # g.map_diag(sns.kdeplot)
         # g.map_offdiag(plt.hexbin, cmap="gray", gridsize=40, bins="log");
         # g.map_offdiag(plt.histogram2d, cmap="gray", bins=30)
         # g.map_offdiag(plt.plot, linestyle = "None", marker = "o", alpha = 0.5) # , bins="log");
-        g.map_offdiag(partial(uniform_divergence, f = subplotconf_plot)) #, cmap="gray", gridsize=40, bins='log')
+        plotf = partial(uniform_divergence, f = subplotconf_plot)
+        g.map_diag(plotf)
+        # g = g.map_diag(sns.kdeplot, lw=3, legend=False)
+        g.map_offdiag(plotf) #, cmap="gray", gridsize=40, bins='log')
 
         # clean up figure
         self.fig = g.fig

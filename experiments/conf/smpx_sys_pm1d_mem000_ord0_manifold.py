@@ -192,10 +192,20 @@ graph = OrderedDict([
                         # {'input': ['meshgrid_d0', 's_proprio0'],
                         #      'shape': (dim_s_proprio, sweepsys_input_flat),
                         # 'plot': timeseries},
-                        {'input': ['meshgrid_d1',],
-                             'ndslice': (slice(None), slice(None), slice(None)),
-                             'shape': (dim_s_proprio * 3, sweepsys_input_flat),
-                        'plot': timeseries},
+                        # {'input': ['meshgrid_d1',],
+                        #      'ndslice': (slice(None), slice(None), slice(None)),
+                        #      'shape': (dim_s_proprio * 3, sweepsys_input_flat),
+                        {
+                            'input': [
+                                'meshgrid_d1', 's_proprio0'],
+                            'ndslice': [
+                                (slice(None), slice(None), slice(None)),
+                                (slice(None), slice(None), slice(None)),],
+                            'shape': [
+                                (dim_s_proprio * 3, sweepsys_input_flat),
+                                (dim_s_proprio * 1, sweepsys_input_flat),],
+                            'plot': timeseries
+                        },
                     ],
                     # [
                     #     {'input': ['s_proprio0'], 'plot': timeseries},
