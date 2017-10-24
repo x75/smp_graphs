@@ -347,32 +347,44 @@ class PlotBlock2(FigPlotBlock2):
                     for k, ink in enumerate(subplotconf['input']):
                         # FIXME: array'ize this loop
                         # vars: input, ndslice, shape, xslice, ...
-                        plotlen = self.inputs[subplotconf['input'][0]]['shape'][-1]
+
+                        # get numsteps of data for the input
+                        plotlen = self.inputs[ink]['shape'][-1] # numsteps at shape[-1]
+
+                        # set default slice
                         xslice = slice(0, plotlen)
-                        plotshape = mytupleroll(self.inputs[subplotconf['input'][k]]['shape'])
+                        # compute final shape of plot data, custom transpose from horiz time to row time
+                        plotshape = mytupleroll(self.inputs[ink]['shape'])
+                        
                         # print "%s.subplots defaults: plotlen = %d, xslice = %s, plotshape = %s" % (self.cname, plotlen, xslice, plotshape)
                     
                         # x axis slice spec
                         if subplotconf.has_key('xslice'):
-                            xslice = slice(subplotconf['xslice'][0], subplotconf['xslice'][1])
+                            # set slice
+                            xslice = slice(subplotconf['xslice'][k][0], subplotconf['xslice'][k][1])
+                            # update plot length
                             plotlen = xslice.stop - xslice.start
+                            # and plot shape
                             plotshape = (plotlen, ) + tuple((b for b in plotshape[1:]))
                         
                         # print "%s.subplots post-xslice: plotlen = %d, xslice = %s, plotshape = %s" % (self.cname, plotlen, xslice, plotshape)
-                        
+
+                        # explicit shape key
                         if subplotconf.has_key('shape'):
-                            plotshape = mytupleroll(subplotconf['shape'][0])
+                            # get the shape spec, custom transpose from horiz t to row t
+                            plotshape = mytupleroll(subplotconf['shape'][k])
+                            # update plot length
                             plotlen = plotshape[0]
+                            # and xsclice
                             xslice = slice(0, plotlen)
 
                         # print "%s.subplots post-shape: plotlen = %d, xslice = %s, plotshape = %s" % (self.cname, plotlen, xslice, plotshape)
                         
-                        # configure x axis
+                        # configure x axis, default implicit number of steps
                         if subplotconf.has_key('xaxis'):
                             t = self.inputs[subplotconf['xaxis']]['val'].T[xslice]
                         else:
                             t = np.linspace(xslice.start, xslice.start+plotlen-1, plotlen)[xslice]
-                    
                         
                         # print "%s.plot_subplots k = %s, ink = %s" % (self.cname, k, ink)
                         # plotdata[ink] = self.inputs[ink]['val'].T[xslice]
@@ -381,8 +393,11 @@ class PlotBlock2(FigPlotBlock2):
                         #     print "plotblock2", self.inputs[ink]['val'][0,...,:]
                         ink_ = "%s_%d" % (ink, k)
                         # print "      input shape %s: %s" % (ink, self.inputs[ink]['val'].shape)
+
+                        # if explicit n-dimensional slice is given
                         if subplotconf.has_key('ndslice'):
                             # plotdata[ink_] = myt(self.inputs[ink_]['val'])[-1,subplotconf['ndslice'][0],subplotconf['ndslice'][1],:] # .reshape((21, -1))
+                            # slice the data to spec, custom transpose from h to v time
                             plotdata[ink_] = myt(self.inputs[ink]['val'])[subplotconf['ndslice'][k]]
                             # print "      ndslice %s: %s, numslice = %d" % (ink, subplotconf['ndslice'][k], len(subplotconf['ndslice']))
                         else:
