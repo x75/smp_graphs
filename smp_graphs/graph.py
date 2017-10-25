@@ -28,15 +28,15 @@ from smp_base.plot import plot_colors
 
 def nxgraph_nodes_iter(G, filt = None, data = False):
     if filter is None:
-        return G.nodes_iter(data = data)
+        return G.nodes(data = data)
     else:
         if data:
             node_filt_key = lambda G, n, filt: G.node[n[0]].has_key(filt)
-            return filter(lambda n: not node_filt_key(G, n, filt) or (node_filt_key(G, n, filt) and G.node[n[0]][filt]), G.nodes_iter(data = data))
+            return filter(lambda n: not node_filt_key(G, n, filt) or (node_filt_key(G, n, filt) and G.node[n[0]][filt]), G.nodes(data = data))
         else:
             node_filt_key = lambda G, n, filt: G.node[n].has_key(filt)
-            return filter(lambda n: not node_filt_key(G, n, filt) or (node_filt_key(G, n, filt) and G.node[n][filt]), G.nodes_iter())
-        # nodes_filtered = [nid for nid, ndata in G.nodes_iter(data = True) if filter ndata.keys()]
+            return filter(lambda n: not node_filt_key(G, n, filt) or (node_filt_key(G, n, filt) and G.node[n][filt]), G.nodes())
+        # nodes_filtered = [nid for nid, ndata in G.nodes(data = True) if filter ndata.keys()]
 
 def nxgraph_add_nodes_from_dict(conf, G, nc):
     """nxgraph_add_nodes_from_dict
@@ -64,7 +64,7 @@ def nxgraph_add_node_from_conf(k, v, G, nc):
     if not v.has_key('params'): v['params'] = {}
     v['params']['id'] = k
     # print "graphs.py: adding node = %s" % (v,)
-    G.add_node(nc, v)
+    G.add_node(nc, **v)
     nc += 1
     return (G, nc)
 
@@ -155,7 +155,7 @@ def nxgraph_from_smp_graph(conf):
             # print "nxgraph_from_smp_graph", lpconf['params']['id']
             # print "nxgraph_from_smp_graph", print_dict(lpconf['params'])
             # print "|G|", G.name, G.number_of_nodes()
-            G.add_node(nc, lpconf)
+            G.add_node(nc, **lpconf)
             # print "|G|", G.name, G.number_of_nodes()
             nc += 1
 
@@ -172,7 +172,7 @@ def nxgraph_get_layout(G, layout_type):
         # shell, needs add. computation
         s1 = []
         s2 = []
-        for node in G.nodes_iter():
+        for node in G.nodes():
             # shells =
             # print node
             # if re.search("/", node) or re.search("_", node):
@@ -231,7 +231,7 @@ def nxgraph_get_layout(G, layout_type):
                 
                 # parentnode = None
                 # # # assume edge
-                # # for e in G.edges_iter():
+                # # for e in G.edges():
                 # #     # print "e", e, node, e[1] == node
                 # #     if e[1] == node and parentnode is None:
                 # #         parentnode = e[0]
@@ -274,7 +274,7 @@ def nxgraph_flatten(G):
     G_ = nx.MultiDiGraph()
 
     # loop nodes and descend nesting hierarchy
-    # for node in G.nodes_iter():
+    # for node in G.nodes():
     for node in nxgraph_nodes_iter(G, 'enable'):
         if hasattr(G.node[node]['block_'], 'nxgraph'):
             # print "nxgraph_flatten: descending + 1"
@@ -358,7 +358,7 @@ def nxgraph_add_edges(G):
     # init edges
     edges = []
     # loop nodes
-    # for node in G.nodes_iter():
+    # for node in G.nodes():
     for node in nxgraph_nodes_iter(G, 'enable'):
         # print "node", node
         # get the current node's block instance
@@ -457,7 +457,7 @@ def nxgraph_plot(G, ax = None, pos = None, layout_type = "spring", node_color = 
     # e2 = [] # loop edges
 
     # loop over edges
-    for edge in G.edges_iter(data = True):
+    for edge in G.edges(data = True):
         # edgetype = re.search("[_/]", G.node[edge[1]]['params']['id'])
         
         # this works for '|' style loop-id delimiter
@@ -531,8 +531,8 @@ def recursive_draw(G, currentscalefactor = 0.1, center_loc = (0, 0), node_size =
     # shift(poslabels, (0, 0.1)) #you'll have to write your own code to shift all positions to be centered at center_loc
     # nx.draw(G, pos = pos, node_size = node_size)
     nxgraph_plot(G, pos = pos, ax = ax, node_color = node_color, node_size = node_size)
-    # for node, nodedata in G.nodes_iter(data=True):
-    for node in G.nodes_iter():
+    # for node, nodedata in G.nodes(data=True):
+    for node in G.nodes():
         # if type(node)==Graph: # or diGraph etc...
         if hasattr(G.node[node]['block_'], 'nxgraph'):
             recursive_draw(
@@ -572,7 +572,7 @@ def recursive_hierarchical(G, lvlx = 0, lvly = 0):
 
     xincr = 0.2/float(G.number_of_nodes() + 1)
     
-    # for i, node in enumerate(G.nodes_iter()):
+    # for i, node in enumerate(G.nodes()):
     for i, node in enumerate(nxgraph_nodes_iter(G, 'enable')):
         G.node[node]['layout'] = {}
         G.node[node]['layout']['level'] = lvlx
@@ -581,7 +581,7 @@ def recursive_hierarchical(G, lvlx = 0, lvly = 0):
         # G_.add_node('l%d_%s_%s' % (lvl, node, G.node[node]['block_'].id), G.node[node])
         nodeid_ = 'l%d_%s' % (lvlx, G.node[node]['block_'].id)
         # print "node", nodeid_ # G.node[node]['block_'].id # .keys()
-        G_.add_node(nodeid_, G.node[node])
+        G_.add_node(nodeid_, **G.node[node])
         if hasattr(G.node[node]['block_'], 'nxgraph'):
             # print "node.nxgraph:", G.node[node]['block_'].nxgraph
             # lvlx += 1
@@ -617,7 +617,7 @@ def nxgraph_get_node_colors(G):
     G_cols = []
     pcks = plot_colors.keys()
     pcks.sort()
-    for i, n in enumerate(G.nodes_iter()):
+    for i, n in enumerate(G.nodes()):
         if hasattr(G.node[n]['block_'], 'block_color'):
             block_color = G.node[n]['block_'].block_color
         else:

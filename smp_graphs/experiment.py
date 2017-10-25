@@ -335,7 +335,7 @@ class Experiment(object):
         # flatten for drawing, quick hack
         G = nxgraph_flatten(self.topblock.nxgraph)
         # # debug flattened graph
-        # for node,noded in G.nodes_iter(data=True):
+        # for node,noded in G.nodes(data=True):
         #     print "node.id = %s\n    .data = %s\n    .graphnode = %s\n" % (node, noded, G.node[node])
 
         # add edges to flattened graph
@@ -374,7 +374,7 @@ class Experiment(object):
 
     def printgraph_recursive(self, G, lvl = 0):
         indent = " " * 4 * lvl
-        # for node in G.nodes_iter():
+        # iterate enabled nodes
         for node in nxgraph_nodes_iter(G, 'enable'):
             print "%snode = %s" % (indent, G.node[node]['block_'].id, )
             if hasattr(G.node[node]['block_'], 'nxgraph'):

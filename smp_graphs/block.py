@@ -901,7 +901,7 @@ class Block2(object):
                 print "cloning: cloned block_.id = %s" % (clone['block_'].id)
                 
                 # add the modified node
-                self.nxgraph.add_node(0, clone)
+                self.nxgraph.add_node(0, **clone)
 
                 # puh!
 
@@ -1145,9 +1145,6 @@ class Block2(object):
         #     print "    nxgraph", self.nxgraph, "\n"
         
         # pass 1 init
-        # for k, v in self.graph.items():
-        # for n in self.nxgraph.nodes_iter():
-        # for i in range(self.nxgraph.number_of_nodes()):
         for i in nxgraph_nodes_iter(self.nxgraph, 'enable'):
             v = self.nxgraph.node[i]
             k = v['params']['id']
@@ -1483,7 +1480,6 @@ class Block2(object):
 
     def plot_close(self):
         # print "%s-%s\n    .plot_close closing %d nodes" % (self.cname, self.id, self.nxgraph.number_of_nodes())
-        # for n in self.nxgraph.nodes_iter():
         for n in nxgraph_nodes_iter(self.nxgraph, 'enable'):
             node = self.nxgraph.node[n]['block_']
             if hasattr(node, 'nxgraph'):
