@@ -22,7 +22,7 @@ import smp_graphs.logging as log
 
 from smp_base.dimstack import dimensional_stacking, digitize_pointcloud
 from smp_base.plot     import makefig, timeseries, histogram, plot_img, plotfuncs, uniform_divergence
-from smp_base.plot     import get_colorcycler
+from smp_base.plot     import get_colorcycler, kwargs_plot_clean
 
 ################################################################################
 # Plotting blocks
@@ -40,6 +40,14 @@ from smp_base.plot     import get_colorcycler
 #   - information decomposition matrix (ica?)
 # 
 rcParams['figure.titlesize'] = 8
+
+# smp_graphs style
+rcParams['axes.grid'] = False
+rcParams['axes.facecolor'] = 'white'
+
+# f = open("rcparams.txt", "w")
+# f.write("rcParams = %s" % (rcParams, ))
+# f.close()
 
 def subplot_input_fix(input_spec):
     # assert input an array 
@@ -452,15 +460,14 @@ class PlotBlock2(FigPlotBlock2):
                     # assign and trim title
                     title += plotvar[:-2]
                         
-                    # different
+                    # combine inputs into one backend plot call to automate color cycling etc
                     if subplotconf.has_key('mode'):
-                        # ivecs = tuple(self.inputs[ink][0].T[xslice] for k, ink in enumerate(subplotconf['input']))
-                        ivecs = tuple(self.inputs[ink][0].myt()[xslice] for k, ink in enumerate(subplotconf['input']))
-                        # for item in ivecs:
-                        #     print "ivec.shape", item.shape
-                        plotdata = {}
+                        """FIXME: fix dangling effects of stacking"""
+                        # ivecs = tuple(myt(self.inputs[ink]['val'])[xslice] for k, ink in enumerate(subplotconf['input']))
+                        ivecs = [plotdatav for plotdatak, plotdatav in plotdata.items()]
+                        # plotdata = {}
                         if subplotconf['mode'] in ['stack', 'combine', 'concat']:
-                            plotdata['all'] = np.hstack(ivecs)
+                            plotdata['_stacked'] = np.hstack(ivecs)
 
                     # if type(subplotconf['input']) is list:
                     if subplotconf.has_key('xaxis'):
@@ -478,12 +485,15 @@ class PlotBlock2(FigPlotBlock2):
                         #         plotvar += " revo "
                     # else:
                     # plotvar = self.inputs[subplotconf['input'][0]][2]
-                        
+
                     # plot the plotdata
+                    # kwargs_ = {} # kwargs_plot_clean(**kwargs)
                     labels = []
                     self.fig.axes[idx].clear()
                     inkc = 0
-                    # plotfunc_conf = self.check_plot_type(subplotconf, defaults = {'plot': plt.hexbin})
+                    if plotdata.has_key('_stacked'):
+                        plotfunc_conf[0](self.fig.axes[idx], data = plotdata['_stacked'], ordinate = t, title = title) # , **kwargs)
+                        
                     for ink, inv in plotdata.items():
                         # print "%s.plot_subplots: ink = %s, plotvar = %s, inv.sh = %s, t.sh = %s" % (self.cname, ink, plotvar, inv.shape, t.shape)
 
@@ -491,13 +501,23 @@ class PlotBlock2(FigPlotBlock2):
                         plotfunc_idx = inkc % len(plotfunc_conf)
                         
                         # this is the plot function array from the config
-                        plotfunc_conf[plotfunc_idx](self.fig.axes[idx], data = inv, ordinate = t, label = "%s" % ink, title = title)
-                        # labels.append("%s" % ink)
+                        if not plotdata.has_key('_stacked'):
+                            plotfunc_conf[plotfunc_idx](self.fig.axes[idx], data = inv, ordinate = t, label = "%s" % ink, title = title) # , **kwargs)
+                        labels.append("%s" % ink)
                         # metadata
                         inkc += 1
-                    # self.fig.axes[idx].legend()
+                    self.fig.axes[idx].legend(labels)
                     # self.fig.axes[idx].set_title("%s of %s" % (plottype, plotvar, ), fontsize=8)
                     # [subplotconf['slice'][0]:subplotconf['slice'][1]].T)
+
+            # # adjust xaxis
+            # for i, subplot in enumerate(self.subplots):
+            #     for j, subplotconf in enumerate(subplot):
+            #         # subplot index from rows*cols
+            #         idx = (i*self.fig_cols)+j
+            #         ax = self.fig.axes[idx]
+
+                    
         plt.draw()
         plt.pause(1e-9)
 

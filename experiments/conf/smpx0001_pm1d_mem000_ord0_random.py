@@ -16,6 +16,8 @@ from smp_graphs.block_meas import MomentBlock2
 
 from smp_graphs.funcs import f_sin, f_motivation, f_motivation_bin
 
+from smp_graphs.utils_conf import get_systemblock
+
 # global parameters can be overwritten from the commandline
 ros = False
 numsteps = 10000/10
@@ -24,10 +26,6 @@ debug = False
 showplot = True
 saveplot = True
 randseed = 126
-
-from smp_graphs.utils_conf import get_systemblock
-from smp_graphs.utils_conf import get_systemblock_pm
-from smp_graphs.utils_conf import get_systemblock_sa
 
 lconf = {
     'dim': 1,
@@ -156,12 +154,12 @@ graph = OrderedDict([
                 },
             'subplots': [
                 [
-                    {'input': ['pre_l0', 's_p', 'pre_l1'], 'plot': [partial(timeseries, linewidth = 1.0), timeseries, timeseries]},
-                    {'input': ['pre_l0', 's_p', 'pre_l1'], 'plot': histogram},
+                    {'input': ['pre_l0', 's_p', 'pre_l1'], 'plot': [partial(timeseries, linewidth = 1.0), timeseries, partial(timeseries, linewidth = 2.0)]},
+                    {'input': ['pre_l0', 's_p', 'pre_l1'], 'plot': partial(histogram, orientation = 'horizontal', histtype = 'step', yticks = False), 'mode': 'stack'},
                 ],
                 [
                     {'input': 'pre_l1_credit', 'plot': timeseries},
-                    {'input': 'pre_l1_credit', 'plot': histogram},
+                    {'input': 'pre_l1_credit', 'plot': partial(histogram, orientation = 'horizontal', histtype = 'step', yticks = False)},
                 ]
             ],
         },
