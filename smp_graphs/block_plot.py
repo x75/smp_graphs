@@ -93,7 +93,7 @@ class AnalysisBlock2(PrimBlock2):
         # print "conf", conf
 
         if type(conf['plot']) is list:
-            conf_plot = conf['plot'][j]
+            conf_plot = conf['plot'] # [j]
             assert conf_plot is not type(str), "FIXME: plot callbacks is array of strings, eval strings"
         elif type(conf['plot']) is str:
             gv = plotfuncs # {'timeseries': timeseries, 'histogram': histogram}
@@ -327,15 +327,17 @@ class PlotBlock2(FigPlotBlock2):
                     plotvar = " "
                     title = ""
                     if subplotconf.has_key('title'): title += subplotconf['title']
-                        
-                    subplotconf_plot = self.check_plot_type(subplotconf)
-                        
-                    if hasattr(subplotconf_plot, 'func_name'):
+
+                    # get this subplot's plotfunc configuration and make sure its a list
+                    plotfunc_conf = self.check_plot_type(subplotconf)
+
+                    # get the plot type from the plotfunc type
+                    if hasattr(plotfunc_conf, 'func_name'):
                         # plain function
-                        plottype = subplotconf_plot.func_name
-                    elif hasattr(subplotconf_plot, 'func'):
+                        plottype = plotfunc_conf.func_name
+                    elif hasattr(plotfunc_conf, 'func'):
                         # partial'ized func
-                        plottype = subplotconf_plot.func.func_name
+                        plottype = plotfunc_conf.func.func_name
                     else:
                         # unknown func type
                         plottype = timeseries # "unk plottype"
@@ -445,9 +447,9 @@ class PlotBlock2(FigPlotBlock2):
                     labels = []
                     self.fig.axes[idx].clear()
                     inkc = 0
+                    # plotfunc_conf = self.check_plot_type(subplotconf, defaults = {'plot': plt.hexbin})
                     for ink, inv in plotdata.items():
                         # print "%s.plot_subplots: ink = %s, plotvar = %s, inv.sh = %s, t.sh = %s" % (self.cname, ink, plotvar, inv.shape, t.shape)
-                        plotfunc_conf = self.check_plot_type(subplotconf, defaults = {'plot': plt.hexbin})
 
                         # this is the plotfunction from the config
                         plotfunc_conf(self.fig.axes[idx], data = inv, ordinate = t, label = "%s" % ink, title = title)

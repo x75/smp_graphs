@@ -9,15 +9,16 @@ saveplot = not True
 lconf = {
     'dim': 1,
     'dt': 0.1,
-    'lag': 1,
+    'lag': 2,
     'budget': 1000,
     'lim': 1.0,
 }
     
 dim = lconf['dim']
+lag = lconf['lag']
 
 systemblock = get_systemblock['pm'](
-    dim_s_proprio = dim, dim_s_extero = dim, lag = 1)
+    dim_s_proprio = dim, dim_s_extero = dim, lag = lag)
 
 dim_s_proprio = systemblock['params']['dim_s_proprio']
 dim_s_extero  = systemblock['params']['dim_s_extero']
