@@ -81,36 +81,82 @@ class AnalysisBlock2(PrimBlock2):
         """
         if isinstance(self, FigPlotBlock2) or isinstance(self, SnsMatrixPlotBlock2):
             FigPlotBlock2.savefig(self)
-        
+
     def check_plot_type(self, conf, defaults = {}):
+        """Get 'plot' configuration item and make sure it is a list of function pointers
+
+        Returns:
+         - list of plotfunction pointers
+        """
+        defaults.update(conf)
+        conf = defaults
+        # print "conf", conf        
+        if type(conf['plot']) is list:
+            # check str or func for each element
+            conf_plot = [self.check_plot_type_single(f) for f in conf['plot']]
+            # conf_plot = conf['plot'] # [j]
+            # assert conf_plot is not type(str), "FIXME: plot callbacks is array of strings, eval strings"
+        elif type(conf['plot']) is str:
+            conf_plot = self.eval_conf_str(conf['plot'])
+            if type(conf_plot) is list:
+                conf_plot = self.check_plot_type(conf, defaults)
+            else:
+                conf_plot = [conf_plot]
+        else:
+            conf_plot = [conf['plot']]
+        return conf_plot
+        
+    def eval_conf_str(self, confstr):
+        gv = plotfuncs # {'timeseries': timeseries, 'histogram': histogram}
+        gv['partial'] = partial
+        lv = {}
+        code = compile("f_ = %s" % (confstr, ), "<string>", "exec")
+        # print "code", code
+        # conf_plot = eval(code)
+        exec(code, gv, lv)
+        # conf['plot'] = lv['f_']
+        conf_plot = lv['f_']
+        # conf_plot = eval(conf['plot'])
+        # print "conf_plot", conf_plot
+        # conf_plot = eval(conf['plot'])
+        return conf_plot
+        
+    def check_plot_type_single(self, f):
         """Get and if necessary type-fix the 'plot' subplot configuration param, translating from string to func.
+
+        Returns:
+         - single function pointer
         """
         # default plot type
         # if not conf.has_key('plot'): conf['plot'] = timeseries
         # print "defaults", defaults
-        defaults.update(conf)
-        conf = defaults
+        # defaults.update(conf)
+        # conf = defaults
         # print "conf", conf
 
-        if type(conf['plot']) is list:
-            conf_plot = conf['plot'] # [j]
-            assert conf_plot is not type(str), "FIXME: plot callbacks is array of strings, eval strings"
-        elif type(conf['plot']) is str:
-            gv = plotfuncs # {'timeseries': timeseries, 'histogram': histogram}
-            gv['partial'] = partial
-            lv = {}
-            code = compile("f_ = %s" % (conf['plot'], ), "<string>", "exec")
-            # print "code", code
-            # conf_plot = eval(code)
-            exec(code, gv, lv)
-            conf['plot'] = lv['f_']
-            conf_plot = lv['f_']
-            # conf_plot = eval(conf['plot'])
-            # print "conf_plot", conf_plot
-            # conf_plot = eval(conf['plot'])
+        if type(f) is str:
+            return self.eval_conf_str(f)
         else:
-            conf_plot = conf['plot']
-        return conf_plot
+            return f
+
+    def get_title_from_plot_type(self, plotfunc_conf):
+        title = ""
+        for plotfunc in plotfunc_conf:
+            # get the plot type from the plotfunc type
+            if hasattr(plotfunc, 'func_name'):
+                # plain function
+                plottype = plotfunc.func_name
+            elif hasattr(plotfunc, 'func'):
+                # partial'ized func
+                plottype = plotfunc.func.func_name
+            else:
+                # unknown func type
+                plottype = timeseries # "unk plottype"
+
+            # append plot type to title
+            title += " " + plottype
+        return title
+        
 
 class BaseplotBlock2(AnalysisBlock2):
     """Plotting base class
@@ -330,20 +376,10 @@ class PlotBlock2(FigPlotBlock2):
 
                     # get this subplot's plotfunc configuration and make sure its a list
                     plotfunc_conf = self.check_plot_type(subplotconf)
+                    print "%s-%s plotfunc_conf = %s" % (self.cname, self.id, plotfunc_conf)
+                    assert type(plotfunc_conf) is list, "plotfunc_conf must be a list, not %s" % (type(plotfunc_conf), )
 
-                    # get the plot type from the plotfunc type
-                    if hasattr(plotfunc_conf, 'func_name'):
-                        # plain function
-                        plottype = plotfunc_conf.func_name
-                    elif hasattr(plotfunc_conf, 'func'):
-                        # partial'ized func
-                        plottype = plotfunc_conf.func.func_name
-                    else:
-                        # unknown func type
-                        plottype = timeseries # "unk plottype"
-
-                    # append plot type to title
-                    title += " " + plottype
+                    title += self.get_title_from_plot_type(plotfunc_conf)
 
                     # loop over inputs
                     for k, ink in enumerate(subplotconf['input']):
@@ -451,8 +487,11 @@ class PlotBlock2(FigPlotBlock2):
                     for ink, inv in plotdata.items():
                         # print "%s.plot_subplots: ink = %s, plotvar = %s, inv.sh = %s, t.sh = %s" % (self.cname, ink, plotvar, inv.shape, t.shape)
 
-                        # this is the plotfunction from the config
-                        plotfunc_conf(self.fig.axes[idx], data = inv, ordinate = t, label = "%s" % ink, title = title)
+                        # select single element at first slot or increment index with plotdata items
+                        plotfunc_idx = inkc % len(plotfunc_conf)
+                        
+                        # this is the plot function array from the config
+                        plotfunc_conf[plotfunc_idx](self.fig.axes[idx], data = inv, ordinate = t, label = "%s" % ink, title = title)
                         # labels.append("%s" % ink)
                         # metadata
                         inkc += 1
