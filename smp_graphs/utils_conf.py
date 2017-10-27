@@ -13,7 +13,8 @@ from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2
 """system block
  - a robot
 """
-def get_systemblock_pm(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1, lag = 1):
+def get_systemblock_pm(
+        dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1, lag = 1, **kwargs):
     global np, PointmassBlock2, meas
     # print "utils_conf get_systemblock_pm: dim_s_proprio = %d" % (dim_s_proprio, )
     return {
@@ -44,7 +45,7 @@ def get_systemblock_pm(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1, lag = 1):
             'm_maxs': [ 1.0] * dim_s_proprio,
             'dim_s_extero': dim_s_extero,
             'lag': lag,
-            'order': 2,
+            'order': 1,
             'coupling_sigma': 1e-2,
             'transfer': 0,
             'anoise_mean': 0.0,
@@ -69,7 +70,8 @@ def get_systemblock_pm(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1, lag = 1):
             }
         }
 
-def get_systemblock_sa(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
+def get_systemblock_sa(
+        dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1, lag = 1, **kwargs):
     global np, SimplearmBlock2
     return {
         'block': SimplearmBlock2,
@@ -87,7 +89,7 @@ def get_systemblock_sa(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
                 }, # , 's_all': [(9, 1)]},
             'statedim': dim_s_proprio * 3,
             'dt': dt,
-            'lag': 3,
+            'lag': lag,
             'lag_past': (-4, -3),
             'lag_future': (-1, 0),
             'mass': 1.0/3.0,
@@ -110,7 +112,8 @@ def get_systemblock_sa(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
             }
         }
 
-def get_systemblock_bha(dim_s_proprio = 9, dim_s_extero = 3, dt = 0.1):
+def get_systemblock_bha(
+        dim_s_proprio = 9, dim_s_extero = 3, dt = 0.1, **kwargs):
     global np, BhasimulatedBlock2
     return {
         'block': BhasimulatedBlock2,
@@ -152,7 +155,8 @@ def get_systemblock_bha(dim_s_proprio = 9, dim_s_extero = 3, dt = 0.1):
         }
     
 # ROS system STDR
-def get_systemblock_stdr(dim_s_proprio = 2, dim_s_extero = 3, dt = 0.1):
+def get_systemblock_stdr(
+        dim_s_proprio = 2, dim_s_extero = 3, dt = 0.1, **kwargs):
     global np, STDRCircularBlock2
     return {
         'block': STDRCircularBlock2,
@@ -179,7 +183,8 @@ def get_systemblock_stdr(dim_s_proprio = 2, dim_s_extero = 3, dt = 0.1):
         }
 
 # ROS system using lpzrobots' roscontroller to interact with the 'Barrel'
-def get_systemblock_lpzbarrel(dim_s_proprio = 2, dim_s_extero = 1, dt = 0.01):
+def get_systemblock_lpzbarrel(
+        dim_s_proprio = 2, dim_s_extero = 1, dt = 0.01, **kwargs):
     global LPZBarrelBlock2
     systemblock_lpz = {
         'block': LPZBarrelBlock2,
@@ -207,7 +212,8 @@ def get_systemblock_lpzbarrel(dim_s_proprio = 2, dim_s_extero = 1, dt = 0.01):
     return systemblock_lpz
 
 # ROS system using the Sphero
-def get_systemblock_sphero(dim_s_proprio = 2, dim_s_extero = 1, dt = 0.05):
+def get_systemblock_sphero(
+        dim_s_proprio = 2, dim_s_extero = 1, dt = 0.05, **kwargs):
     global SpheroBlock2
     systemblock_sphero = {
         'block': SpheroBlock2,
@@ -233,6 +239,8 @@ def get_systemblock_sphero(dim_s_proprio = 2, dim_s_extero = 1, dt = 0.05):
             }
         }
     return systemblock_sphero
+
+# add missing systems
 
 get_systemblock = {
     'pm': partial(get_systemblock_pm, dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1),

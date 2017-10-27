@@ -33,23 +33,24 @@ lconf = {
     'lag': 1,
     'budget': 1000,
     'lim': 1.0,
+    'order': 1,
 }
     
 dim = lconf['dim']
+budget = lconf['budget'] # 510
+lim = lconf['lim'] # 1.0
+lag = lconf['lag'] # 1.0
+order = lconf['order']
 
-# systemblock   = get_systemblock['pm'](
-#     dim_s_proprio = dim, dim_s_extero = dim, lag = 1)
-systemblock   = get_systemblock['sa'](
-    dim_s_proprio = dim, dim_s_extero = dim, lag = 1)
+systemblock   = get_systemblock['pm'](
+    dim_s_proprio = dim, dim_s_extero = dim, lag = lag, order = order)
+
 systemblock['params']['sysnoise'] = 0.0
 systemblock['params']['anoise_std'] = 0.0
 dim_s_proprio = systemblock['params']['dim_s_proprio']
 dim_s_extero  = systemblock['params']['dim_s_extero']
 # dim_s_goal   = dim_s_extero
 dim_s_goal    = dim_s_proprio
-
-budget = lconf['budget'] # 510
-lim = lconf['lim'] # 1.0
 
 print "sysblock", systemblock['params']['dim_s_proprio']
 
@@ -158,6 +159,10 @@ graph = OrderedDict([
                 [
                     {'input': ['pre_l0', 's_p', 'pre_l1'], 'plot': [partial(timeseries, linewidth = 1.0), timeseries, partial(timeseries, linewidth = 2.0)]},
                     {'input': ['pre_l0', 's_p', 'pre_l1'], 'plot': partial(histogram, orientation = 'horizontal', histtype = 'step', yticks = False), 'mode': 'stack'},
+                ],
+                [
+                    {'input': ['pre_l1', 's_e'], 'plot': timeseries},
+                    {'input': ['pre_l1', 's_e'], 'plot': partial(histogram, orientation = 'horizontal', histtype = 'step', yticks = False)},
                 ],
                 [
                     {'input': 'pre_l1_credit', 'plot': timeseries},

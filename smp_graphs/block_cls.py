@@ -90,7 +90,10 @@ class PointmassBlock2(SysBlock2):
                 # setattr(self, k, self.x[k])
                 
 class SimplearmBlock2(SysBlock2):
-    """!@brief Simplearm system block, very thin wrapper around smp_sys.systems.SimplearmSys"""
+    """Simple arm system block class
+
+    Very thin wrapper around smp_sys.systems.SimplearmSys
+    """
     def __init__(self, conf = {}, paren = None, top = None):
         SysBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
@@ -102,6 +105,7 @@ class SimplearmBlock2(SysBlock2):
         # dimensions
         for modality in ['proprio', 'extero']:
             if not hasattr(self, 'dim_s_%s' % modality):
+                # ???
                 setattr(self, 'dim_s_%s' % modality, self.sysdim)
 
         # latent output variables defined by simplearm system
