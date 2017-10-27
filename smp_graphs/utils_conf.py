@@ -16,8 +16,24 @@ from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2
 def get_systemblock_pm(
         dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1, lag = 1, **kwargs):
     global np, PointmassBlock2, meas
-    # print "utils_conf get_systemblock_pm: dim_s_proprio = %d" % (dim_s_proprio, )
-    return {
+    print "utils_conf get_systemblock_pm: dim_s_proprio = %d, dt= %f, lag = %d, kwargs = %s" % (dim_s_proprio, dt, lag, kwargs)
+    
+    # defaults
+    dims = {
+        'm0': {'dim': dim_s_proprio, 'dist': 0},
+        's0': {'dim': dim_s_proprio, 'dist': 0},
+    }
+    order = 0
+    # update
+    if kwargs.has_key('dims'):
+        print "updating dims", dims, kwargs['dims']
+        dims.update(kwargs['dims'])
+        print "updated dims", dims
+    if kwargs.has_key('order'):
+        order = kwargs['order']
+        
+    # FIXME: disentangle block conf from sys conf?
+    sysconf = {
         'block': PointmassBlock2,
         'params': {
             'id': 'robot1',
@@ -28,8 +44,8 @@ def get_systemblock_pm(
             'x0': np.random.uniform(-0.3, 0.3, (dim_s_proprio * 3, 1)),
             'inputs': {'u': {'bus': 'pre_l0/pre'}},
             'outputs': {
-                's_proprio': {'shape': (dim_s_proprio, 1)},
-                's_extero':  {'shape': (dim_s_extero, 1)}
+                's_proprio': {'shape': (dim_s_proprio, 1), 'remap': 's0'},
+                's_extero':  {'shape': (dim_s_extero, 1), 'remap': 's1'}
                 }, # , 's_all': [(9, 1)]},
             'statedim': dim_s_proprio * 3,
             'dt': dt,
@@ -45,7 +61,7 @@ def get_systemblock_pm(
             'm_maxs': [ 1.0] * dim_s_proprio,
             'dim_s_extero': dim_s_extero,
             'lag': lag,
-            'order': 1,
+            'order': order,
             'coupling_sigma': 1e-2,
             'transfer': 0,
             'anoise_mean': 0.0,
@@ -67,8 +83,12 @@ def get_systemblock_pm(
             'mdl_perf_model_type': 'lowpass', # 'resforce',
             # target parameters
             'target_f': 0.05,
-            }
         }
+    }
+    
+    sysconf['params']['dims'] = dims
+    # sysconf['params'].update(kwargs)
+    return sysconf
 
 def get_systemblock_sa(
         dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1, lag = 1, **kwargs):

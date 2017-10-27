@@ -20,7 +20,7 @@ from smp_graphs.utils_conf import get_systemblock
 
 # global parameters can be overwritten from the commandline
 ros = False
-numsteps = 10000/10
+numsteps = 10000/1
 recurrent = True
 debug = False
 showplot = True
@@ -28,7 +28,7 @@ saveplot = True
 randseed = 126
 
 lconf = {
-    'dim': 2,
+    'dim': 1,
     'dt': 0.1,
     'lag': 1,
     'budget': 1000,
@@ -40,10 +40,12 @@ dim = lconf['dim']
 budget = lconf['budget'] # 510
 lim = lconf['lim'] # 1.0
 lag = lconf['lag'] # 1.0
+lim_s1 = 0.3
 order = lconf['order']
 
 systemblock   = get_systemblock['pm'](
-    dim_s_proprio = dim, dim_s_extero = dim, lag = lag, order = order)
+    dim_s_proprio = dim, dim_s_extero = dim, lag = lag, order = order,
+    dims = {'s1': {'dim': dim, 'dissipation': 0.03}})
 
 systemblock['params']['sysnoise'] = 0.0
 systemblock['params']['anoise_std'] = 0.0
@@ -89,9 +91,10 @@ graph = OrderedDict([
                         'credit': np.ones((1, 1)) * budget,
                         'goalsize': 0.1, # np.power(0.01, 1.0/dim_s_proprio), # area of goal
                         'inputs': {                        
-                            'lo': {'val': -lim, 'shape': (dim_s_proprio, 1)},
-                            'hi': {'val': lim, 'shape': (dim_s_proprio, 1)},
-                            'mdltr': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 1)},
+                            'lo': {'val': -lim_s1, 'shape': (dim_s_proprio, 1)},
+                            'hi': {'val': lim_s1, 'shape': (dim_s_proprio, 1)},
+                            # 'mdltr': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 1)},
+                            'mdltr': {'bus': 'robot1/s1', 'shape': (dim_s_proprio, 1)},
                             },
                         'outputs': {
                             'pre': {'shape': (dim_s_proprio, 1)},
@@ -128,7 +131,7 @@ graph = OrderedDict([
         'block': MomentBlock2,
         'params': {
             'id': 'measure',
-            'blocksize': numsteps,
+            'blocksize': numsteps/10,
             'inputs': {
                 'credit': {'bus': 'pre_l1/credit', 'shape': (1, numsteps)},
             },
@@ -155,10 +158,16 @@ graph = OrderedDict([
                 'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
                 'pre_l1_credit': {'bus': 'pre_l1/credit', 'shape': (1, numsteps)},
                 },
+            'hspace': 0.1,
+            'wspace': 0.1,
             'subplots': [
                 [
-                    {'input': ['pre_l0', 's_p', 'pre_l1'], 'plot': [partial(timeseries, linewidth = 1.0), timeseries, partial(timeseries, linewidth = 2.0)]},
-                    {'input': ['pre_l0', 's_p', 'pre_l1'], 'plot': partial(histogram, orientation = 'horizontal', histtype = 'step', yticks = False), 'mode': 'stack'},
+                    {
+                        'input': ['pre_l0', 's_p', 'pre_l1'],
+                        'plot': [partial(timeseries, linewidth = 1.0), timeseries, partial(timeseries, linewidth = 2.0)]},
+                    {
+                        'input': ['pre_l0', 's_p', 'pre_l1'],
+                        'plot': partial(histogram, orientation = 'horizontal', histtype = 'step', yticks = False), 'mode': 'stack'},
                 ],
                 [
                     {'input': ['pre_l1', 's_e'], 'plot': timeseries},

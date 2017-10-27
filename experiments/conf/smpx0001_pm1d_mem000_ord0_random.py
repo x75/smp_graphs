@@ -156,8 +156,13 @@ graph = OrderedDict([
                 },
             'subplots': [
                 [
-                    {'input': ['pre_l0', 's_p', 'pre_l1'], 'plot': [partial(timeseries, linewidth = 1.0), timeseries, partial(timeseries, linewidth = 2.0)]},
-                    {'input': ['pre_l0', 's_p', 'pre_l1'], 'plot': partial(histogram, orientation = 'horizontal', histtype = 'step', yticks = False), 'mode': 'stack'},
+                    {
+                        'input': ['pre_l0', 's_p', 'pre_l1'],
+                        'plot': [partial(timeseries, linewidth = 1.0), timeseries, partial(timeseries, linewidth = 2.0, xticks = False)]},
+                    {
+                        'input': ['pre_l0', 's_p', 'pre_l1'],
+                        'plot': partial(histogram, orientation = 'horizontal', histtype = 'step', yticks = False, xticks = False),
+                        'mode': 'stack'},
                 ],
                 [
                     {'input': 'pre_l1_credit', 'plot': timeseries},

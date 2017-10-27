@@ -291,7 +291,12 @@ def step_random_uniform_modulated(ref):
     lo = ref.inputs['lo']['val'] # .T
     hi = ref.inputs['hi']['val'] # .T
     mdltr = ref.inputs['mdltr']['val'] # .T
-    mdltr_ = np.sqrt(np.sum(np.square(mdltr - getattr(ref, ref.outputs.keys()[0]))))
+    refk = ref.outputs.keys()[0]
+    mdltr_ref = getattr(ref, 'pre')
+    # print "refk", refk, "mdltr_ref", mdltr_ref
+    d_raw = mdltr - mdltr_ref
+    # print "refk", refk, "mdltr_ref", mdltr_ref, "d_raw", d_raw
+    mdltr_ = np.sqrt(np.sum(np.square(d_raw)))
     # print "mdltr", mdltr_
     # for outk, outv in ref.outputs.items():
     outk = 'pre'

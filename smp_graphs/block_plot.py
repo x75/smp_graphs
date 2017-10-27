@@ -21,6 +21,7 @@ from smp_graphs.utils import myt, mytupleroll
 import smp_graphs.logging as log
 
 from smp_base.dimstack import dimensional_stacking, digitize_pointcloud
+from smp_base.plot     import put_legend_out_right
 from smp_base.plot     import makefig, timeseries, histogram, plot_img, plotfuncs, uniform_divergence
 from smp_base.plot     import get_colorcycler, kwargs_plot_clean
 
@@ -43,7 +44,15 @@ rcParams['figure.titlesize'] = 8
 
 # smp_graphs style
 rcParams['axes.grid'] = False
-rcParams['axes.facecolor'] = 'white'
+rcParams['axes.facecolor'] = 'none'
+# rcParams['axes.labelcolor'] = .15
+# rcParams['axes.labelpad'] = 4.0
+rcParams['axes.labelsize'] = 8.0
+rcParams['axes.labelweight'] = 'normal'
+rcParams['legend.fontsize'] = 8.0
+rcParams['legend.labelspacing'] = 0.5
+rcParams['xtick.labelsize'] = 8.0
+rcParams['ytick.labelsize'] = 8.0
 
 # f = open("rcparams.txt", "w")
 # f.write("rcParams = %s" % (rcParams, ))
@@ -384,7 +393,7 @@ class PlotBlock2(FigPlotBlock2):
 
                     # get this subplot's plotfunc configuration and make sure its a list
                     plotfunc_conf = self.check_plot_type(subplotconf)
-                    print "%s-%s plotfunc_conf = %s" % (self.cname, self.id, plotfunc_conf)
+                    # print "%s-%s plotfunc_conf = %s" % (self.cname, self.id, plotfunc_conf)
                     assert type(plotfunc_conf) is list, "plotfunc_conf must be a list, not %s" % (type(plotfunc_conf), )
 
                     title += self.get_title_from_plot_type(plotfunc_conf)
@@ -437,7 +446,8 @@ class PlotBlock2(FigPlotBlock2):
                         # if ink == 'd0':
                         #     print "plotblock2", self.inputs[ink]['val'].shape
                         #     print "plotblock2", self.inputs[ink]['val'][0,...,:]
-                        ink_ = "%s_%d" % (ink, k)
+                        # ink_ = "%s_%d" % (ink, k)
+                        ink_ = "%d_%s" % (k, ink)
                         # print "      input shape %s: %s" % (ink, self.inputs[ink]['val'].shape)
 
                         # if explicit n-dimensional slice is given
@@ -507,6 +517,8 @@ class PlotBlock2(FigPlotBlock2):
                         # metadata
                         inkc += 1
                     self.fig.axes[idx].legend(labels)
+                    # put_legend_out_right(resize_by = 0.8, ax = self.fig.axes[idx], labels = labels)
+                    
                     # self.fig.axes[idx].set_title("%s of %s" % (plottype, plotvar, ), fontsize=8)
                     # [subplotconf['slice'][0]:subplotconf['slice'][1]].T)
 
