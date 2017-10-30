@@ -73,11 +73,34 @@ graph = OrderedDict([
         
     # brain
     ('braina', {
+        # FIXME: idea: this guy needs to pass down its input/output configuration
+        #        to save typing / errors on the individual modules
         'block': Block2,
         'params': {
             'numsteps': 1, # numsteps,
             'id': 'braina',
             'graph': OrderedDict([
+                # every brain has a budget
+                ('budget', {
+                    'block': ModelBlock2,
+                    'params': {
+                        'blocksize': 1,
+                        'blockphase': [0],
+                        'credit': np.ones((1, 1)) * budget,
+                        'goalsize': 0.1, # np.power(0.01, 1.0/dim_s_proprio), # area of goal
+                        'inputs': {
+                            's0': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 1)},
+                            's0_ref': {'bus': 'pre_l1/pre', 'shape': (dim_s_proprio, 1)},
+                            },
+                        'outputs': {
+                            'credit': {'shape': (1,1)},
+                        },
+                        'models': {
+                            'budget': {'type': 'budget_linear'},
+                        },
+                        'rate': 1,
+                    },
+                }),
                 # uniformly dist. random goals, triggered when error < goalsize
                 ('pre_l1', {
                     'block': ModelBlock2,
@@ -85,7 +108,7 @@ graph = OrderedDict([
                         'blocksize': 1,
                         'blockphase': [0],
                         'ros': ros,
-                        'credit': np.ones((1, 1)) * budget,
+                        # 'credit': np.ones((1, 1)) * budget,
                         'goalsize': 0.1, # np.power(0.01, 1.0/dim_s_proprio), # area of goal
                         'inputs': {                        
                             'lo': {'val': -lim, 'shape': (dim_s_proprio, 1)},
@@ -94,7 +117,8 @@ graph = OrderedDict([
                             },
                         'outputs': {
                             'pre': {'shape': (dim_s_proprio, 1)},
-                            'credit': {'shape': (1,1)}},
+                            # 'credit': {'shape': (1,1)}
+                        },
                         'models': {
                             'goal': {'type': 'random_uniform_modulated'}
                             },
@@ -129,7 +153,8 @@ graph = OrderedDict([
             'id': 'measure',
             'blocksize': numsteps,
             'inputs': {
-                'credit': {'bus': 'pre_l1/credit', 'shape': (1, numsteps)},
+                # 'credit': {'bus': 'pre_l1/credit', 'shape': (1, numsteps)},
+                'credit': {'bus': 'budget/credit', 'shape': (1, numsteps)},
             },
             'outputs': {
                 'credit_mu': {'shape': (1, 1)},
@@ -152,7 +177,7 @@ graph = OrderedDict([
                 's_e': {'bus': 'robot1/s_extero', 'shape': (dim_s_extero, numsteps)},
                 'pre_l0': {'bus': 'pre_l0/pre', 'shape': (dim_s_goal, numsteps)},
                 'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
-                'pre_l1_credit': {'bus': 'pre_l1/credit', 'shape': (1, numsteps)},
+                'credit_l1': {'bus': 'budget/credit', 'shape': (1, numsteps)},
                 },
             'subplots': [
                 [
@@ -165,8 +190,8 @@ graph = OrderedDict([
                         'mode': 'stack'},
                 ],
                 [
-                    {'input': 'pre_l1_credit', 'plot': timeseries},
-                    {'input': 'pre_l1_credit', 'plot': partial(histogram, orientation = 'horizontal', histtype = 'step', yticks = False)},
+                    {'input': 'credit_l1', 'plot': timeseries},
+                    {'input': 'credit_l1', 'plot': partial(histogram, orientation = 'horizontal', histtype = 'step', yticks = False)},
                 ]
             ],
         },

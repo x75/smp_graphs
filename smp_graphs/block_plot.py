@@ -20,10 +20,10 @@ from smp_graphs.block import PrimBlock2
 from smp_graphs.utils import myt, mytupleroll
 import smp_graphs.logging as log
 
-from smp_base.dimstack import dimensional_stacking, digitize_pointcloud
-from smp_base.plot     import put_legend_out_right
-from smp_base.plot     import makefig, timeseries, histogram, plot_img, plotfuncs, uniform_divergence
-from smp_base.plot     import get_colorcycler, kwargs_plot_clean
+from smp_base.plot_utils import put_legend_out_right, put_legend_out_top
+from smp_base.dimstack   import dimensional_stacking, digitize_pointcloud
+from smp_base.plot       import makefig, timeseries, histogram, plot_img, plotfuncs, uniform_divergence
+from smp_base.plot       import get_colorcycler, kwargs_plot_clean
 
 ################################################################################
 # Plotting blocks
@@ -47,12 +47,12 @@ rcParams['axes.grid'] = False
 rcParams['axes.facecolor'] = 'none'
 # rcParams['axes.labelcolor'] = .15
 # rcParams['axes.labelpad'] = 4.0
-rcParams['axes.labelsize'] = 8.0
+rcParams['axes.labelsize'] = 6.0
 rcParams['axes.labelweight'] = 'normal'
-rcParams['legend.fontsize'] = 8.0
+rcParams['legend.fontsize'] = 6.0
 rcParams['legend.labelspacing'] = 0.5
-rcParams['xtick.labelsize'] = 8.0
-rcParams['ytick.labelsize'] = 8.0
+rcParams['xtick.labelsize'] = 6.0
+rcParams['ytick.labelsize'] = 6.0
 
 # f = open("rcparams.txt", "w")
 # f.write("rcParams = %s" % (rcParams, ))
@@ -360,174 +360,216 @@ class PlotBlock2(FigPlotBlock2):
         """
         self.debug_print("%s plot_subplots self.inputs = %s",
                              (self.cname, self.inputs))
-        if True:
-            for i, subplot in enumerate(self.subplots):
-                for j, subplotconf in enumerate(subplot):
-                    assert subplotconf.has_key('input'), "PlotBlock2 needs 'input' key in the plot spec = %s" % (subplotconf,)
-                    # assert subplotconf.has_key('plot'), "PlotBlock2 needs 'plot' key in the plot spec = %s" % (subplotconf,)
+
+        # subplots pass 0: remember ax limits
+        rows_ylim_max = [(1e9, -1e9) for _ in range(len(self.subplots))]
+        cols_xlim_max = [(1e9, -1e9) for _ in range(len(self.subplots[0]))]
+        
+        # subplots pass 1: the hard work, iterate over subplot config and build the plot
+        for i, subplot in enumerate(self.subplots):
+            for j, subplotconf in enumerate(subplot):
+                assert subplotconf.has_key('input'), "PlotBlock2 needs 'input' key in the plot spec = %s" % (subplotconf,)
+                # assert subplotconf.has_key('plot'), "PlotBlock2 needs 'plot' key in the plot spec = %s" % (subplotconf,)
+                
+                # make it a list if it isn't
+                for input_spec_key in ['input', 'ndslice', 'shape']:
+                    if subplotconf.has_key(input_spec_key):
+                        subplotconf[input_spec_key] = subplot_input_fix(subplotconf[input_spec_key])
+                        # print "    id: %s, subplotconf[%s] = %s" % (self.id, input_spec_key, subplotconf[input_spec_key])
+
+                # subplot index from rows*cols
+                idx = (i*self.fig_cols)+j
                     
-                    # make it a list if it isn't
-                    for input_spec_key in ['input', 'ndslice', 'shape']:
-                        if subplotconf.has_key(input_spec_key):
-                            subplotconf[input_spec_key] = subplot_input_fix(subplotconf[input_spec_key])
-                            # print "    id: %s, subplotconf[%s] = %s" % (self.id, input_spec_key, subplotconf[input_spec_key])
+                # self.debug_print("[%s]step idx = %d, conf = %s, data = %s/%s", (
+                #     self.id, idx,
+                #     subplotconf, subplotconf['input'], self.inputs[subplotconf['input']]))
+                # self.inputs[subplotconf['input']][0]))
 
-                    # subplot index from rows*cols
-                    idx = (i*self.fig_cols)+j
-                        
-                    # self.debug_print("[%s]step idx = %d, conf = %s, data = %s/%s", (
-                    #     self.id, idx,
-                    #     subplotconf, subplotconf['input'], self.inputs[subplotconf['input']]))
-                    # self.inputs[subplotconf['input']][0]))
+                # hier
+                
+                # plotdata = self.inputs[subplotconf['input']][0].T
+                # elif type(subplotconf['input']) is list:
+                # plotdata = self.inputs[subplotconf['input'][1]][0].T
+                # plotdata = {}
+                plotdata = OrderedDict()
+                plotvar = " "
+                title = ""
+                if subplotconf.has_key('title'): title += subplotconf['title']
 
-                    # hier
+                # get this subplot's plotfunc configuration and make sure its a list
+                plotfunc_conf = self.check_plot_type(subplotconf)
+                # print "%s-%s plotfunc_conf = %s" % (self.cname, self.id, plotfunc_conf)
+                assert type(plotfunc_conf) is list, "plotfunc_conf must be a list, not %s" % (type(plotfunc_conf), )
+
+                title += self.get_title_from_plot_type(plotfunc_conf)
+
+                # loop over inputs
+                for k, ink in enumerate(subplotconf['input']):
+                    # FIXME: array'ize this loop
+                    # vars: input, ndslice, shape, xslice, ...
+
+                    # get numsteps of data for the input
+                    plotlen = self.inputs[ink]['shape'][-1] # numsteps at shape[-1]
+
+                    # set default slice
+                    xslice = slice(0, plotlen)
+                    # compute final shape of plot data, custom transpose from horiz time to row time
+                    plotshape = mytupleroll(self.inputs[ink]['shape'])
                     
-                    # plotdata = self.inputs[subplotconf['input']][0].T
-                    # elif type(subplotconf['input']) is list:
-                    # plotdata = self.inputs[subplotconf['input'][1]][0].T
-                    # plotdata = {}
-                    plotdata = OrderedDict()
-                    plotvar = " "
-                    title = ""
-                    if subplotconf.has_key('title'): title += subplotconf['title']
+                    # print "%s.subplots defaults: plotlen = %d, xslice = %s, plotshape = %s" % (self.cname, plotlen, xslice, plotshape)
+                
+                    # x axis slice spec
+                    if subplotconf.has_key('xslice'):
+                        # set slice
+                        xslice = slice(subplotconf['xslice'][k][0], subplotconf['xslice'][k][1])
+                        # update plot length
+                        plotlen = xslice.stop - xslice.start
+                        # and plot shape
+                        plotshape = (plotlen, ) + tuple((b for b in plotshape[1:]))
+                    
+                    # print "%s.subplots post-xslice: plotlen = %d, xslice = %s, plotshape = %s" % (self.cname, plotlen, xslice, plotshape)
 
-                    # get this subplot's plotfunc configuration and make sure its a list
-                    plotfunc_conf = self.check_plot_type(subplotconf)
-                    # print "%s-%s plotfunc_conf = %s" % (self.cname, self.id, plotfunc_conf)
-                    assert type(plotfunc_conf) is list, "plotfunc_conf must be a list, not %s" % (type(plotfunc_conf), )
-
-                    title += self.get_title_from_plot_type(plotfunc_conf)
-
-                    # loop over inputs
-                    for k, ink in enumerate(subplotconf['input']):
-                        # FIXME: array'ize this loop
-                        # vars: input, ndslice, shape, xslice, ...
-
-                        # get numsteps of data for the input
-                        plotlen = self.inputs[ink]['shape'][-1] # numsteps at shape[-1]
-
-                        # set default slice
+                    # explicit shape key
+                    if subplotconf.has_key('shape'):
+                        # get the shape spec, custom transpose from horiz t to row t
+                        plotshape = mytupleroll(subplotconf['shape'][k])
+                        # update plot length
+                        plotlen = plotshape[0]
+                        # and xsclice
                         xslice = slice(0, plotlen)
-                        # compute final shape of plot data, custom transpose from horiz time to row time
-                        plotshape = mytupleroll(self.inputs[ink]['shape'])
-                        
-                        # print "%s.subplots defaults: plotlen = %d, xslice = %s, plotshape = %s" % (self.cname, plotlen, xslice, plotshape)
+
+                    # print "%s.subplots post-shape: plotlen = %d, xslice = %s, plotshape = %s" % (self.cname, plotlen, xslice, plotshape)
                     
-                        # x axis slice spec
-                        if subplotconf.has_key('xslice'):
-                            # set slice
-                            xslice = slice(subplotconf['xslice'][k][0], subplotconf['xslice'][k][1])
-                            # update plot length
-                            plotlen = xslice.stop - xslice.start
-                            # and plot shape
-                            plotshape = (plotlen, ) + tuple((b for b in plotshape[1:]))
-                        
-                        # print "%s.subplots post-xslice: plotlen = %d, xslice = %s, plotshape = %s" % (self.cname, plotlen, xslice, plotshape)
-
-                        # explicit shape key
-                        if subplotconf.has_key('shape'):
-                            # get the shape spec, custom transpose from horiz t to row t
-                            plotshape = mytupleroll(subplotconf['shape'][k])
-                            # update plot length
-                            plotlen = plotshape[0]
-                            # and xsclice
-                            xslice = slice(0, plotlen)
-
-                        # print "%s.subplots post-shape: plotlen = %d, xslice = %s, plotshape = %s" % (self.cname, plotlen, xslice, plotshape)
-                        
-                        # configure x axis, default implicit number of steps
-                        if subplotconf.has_key('xaxis'):
-                            t = self.inputs[subplotconf['xaxis']]['val'].T[xslice]
-                        else:
-                            t = np.linspace(xslice.start, xslice.start+plotlen-1, plotlen)[xslice]
-                        
-                        # print "%s.plot_subplots k = %s, ink = %s" % (self.cname, k, ink)
-                        # plotdata[ink] = self.inputs[ink]['val'].T[xslice]
-                        # if ink == 'd0':
-                        #     print "plotblock2", self.inputs[ink]['val'].shape
-                        #     print "plotblock2", self.inputs[ink]['val'][0,...,:]
-                        # ink_ = "%s_%d" % (ink, k)
-                        ink_ = "%d_%s" % (k, ink)
-                        # print "      input shape %s: %s" % (ink, self.inputs[ink]['val'].shape)
-
-                        # if explicit n-dimensional slice is given
-                        if subplotconf.has_key('ndslice'):
-                            # plotdata[ink_] = myt(self.inputs[ink_]['val'])[-1,subplotconf['ndslice'][0],subplotconf['ndslice'][1],:] # .reshape((21, -1))
-                            # slice the data to spec, custom transpose from h to v time
-                            plotdata[ink_] = myt(self.inputs[ink]['val'])[subplotconf['ndslice'][k]]
-                            # print "      ndslice %s: %s, numslice = %d" % (ink, subplotconf['ndslice'][k], len(subplotconf['ndslice']))
-                        else:
-                            plotdata[ink_] = myt(self.inputs[ink]['val'])[xslice] # .reshape((xslice.stop - xslice.start, -1))
-
-                        assert plotdata[ink_].shape != (0,), "no data to plot"
-                        # print "      id %s, ink = %s, plotdata = %s, plotshape = %s" % (self.id, ink_, plotdata[ink_].shape, plotshape)
-                        # plotdata[ink_] = plotdata[ink_].reshape((plotshape[1], plotshape[0])).T
-                        plotdata[ink_] = plotdata[ink_].reshape(plotshape)
-                        
-                        # fix nans
-                        plotdata[ink_][np.isnan(plotdata[ink_])] = -1.0
-                        plotvar += "%s, " % (self.inputs[ink]['bus'],)
-                    # assign and trim title
-                    title += plotvar[:-2]
-                        
-                    # combine inputs into one backend plot call to automate color cycling etc
-                    if subplotconf.has_key('mode'):
-                        """FIXME: fix dangling effects of stacking"""
-                        # ivecs = tuple(myt(self.inputs[ink]['val'])[xslice] for k, ink in enumerate(subplotconf['input']))
-                        ivecs = [plotdatav for plotdatak, plotdatav in plotdata.items()]
-                        # plotdata = {}
-                        if subplotconf['mode'] in ['stack', 'combine', 'concat']:
-                            plotdata['_stacked'] = np.hstack(ivecs)
-
-                    # if type(subplotconf['input']) is list:
+                    # configure x axis, default implicit number of steps
                     if subplotconf.has_key('xaxis'):
-                        inv = self.inputs[subplotconf['xaxis']]
-                        if inv.has_key('bus'):
-                            plotvar += " over %s" % (inv['bus'], )
-                        else:
-                            plotvar += " over %s" % (inv['val'], )
-                        # plotvar = ""
-                        # # FIXME: if len == 2 it is x over y, if len > 2 concatenation
-                        # for k, inputvar in enumerate(subplotconf['input']):
-                        #     tmpinput = self.inputs[inputvar][2]
-                        #     plotvar += str(tmpinput)
-                        #     if k != (len(subplotconf['input']) - 1):
-                        #         plotvar += " revo "
-                    # else:
-                    # plotvar = self.inputs[subplotconf['input'][0]][2]
-
-                    # plot the plotdata
-                    # kwargs_ = {} # kwargs_plot_clean(**kwargs)
-                    labels = []
-                    self.fig.axes[idx].clear()
-                    inkc = 0
-                    if plotdata.has_key('_stacked'):
-                        plotfunc_conf[0](self.fig.axes[idx], data = plotdata['_stacked'], ordinate = t, title = title) # , **kwargs)
-                        
-                    for ink, inv in plotdata.items():
-                        # print "%s.plot_subplots: ink = %s, plotvar = %s, inv.sh = %s, t.sh = %s" % (self.cname, ink, plotvar, inv.shape, t.shape)
-
-                        # select single element at first slot or increment index with plotdata items
-                        plotfunc_idx = inkc % len(plotfunc_conf)
-                        
-                        # this is the plot function array from the config
-                        if not plotdata.has_key('_stacked'):
-                            plotfunc_conf[plotfunc_idx](self.fig.axes[idx], data = inv, ordinate = t, label = "%s" % ink, title = title) # , **kwargs)
-                        labels.append("%s" % ink)
-                        # metadata
-                        inkc += 1
-                    self.fig.axes[idx].legend(labels)
-                    # put_legend_out_right(resize_by = 0.8, ax = self.fig.axes[idx], labels = labels)
+                        t = self.inputs[subplotconf['xaxis']]['val'].T[xslice]
+                    else:
+                        t = np.linspace(xslice.start, xslice.start+plotlen-1, plotlen)[xslice]
                     
-                    # self.fig.axes[idx].set_title("%s of %s" % (plottype, plotvar, ), fontsize=8)
-                    # [subplotconf['slice'][0]:subplotconf['slice'][1]].T)
+                    # print "%s.plot_subplots k = %s, ink = %s" % (self.cname, k, ink)
+                    # plotdata[ink] = self.inputs[ink]['val'].T[xslice]
+                    # if ink == 'd0':
+                    #     print "plotblock2", self.inputs[ink]['val'].shape
+                    #     print "plotblock2", self.inputs[ink]['val'][0,...,:]
+                    # ink_ = "%s_%d" % (ink, k)
+                    ink_ = "%d_%s" % (k, ink)
+                    # print "      input shape %s: %s" % (ink, self.inputs[ink]['val'].shape)
 
-            # # adjust xaxis
-            # for i, subplot in enumerate(self.subplots):
-            #     for j, subplotconf in enumerate(subplot):
-            #         # subplot index from rows*cols
-            #         idx = (i*self.fig_cols)+j
-            #         ax = self.fig.axes[idx]
+                    # if explicit n-dimensional slice is given
+                    if subplotconf.has_key('ndslice'):
+                        # plotdata[ink_] = myt(self.inputs[ink_]['val'])[-1,subplotconf['ndslice'][0],subplotconf['ndslice'][1],:] # .reshape((21, -1))
+                        # slice the data to spec, custom transpose from h to v time
+                        plotdata[ink_] = myt(self.inputs[ink]['val'])[subplotconf['ndslice'][k]]
+                        # print "      ndslice %s: %s, numslice = %d" % (ink, subplotconf['ndslice'][k], len(subplotconf['ndslice']))
+                    else:
+                        plotdata[ink_] = myt(self.inputs[ink]['val'])[xslice] # .reshape((xslice.stop - xslice.start, -1))
+
+                    assert plotdata[ink_].shape != (0,), "no data to plot"
+                    # print "      id %s, ink = %s, plotdata = %s, plotshape = %s" % (self.id, ink_, plotdata[ink_].shape, plotshape)
+                    # plotdata[ink_] = plotdata[ink_].reshape((plotshape[1], plotshape[0])).T
+                    plotdata[ink_] = plotdata[ink_].reshape(plotshape)
+                    
+                    # fix nans
+                    plotdata[ink_][np.isnan(plotdata[ink_])] = -1.0
+                    plotvar += "%s, " % (self.inputs[ink]['bus'],)
+                # assign and trim title
+                title += plotvar[:-2]
+                    
+                # combine inputs into one backend plot call to automate color cycling etc
+                if subplotconf.has_key('mode'):
+                    """FIXME: fix dangling effects of stacking"""
+                    # ivecs = tuple(myt(self.inputs[ink]['val'])[xslice] for k, ink in enumerate(subplotconf['input']))
+                    ivecs = [plotdatav for plotdatak, plotdatav in plotdata.items()]
+                    # plotdata = {}
+                    if subplotconf['mode'] in ['stack', 'combine', 'concat']:
+                        plotdata['_stacked'] = np.hstack(ivecs)
+
+                # if type(subplotconf['input']) is list:
+                if subplotconf.has_key('xaxis'):
+                    inv = self.inputs[subplotconf['xaxis']]
+                    if inv.has_key('bus'):
+                        plotvar += " over %s" % (inv['bus'], )
+                    else:
+                        plotvar += " over %s" % (inv['val'], )
+                    # plotvar = ""
+                    # # FIXME: if len == 2 it is x over y, if len > 2 concatenation
+                    # for k, inputvar in enumerate(subplotconf['input']):
+                    #     tmpinput = self.inputs[inputvar][2]
+                    #     plotvar += str(tmpinput)
+                    #     if k != (len(subplotconf['input']) - 1):
+                    #         plotvar += " revo "
+                # else:
+                # plotvar = self.inputs[subplotconf['input'][0]][2]
+
+                # plot the plotdata
+                # kwargs_ = {} # kwargs_plot_clean(**kwargs)
+                labels = []
+                self.fig.axes[idx].clear()
+                inkc = 0
+                if plotdata.has_key('_stacked'):
+                    plotfunc_conf[0](self.fig.axes[idx], data = plotdata['_stacked'], ordinate = t, title = title) # , **kwargs)
+
+                # axis handle shortcut
+                ax = self.fig.axes[idx]
+
+                # iterate over plotdata items
+                for ink, inv in plotdata.items():
+                    # print "%s.plot_subplots: ink = %s, plotvar = %s, inv.sh = %s, t.sh = %s" % (self.cname, ink, plotvar, inv.shape, t.shape)
+
+                    # select single element at first slot or increment index with plotdata items
+                    plotfunc_idx = inkc % len(plotfunc_conf)
+                    
+                    # this is the plot function array from the config
+                    if not plotdata.has_key('_stacked'):
+                        plotfunc_conf[plotfunc_idx](ax = ax, data = inv, ordinate = t, label = "%s" % ink, title = title) # , **kwargs)
+                    labels.append("%s" % ink)
+                    # metadata
+                    inkc += 1
+                    
+                # store the final plot data
+                # print "sbdict", self.subplots[i][j]
+                self.subplots[i][j]['p1_plottitle'] = title
+                self.subplots[i][j]['p1_plotdata'] = plotdata
+                self.subplots[i][j]['p1_plotvar'] = plotvar
+                self.subplots[i][j]['p1_plotlabels'] = labels
+                self.subplots[i][j]['p1_plotxlim'] = ax.get_xlim()
+                self.subplots[i][j]['p1_plotylim'] = ax.get_ylim()
+                    
+                # save axis limits
+                # print "xlim", ax.get_xlim()
+                sb = self.subplots[i][j]
+                if sb['p1_plotxlim'][0] < cols_xlim_max[j][0]: cols_xlim_max[j] = (sb['p1_plotxlim'][0], cols_xlim_max[j][1])
+                if sb['p1_plotxlim'][1] > cols_xlim_max[j][1]: cols_xlim_max[j] = (cols_xlim_max[j][0], sb['p1_plotxlim'][1])
+                if sb['p1_plotylim'][0] < rows_ylim_max[i][0]: rows_ylim_max[i] = (sb['p1_plotylim'][0], rows_ylim_max[i][1])
+                if sb['p1_plotylim'][1] > rows_ylim_max[i][1]: rows_ylim_max[i] = (rows_ylim_max[i][0], sb['p1_plotylim'][1])
+ 
+                # self.fig.axes[idx].set_title("%s of %s" % (plottype, plotvar, ), fontsize=8)
+                # [subplotconf['slice'][0]:subplotconf['slice'][1]].T)
+        # subplots pass 1: done
+
+        # subplots pass 2: clean up and compute globally shared dynamic vars
+        
+        # adjust xaxis
+        for i, subplot in enumerate(self.subplots):
+            for j, subplotconf in enumerate(subplot):
+                # subplot handle shortcut
+                sb = self.subplots[i][j]
+                # subplot index from rows*cols
+                idx = (i*self.fig_cols)+j
+                # axis handle shortcut
+                ax = self.fig.axes[idx]
+
+                # consolidate axis limits
+                ax.set_xlim(cols_xlim_max[j])
+                ax.set_ylim(rows_ylim_max[i])
+                
+                # fix legends
+                # ax.legend(labels)
+                put_legend_out_right(
+                    labels = sb['p1_plotlabels'],
+                    ax = ax, resize_by = 0.9)
+                # put_legend_out_top(labels = labels, ax = ax, resize_by = 0.8)
+                
 
                     
         plt.draw()

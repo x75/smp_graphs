@@ -132,61 +132,98 @@ class Bus(MutableMapping):
         """
         assert ax is not None
         xspacing = 10
-        yspacing = 2
+        yspacing = 3
         yscaling = 0.66
+        xscaling = 0.66
         
         xmax = 0
         ymax = 0
 
-        ypos = -yspacing
-        xpos = 0
+        xpos = 0 # xspacing
+        ypos = -2 # yspacing
 
         if blockid is None: blockid = "Block2"
             
         ax.set_title(blockid + ".bus")
-        ax.text(10, 0, "Bus (%s)" % ("topblock"), fontsize = 10)
         ax.grid(0)
+
+        # data coords / axis coords
+        
+        ax.text(xpos, ypos, "Bus (%s)" % ("topblock"), fontsize = 10, bbox = dict(facecolor = 'red', alpha = 0.5, fill = False,))
+        # ax.text(0, 1.0, "Bus (%s)" % ("topblock"), transform = ax.transAxes, fontsize = 10)
+        
         # ax.plot(np.random.uniform(-5, 5, 100), "ko", alpha = 0.1)
         i = 0
         for k, v in self.store.items():
             # print "k = %s, v = %s" % (k, v)
             # ypos = -10 # -(i+1)*yspacing
             # xpos = (i+1)*xspacing
-            # ypos += -yspacing
-            xpos +=  xspacing
-            if len(k) > 8:
-                xspacing = len(k) + 2
-            else:
-                xspacing = 10
+            ypos -= max(yspacing, v.shape[0] + 1)
+            # xpos +=  max(xspacing, len(k) + 2)
+            # if len(k) > 8:
+            #     xspacing = len(k) + 2
+            # else:
+            #     xspacing = 10
                 
             ax.text(xpos, ypos, "{0: <8}\n{1: <12}".format(k, v.shape), family = 'monospace', fontsize = 8)
+            # ax.text(xpos, ypos, "{0: <8}\n{1: <12}".format(k, v.shape), family = 'monospace', fontsize = 8, transform = ax.transAxes)
+
+            # buf shapes: horizontal
             # elementary shape without buffersize
             ax.add_patch(
                 patches.Rectangle(
-                    # (30, ypos - (v.shape[0]/2.0) - (yspacing / 3.0)),   # (x,y)
-                    (xpos+2, ypos-1),   # (x,y)
-                    v.shape[0],          # width
-                    -1 * yscaling,          # height
+                    (xpos+4, ypos+1),   # (x,y)
+                    1.0 * xscaling,          # width
+                    v.shape[0] * -yscaling,          # height
                     fill = False,
-                    # hatch = "|",
-                    hatch = "-",
+                    hatch = "|",
+                    # hatch = "-",
                 )
             )
             
             # full blockshape
-            bs_height = -np.log10(v.shape[1] * yscaling)
+            bs_width = -np.log10(v.shape[1] * xscaling)
+            bs_height = -np.log10(v.shape[0] * yscaling)
             ax.add_patch(
                 patches.Rectangle(
-                    # (30, ypos - (v.shape[0]/2.0) - (yspacing / 3.0)),   # (x,y)
-                    (xpos+2, ypos-2),   # (x,y)
-                    v.shape[0],          # width
-                    bs_height,          # height
+                    # (30, ypos - (v.shape[0]/2.0) - (-yspacing / 3.0)),   # (x,y)
+                    (xpos+6, ypos+1),        # pos (x,y)
+                    bs_width,              # width
+                    v.shape[0] * -yscaling, # height
                     fill = False,
-                    # hatch = "|",
-                    hatch = "-",
+                    hatch = "|",
+                    # hatch = "-",
                 )
             )
 
+            # # buf shapes: vertical
+            # # elementary shape without buffersize
+            # ax.add_patch(
+            #     patches.Rectangle(
+            #         # (30, ypos - (v.shape[0]/2.0) - (-yspacing / 3.0)),   # (x,y)
+            #         (xpos+2, ypos-1),   # (x,y)
+            #         v.shape[0],          # width
+            #         -1 * yscaling,          # height
+            #         fill = False,
+            #         # hatch = "|",
+            #         hatch = "-",
+            #     )
+            # )
+            
+            # # full blockshape
+            # bs_height = -np.log10(v.shape[1] * yscaling)
+            # ax.add_patch(
+            #     patches.Rectangle(
+            #         # (30, ypos - (v.shape[0]/2.0) - (-yspacing / 3.0)),   # (x,y)
+            #         (xpos+2, ypos-2),   # (x,y)
+            #         v.shape[0],          # width
+            #         bs_height,          # height
+            #         fill = False,
+            #         # hatch = "|",
+            #         hatch = "-",
+            #     )
+            # )
+            
             if xpos > xmax: xmax = xpos
             if -(ypos - 8 - bs_height) > ymax: ymax = -(ypos - 8 - bs_height) + 2
             i+=1

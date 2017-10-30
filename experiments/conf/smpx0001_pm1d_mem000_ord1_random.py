@@ -20,7 +20,7 @@ from smp_graphs.utils_conf import get_systemblock
 
 # global parameters can be overwritten from the commandline
 ros = False
-numsteps = 10000/1
+numsteps = 10000/10
 recurrent = True
 debug = False
 showplot = True
@@ -28,7 +28,7 @@ saveplot = True
 randseed = 126
 
 lconf = {
-    'dim': 1,
+    'dim': 2,
     'dt': 0.1,
     'lag': 1,
     'budget': 1000,
@@ -40,12 +40,18 @@ dim = lconf['dim']
 budget = lconf['budget'] # 510
 lim = lconf['lim'] # 1.0
 lag = lconf['lag'] # 1.0
-lim_s1 = 0.3
+lim_s1 = 0.5
 order = lconf['order']
+
+histnormed = False
 
 systemblock   = get_systemblock['pm'](
     dim_s_proprio = dim, dim_s_extero = dim, lag = lag, order = order,
     dims = {'s1': {'dim': dim, 'dissipation': 0.03}})
+
+# fo saturation
+
+# diss * velx = motor_max * dt?
 
 systemblock['params']['sysnoise'] = 0.0
 systemblock['params']['anoise_std'] = 0.0
@@ -112,8 +118,8 @@ graph = OrderedDict([
                     'params': {
                         'id': 'search',
                         'inputs': {
-                            'lo': {'val': -lim},
-                            'hi': {'val': lim}},
+                            'lo': {'val': -lim}, # lim - 1e-3},
+                            'hi': {'val':  lim}},
                         'outputs': {
                             'pre': {'shape': (dim_s_proprio, 1)},
                             }
@@ -156,26 +162,36 @@ graph = OrderedDict([
                 's_e': {'bus': 'robot1/s_extero', 'shape': (dim_s_extero, numsteps)},
                 'pre_l0': {'bus': 'pre_l0/pre', 'shape': (dim_s_goal, numsteps)},
                 'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
-                'pre_l1_credit': {'bus': 'pre_l1/credit', 'shape': (1, numsteps)},
+                'credit_l1': {'bus': 'pre_l1/credit', 'shape': (1, numsteps)},
                 },
-            'hspace': 0.1,
-            'wspace': 0.1,
+            'hspace': 0.2,
+            'wspace': 0.2,
             'subplots': [
                 [
                     {
                         'input': ['pre_l0', 's_p', 'pre_l1'],
-                        'plot': [partial(timeseries, linewidth = 1.0), timeseries, partial(timeseries, linewidth = 2.0)]},
+                        'plot': [
+                            partial(timeseries, linewidth = 1.0),
+                            timeseries,
+                            partial(timeseries, linewidth = 2.0, xticks = False)]},
                     {
                         'input': ['pre_l0', 's_p', 'pre_l1'],
-                        'plot': partial(histogram, orientation = 'horizontal', histtype = 'step', yticks = False), 'mode': 'stack'},
+                        'plot': partial(
+                            histogram, orientation = 'horizontal', histtype = 'step',
+                            xticks = False, yticks = False, normed = histnormed),
+                        'mode': 'stack'},
                 ],
                 [
-                    {'input': ['pre_l1', 's_e'], 'plot': timeseries},
-                    {'input': ['pre_l1', 's_e'], 'plot': partial(histogram, orientation = 'horizontal', histtype = 'step', yticks = False)},
+                    {'input': ['pre_l1', 's_e'], 'plot': partial(timeseries, xticks = False)},
+                    {'input': ['pre_l1', 's_e'], 'plot': partial(
+                        histogram, orientation = 'horizontal', histtype = 'step',
+                        xticks = False, yticks = False, normed = histnormed)},
                 ],
                 [
-                    {'input': 'pre_l1_credit', 'plot': timeseries},
-                    {'input': 'pre_l1_credit', 'plot': partial(histogram, orientation = 'horizontal', histtype = 'step', yticks = False)},
+                    {'input': 'credit_l1', 'plot': timeseries},
+                    {'input': 'credit_l1', 'plot': partial(
+                        histogram, orientation = 'horizontal', histtype = 'step',
+                        yticks = False, normed = histnormed)},
                 ]
             ],
         },

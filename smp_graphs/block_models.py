@@ -265,6 +265,33 @@ def step_random_uniform_pi_2(ref):
         #     ref.cname, ref.id, ref.cnt, outk, getattr(ref, outk))
         # print "block_models.py: random_uniform_pi_2_step %s = %s" % (outk, getattr(ref, outk))
 
+# model func: agent budget: energy,
+def init_budget(ref, conf, mconf):
+    params = conf['params']
+    ref.credit = np.ones((1, 1)) * params['credit']
+    ref.credit_ = ref.credit.copy()
+
+def step_budget(ref):
+    if hasattr(ref, 'rate'):
+        if (ref.cnt % ref.rate) not in ref.blockphase: return
+    
+    mdltr = ref.inputs['s0']['val'] # .T
+    mdltr_ref = ref.inputs['s0_ref']['val']
+    # refk = ref.outputs.keys()[0]
+    # print "refk", refk, "mdltr_ref", mdltr_ref
+    d_raw = mdltr - mdltr_ref
+    # print "refk", refk, "mdltr_ref", mdltr_ref, "d_raw", d_raw
+    mdltr_ = np.sqrt(np.sum(np.square(d_raw)))
+    
+    if ref.cnt % (ref.rate * 1) == 0 and mdltr_ < ref.goalsize:
+        # print ref.__class__.__name__, ref.id, "lo, hi, out shapes", lo.shape, hi.shape, outv['shape']
+        # setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
+        ref.credit = ref.credit_.copy()
+    else:
+        ref.credit -= 1
+        # if ref.credit
+            
+    
 # model func: random_uniform_modulated model
 def init_random_uniform_modulated(ref, conf, mconf):
     params = conf['params']
@@ -274,8 +301,8 @@ def init_random_uniform_modulated(ref, conf, mconf):
     lo = -np.ones(( outv['shape'] )) * 1e-3
     hi = np.ones(( outv['shape'] )) * 1e-3
     setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
-    ref.credit = np.ones((1, 1)) * params['credit']
-    ref.credit_ = ref.credit.copy()
+    # ref.credit = np.ones((1, 1)) * params['credit']
+    # ref.credit_ = ref.credit.copy()
     ref.goalsize = params['goalsize']
     # print "ref.credit", ref.credit
     # setattr(ref, outk, np.ones(outv['shape']))
@@ -285,8 +312,8 @@ def step_random_uniform_modulated(ref):
     if hasattr(ref, 'rate'):
         if (ref.cnt % ref.rate) not in ref.blockphase: return
 
-    if ref.credit <= 0:
-        return
+    # if ref.credit <= 0:
+    #     return
             
     lo = ref.inputs['lo']['val'] # .T
     hi = ref.inputs['hi']['val'] # .T
@@ -304,10 +331,10 @@ def step_random_uniform_modulated(ref):
     if ref.cnt % (ref.rate * 1) == 0 and mdltr_ < ref.goalsize:
         # print ref.__class__.__name__, ref.id, "lo, hi, out shapes", lo.shape, hi.shape, outv['shape']
         setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
-        ref.credit = ref.credit_.copy()
-    else:
-        ref.credit -= 1
-        # if ref.credit
+        # ref.credit = ref.credit_.copy()
+    # else:
+    #     ref.credit -= 1
+    #     # if ref.credit
 
 # model func: alternating_sign model
 def init_alternating_sign(ref, conf, mconf):
@@ -1702,12 +1729,18 @@ class model(object):
         'musig': {'init': init_musig, 'step': step_musig},
         'res': {'init': init_res, 'step': step_res},
         'polyexp': {'init': init_polyexp, 'step': step_polyexp},
+        # budget
+        'budget_linear': {'init': init_budget, 'step': step_budget},
         # constants
-        'alternating_sign': {'init': init_alternating_sign, 'step': step_alternating_sign},        
+        'alternating_sign': {
+            'init': init_alternating_sign, 'step': step_alternating_sign},
         # active randomness
-        'random_uniform': {'init': init_random_uniform, 'step': step_random_uniform},
-        'random_uniform_pi_2': {'init': init_random_uniform_pi_2, 'step': step_random_uniform_pi_2},
-        'random_uniform_modulated': {'init': init_random_uniform_modulated, 'step': step_random_uniform_modulated},
+        'random_uniform': {
+            'init': init_random_uniform, 'step': step_random_uniform},
+        'random_uniform_pi_2': {
+            'init': init_random_uniform_pi_2, 'step': step_random_uniform_pi_2},
+        'random_uniform_modulated': {
+            'init': init_random_uniform_modulated, 'step': step_random_uniform_modulated},
         # closed-loop models
         # active inference
         'actinf_m1': {'init': init_actinf, 'step': step_actinf_2},
@@ -1751,8 +1784,9 @@ class ModelBlock2(PrimBlock2):
     a block for every model variant but can just write it down
     compactly as init and step functions.
 
-    FIXME: obvisouly merge with funcblock, a model generally is a func
-    with memory
+     - FIXME: obvisouly merge with funcblock, a model is a more
+       general func, with memory, see morphism
+     - FIXME: not sure if this is a good final repr for models and their scope
     """
     
     @decInit()

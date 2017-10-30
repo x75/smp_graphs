@@ -177,7 +177,7 @@ from smp_graphs.utils_conf import get_systemblock_sa
 #     }
 
 # for stats
-numloop = 100
+numloop = 10#0
 # for dims
 # numloop = 3
 
@@ -193,7 +193,7 @@ loopblock = {
         # subcomponent?
         'robot1/dim': 2,
         'lconf': {
-            'dim': 4,
+            'dim': 2,
             'dt': 0.1,
             'lag': 1,
             'budget': 1000,
