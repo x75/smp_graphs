@@ -485,9 +485,9 @@ def nxgraph_plot(G, ax = None, pos = None, layout_type = "spring", node_color = 
             
             # print "edge type = %s, %s" % (edgetype, edge)
 
-    nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = typededges['loop'], edge_color = "g", width = 1.0, alpha = 0.5)
-    nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = typededges['data'], edge_color = "k", width = 1.0, alpha = 0.5)
-    nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = typededges['hier'], edge_color = "c", width = 0.8, alpha = 0.5)
+    nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = typededges['loop'], edge_color = "g", width = 1.0, alpha = 0.2)
+    nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = typededges['data'], edge_color = "k", width = 1.0, alpha = 0.2)
+    nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = typededges['hier'], edge_color = "b", width = 0.8, alpha = 0.2)
 
     # set title to config filename removing timestamp and hash
     title = re.sub(r'_[0-9]+_[0-9]+', r'', G.name.split("-")[0])

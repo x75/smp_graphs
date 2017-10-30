@@ -28,19 +28,21 @@ saveplot = True
 randseed = 126
 
 lconf = {
-    'dim': 2,
+    'dim': 5,
     'dt': 0.1,
     'lag': 1,
-    'budget': 1000,
+    'budget': 1000/1,
     'lim': 1.0,
+    'order': 0,
 }
     
 dim = lconf['dim']
+order = lconf['order']
 
-# systemblock   = get_systemblock['pm'](
+systemblock   = get_systemblock['pm'](
+    dim_s_proprio = dim, dim_s_extero = dim, lag = 1, order = order)
+# systemblock   = get_systemblock['sa'](
 #     dim_s_proprio = dim, dim_s_extero = dim, lag = 1)
-systemblock   = get_systemblock['sa'](
-    dim_s_proprio = dim, dim_s_extero = dim, lag = 1)
 systemblock['params']['sysnoise'] = 0.0
 systemblock['params']['anoise_std'] = 0.0
 dim_s_proprio = systemblock['params']['dim_s_proprio']
@@ -89,6 +91,7 @@ graph = OrderedDict([
                         'credit': np.ones((1, 1)) * budget,
                         'goalsize': 0.1, # np.power(0.01, 1.0/dim_s_proprio), # area of goal
                         'inputs': {
+                            # 'credit': {'bus': 'budget/credit', 'shape': (1,1)},
                             's0': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 1)},
                             's0_ref': {'bus': 'pre_l1/pre', 'shape': (dim_s_proprio, 1)},
                             },
@@ -107,22 +110,21 @@ graph = OrderedDict([
                     'params': {
                         'blocksize': 1,
                         'blockphase': [0],
-                        'ros': ros,
-                        # 'credit': np.ones((1, 1)) * budget,
+                        'rate': 1,
+                        # 'ros': ros,
                         'goalsize': 0.1, # np.power(0.01, 1.0/dim_s_proprio), # area of goal
-                        'inputs': {                        
+                        'inputs': {
+                            'credit': {'bus': 'budget/credit'},
                             'lo': {'val': -lim, 'shape': (dim_s_proprio, 1)},
                             'hi': {'val': lim, 'shape': (dim_s_proprio, 1)},
                             'mdltr': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 1)},
                             },
                         'outputs': {
                             'pre': {'shape': (dim_s_proprio, 1)},
-                            # 'credit': {'shape': (1,1)}
                         },
                         'models': {
                             'goal': {'type': 'random_uniform_modulated'}
                             },
-                        'rate': 1,
                         },
                     }),
                     
@@ -132,6 +134,7 @@ graph = OrderedDict([
                     'params': {
                         'id': 'search',
                         'inputs': {
+                            'credit': {'bus': 'budget/credit'},
                             'lo': {'val': -lim},
                             'hi': {'val': lim}},
                         'outputs': {
@@ -154,13 +157,13 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'inputs': {
                 # 'credit': {'bus': 'pre_l1/credit', 'shape': (1, numsteps)},
-                'credit': {'bus': 'budget/credit', 'shape': (1, numsteps)},
+                'bcredit': {'bus': 'budget/credit', 'shape': (1, numsteps)},
             },
             'outputs': {
-                'credit_mu': {'shape': (1, 1)},
-                'credit_var': {'shape': (1, 1)},
-                'credit_min': {'shape': (1, 1)},
-                'credit_max': {'shape': (1, 1)},
+                'bcredit_mu': {'shape': (1, 1)},
+                'bcredit_var': {'shape': (1, 1)},
+                'bcredit_min': {'shape': (1, 1)},
+                'bcredit_max': {'shape': (1, 1)},
             },
         },
     }),
@@ -183,11 +186,17 @@ graph = OrderedDict([
                 [
                     {
                         'input': ['pre_l0', 's_p', 'pre_l1'],
-                        'plot': [partial(timeseries, linewidth = 1.0), timeseries, partial(timeseries, linewidth = 2.0, xticks = False)]},
+                        'plot': [
+                            partial(timeseries, linewidth = 1.0, alpha = 0.3),
+                            partial(timeseries, alpha = 0.3),
+                            partial(timeseries, linewidth = 2.0, xticks = False)]},
                     {
                         'input': ['pre_l0', 's_p', 'pre_l1'],
-                        'plot': partial(histogram, orientation = 'horizontal', histtype = 'step', yticks = False, xticks = False),
-                        'mode': 'stack'},
+                        'plot': [partial(
+                            histogram, orientation = 'horizontal', histtype = 'step',
+                            yticks = False, xticks = False) for _ in range(3)],
+                        # 'mode': 'stack'
+                    },
                 ],
                 [
                     {'input': 'credit_l1', 'plot': timeseries},

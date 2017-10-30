@@ -15,7 +15,7 @@ import seaborn as sns
 # perceptually uniform colormaps
 import colorcet as cc
 
-from smp_graphs.block import decStep, decInit
+from smp_graphs.block import decStep, decInit, block_cmaps
 from smp_graphs.block import PrimBlock2
 from smp_graphs.utils import myt, mytupleroll
 import smp_graphs.logging as log
@@ -452,7 +452,7 @@ class PlotBlock2(FigPlotBlock2):
                     #     print "plotblock2", self.inputs[ink]['val'].shape
                     #     print "plotblock2", self.inputs[ink]['val'][0,...,:]
                     # ink_ = "%s_%d" % (ink, k)
-                    ink_ = "%d_%s" % (k, ink)
+                    ink_ = "%d_%s" % (k + 1, ink)
                     # print "      input shape %s: %s" % (ink, self.inputs[ink]['val'].shape)
 
                     # if explicit n-dimensional slice is given
@@ -521,8 +521,14 @@ class PlotBlock2(FigPlotBlock2):
                     
                     # this is the plot function array from the config
                     if not plotdata.has_key('_stacked'):
-                        plotfunc_conf[plotfunc_idx](ax = ax, data = inv, ordinate = t, label = "%s" % ink, title = title) # , **kwargs)
-                    labels.append("%s" % ink)
+                        plotfunc_conf[plotfunc_idx](ax = ax, data = inv, ordinate = t) # , **kwargs)
+
+                    # label = "%s" % ink, title = title
+                    # tmp_cmaps_ = [k for k in cc.cm.keys() if 'cyclic' in k and not 'grey' in k]
+                        
+                    # ax.set_prop_cycle(get_colorcycler(cmap_str = tmp_cmaps_[inkc]))
+                    for invd in range(inv.shape[1]):
+                        labels.append("%s-%d" % (ink, invd + 1))
                     # metadata
                     inkc += 1
                     

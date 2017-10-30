@@ -151,15 +151,13 @@ class Bus(MutableMapping):
         
         ax.text(xpos, ypos, "Bus (%s)" % ("topblock"), fontsize = 10, bbox = dict(facecolor = 'red', alpha = 0.5, fill = False,))
         # ax.text(0, 1.0, "Bus (%s)" % ("topblock"), transform = ax.transAxes, fontsize = 10)
+        ypos -= max(yspacing, 0)
         
         # ax.plot(np.random.uniform(-5, 5, 100), "ko", alpha = 0.1)
         i = 0
         for k, v in self.store.items():
             # print "k = %s, v = %s" % (k, v)
-            # ypos = -10 # -(i+1)*yspacing
-            # xpos = (i+1)*xspacing
-            ypos -= max(yspacing, v.shape[0] + 1)
-            # xpos +=  max(xspacing, len(k) + 2)
+            
             # if len(k) > 8:
             #     xspacing = len(k) + 2
             # else:
@@ -172,9 +170,9 @@ class Bus(MutableMapping):
             # elementary shape without buffersize
             ax.add_patch(
                 patches.Rectangle(
-                    (xpos+4, ypos+1),   # (x,y)
+                    (xpos+4, ypos-1),   # (x,y)
                     1.0 * xscaling,          # width
-                    v.shape[0] * -yscaling,          # height
+                    v.shape[0] * yscaling,          # height
                     fill = False,
                     hatch = "|",
                     # hatch = "-",
@@ -187,9 +185,9 @@ class Bus(MutableMapping):
             ax.add_patch(
                 patches.Rectangle(
                     # (30, ypos - (v.shape[0]/2.0) - (-yspacing / 3.0)),   # (x,y)
-                    (xpos+6, ypos+1),        # pos (x,y)
+                    (xpos+6, ypos-1),        # pos (x,y)
                     bs_width,              # width
-                    v.shape[0] * -yscaling, # height
+                    v.shape[0] * yscaling, # height
                     fill = False,
                     hatch = "|",
                     # hatch = "-",
@@ -223,6 +221,11 @@ class Bus(MutableMapping):
             #         hatch = "-",
             #     )
             # )
+
+            # ypos = -10 # -(i+1)*yspacing
+            # xpos = (i+1)*xspacing
+            ypos -= max(yspacing, v.shape[0] + 1)
+            # xpos +=  max(xspacing, len(k) + 2)
             
             if xpos > xmax: xmax = xpos
             if -(ypos - 8 - bs_height) > ymax: ymax = -(ypos - 8 - bs_height) + 2
@@ -347,7 +350,7 @@ class decStep():
         """
         self.process_input(xself)
 
-        if self.process_blk_mode(xself): return None
+        if not self.get_credit(xself) or self.process_blk_mode(xself): return None
         
         f_out = self.f_eval(xself, f)
             
@@ -366,6 +369,12 @@ class decStep():
                 xself.cnt += 1
                 return True
         return False
+
+    def get_credit(self, xself):
+        if xself.inputs.has_key('credit'):
+            return np.all(xself.inputs['credit']['val'] > 0.0)
+        else:
+            return True
             
     def process_input(self, xself):
         sname  = self.__class__.__name__
@@ -1503,6 +1512,8 @@ class Block2(object):
     def bus_copy(self):
         for k, v in [(k_, v_) for k_, v_ in self.outputs.items() if v_.has_key('buscopy')]:
             buskey = v['buscopy']
+            assert self.bus.has_key(buskey), "Assuming in %s-%s that bus has key %s but %s" % (self.cname, self.id, buskey, self.bus.keys())
+            # print "buscopy buskey", buskey, getattr(self, k), self.bus[buskey], self.bus.keys()
             setattr(self, k, self.bus[buskey])
             
         # for k, v in self.outputs.items():
@@ -1959,6 +1970,7 @@ class SeqLoopBlock2(Block2):
                 # outslice = slice(i*self.dynblock.blocksize, (i+1)*self.dynblock.blocksize)
 
                 # FIXME: which breaks more?
+                assert self.dynblock.outputs.has_key(outk), "Assuming %s-%s.outputs has key %s, but %s" % (self.dynblock.cname, self.dynblock.id, outk, self.dynblock.outputs.keys())
                 outslice = slice(i*self.dynblock.outputs[outk]['shape'][-1], (i+1)*self.dynblock.outputs[outk]['shape'][-1])
                 
                 # print "self.   block", self.outputs[outk]
@@ -2416,7 +2428,7 @@ class UniformRandomBlock2(PrimBlock2):
                 # print 'lo', self.inputs['lo']['val'], '\nhi', self.inputs['hi']['val'], '\noutput', v['bshape']
                 x = np.random.uniform(self.inputs['lo']['val'], self.inputs['hi']['val'], size = v['shape'])
                 setattr(self, k, x)
-            # print "self.x", self.x
+                # print "%s-%s self.%s = %s" % (self.cname, self.id, k, x)
         
         # # loop over outputs dict and copy them to a slot in the bus
         # for k, v in self.outputs.items():

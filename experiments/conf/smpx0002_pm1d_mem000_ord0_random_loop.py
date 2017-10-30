@@ -176,46 +176,123 @@ from smp_graphs.utils_conf import get_systemblock_sa
 #         }
 #     }
 
-# for stats
-numloop = 10#0
-# for dims
+# # for stats
 # numloop = 3
+# loopblock = {
+#     'block': Block2,
+#     'params': {
+#         'id': 'bhier',
+#         'debug': False,
+#         'logging': False,
+#         'topblock': False,
+#         'numsteps': numsteps,
+#         'randseed': 1,
+#         # subcomponent?
+#         'robot1/dim': 2,
+#         'lconf': {
+#             'dim': 2,
+#             'dt': 0.1,
+#             'lag': 1,
+#             'budget': 1000,
+#             'lim': 1.0,
+#             'order': 0,
+#         },
+#         # contains the subgraph specified in this config file
+#         'subgraph': 'conf/smpx0001_pm1d_mem000_ord0_random.py',
+#         'subgraph_rewrite_id': True,
+#         # 'subgraph_ignore_nodes': ['plot'],
+#         'subgraphconf': {
+#             # 'plot/active': False
+#             # 'robot1/sysdim': 1,
+#             },
+#         # 'graph': graph1,
+#         'outputs': {
+#             'credit_min': {'shape': (1, 1), 'buscopy': 'measure/bcredit_min'},
+#             'credit_max': {'shape': (1, 1), 'buscopy': 'measure/bcredit_max'},
+#             'credit_mu': {'shape': (1, 1), 'buscopy': 'measure/bcredit_mu'},
+#         }
+#     },
+# }
+# loop = [('randseed', 1000 + i) for i in range(0, numloop)]
 
+# for dims
+numloop = 3
 loopblock = {
-    'block': Block2,
-    'params': {
-        'id': 'bhier',
-        'debug': False,
-        'logging': False,
-        'topblock': False,
-        'numsteps': numsteps,
-        'randseed': 1,
-        # subcomponent?
-        'robot1/dim': 2,
-        'lconf': {
-            'dim': 2,
+# loopblock = OrderedDict([('bhier', {
+        'block': Block2,
+        'params': {
+            'id': 'bhier',
+            'debug': False,
+            'logging': False,
+            'topblock': False,
+            'numsteps': numsteps,
+            'randseed': 1,
+            # subcomponent?
+            # 'robot1/dim': 2,
+            # 'lconf': {
+            #     'dim': 2,
+            #     'dt': 0.1,
+            #     'lag': 1,
+            #     'budget': 1000,
+            #     'lim': 1.0,
+            #     'order': 0
+            # },
+            'lconf': {},
+            # contains the subgraph specified in this config file
+            'subgraph': 'conf/smpx0001_pm1d_mem000_ord0_random.py',
+            'subgraph_rewrite_id': True,
+            # 'subgraph_ignore_nodes': ['plot'],
+            'subgraphconf': {
+                # 'plot/active': False
+                # 'robot1/sysdim': 1,
+            },
+            # 'graph': graph1,
+            'outputs': {
+                'credit_min': {'shape': (1, 1), 'buscopy': 'measure/bcredit_min'},
+                'credit_max': {'shape': (1, 1), 'buscopy': 'measure/bcredit_max'},
+                'credit_mu': {'shape': (1, 1), 'buscopy': 'measure/bcredit_mu'},
+            }
+        },
+    }
+# )])
+
+# loopblock = {
+#     'block': Block2,
+#     'params': {
+#         'id': 'bla',
+#         'subgraph': loopblock_,
+#         'subgraphconf': {
+#             # 'plot/active': False
+#             # 'robot1/sysdim': 1,
+#             'lconf': {
+#                 'dim': 2,
+#                 'dt': 0.1,
+#                 'lag': 1,
+#                 'budget': 1000,
+#                 'lim': 1.0,
+#                 'order': 0
+#             },
+#         },
+#         'subgraph_rewrite_id': True,
+#         'outputs': {
+#             'credit_min': {'shape': (1, 1), 'buscopy': 'bhier/credit_min'},
+#             'credit_max': {'shape': (1, 1), 'buscopy': 'bhier/credit_max'},
+#             'credit_mu': {'shape': (1, 1), 'buscopy': 'bhier/credit_mu'},
+#         }
+#     }
+# }
+        
+# loop = [('dim', i) for i in range(1, numloop + 1)]
+loop = [('lconf', {
+            'dim': i + 1,
             'dt': 0.1,
             'lag': 1,
             'budget': 1000,
             'lim': 1.0,
-        },
-        # contains the subgraph specified in this config file
-        'subgraph': 'conf/smpx0001_pm1d_mem000_ord0_random.py',
-        'subgraph_rewrite_id': True,
-        'subgraph_ignore_nodes': ['plot'],
-        'subgraphconf': {
-            # 'plot/active': False
-            # 'robot1/sysdim': 1,
-            },
-        # 'graph': graph1,
-        'outputs': {
-            'credit_min': {'shape': (1, 1), 'buscopy': 'measure/credit_min'},
-            'credit_max': {'shape': (1, 1), 'buscopy': 'measure/credit_max'},
-            'credit_mu': {'shape': (1, 1), 'buscopy': 'measure/credit_mu'},
-            }
-    },
-}
-    
+            'order': 0
+        }) for i in range(numloop)]
+print "loop", loop
+
 graph = OrderedDict([
     # # concurrent loop
     # ('b3', {
@@ -237,6 +314,7 @@ graph = OrderedDict([
         'block': SeqLoopBlock2,
         'params': {
             'id': 'b4',
+            # 'debug': True,
             # loop specification, check hierarchical block to completely
             # pass on the contained in/out space?
             'blocksize': numsteps, # same as loop length
@@ -252,7 +330,7 @@ graph = OrderedDict([
             },
 
             # single dim config statistics
-            'loop': [('randseed', 1000 + i) for i in range(0, numloop)],
+            'loop': loop,
             
             # # loop over dims
             # 'loop': [

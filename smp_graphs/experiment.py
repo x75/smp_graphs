@@ -327,29 +327,30 @@ class Experiment(object):
         # axesspec = [(0, 0), (0,1), (1, 0), (1,1)]
         axesspec = None
         graph_fig = makefig(
-            rows = 1, cols = 3, wspace = 0.1, hspace = 0.1,
+            rows = 1, cols = 2, wspace = 0.1, hspace = 0.1,
             axesspec = axesspec, title = "Nxgraph and Bus")
-        
+        axi = 0
         # nxgraph_plot(self.topblock.nxgraph, ax = graph_fig.axes[0])
 
-        # flatten for drawing, quick hack
-        G = nxgraph_flatten(self.topblock.nxgraph)
-        # # debug flattened graph
-        # for node,noded in G.nodes(data=True):
-        #     print "node.id = %s\n    .data = %s\n    .graphnode = %s\n" % (node, noded, G.node[node])
+        # # flatten for drawing, quick hack
+        # G = nxgraph_flatten(self.topblock.nxgraph)
+        # # # debug flattened graph
+        # # for node,noded in G.nodes(data=True):
+        # #     print "node.id = %s\n    .data = %s\n    .graphnode = %s\n" % (node, noded, G.node[node])
 
-        # add edges to flattened graph
-        G = nxgraph_add_edges(G)
-        # for edge in G.edges_iter():
-        #     print "experiment.plotgraph: edge after add_edges = %s" %( edge,)
+        # # add edges to flattened graph
+        # G = nxgraph_add_edges(G)
+        # # for edge in G.edges_iter():
+        # #     print "experiment.plotgraph: edge after add_edges = %s" %( edge,)
 
-        # plot the flattened graph
-        nxgraph_plot(G, ax = graph_fig.axes[0], layout_type = "spring", node_size = 300)
+        # # plot the flattened graph
+        # nxgraph_plot(G, ax = graph_fig.axes[0], layout_type = "spring", node_size = 300)
 
         G_ = recursive_hierarchical(self.topblock.nxgraph)
         G_cols = nxgraph_get_node_colors(G_)
         print "G_cols", G_cols
-        nxgraph_plot(G_, ax = graph_fig.axes[1], layout_type = "linear_hierarchical", node_color = G_cols, node_size = 300)
+        nxgraph_plot(G_, ax = graph_fig.axes[axi], layout_type = "linear_hierarchical", node_color = G_cols, node_size = 300)
+        axi += 1
         
         # # plot the nested graph
         # recursive_draw(
@@ -360,7 +361,8 @@ class Experiment(object):
         #     shrink = 0.8)
 
         # plot the bus with its builtin plot method
-        self.topblock.bus.plot(graph_fig.axes[2])
+        self.topblock.bus.plot(graph_fig.axes[axi])
+        axi += 1
 
         # save the plot if saveplot is set
         if self.params['saveplot']:
