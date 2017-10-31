@@ -251,7 +251,9 @@ class FigPlotBlock2(BaseplotBlock2):
         # print "%s.save filename = %s, subplotstr = %s" % (plotinst.cname, filename, subplotstr)
         # plotinst.fig.set_size_inches((min(plotinst.fig_cols * 2 * 2.5, 20), min(plotinst.fig_rows * 1.2 * 2.5, 12)))
         if not hasattr(plotinst, 'savesize'):
-            plotinst.savesize = (min(plotinst.fig_cols * 5, 20), min(plotinst.fig_rows * 3.0, 12))
+            plotinst.savesize = (
+                min(plotinst.fig_cols * 6.0, 24),
+                min(plotinst.fig_rows * 3.0, 12))
             
         print "savesize w/h = %f/%f, fig_cols/fig_rows = %s/%s" % (plotinst.savesize[0], plotinst.savesize[1], plotinst.fig_cols, plotinst.fig_rows)
         plotinst.fig.set_size_inches(plotinst.savesize)
@@ -576,7 +578,7 @@ class PlotBlock2(FigPlotBlock2):
                     ax = ax, resize_by = 0.9)
                 # put_legend_out_top(labels = labels, ax = ax, resize_by = 0.8)
                 
-
+                ax.set_prop_cycle(get_colorcycler(cmap_str = 'cyclic_mrybm_35_75_c68'))
                     
         plt.draw()
         plt.pause(1e-9)

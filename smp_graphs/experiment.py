@@ -326,11 +326,14 @@ class Experiment(object):
         # axesspec = [(0, 0), (0, 1), (0, 2), (0, slice(3, None))]
         # axesspec = [(0, 0), (0,1), (1, 0), (1,1)]
         axesspec = None
-        graph_fig = makefig(
-            rows = 1, cols = 2, wspace = 0.1, hspace = 0.1,
-            axesspec = axesspec, title = "Nxgraph and Bus")
+        fig_nxgr = makefig(
+            rows = 1, cols = 1, wspace = 0.1, hspace = 0.1,
+            axesspec = axesspec, title = "nxgraph")
+        fig_bus = makefig(
+            rows = 1, cols = 1, wspace = 0.1, hspace = 0.1,
+            axesspec = axesspec, title = "bus")
         axi = 0
-        # nxgraph_plot(self.topblock.nxgraph, ax = graph_fig.axes[0])
+        # nxgraph_plot(self.topblock.nxgraph, ax = fig_nxgr.axes[0])
 
         # # flatten for drawing, quick hack
         # G = nxgraph_flatten(self.topblock.nxgraph)
@@ -344,35 +347,46 @@ class Experiment(object):
         # #     print "experiment.plotgraph: edge after add_edges = %s" %( edge,)
 
         # # plot the flattened graph
-        # nxgraph_plot(G, ax = graph_fig.axes[0], layout_type = "spring", node_size = 300)
+        # nxgraph_plot(G, ax = fig_nxgr.axes[0], layout_type = "spring", node_size = 300)
 
         G_ = recursive_hierarchical(self.topblock.nxgraph)
         G_cols = nxgraph_get_node_colors(G_)
         print "G_cols", G_cols
-        nxgraph_plot(G_, ax = graph_fig.axes[axi], layout_type = "linear_hierarchical", node_color = G_cols, node_size = 300)
+        nxgraph_plot(G_, ax = fig_nxgr.axes[axi], layout_type = "linear_hierarchical", node_color = G_cols, node_size = 300)
+        # fig_nxgr.axes[axi].set_aspect(1)
         axi += 1
         
         # # plot the nested graph
         # recursive_draw(
         #     self.topblock.nxgraph,
-        #     ax = graph_fig.axes[2],
+        #     ax = fig_nxgr.axes[2],
         #     node_size = 100,
         #     currentscalefactor = 1.0,
         #     shrink = 0.8)
 
         # plot the bus with its builtin plot method
-        self.topblock.bus.plot(graph_fig.axes[axi])
+        axi = 0
+        self.topblock.bus.plot(fig_bus.axes[axi])
+        # fig_bus.axes[axi].set_aspect(1)
         axi += 1
 
-        # save the plot if saveplot is set
-        if self.params['saveplot']:
-            filename = "data/%s_%s.%s" % (self.topblock.id, "graph_bus", 'jpg')
-            try:
-                print "Saving experiment graph plot to %s" % (filename, )
-                graph_fig.set_size_inches(9, 3)
-                graph_fig.savefig(filename, dpi=300, bbox_inches="tight")
-            except Exception, e:
-                print "Saving experiment graph plot to %s failed with %s" % (filename, e,)
+        for fi, fig_ in enumerate([fig_nxgr, fig_bus]): # 
+            # for ax in fig_.axes:
+            #     xlim = ax.get_xlim()
+            #     ylim = ax.get_ylim()
+            #     print "fig", fig_, "ax xlim", xlim, "ylim", ylim
+            #     width = (xlim[1] - xlim[0])/1.0
+            #     height = (ylim[1] - ylim[0])/1.0
+            #     fig_.set_size_inches((width, height))
+
+            # save the plot if saveplot is set
+            if self.params['saveplot']:
+                filename = "data/%s_%s_%d.%s" % (self.topblock.id, 'graph_bus', fi, 'jpg')
+                try:
+                    print "Saving experiment graph plot to %s" % (filename, )
+                    fig_.savefig(filename, dpi=300, bbox_inches="tight")
+                except Exception, e:
+                    print "Saving experiment graph plot to %s failed with %s" % (filename, e,)
 
     def printgraph_recursive(self, G, lvl = 0):
         indent = " " * 4 * lvl
@@ -420,7 +434,7 @@ class Experiment(object):
         # print "final return value topblock.x = %s" % (topblock_x)
 
         # final writes: log store, experiment/block store?, graphics, models
-        # self.topblock.bus.plot(graph_fig.axes[3])
+        # self.topblock.bus.plot(fig_nxgr.axes[3])
         
         self.printgraph()
         

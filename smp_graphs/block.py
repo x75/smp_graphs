@@ -131,8 +131,8 @@ class Bus(MutableMapping):
         Plot the bus for documentation and debugging.
         """
         assert ax is not None
-        xspacing = 10
-        yspacing = 3
+        xspacing = 20
+        yspacing = 10 # 3
         yscaling = 0.66
         xscaling = 0.66
         
@@ -149,13 +149,21 @@ class Bus(MutableMapping):
 
         # data coords / axis coords
         
-        ax.text(xpos, ypos, "Bus (%s)" % ("topblock"), fontsize = 10, bbox = dict(facecolor = 'red', alpha = 0.5, fill = False,))
-        # ax.text(0, 1.0, "Bus (%s)" % ("topblock"), transform = ax.transAxes, fontsize = 10)
-        ypos -= max(yspacing, 0)
+        # ax.text(
+        #     xpos, ypos, "Bus (%s)" % ("topblock"),
+        #     fontsize = 10,
+        #     bbox = dict(facecolor = 'red', alpha = 0.5, fill = False,))
+        # # ax.text(0, 1.0, "Bus (%s)" % ("topblock"), transform = ax.transAxes, fontsize = 10)
+        # ypos -= max(yspacing, 0)
         
         # ax.plot(np.random.uniform(-5, 5, 100), "ko", alpha = 0.1)
         i = 0
-        for k, v in self.store.items():
+        bs_width_max = 0
+        storekeys = self.store.keys()
+        storekeys.sort()
+        # for k, v in self.store.items():
+        for k in storekeys:
+            v = self.store[k]
             # print "k = %s, v = %s" % (k, v)
             
             # if len(k) > 8:
@@ -163,16 +171,18 @@ class Bus(MutableMapping):
             # else:
             #     xspacing = 10
                 
-            ax.text(xpos, ypos, "{0: <8}\n{1: <12}".format(k, v.shape), family = 'monospace', fontsize = 8)
+            ax.text(
+                xpos, ypos, "{0: <8}\n{1: <12}".format(k, v.shape),
+                family = 'monospace', fontsize = 8)
             # ax.text(xpos, ypos, "{0: <8}\n{1: <12}".format(k, v.shape), family = 'monospace', fontsize = 8, transform = ax.transAxes)
 
             # buf shapes: horizontal
             # elementary shape without buffersize
             ax.add_patch(
                 patches.Rectangle(
-                    (xpos+4, ypos-1),   # (x,y)
+                    (xpos+6, ypos + (0.5 * yspacing)),   # (x,y)
                     1.0 * xscaling,          # width
-                    v.shape[0] * yscaling,          # height
+                    v.shape[0] * -yscaling,          # height
                     fill = False,
                     hatch = "|",
                     # hatch = "-",
@@ -185,9 +195,9 @@ class Bus(MutableMapping):
             ax.add_patch(
                 patches.Rectangle(
                     # (30, ypos - (v.shape[0]/2.0) - (-yspacing / 3.0)),   # (x,y)
-                    (xpos+6, ypos-1),        # pos (x,y)
+                    (xpos+8, ypos + (0.5 * yspacing)),        # pos (x,y)
                     bs_width,              # width
-                    v.shape[0] * yscaling, # height
+                    v.shape[0] * -yscaling, # height
                     fill = False,
                     hatch = "|",
                     # hatch = "-",
@@ -226,6 +236,7 @@ class Bus(MutableMapping):
             # xpos = (i+1)*xspacing
             ypos -= max(yspacing, v.shape[0] + 1)
             # xpos +=  max(xspacing, len(k) + 2)
+            if bs_width > bs_width_max: bs_width_max = bs_width
             
             if xpos > xmax: xmax = xpos
             if -(ypos - 8 - bs_height) > ymax: ymax = -(ypos - 8 - bs_height) + 2
@@ -233,8 +244,8 @@ class Bus(MutableMapping):
             
         # ax.set_xlim((0, 100))
         # ax.set_ylim((-100, 0))
-        ax.set_xlim((0, xmax + xspacing))
-        ax.set_ylim((-ymax, 0))
+        ax.set_xlim((-1, max(xmax, xpos + 8 + bs_width_max + 1)))
+        ax.set_ylim((-ymax, 4))
 
         ax.set_xticks([])
         ax.set_xticklabels([])

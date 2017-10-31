@@ -20,7 +20,7 @@ from smp_graphs.utils_conf import get_systemblock
 
 # global parameters can be overwritten from the commandline
 ros = False
-numsteps = 10000/10
+numsteps = 10000/1
 recurrent = True
 debug = False
 showplot = True
@@ -28,7 +28,7 @@ saveplot = True
 randseed = 126
 
 lconf = {
-    'dim': 5,
+    'dim': 2,
     'dt': 0.1,
     'lag': 1,
     'budget': 1000/1,
@@ -175,6 +175,8 @@ graph = OrderedDict([
             'id': 'plot',
             'blocksize': numsteps,
             'saveplot': saveplot,
+            'wspace': 0.15,
+            'hspace': 0.15,
             'inputs': {
                 's_p': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
                 's_e': {'bus': 'robot1/s_extero', 'shape': (dim_s_extero, numsteps)},
