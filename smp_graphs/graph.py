@@ -443,13 +443,13 @@ def nxgraph_plot(G, ax = None, pos = None, layout_type = "spring", node_color = 
     # print "labels = %s" % labels
 
     # draw the nodes of 'G' into axis 'ax' using positions 'layout' etc
-    nx.draw_networkx_nodes(G, ax = ax, pos = layout, node_color = node_color, node_shape = '8', node_size = node_size)
+    nx.draw_networkx_nodes(G, ax = ax, pos = layout, node_color = node_color, node_shape = '8', node_size = node_size, alpha = 0.5)
 
     # # global shift?
     # shift(layout, (0, -2 * node_size))
 
     # draw the node labels
-    nx.draw_networkx_labels(G, ax = ax, pos = layout, labels = labels, font_color = 'k', font_size = 8, fontsize = 6, alpha = 0.5)
+    nx.draw_networkx_labels(G, ax = ax, pos = layout, labels = labels, font_color = 'k', font_size = 8, fontsize = 6, alpha = 0.75)
     
     # edges
     typededges = {'data': [], 'loop': [], 'hier': []}
@@ -490,8 +490,9 @@ def nxgraph_plot(G, ax = None, pos = None, layout_type = "spring", node_color = 
     nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = typededges['hier'], edge_color = "b", width = 0.8, alpha = 0.2)
 
     # set title to config filename removing timestamp and hash
-    title = re.sub(r'_[0-9]+_[0-9]+', r'', G.name.split("-")[0])
-    ax.set_title(title + " nxgraph", fontsize = 8)
+    # title = re.sub(r'_[0-9]+_[0-9]+', r'', G.name.split("-")[0])
+    title = ''
+    ax.set_title(title + 'nxgraph G, |G| = %d' % (G.number_of_nodes(), ), fontsize = 8)
 
     ax.set_xticks([])
     ax.set_xticklabels([])

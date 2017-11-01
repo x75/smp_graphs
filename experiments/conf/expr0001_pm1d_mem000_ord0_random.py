@@ -28,7 +28,7 @@ saveplot = True
 randseed = 126
 
 lconf = {
-    'dim': 2,
+    'dim': 1,
     'dt': 0.1,
     'lag': 1,
     'budget': 1000/1,

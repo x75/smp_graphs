@@ -4,8 +4,12 @@ import sys, pickle, re, ast
 
 from collections import OrderedDict
 
+from functools import partial
+from types import FunctionType
+
 from smp_base.common import set_attr_from_dict
 from smp_graphs.utils import print_dict
+import smp_graphs
 
 ################################################################################
 # static config templates
@@ -468,7 +472,42 @@ def dict_replace_nodekeys_loop(d = {}, nodekeys = set(), loopiter = 0):
         # elif type(d[k_]) is list:
         #     d[k_] = dict_replace_nodekeys_loop(d[k_], nodekeys, loopiter)
     return d
+
+def vtransform(v):
+    vtype = type(v)
+    if vtype is dict or vtype is OrderedDict or vtype is list:
+        v_ = conf_strip_variables(v)
+    else:
+        # FIXME: this destroys information about the partial config, maybe OK for changing the plots?
+        if vtype is partial: # functools.partial
+            v_ = 'partial.func.%s' % v.func.func_name
+        elif vtype is FunctionType:
+            v_ = 'func.%s' % v.func_name
+        elif vtype is smp_graphs.block_models.model:
+            v_ = 'model.%s' % v.modelstr
+        else:
+            v_ = v
+    return v_
+                
+def conf_strip_variables(conf):
+
+    conftype = type(conf)
+    # print "conf = %s" % (conftype, )
+    conf_ = conftype()
+    if conftype is dict or conftype is OrderedDict:
+        for k, v in conf.items():
+            vtype = type(v)
+            # print "conf_strip_variables k = %s, v = %s/%s" % (k, vtype, v)
+            v_ = vtransform(v)
+            conf_[k] = v_
+    elif conftype is list:
+        for v in conf:
+            conf_.append(vtransform(v))
+            
+    return conf_
         
+
+
 def read_puppy_hk_pickles(lfile, key = None):
     """smp_graphs.common.read pickled log dicts from andi's puppy experiments"""
     d = pickle.load(open(lfile, 'rb'))

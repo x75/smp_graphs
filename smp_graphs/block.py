@@ -33,7 +33,7 @@ from smp_base.plot import plot_colors, makefig, set_interactive
 import smp_graphs.logging as log
 from smp_graphs.utils import print_dict, ordereddict_insert, xproduct, myt
 
-from smp_graphs.common import conf_header, conf_footer, get_input
+from smp_graphs.common import conf_header, conf_footer, get_input, conf_strip_variables
 from smp_graphs.common import md5, get_config_raw, get_config_raw_from_string
 
 from smp_graphs.common import set_attr_from_dict
@@ -133,18 +133,19 @@ class Bus(MutableMapping):
         assert ax is not None
         xspacing = 20
         yspacing = 10 # 3
-        yscaling = 0.66
+        yscaling = 1.2 # 66
         xscaling = 0.66
         
         xmax = 0
         ymax = 0
 
         xpos = 0 # xspacing
-        ypos = -2 # yspacing
+        ypos = -6 # yspacing
 
         if blockid is None: blockid = "Block2"
             
-        ax.set_title(blockid + ".bus")
+        # ax.set_title(blockid + ".bus", fontsize = 10)
+        ax.set_title('topblock.bus', fontsize = 10)
         ax.grid(0)
 
         # data coords / axis coords
@@ -180,7 +181,7 @@ class Bus(MutableMapping):
             # elementary shape without buffersize
             ax.add_patch(
                 patches.Rectangle(
-                    (xpos+6, ypos + (0.5 * yspacing)),   # (x,y)
+                    (xpos+4, ypos + (0.4 * yspacing)),   # (x,y)
                     1.0 * xscaling,          # width
                     v.shape[0] * -yscaling,          # height
                     fill = False,
@@ -195,7 +196,7 @@ class Bus(MutableMapping):
             ax.add_patch(
                 patches.Rectangle(
                     # (30, ypos - (v.shape[0]/2.0) - (-yspacing / 3.0)),   # (x,y)
-                    (xpos+8, ypos + (0.5 * yspacing)),        # pos (x,y)
+                    (xpos+6, ypos + (0.4 * yspacing)),        # pos (x,y)
                     bs_width,              # width
                     v.shape[0] * -yscaling, # height
                     fill = False,
@@ -244,7 +245,7 @@ class Bus(MutableMapping):
             
         # ax.set_xlim((0, 100))
         # ax.set_ylim((-100, 0))
-        ax.set_xlim((-1, max(xmax, xpos + 8 + bs_width_max + 1)))
+        ax.set_xlim((-1, max(xmax, xpos + 6 + bs_width_max + 1)))
         ax.set_ylim((-ymax, 4))
 
         ax.set_xticks([])
@@ -254,6 +255,8 @@ class Bus(MutableMapping):
         
         plt.draw()
         plt.pause(1e-6)
+
+        return (xmax, ymax)
 
 def get_blocksize_input(G, buskey):
     """Get the blocksize of input element from the bus at 'buskey'
@@ -554,11 +557,16 @@ class decStep():
 
             if xself.top.cached and hasattr(xself, 'isprimitive') and xself.isprimitive and xself.cache is not None and xself.cache.shape[0] != 0:
                 # pass
-                # print xself.cache_data['x'].shape
+                # if xself.cnt % 100 == 0:
+                #     print "%s-%s using cached data with shapes" % (xself.cname, xself.id, ),
                 for outk, outv in xself.outputs.items():
                     setattr(xself, outk, xself.cache_data[outk][xself.cnt-xself.blocksize:xself.cnt,...].T)
+                    # if xself.cnt % 100 == 0:
+                    #     print xself.cache_data[outk].shape,
                     # print "%s-%s" % (xself.cname, xself.id), "outk", outk, getattr(xself, outk).T
                     # print "outk", outk, xself.cache_data[outk] # [xself.cnt-xself.blocksize:xself.cnt]
+                # if xself.cnt % 100 == 0:
+                #     print ""
                 f_out = None
             else:
                 # compute the block with step()
@@ -599,7 +607,7 @@ class Block2(object):
         'topblock': False,
         'ibuf': 1, # input  buffer size
         'obuf': 1, # output buffer size
-        'cnt': 1,
+        'cnt': 0, # 1, FIXME: log / cache issues: replaced init_cnt = 1 with init_cnt = 0 and topblock.step() once after graph init?
         'blocksize': 1, # period of computation calls in time steps
         'blockphase': [0], # list of positions of comp calls along the counter in time steps
         'inputs': {}, # internal port, scalar / vector/ bus key, [slice]
@@ -672,6 +680,7 @@ class Block2(object):
                 return pd.HDFStore(block_store_filename)
 
             self.block_store = init_block_store()
+            self.log_store_cache = None
 
             # initialize pandas based hdf5 logging
             log.log_pd_init(self.conf)
@@ -698,6 +707,8 @@ class Block2(object):
 
             log.log_pd_store_config_final(nxgraph_to_smp_graph(self.nxgraph))
 
+            # step the thing once
+            self.step()
             # print "Block2.init topblock self.blocksize", self.blocksize
 
         # not topblock
@@ -1007,6 +1018,7 @@ class Block2(object):
         # initialize block logging
         self.init_logging()
 
+        # initialize block caching, FIXME: before logging?
         self.init_block_cache()
         
     def init_block_cache(self):
@@ -1019,22 +1031,28 @@ class Block2(object):
             import datetime
             assert block is not None, "Need some block to work on"
             # if not block.isprimitive: return
-            m = md5(str(block.conf))
+            # strip naturally variable parts of the config
+            conf_ = conf_strip_variables(block.conf)
+            # append top_md5 to ensure the right context in terms of numsteps, randseed, ...
+            conf_['top_md5'] = block.top.md5
+            print "Block2 %s-%s conf_.keys = %s" % (self.cname, self.id, conf_.keys()) # print_dict(conf_)
+            # m = md5(str(block.conf))
+            m = md5(str(conf_))
             self.md5 = m.hexdigest()
             self.cache = None
             
             # store exists?
             if len(block.top.block_store.keys()) > 0:
-                # print "init_block_cache: block.top.block_store.keys()", block.top.block_store.keys()
+                print "init_block_cache: block.top.block_store.keys()", block.top.block_store.keys()
                 # print "init_block_cache: block.top.block_store.has_key('/blocks')", '/blocks' in block.top.block_store.keys()
-                # print "check_block_store", block.top.block_store['blocks'].shape
+                print "check_block_store", block.top.block_store['blocks'].shape
                 # print "init_block_cache: self.md5", self.cname, self.id, self.md5
                 # print "blocks", type(block.top.block_store['/blocks'])
                 # print block.top.block_store['blocks']['md5'] == self.md5
                 # print block.top.block_store['/blocks']
                 
                 try:
-                    self.cache = block.top.block_store['blocks'][:][block.top.block_store['blocks']['md5'] == self.md5]
+                    self.cache = block.top.block_store['/blocks'][:][block.top.block_store['/blocks']['md5'] == self.md5]
                 except Exception, e:
                     print "%s-%s.check_block_store cache retrieval for %s failed with %s" % (self.cname, self.id, self.md5, e)
                     self.cache = None
@@ -1048,13 +1066,19 @@ class Block2(object):
                 
                 # FIXME: check experiment.cache to catch randseed and numsteps
                 # load cached data
-                self.cache_h5 = pd.HDFStore(self.cache['log_store'].values[0])
+                # self.cache_h5 = pd.HDFStore(self.cache['log_store'].values[0])
+                if block.top.log_store_cache is None:
+                    block.top.log_store_cache = pd.HDFStore(self.cache['log_store'].values[0])
+                    
                 self.cache_data = {}
                 for outk in self.outputs.keys():
-                    x_ = self.cache_h5['%s/%s' % (self.id, outk)].values
-                    print "%s-%s.check_block_store:     loading output %s cached data = %s" % (outk, x_.shape)
+                    # x_ = self.cache_h5['%s/%s' % (self.id, outk)].values
+                    x_ = block.top.log_store_cache['%s/%s' % (self.id, outk)].values
+                    print "%s-%s.check_block_store:     loading output %s cached data = %s" % (self.cname, self.id, outk, x_.shape)
                     # FIXME: check cache and runtime shape geometry
                     self.cache_data[outk] = x_.copy()
+                    setattr(self, outk, self.cache_data[outk][...,[0]])
+                # self.cache_h5.close()
             else:
                 print "%s-%s.check_block_store: no cache exists for %s, storing %s at %s" % (self.cname, self.id, self.md5, self.conf, self.md5)
                 
@@ -1068,7 +1092,11 @@ class Block2(object):
                 if len(block.top.block_store.keys()) < 1:
                     block.top.block_store['/blocks'] = df
                 else:
-                    block.top.block_store['/blocks'] = pd.concat([block.top.block_store['/blocks'], df])
+                    df2 = pd.concat([block.top.block_store['/blocks'], df])
+                    print "df2 concat(store, df)", df2.shape, df2
+                    block.top.block_store['/blocks'] = df2
+                    
+                print "block_store shape = %s" % (block.top.block_store['/blocks'].shape, )
 
         if self.top.cached:
             check_block_store(block = self)

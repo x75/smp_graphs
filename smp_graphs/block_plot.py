@@ -44,6 +44,10 @@ rcParams['figure.titlesize'] = 8
 
 # smp_graphs style
 rcParams['axes.grid'] = False
+rcParams['axes.spines.bottom'] = False
+rcParams['axes.spines.top'] = False
+rcParams['axes.spines.left'] = False
+rcParams['axes.spines.right'] = False
 rcParams['axes.facecolor'] = 'none'
 # rcParams['axes.labelcolor'] = .15
 # rcParams['axes.labelpad'] = 4.0
@@ -86,7 +90,7 @@ class AnalysisBlock2(PrimBlock2):
         
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
         # print "AnalysisBlock2.init", conf['params']['saveplot'], self.conf['params']['saveplot']
-        print "AnalysisBlock2.init", self.saveplot
+        print "AnalysisBlock2.init saveplot =", self.saveplot
 
         # default title?
         if not hasattr(self, 'title'):
@@ -364,8 +368,14 @@ class PlotBlock2(FigPlotBlock2):
                              (self.cname, self.inputs))
 
         # subplots pass 0: remember ax limits
-        rows_ylim_max = [(1e9, -1e9) for _ in range(len(self.subplots))]
-        cols_xlim_max = [(1e9, -1e9) for _ in range(len(self.subplots[0]))]
+        sb_rows = len(self.subplots)
+        sb_cols = len(self.subplots[0])
+        
+        rows_ylim_max = [(1e9, -1e9) for _ in range(sb_rows)]
+        cols_xlim_max = [(1e9, -1e9) for _ in range(sb_cols)]
+
+        # default plot size
+        self.fig.set_size_inches((sb_cols * 6, sb_rows * 3))
         
         # subplots pass 1: the hard work, iterate over subplot config and build the plot
         for i, subplot in enumerate(self.subplots):
@@ -508,15 +518,37 @@ class PlotBlock2(FigPlotBlock2):
                 labels = []
                 self.fig.axes[idx].clear()
                 inkc = 0
-                if plotdata.has_key('_stacked'):
-                    plotfunc_conf[0](self.fig.axes[idx], data = plotdata['_stacked'], ordinate = t, title = title) # , **kwargs)
 
+                num_cgroups = 5
+                num_cgroup_color = 5
+                num_cgroup_dist = 255/num_cgroups
+                
                 # axis handle shortcut
                 ax = self.fig.axes[idx]
+                ax.set_prop_cycle(
+                    get_colorcycler(
+                        cmap_str = 'cyclic_mrybm_35_75_c68', cmap_idx = None,
+                        c_s = inkc * num_cgroup_dist, c_e = (inkc + 1) * num_cgroup_dist, c_n = num_cgroup_color
+                    )
+                )
 
+                # stacked data?
+                if plotdata.has_key('_stacked'):
+                    print "block_plot.py plotting stacked"
+                    plotfunc_conf[0](ax, data = plotdata['_stacked'], ordinate = t, title = title) # , **kwargs)
+                
                 # iterate over plotdata items
                 for ink, inv in plotdata.items():
                     # print "%s.plot_subplots: ink = %s, plotvar = %s, inv.sh = %s, t.sh = %s" % (self.cname, ink, plotvar, inv.shape, t.shape)
+
+                    # if multiple input groups, increment color group
+                    if inkc > 0:
+                        ax.set_prop_cycle(
+                            get_colorcycler(
+                                cmap_str = 'cyclic_mrybm_35_75_c68', cmap_idx = None,
+                                c_s = (inkc + 1) * num_cgroup_dist, c_e = (inkc + 2) * num_cgroup_dist, c_n = num_cgroup_color
+                            ),
+                        )
 
                     # select single element at first slot or increment index with plotdata items
                     plotfunc_idx = inkc % len(plotfunc_conf)
@@ -530,7 +562,10 @@ class PlotBlock2(FigPlotBlock2):
                         
                     # ax.set_prop_cycle(get_colorcycler(cmap_str = tmp_cmaps_[inkc]))
                     for invd in range(inv.shape[1]):
-                        labels.append("%s-%d" % (ink, invd + 1))
+                        label_ = "%s-%d" % (ink, invd + 1)
+                        if len(label_) > 16:
+                            label_ = label_[:16]
+                        labels.append(label_)
                     # metadata
                     inkc += 1
                     
@@ -577,9 +612,7 @@ class PlotBlock2(FigPlotBlock2):
                     labels = sb['p1_plotlabels'],
                     ax = ax, resize_by = 0.9)
                 # put_legend_out_top(labels = labels, ax = ax, resize_by = 0.8)
-                
-                ax.set_prop_cycle(get_colorcycler(cmap_str = 'cyclic_mrybm_35_75_c68'))
-                    
+
         plt.draw()
         plt.pause(1e-9)
 

@@ -8,10 +8,11 @@ Experiment class provides the basic shell for running an experiment with methods
 """
 
 import argparse, os, re, sys
-import time
+import time, datetime
 
 from collections import OrderedDict
 from functools import partial
+# from types import FunctionType
 
 import matplotlib.pyplot as plt
 
@@ -25,7 +26,7 @@ from smp_base.plot import set_interactive, makefig
 
 from smp_graphs.block import Block2
 from smp_graphs.utils import print_dict
-from smp_graphs.common import conf_header, conf_footer
+from smp_graphs.common import conf_header, conf_footer, conf_strip_variables
 from smp_graphs.common import md5, get_config_raw
 from smp_graphs.graph import nxgraph_plot, recursive_draw, recursive_hierarchical
 from smp_graphs.graph import nxgraph_flatten, nxgraph_add_edges, nxgraph_get_node_colors
@@ -48,6 +49,7 @@ def get_args():
     
     # add commandline arguments
     parser.add_argument("-c", "--conf",       type=str, default=default_conf,     help="Configuration file [%s]" % default_conf)
+    parser.add_argument("-dc", "--do-cache",  dest='docache', action='store_true', help="Enable experiment and block caching mechanisms [True].", default = True)
     parser.add_argument("-nc", "--no-cache",  dest='docache', action='store_false', help="Enable experiment and block caching mechanisms [True].")
     parser.add_argument("-dr", "--do-ros",    dest="ros", action="store_true",    default = None, help = "Do / enable ROS?")
     parser.add_argument("-nr", "--no-ros",    dest="ros", action="store_false",   default = None, help = "No / disable ROS?")
@@ -185,7 +187,7 @@ class Experiment(object):
         # get global func pointer
         global make_expr_id
         # point at other func, global make_expr_id is used in common (FIXME please)
-        make_expr_id = partial(make_expr_id_configfile, name = 'smpx', configfile = args.conf)
+        make_expr_id = partial(make_expr_id_configfile, name = 'smp', configfile = args.conf)
 
         # set random seed _before_ compiling conf
         set_random_seed(args)
@@ -210,7 +212,7 @@ class Experiment(object):
         # print "%s-%s.init\n" % (self.__class__.__name__, None),
         for k in self.conf.keys():
             setattr(self, k, self.conf[k])
-            selfattr = getattr(self, k)
+            # selfattr = getattr(self, k)
             # if type(selfattr) is dict:
             #     print "        self.%s = %s\n" % (k, print_dict(selfattr))
             # else:
@@ -221,9 +223,13 @@ class Experiment(object):
         - hashlib md5/sha
         - locally sensitive hashes, lshash. this is not independent of input size, would need maxsize kludge
         """
-
+        # for hashing the conf, strip all entries with uncontrollably variable values (function pointers, ...)
+        self.conf_ = conf_strip_variables(self.conf)
+        print "numsteps", self.conf['params']['numsteps']
+        print "numsteps_", self.conf_['params']['numsteps']
         # compute id hash of the experiment from the configuration dict string
-        m = make_expr_md5(self.conf)
+        # print "experiment self.conf stripped", print_dict(self.conf_)
+        m = make_expr_md5(self.conf_)
         # FIXME: 1) block class knows which params to hash, 2) append localvars to retain environment
         
         # update experiments database with the current expr
@@ -232,7 +238,7 @@ class Experiment(object):
         # store md5 in params _after_ we computed the md5 hash
         self.conf['params']['md5'] = xid
         self.conf['params']['cached'] = self.params['docache'] and self.cache is not None and self.cache.shape[0]
-        # print "experiment cached = %s" % (self.conf['params']['cached'], )
+        print "experiment %s cached with %s" % (self.conf['params']['md5'], self.conf['params']['cached'], )
         
         # instantiate topblock
         self.topblock = Block2(conf = self.conf, conf_localvars = self.conf_localvars)
@@ -264,7 +270,7 @@ class Experiment(object):
 
         # compute hash if it hasn't been supplied
         if xid is None:
-            m = make_expr_md5(self.conf)
+            m = make_expr_md5(self.conf_)
             xid = m.hexdigest()
 
         # set the experiment's id
@@ -275,8 +281,8 @@ class Experiment(object):
         
         # prepare experiment database
         experiments_store = 'data/experiments_store.h5'
-        columns = ['md5', 'block', 'params']
-        values = [[xid, str(self.conf['block']), str(self.conf['params'])]]
+        columns = ['md5', 'timestamp', 'block', 'params']
+        values = [[xid, pd.to_datetime(datetime.datetime.now()), str(self.conf['block']), str(self.conf['params'])]]
         # print "%s.update_experiments_store values = %s" % (self.__class__.__name__, values)
         # values = [[xid, self.conf['block'], self.conf['params']]]
 
@@ -301,6 +307,7 @@ class Experiment(object):
             print "Experiment.update_experiments_store found cached results = %s\n%s" % (self.cache.shape, self.cache)
         # store the experiment in the cache if it doesn't exist
         else:
+            print "Experiment.update_experiments_store no cached results found, creating new entry"
             # temp dataframe
             df = pd.DataFrame(values, columns = columns, index = [self.experiments.shape[0]])
 
@@ -328,10 +335,10 @@ class Experiment(object):
         axesspec = None
         fig_nxgr = makefig(
             rows = 1, cols = 1, wspace = 0.1, hspace = 0.1,
-            axesspec = axesspec, title = "nxgraph")
+            axesspec = axesspec, title = "%s"  % (self.topblock.id.split('-')[0], )) # "nxgraph")
         fig_bus = makefig(
             rows = 1, cols = 1, wspace = 0.1, hspace = 0.1,
-            axesspec = axesspec, title = "bus")
+            axesspec = axesspec, title = "%s"  % (self.topblock.id.split('-')[0], ))
         axi = 0
         # nxgraph_plot(self.topblock.nxgraph, ax = fig_nxgr.axes[0])
 
@@ -366,8 +373,10 @@ class Experiment(object):
 
         # plot the bus with its builtin plot method
         axi = 0
-        self.topblock.bus.plot(fig_bus.axes[axi])
+        (xmax, ymax) = self.topblock.bus.plot(fig_bus.axes[axi])
+        print "experiment plotting bus xmax = %s, ymax = %s"  % (xmax, ymax)
         # fig_bus.axes[axi].set_aspect(1)
+        fig_bus.set_size_inches((5, ymax / 25.0))
         axi += 1
 
         for fi, fig_ in enumerate([fig_nxgr, fig_bus]): # 
