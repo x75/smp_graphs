@@ -505,6 +505,7 @@ class decStep():
                 # copy data into logging
                 if xself.logging:
                     # try:
+                    # print "logging", v['buskey'], xself.bus[v['buskey']]
                     log.log_pd(tbl_name = v['buskey'], data = xself.bus[v['buskey']])
                     # except:
                     # print "Logging failed"
@@ -607,7 +608,7 @@ class Block2(object):
         'topblock': False,
         'ibuf': 1, # input  buffer size
         'obuf': 1, # output buffer size
-        'cnt': 0, # 1, FIXME: log / cache issues: replaced init_cnt = 1 with init_cnt = 0 and topblock.step() once after graph init?
+        'cnt': 1, # 1, FIXME: log / cache issues: replaced init_cnt = 1 with init_cnt = 0 and topblock.step() once after graph init?
         'blocksize': 1, # period of computation calls in time steps
         'blockphase': [0], # list of positions of comp calls along the counter in time steps
         'inputs': {}, # internal port, scalar / vector/ bus key, [slice]
@@ -708,7 +709,7 @@ class Block2(object):
             log.log_pd_store_config_final(nxgraph_to_smp_graph(self.nxgraph))
 
             # step the thing once
-            self.step()
+            # self.step()
             # print "Block2.init topblock self.blocksize", self.blocksize
 
         # not topblock

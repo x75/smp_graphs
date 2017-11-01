@@ -387,10 +387,10 @@ class Experiment(object):
             #     width = (xlim[1] - xlim[0])/1.0
             #     height = (ylim[1] - ylim[0])/1.0
             #     fig_.set_size_inches((width, height))
-
+            savetype = 'pdf'
             # save the plot if saveplot is set
             if self.params['saveplot']:
-                filename = "data/%s_%s_%d.%s" % (self.topblock.id, 'graph_bus', fi, 'jpg')
+                filename = "data/%s_%s_%d.%s" % (self.topblock.id, 'graph_bus', fi, savetype)
                 try:
                     print "Saving experiment graph plot to %s" % (filename, )
                     fig_.savefig(filename, dpi=300, bbox_inches="tight")

@@ -88,6 +88,8 @@ class PointmassBlock2(SysBlock2):
             # # aberration / worlds hack
             # if self.cnt % 10 == 0:
             #     self.mode *= -1.0
+
+            # print "block_cls u", self.u
             
             self.x = self.system.step(self.u * self.mode)
             # print "self.x", self.x

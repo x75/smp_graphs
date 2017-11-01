@@ -175,6 +175,7 @@ graph = OrderedDict([
             'id': 'plot',
             'blocksize': numsteps,
             'saveplot': saveplot,
+            'savetype': 'pdf',
             'wspace': 0.15,
             'hspace': 0.15,
             'inputs': {
@@ -201,8 +202,10 @@ graph = OrderedDict([
                     },
                 ],
                 [
-                    {'input': 'credit_l1', 'plot': timeseries},
-                    {'input': 'credit_l1', 'plot': partial(histogram, orientation = 'horizontal', histtype = 'step', yticks = False)},
+                    {'input': 'credit_l1', 'plot': partial(timeseries, ylim = (0, 1000))},
+                    {'input': 'credit_l1', 'plot': partial(
+                        histogram, orientation = 'horizontal', histtype = 'step',
+                        yticks = False, ylim = (0, 1000))},
                 ]
             ],
         },
