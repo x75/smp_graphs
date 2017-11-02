@@ -356,7 +356,7 @@ class Experiment(object):
         # # plot the flattened graph
         # nxgraph_plot(G, ax = fig_nxgr.axes[0], layout_type = "spring", node_size = 300)
 
-        G_ = recursive_hierarchical(self.topblock.nxgraph)
+        G_, G_number_of_nodes_total = recursive_hierarchical(self.topblock.nxgraph)
         G_cols = nxgraph_get_node_colors(G_)
         print "G_cols", G_cols
         nxgraph_plot(G_, ax = fig_nxgr.axes[axi], layout_type = "linear_hierarchical", node_color = G_cols, node_size = 300)

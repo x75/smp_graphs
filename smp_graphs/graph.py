@@ -63,7 +63,7 @@ def nxgraph_add_node_from_conf(k, v, G, nc):
     assert type(v) is dict, "Expected type(v) = dict, got type %s, %s\n    node conf not a tuple?" % (type(v), v)
     if not v.has_key('params'): v['params'] = {}
     v['params']['id'] = k
-    # print "graphs.py: adding node = %s" % (v,)
+    print "graphs.py: adding node = %s" % (v['params']['id'],)
     G.add_node(nc, **v)
     nc += 1
     return (G, nc)
@@ -583,11 +583,12 @@ def recursive_hierarchical(G, lvlx = 0, lvly = 0):
         nodeid_ = 'l%d_%s' % (lvlx, G.node[node]['block_'].id)
         # print "node", nodeid_ # G.node[node]['block_'].id # .keys()
         G_.add_node(nodeid_, **G.node[node])
+        # descend into subgraph
         if hasattr(G.node[node]['block_'], 'nxgraph'):
             # print "node.nxgraph:", G.node[node]['block_'].nxgraph
             # lvlx += 1
-            G2 = recursive_hierarchical(G.node[node]['block_'].nxgraph, lvlx = lvlx + 1, lvly = lvly)
-            lvly += G2.number_of_nodes()
+            G2, G2_number_of_nodes_total = recursive_hierarchical(G.node[node]['block_'].nxgraph, lvlx = lvlx + 1, lvly = lvly)
+            lvly += G2_number_of_nodes_total # G2.number_of_nodes()
             # print "G2", G2.nodes()
             G_ = nx.compose(G2, G_)
             mainedge = True
@@ -607,7 +608,7 @@ def recursive_hierarchical(G, lvlx = 0, lvly = 0):
         G_.name = G.name
         G_ = nxgraph_add_edges(G_)
         # nxgraph_plot2(G_)
-    return G_
+    return G_, G_.number_of_nodes()
 
 
 def nxgraph_get_node_colors(G):

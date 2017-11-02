@@ -290,7 +290,7 @@ def dict_search_recursive(d, k):
 def dict_replace_idstr_recursive(d, cid, xid):
     """smp_graphs.common.dict_replace_idstr_recursive
 
-    Replace all references in dict 'd' to id 'cid' in the dictionary with 'cid{loop_delim}xid'
+    Replace all references in dict 'd' to id 'cid' with 'cid{loop_delim}xid'
     """
     assert d.has_key('params')
     # assert d['params'].has_key('id')
@@ -346,7 +346,10 @@ def dict_replace_nodekeys(d, xid, idmap = {}):
     for k, v in d.items():
         # print "dict_replace_nodekeys: k = %s, v = %s, idmap = %s" % (k, v.keys(), idmap)
         # new id from old id
-        k_ = "%s%s%s" % (k, loop_delim, xid)
+        if type(xid) is tuple:
+            k_ = "%s%s%s%s" % (k, xid[0], loop_delim, xid[1])
+        else:
+            k_ = "%s%s%s" % (k, loop_delim, xid)
         # fix key:
         d[k_] = d.pop(k) # FIXME: does this confuse .items(), FIXME: even worse, does this confuse the order in OrderedDict?
         # print "k_", k_, "v_", d[k_].keys()
@@ -476,11 +479,21 @@ def dict_get_nodekeys_recursive(d):
     return nodekeys
 
 def dict_replace_nodekeys_loop(d = {}, nodekeys = set(), loopiter = 0):
+    print "dict_replace_nodekeys_loop", d.keys(), nodekeys, loopiter
+    loopiter_ = None
+    if type(loopiter) is tuple:
+        loopiter_ = loopiter
+        loopiter = loopiter_[1]
+        
     for k, v in d.items():
         # new id from old id
         # k_ = "%s%s%s" % (k, loop_delim, xid)
         if k in nodekeys:
-            k_ = re.sub(r'%s' % (k, ), r'%s%s%s' % (k, loop_delim, loopiter), k)
+            if loopiter_ is not None:
+                k_ = "%s%s%s%s" % (k, loopiter_[0], loop_delim, loopiter)
+            else:
+                k_ = re.sub(r'%s' % (k, ), r'%s%s%s' % (k, loop_delim, loopiter), k)
+            print "old k", k, "new k", k_
             # overwrite old key with replacement
             d[k_] = d.pop(k)
         else:
@@ -491,11 +504,13 @@ def dict_replace_nodekeys_loop(d = {}, nodekeys = set(), loopiter = 0):
         if type(d[k_]) is str:
             for nk in nodekeys:
                 # print "replacing occur of k", nk, "in d[k_]", d[k_], "with string k_", nk, loopiter
-                d[k_] = re.sub(r'%s/' % nk, r'%s%s%s/' % (nk, loop_delim, loopiter), d[k_])
+                if loopiter_ is not None:
+                    d[k_] = re.sub(r'%s/' % nk, r'%s%s%s%s/' % (nk, loopiter_[0], loop_delim, loopiter), d[k_])
+                else:
+                    d[k_] = re.sub(r'%s/' % nk, r'%s%s%s/' % (nk, loop_delim, loopiter), d[k_])
             # print "replacing string k with string k_", d[k_]
         elif type(d[k_]) is dict:
-            # print "d[k_]", d[k_]
-            d[k_] = dict_replace_nodekeys_loop(d[k_], nodekeys, loopiter)
+            d[k_] = dict_replace_nodekeys_loop(d[k_], nodekeys, loopiter_)
         # elif type(d[k_]) is list:
         #     d[k_] = dict_replace_nodekeys_loop(d[k_], nodekeys, loopiter)
     return d

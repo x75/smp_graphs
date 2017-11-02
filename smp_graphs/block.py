@@ -36,7 +36,7 @@ from smp_graphs.utils import print_dict, ordereddict_insert, xproduct, myt
 from smp_graphs.common import conf_header, conf_footer, get_input, conf_strip_variables
 from smp_graphs.common import md5, get_config_raw, get_config_raw_from_string
 
-from smp_graphs.common import set_attr_from_dict
+from smp_graphs.common import set_attr_from_dict, loop_delim
 from smp_graphs.common import dict_get_nodekeys_recursive, dict_replace_nodekeys_loop
 from smp_graphs.common import dict_search_recursive, dict_replace_idstr_recursive2
 
@@ -1125,8 +1125,32 @@ class Block2(object):
         if hasattr(self, 'subgraph_rewrite_id') and self.subgraph_rewrite_id:
             # self.outputs_copy = copy.deepcopy(self.conf['params']['outputs'])
             nks_0 = dict_get_nodekeys_recursive(self.conf['params']['graph'])
+            print "nodekeys", nks_0
             # xid = self.conf['params']['id'][-1:]
-            xid = self.conf['params']['id'].split('_')[-1]
+            # v['bus'] = re.sub(id_orig, clone['params']['id'], v['bus'])
+            # p = re.compile('(.*)(_ll[0-9]+)$')
+            
+            # p = re.compile('(.*)((_ll[0-9]))+([_0-9])*')
+            # p = re.compile('(.*)_((ll[0-9]))*([_0-9])*')
+            # m = p.match(self.conf['params']['id'])
+            # print "m", m.group(0), m.group(1), m.group(2), m.group(3), m.group(4)
+            # if m.group(2) is not None:
+            # xid = (m.group(2), m.group(4))
+            # else:
+            # xid = self.conf['params']['id'].split('_')[-1]
+            # print "m", "split", xid
+
+            xid_ = self.conf['params']['id'].split('_')
+            if xid_[-1].isdigit():
+                xid = xid_[-1][len(loop_delim[1:]):]
+            else:
+                xid = (
+                    '_' + '_'.join([item for item in xid_ if item[:2] == loop_delim[1:]]),
+                    xid_[-1][len(loop_delim[1:]):]
+                )
+            
+            print  "init_subgraph subgraph_rewrite_id", self.conf['params']['id'], "xid", xid
+            
             self.conf['params']['graph'] = dict_replace_idstr_recursive2(
                 d = self.conf['params']['graph'], xid = xid)
             nks_l = dict_get_nodekeys_recursive(self.conf['params']['graph'])
@@ -1897,7 +1921,7 @@ class SeqLoopBlock2(Block2):
                 # print "SeqLoopBlock2.step.f_obj loopblock params", k, v # , lparams[0]
 
                 if k == 'id':
-                    loopblock_params[k] = "%s_%d" % (self.id, i)
+                    loopblock_params[k] = "%s%s%d" % (self.id, loop_delim, i)
                 elif k == lparams[0]: # FIXME: multiloop k in lparams.keys()
                     loopblock_params[k] = lparams[1]
                 else:

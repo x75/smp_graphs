@@ -216,8 +216,8 @@ from smp_graphs.utils_conf import get_systemblock_sa
 # loop = [('randseed', 1000 + i) for i in range(0, numloop)]
 
 # for dims
-numloop = 2
-numloop_inner = 2
+numloop = 5
+numloop_inner = 20
 loopblock = {
 # loopblock = OrderedDict([('bhier', {
         'block': Block2,
@@ -294,7 +294,7 @@ graph = OrderedDict([
         'block': SeqLoopBlock2,
         'params': {
             'id': 'b5',
-            'debug': True,
+            'debug': False,
             # loop specification, check hierarchical block to completely
             # pass on the contained in/out space?
             'blocksize': numsteps, # same as loop length
