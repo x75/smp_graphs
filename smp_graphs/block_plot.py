@@ -255,8 +255,8 @@ class FigPlotBlock2(BaseplotBlock2):
         # plotinst.fig.set_size_inches((min(plotinst.fig_cols * 2 * 2.5, 20), min(plotinst.fig_rows * 1.2 * 2.5, 12)))
         if not hasattr(plotinst, 'savesize'):
             plotinst.savesize = (
-                min(plotinst.fig_cols * 12.0, 24),
-                min(plotinst.fig_rows * 6.0, 12))
+                min(plotinst.fig_cols * 9.0, 24),
+                min(plotinst.fig_rows * 4.5, 12))
             
         print "savesize w/h = %f/%f, fig_cols/fig_rows = %s/%s" % (plotinst.savesize[0], plotinst.savesize[1], plotinst.fig_cols, plotinst.fig_rows)
         plotinst.fig.set_size_inches(plotinst.savesize)
@@ -522,12 +522,14 @@ class PlotBlock2(FigPlotBlock2):
                 num_cgroups = 5
                 num_cgroup_color = 5
                 num_cgroup_dist = 255/num_cgroups
+                # cmap_str = 'cyclic_mrybm_35_75_c68'
+                cmap_str = 'colorwheel'
                 
                 # axis handle shortcut
                 ax = self.fig.axes[idx]
                 ax.set_prop_cycle(
                     get_colorcycler(
-                        cmap_str = 'cyclic_mrybm_35_75_c68', cmap_idx = None,
+                        cmap_str = cmap_str, cmap_idx = None,
                         c_s = inkc * num_cgroup_dist, c_e = (inkc + 1) * num_cgroup_dist, c_n = num_cgroup_color
                     )
                 )
@@ -545,7 +547,7 @@ class PlotBlock2(FigPlotBlock2):
                     if inkc > 0:
                         ax.set_prop_cycle(
                             get_colorcycler(
-                                cmap_str = 'cyclic_mrybm_35_75_c68', cmap_idx = None,
+                                cmap_str = cmap_str, cmap_idx = None,
                                 c_s = (inkc + 1) * num_cgroup_dist, c_e = (inkc + 2) * num_cgroup_dist, c_n = num_cgroup_color
                             ),
                         )

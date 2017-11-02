@@ -20,7 +20,7 @@ from smp_graphs.utils_conf import get_systemblock
 
 # global parameters can be overwritten from the commandline
 ros = False
-numsteps = 10000/1
+numsteps = 10000/10
 recurrent = True
 debug = False
 showplot = True
