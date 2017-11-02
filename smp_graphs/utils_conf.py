@@ -16,7 +16,7 @@ from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2
 def get_systemblock_pm(
         dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1, lag = 1, **kwargs):
     global np, PointmassBlock2, meas
-    print "utils_conf get_systemblock_pm: dim_s_proprio = %d, dt= %f, lag = %d, kwargs = %s" % (dim_s_proprio, dt, lag, kwargs)
+    # print "utils_conf get_systemblock_pm: dim_s_proprio = %d, dt= %f, lag = %d, kwargs = %s" % (dim_s_proprio, dt, lag, kwargs)
     
     # defaults
     dims = {
@@ -26,9 +26,9 @@ def get_systemblock_pm(
     order = 0
     # update
     if kwargs.has_key('dims'):
-        print "updating dims", dims, kwargs['dims']
+        # print "updating dims", dims, kwargs['dims']
         dims.update(kwargs['dims'])
-        print "updated dims", dims
+        # print "updated dims", dims
     if kwargs.has_key('order'):
         order = kwargs['order']
         

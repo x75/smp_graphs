@@ -38,6 +38,7 @@ class PointmassBlock2(SysBlock2):
     :class:`smp_sys.systems.Pointmass2Sys`.
     """
     def __init__(self, conf = {}, paren = None, top = None):
+        # print "PointmassBlock2 conf = %s" %(conf,)
         # if hasattr(self, 'systype') and self.systype == 2:
         if conf['params'].has_key('systype') and conf['params']['systype'] == 2:
             self.system = Pointmass2Sys(conf['params'])
@@ -47,9 +48,9 @@ class PointmassBlock2(SysBlock2):
         conf['params']['dims'] = self.system.dims
         # conf['params']['outputs'].update(self.system.dims)
         # systems new state space
-        print "dims", self.system.x # .keys()
+        # print "dims", self.system.x # .keys()
         for k,v in self.system.dims.items():
-            print "adding output", k, self.system.x[k].shape
+            # print "adding output", k, self.system.x[k].shape
             conf['params']['outputs'][k] = {'shape': self.system.x[k].shape}
             # setattr(self, k, self.x[k])
             

@@ -104,6 +104,33 @@ class RewriteAssign(ast.NodeTransformer):
                 # print "lconf_parsed", lconf_parsed.body[0].value
                 # print "lconf_old", node.value
                 # lconf_parsed = ast.fix_missing_locations(lconf_parsed)
+                # print "node.value", type(node.value)
+                # print "node.value", node.value._attributes
+                # print "node.value", node.value._fields
+                # print "node.value", node.value.keys
+                # print "node.value", node.value.values
+
+                # # print debugging ast objects
+                # for k, v in zip(node.value.keys, node.value.values):
+                #     # print "dir(k)", dir(k)
+                #     # print "dir(v)", dir(v)
+                #     print "node.value old",
+                #     if hasattr(k, 's'):
+                #         print "k = %s" % (k.s, ),
+                #     if hasattr(v, 'n'):
+                #         print "v = %s" % (v.n, ),
+                #     print ""
+                    
+                # for k, v in zip(lconf_parsed.body[0].value.keys, lconf_parsed.body[0].value.values):
+                #     # print "dir(k)", dir(k)
+                #     # print "dir(v)", dir(v)
+                #     print "node.value new",
+                #     if hasattr(k, 's'):
+                #         print "k = %s" % (k.s, ),
+                #     if hasattr(v, 'n'):
+                #         print "v = %s" % (v.n, ),
+                #     print ""
+                    
                 node.value = lconf_parsed.body[0].value
                 # node = ast.fix_missing_locations(node)
                 # print "node", node.lineno, lconf_parsed.body[0].value.lineno

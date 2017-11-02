@@ -432,8 +432,13 @@ class PlotBlock2(FigPlotBlock2):
                 
                     # x axis slice spec
                     if subplotconf.has_key('xslice'):
+                        # get slice conf
+                        if type(subplotconf['xslice']) is list:
+                            subplotconf_xslice = subplotconf['xslice'][k]
+                        else:
+                            subplotconf_xslice = subplotconf['xslice']
                         # set slice
-                        xslice = slice(subplotconf['xslice'][k][0], subplotconf['xslice'][k][1])
+                        xslice = slice(subplotconf_xslice[0], subplotconf_xslice[1])
                         # update plot length
                         plotlen = xslice.stop - xslice.start
                         # and plot shape

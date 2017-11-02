@@ -30,6 +30,23 @@ from smp_graphs.utils_conf import get_systemblock
 from smp_graphs.utils_conf import get_systemblock_pm
 from smp_graphs.utils_conf import get_systemblock_sa
 
+lconf = {
+    'numloop': 3,
+    'dim': 1,
+    }
+    
+numloop = lconf['numloop']
+dim = lconf['dim']
+
+lconf_ = {
+    'dim': dim,
+    'dt': 0.1,
+    'lag': 1,
+    'budget': 1000,
+    'lim': 1.0,
+    'order': 0,
+}
+
 # dim = 1
 # motors = dim
 # dt = 0.1
@@ -177,7 +194,6 @@ from smp_graphs.utils_conf import get_systemblock_sa
 #     }
 
 # for stats
-numloop = 5
 loopblock = {
     'block': Block2,
     'params': {
@@ -188,19 +204,12 @@ loopblock = {
         'numsteps': numsteps,
         'randseed': 1,
         # subcomponent?
-        'robot1/dim': 2,
-        'lconf': {
-            'dim': 2,
-            'dt': 0.1,
-            'lag': 1,
-            'budget': 1000,
-            'lim': 1.0,
-            'order': 0,
-        },
+        # 'robot1/dim': 2,
+        'lconf': lconf_,
         # contains the subgraph specified in this config file
         'subgraph': 'conf/expr0001_pm1d_mem000_ord0_random.py',
         'subgraph_rewrite_id': True,
-        'subgraph_ignore_nodes': ['plot'],
+        'subgraph_ignore_nodes': [], # ['plot'],
         'subgraphconf': {
             # 'plot/active': False
             # 'robot1/sysdim': 1,

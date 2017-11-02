@@ -659,7 +659,7 @@ class Block2(object):
         self.nesting_indent = " " * 4 * self.nesting_level
 
         # fix the block's group
-        print "Block2 %s self.block_group" % (self.id,), self.block_group
+        # print "Block2 %s self.block_group" % (self.id,), self.block_group
         if type(self.block_group) is str: self.block_group = [self.block_group]
         
         ################################################################################
@@ -732,85 +732,6 @@ class Block2(object):
         # numsteps / blocksize
         # print "%s-%s end of init blocksize = %d" % (self.cname, self.id, self.blocksize)
         
-    def set_attr_from_top_conf(self):
-        for attr in ['saveplot']:
-            top_attr = getattr(self.top, attr)
-            if top_attr is not None and self.conf['params'].has_key(attr):
-                print "Block2.set_attr_from_top_conf copying top.%s = %s to conf['params'] %s" % (attr, top_attr, self.conf['params']['saveplot'])
-                self.conf['params'][attr] = top_attr
-                setattr(self, attr, top_attr)
-
-    def get_nesting_level(self):
-        nl = 0
-        newparen = self
-        while newparen is not None and not newparen.topblock:
-            nl += 1
-            # print "nl", nl, newparen, 
-            if newparen == newparen.paren:
-                newparen is None
-            else:
-                newparen = newparen.paren
-                
-        return nl + 1
-
-    def blocksize_clamp(self):
-        """Block2.blocksize_clamp
-
-        Clamp blocksize to numsteps if numsteps < blocksize
-        """
-        self.blocksize = min(self.top.numsteps, self.blocksize)
-
-    def init_colors(self):
-        """Compute block identity in color
-        """
-        # print "block_cmaps", block_cmaps
-        def get_color_from_confstr(confstr):
-            # print "type", type(plot_colors)
-            linelen = 20 # len(plot_colors.keys()) # 1000
-            b = np.fromstring(str(self.conf), dtype=np.uint8)
-            bmod = b.shape[0] % linelen
-            # print "Block2-%s.init_colors conf bitvec = %s, modlen = %s" % (self.id, b.shape, bmod)
-            # if bmod != 0:
-            b = np.pad(b, (0, linelen - bmod), mode = 'constant')
-            # print "id", self.id, "b", b.shape
-            # print "Block2-%s.init_colors conf bitvec = %s, modlen = %s" % (self.id, b.shape, bmod)
-            # c = b.reshape((-1, linelen)).mean(axis = 0)
-            # c = (b.min(), b.mean(), b.max())
-            # c = np.mean(b/np.max(b))
-            c = int(np.sum(b) % linelen)
-        
-            ck = plot_colors.keys()[c]
-            # print "Block2-%s.init_colors k = %s, ck = %s, color = %s" % (self.id, c, ck, plot_colors[ck])
-            return plot_colors[ck]
-
-        def get_color_from_plot_colors():
-            if not hasattr(self.top, 'colorcnt'):
-                self.top.colorcnt = 0
-            else:
-                self.top.colorcnt += 1
-            ck =  plot_colors.keys()[self.top.colorcnt]
-            return plot_colors[ck]
-            
-        def get_color_from_cmap():
-            # if not hasattr(self.top, 'colormap'):
-            #     self.top.colormap = plt.get_cmap('gist_ncar')
-                
-            if not hasattr(self.top, 'colorcnt'):
-                self.top.colorcnt = 0
-            else:
-                self.top.colorcnt += 1
-                
-            # return plot_colors.keys()[self.top.colorcnt]
-            group_cmap = block_groups[self.block_group[0]]['cmap']
-            print "%s init_colors is group %s, cmap = %s" % (self.id, self.block_group[0], group_cmap)
-            return plt.get_cmap(group_cmap)(self.top.colorcnt / 77.0)
-            
-        # ck = get_color_from_plot_colors()
-        
-        # block color
-        # self.block_color = get_color_from_plot_colors()
-        self.block_color = get_color_from_cmap()
-    
     def init_block(self):
         """Block2.init_block
 
@@ -867,6 +788,43 @@ class Block2(object):
 
             self.nxgraph = nxgraph_from_smp_graph(self.conf)
 
+            if isinstance(self, SeqLoopBlock2):
+                print "Block2.init_block   nxgraph", self.nxgraph.name, self.nxgraph.number_of_nodes()
+                print "Block2.init_block self.conf", print_dict(self.conf)
+
+            # experimental: node cloning
+            self.node_cloning()
+            
+            # for n in self.nxgraph.nodes():
+            #     print "%s-%s g.node[%s] = %s" % (self.cname, self.id, n, self.nxgraph.node[n])
+        
+            # 2.1 init_pass_1: instantiate blocks and init outputs, descending into hierarchy
+            self.init_graph_pass_1()
+                                        
+            # if self.conf['params'].has_key('outputs'):
+            #     print "Block2-%s.init_block post igp1 self.conf = %s" % (self.id, self.outputs, )
+                
+            # 2.2 init_pass_2: init inputs, again descending into hierarchy
+            self.init_graph_pass_2()
+            
+            # if self.conf['params'].has_key('outputs'):
+            #     print "Block2-%s.init_block igp2 self.conf = %s" % (self.id, self.outputs, )
+                
+            self.init_outputs()
+            
+            # initialize block logging
+            self.init_logging()
+
+            # if self.conf['params'].has_key('outputs'):
+            #     print "Block2-%s.init_block init_outputs self.conf = %s" % (self.id, self.outputs, )
+                
+        ################################################################################
+        # 3 initialize a primitive block
+        else:
+            self.init_primitive()
+
+    def node_cloning(self):
+        if True:
             ##############################################################################
             # node cloning (experimental)
             if hasattr(self, 'graph') \
@@ -976,34 +934,6 @@ class Block2(object):
 
             # end node clone
             ##############################################################################
-                
-            # for n in self.nxgraph.nodes():
-            #     print "%s-%s g.node[%s] = %s" % (self.cname, self.id, n, self.nxgraph.node[n])
-        
-            # 2.1 init_pass_1: instantiate blocks and init outputs, descending into hierarchy
-            self.init_graph_pass_1()
-                                        
-            # if self.conf['params'].has_key('outputs'):
-            #     print "Block2-%s.init_block post igp1 self.conf = %s" % (self.id, self.outputs, )
-                
-            # 2.2 init_pass_2: init inputs, again descending into hierarchy
-            self.init_graph_pass_2()
-            
-            # if self.conf['params'].has_key('outputs'):
-            #     print "Block2-%s.init_block igp2 self.conf = %s" % (self.id, self.outputs, )
-                
-            self.init_outputs()
-            
-            # initialize block logging
-            self.init_logging()
-
-            # if self.conf['params'].has_key('outputs'):
-            #     print "Block2-%s.init_block init_outputs self.conf = %s" % (self.id, self.outputs, )
-                
-        ################################################################################
-        # 3 initialize a primitive block
-        else:
-            self.init_primitive()
             
     def init_primitive(self):
         """Block2.init_primitive
@@ -1046,7 +976,7 @@ class Block2(object):
             if len(block.top.block_store.keys()) > 0:
                 print "init_block_cache: block.top.block_store.keys()", block.top.block_store.keys()
                 # print "init_block_cache: block.top.block_store.has_key('/blocks')", '/blocks' in block.top.block_store.keys()
-                print "check_block_store", block.top.block_store['blocks'].shape
+                # print "check_block_store", block.top.block_store['blocks'] # .shape
                 # print "init_block_cache: self.md5", self.cname, self.id, self.md5
                 # print "blocks", type(block.top.block_store['/blocks'])
                 # print block.top.block_store['blocks']['md5'] == self.md5
@@ -1134,7 +1064,7 @@ class Block2(object):
             if hasattr(self, 'lconf'):
                 # print "lconf", self.lconf
                 subconf_localvars = get_config_raw(conf = self.subgraph, confvar = None, lconf = self.lconf)
-                # print "init_subgraph returning localvars", subconf_localvars.keys()
+                # print "init_subgraph %s returning localvars = %s" % (self.id, subconf_localvars.keys())
                 subconf = subconf_localvars['conf']
             else:
                 subconf_localvars = get_config_raw(self.subgraph, confvar = None, lconf = self.top.conf_localvars) # 'graph')
@@ -1496,6 +1426,91 @@ class Block2(object):
                 self.debug_print("%s.init k = %s, v = %s", (self.cname, k, v))
                 self.debug_print("init_pass_2 %s in_k.shape = %s / %s", (self.id, v['val'].shape, v['shape']))
             
+    def set_attr_from_top_conf(self):
+        """set self attributes copied from corresponding toplevel attributes
+        
+        FIXME: namespace foo
+        """
+        for attr in ['saveplot']:
+            top_attr = getattr(self.top, attr)
+            if top_attr is not None and self.conf['params'].has_key(attr):
+                # print "Block2.set_attr_from_top_conf copying top.%s = %s to conf['params'] %s" % (attr, top_attr, self.conf['params']['saveplot'])
+                self.conf['params'][attr] = top_attr
+                setattr(self, attr, top_attr)
+
+    def get_nesting_level(self):
+        """get the current graphs nesting level in a composite graph
+        """
+        nl = 0
+        newparen = self
+        while newparen is not None and not newparen.topblock:
+            nl += 1
+            # print "nl", nl, newparen, 
+            if newparen == newparen.paren:
+                newparen is None
+            else:
+                newparen = newparen.paren
+                
+        return nl + 1
+
+    def blocksize_clamp(self):
+        """Block2.blocksize_clamp
+
+        Clamp blocksize to numsteps if numsteps < blocksize
+        """
+        self.blocksize = min(self.top.numsteps, self.blocksize)
+
+    def init_colors(self):
+        """Compute block identity and infer the node's plot color
+        """
+        # print "block_cmaps", block_cmaps
+        def get_color_from_confstr(confstr):
+            # print "type", type(plot_colors)
+            linelen = 20 # len(plot_colors.keys()) # 1000
+            b = np.fromstring(str(self.conf), dtype=np.uint8)
+            bmod = b.shape[0] % linelen
+            # print "Block2-%s.init_colors conf bitvec = %s, modlen = %s" % (self.id, b.shape, bmod)
+            # if bmod != 0:
+            b = np.pad(b, (0, linelen - bmod), mode = 'constant')
+            # print "id", self.id, "b", b.shape
+            # print "Block2-%s.init_colors conf bitvec = %s, modlen = %s" % (self.id, b.shape, bmod)
+            # c = b.reshape((-1, linelen)).mean(axis = 0)
+            # c = (b.min(), b.mean(), b.max())
+            # c = np.mean(b/np.max(b))
+            c = int(np.sum(b) % linelen)
+        
+            ck = plot_colors.keys()[c]
+            # print "Block2-%s.init_colors k = %s, ck = %s, color = %s" % (self.id, c, ck, plot_colors[ck])
+            return plot_colors[ck]
+
+        def get_color_from_plot_colors():
+            if not hasattr(self.top, 'colorcnt'):
+                self.top.colorcnt = 0
+            else:
+                self.top.colorcnt += 1
+            ck =  plot_colors.keys()[self.top.colorcnt]
+            return plot_colors[ck]
+            
+        def get_color_from_cmap():
+            # if not hasattr(self.top, 'colormap'):
+            #     self.top.colormap = plt.get_cmap('gist_ncar')
+                
+            if not hasattr(self.top, 'colorcnt'):
+                self.top.colorcnt = 0
+            else:
+                self.top.colorcnt += 1
+                
+            # return plot_colors.keys()[self.top.colorcnt]
+            group_cmap = block_groups[self.block_group[0]]['cmap']
+            # print "%s init_colors is group %s, cmap = %s" % (self.id, self.block_group[0], group_cmap)
+            return plt.get_cmap(group_cmap)(self.top.colorcnt / 77.0)
+            
+        # ck = get_color_from_plot_colors()
+        
+        # block color
+        # self.block_color = get_color_from_plot_colors()
+        self.block_color = get_color_from_cmap()
+    
     def debug_print(self, fmtstring, data):
         """only print if debug is enabled for this block"""
         fmtstring = "\n%s[%d]." + fmtstring
@@ -1553,7 +1568,10 @@ class Block2(object):
         for k, v in [(k_, v_) for k_, v_ in self.outputs.items() if v_.has_key('buscopy')]:
             buskey = v['buscopy']
             assert self.bus.has_key(buskey), "Assuming in %s-%s that bus has key %s but %s" % (self.cname, self.id, buskey, self.bus.keys())
-            # print "buscopy buskey", buskey, getattr(self, k), self.bus[buskey], self.bus.keys()
+            if buskey.startswith('b4') and np.mean(self.bus[buskey]) != 0.0: # or 'measure' in buskey:
+                print "buscopy[%d]: from buskey = %s to bus %s/%s" % (self.cnt, buskey, self.id, k)
+                # , getattr(self, k), self.bus[buskey], self.bus.keys()
+                print "         data = %s" % (self.bus[buskey], )
             setattr(self, k, self.bus[buskey])
             
         # for k, v in self.outputs.items():
@@ -1880,7 +1898,7 @@ class SeqLoopBlock2(Block2):
 
                 if k == 'id':
                     loopblock_params[k] = "%s_%d" % (self.id, i)
-                elif k == lparams[0]:
+                elif k == lparams[0]: # FIXME: multiloop k in lparams.keys()
                     loopblock_params[k] = lparams[1]
                 else:
                     loopblock_params[k] = v
@@ -1891,6 +1909,10 @@ class SeqLoopBlock2(Block2):
             
             # create dynamic conf, beware the copy (!!!)
             loopblock_conf = {'block': self.loopblock['block'], 'params': copy.deepcopy(loopblock_params)}
+            
+            self.debug_print(
+                "%s.step.f_obj:\n    loopblock_conf = %s",
+                (self.cname, loopblock_conf))
             
             # instantiate block loopblock
             self.dynblock = self.loopblock['block'](
@@ -1974,7 +1996,7 @@ class SeqLoopBlock2(Block2):
         # loopblock loop
         for i in range(self.numsteps/self.loopblocksize):
             # print "%s-%s.step[%d] loop iter %d" % (self.cname, self.id, self.cnt, i,)
-            sys.stdout.flush()
+            # sys.stdout.flush()
             then = time.time()
 
             # run the loop, if it's a func loop: need input function from config

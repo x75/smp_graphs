@@ -225,8 +225,8 @@ class Experiment(object):
         """
         # for hashing the conf, strip all entries with uncontrollably variable values (function pointers, ...)
         self.conf_ = conf_strip_variables(self.conf)
-        print "numsteps", self.conf['params']['numsteps']
-        print "numsteps_", self.conf_['params']['numsteps']
+        # print "numsteps", self.conf['params']['numsteps']
+        # print "numsteps_", self.conf_['params']['numsteps']
         # compute id hash of the experiment from the configuration dict string
         # print "experiment self.conf stripped", print_dict(self.conf_)
         m = make_expr_md5(self.conf_)
@@ -238,7 +238,7 @@ class Experiment(object):
         # store md5 in params _after_ we computed the md5 hash
         self.conf['params']['md5'] = xid
         self.conf['params']['cached'] = self.params['docache'] and self.cache is not None and self.cache.shape[0]
-        print "experiment %s cached with %s" % (self.conf['params']['md5'], self.conf['params']['cached'], )
+        # print "experiment %s cached with %s" % (self.conf['params']['md5'], self.conf['params']['cached'], )
         
         # instantiate topblock
         self.topblock = Block2(conf = self.conf, conf_localvars = self.conf_localvars)

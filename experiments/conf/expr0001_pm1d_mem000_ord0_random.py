@@ -38,6 +38,8 @@ lconf = {
     
 dim = lconf['dim']
 order = lconf['order']
+budget = lconf['budget'] # 510
+lim = lconf['lim'] # 1.0
 
 systemblock   = get_systemblock['pm'](
     dim_s_proprio = dim, dim_s_extero = dim, lag = 1, order = order)
@@ -50,10 +52,7 @@ dim_s_extero  = systemblock['params']['dim_s_extero']
 # dim_s_goal   = dim_s_extero
 dim_s_goal    = dim_s_proprio
 
-budget = lconf['budget'] # 510
-lim = lconf['lim'] # 1.0
-
-print "sysblock", systemblock['params']['dim_s_proprio']
+# print "sysblock", systemblock['params']['dim_s_proprio']
 
 # TODO
 # 1. loop over randseed

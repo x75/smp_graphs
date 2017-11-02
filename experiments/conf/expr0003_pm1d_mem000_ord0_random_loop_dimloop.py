@@ -216,7 +216,8 @@ from smp_graphs.utils_conf import get_systemblock_sa
 # loop = [('randseed', 1000 + i) for i in range(0, numloop)]
 
 # for dims
-numloop = 4
+numloop = 2
+numloop_inner = 2
 loopblock = {
 # loopblock = OrderedDict([('bhier', {
         'block': Block2,
@@ -249,9 +250,12 @@ loopblock = {
             },
             # 'graph': graph1,
             'outputs': {
-                'credit_min': {'shape': (1, 1), 'buscopy': 'measure/bcredit_min'},
-                'credit_max': {'shape': (1, 1), 'buscopy': 'measure/bcredit_max'},
-                'credit_mu': {'shape': (1, 1), 'buscopy': 'measure/bcredit_mu'},
+                # 'credit_min': {'shape': (1, 1), 'buscopy': 'measure/bcredit_min'},
+                # 'credit_max': {'shape': (1, 1), 'buscopy': 'measure/bcredit_max'},
+                # 'credit_mu': {'shape': (1, 1), 'buscopy': 'measure/bcredit_mu'},
+                'credit_min': {'shape': (1, numloop_inner), 'buscopy': 'b4/credit_min'},
+                'credit_max': {'shape': (1, numloop_inner), 'buscopy': 'b4/credit_max'},
+                'credit_mu': {'shape': (1, numloop_inner), 'buscopy': 'b4/credit_mu'},
             }
         },
     }
@@ -264,7 +268,8 @@ loop = [('lconf', {
             'lag': 1,
             'budget': 1000,
             'lim': 1.0,
-            'order': 0
+            'order': 0,
+            'numloop': numloop_inner,
         }) for i in range(numloop)]
 print "loop", loop
 
@@ -285,11 +290,11 @@ graph = OrderedDict([
     # }),
 
     # sequential loop
-    ("b4", {
+    ("b5", {
         'block': SeqLoopBlock2,
         'params': {
-            'id': 'b4',
-            # 'debug': True,
+            'id': 'b5',
+            'debug': True,
             # loop specification, check hierarchical block to completely
             # pass on the contained in/out space?
             'blocksize': numsteps, # same as loop length
@@ -297,9 +302,12 @@ graph = OrderedDict([
             'loopblocksize': numsteps/numloop, # loopblocksize,
             # can't do this dynamically yet without changing init passes
             'outputs': {
-                'credit_min': {'shape': (1, numloop)},
-                'credit_max': {'shape': (1, numloop)},
-                'credit_mu': {'shape': (1, numloop)},
+                'credit_min': {'shape': (1, numloop * numloop_inner), 'buscopy': 'b4/credit_min'},
+                'credit_max': {'shape': (1, numloop * numloop_inner), 'buscopy': 'b4/credit_max'},
+                'credit_mu': {'shape': (1, numloop * numloop_inner), 'buscopy': 'b4/credit_mu'},
+                # 'credit_min': {'shape': (1, numloop)},
+                # 'credit_max': {'shape': (1, numloop)},
+                # 'credit_mu': {'shape': (1, numloop)},
                 # 'x': {'shape': (3, numsteps)},
                 # 'y': {'shape': (1, numsteps)}
             },
@@ -343,30 +351,36 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'pdf',
+            'wspace': 0.1,
+            'hspace': 0.1,
             'inputs': {
-                'mins_s': {'bus': 'b4/credit_min', 'shape': (1, numloop)},
-                'maxs_s': {'bus': 'b4/credit_max', 'shape': (1, numloop)},
-                'mus_s': {'bus': 'b4/credit_mu', 'shape': (1, numloop)},
+                'mins_s': {'bus': 'b5/credit_min', 'shape': (1, numloop * numloop_inner)},
+                'maxs_s': {'bus': 'b5/credit_max', 'shape': (1, numloop * numloop_inner)},
+                'mus_s':  {'bus': 'b5/credit_mu',  'shape': (1, numloop * numloop_inner)},
                 # 'mins_p': {'bus': 'b3/credit_min', 'shape': (1, numloop)},
                 },
             'subplots': [
                 [
                     {
-                    'input': ['mins_s', 'maxs_s', 'mus_s'],
-                    'plot': partial(
-                        timeseries,
+                        'input': ['mins_s', 'maxs_s', 'mus_s'],
+                        'xslice': (i * numloop_inner, (i+1) * numloop_inner),
+                        'plot': partial(
+                                timeseries,
                         ylim = (-10, 1010),
                         yscale = 'linear',
                         linestyle = 'none',
                         marker = 'o')},
-                    {'input': ['mins_s', 'maxs_s', 'mus_s'], 'plot': partial(
+                    {
+                        'input': ['mins_s', 'maxs_s', 'mus_s'],
+                        'xslice': (i * numloop_inner, (i+1) * numloop_inner),
+                        'plot': partial(
                         histogram,
                         title = 'mean/min budget hist',
                         ylim = (-10, 1010),
                         yscale = 'linear',
-                        orientation = 'horizontal')}
-                ],
-            ],
+                        orientation = 'horizontal')},]
+                for i in range(numloop)
+        ],
         },
     })
     
