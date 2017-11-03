@@ -4,7 +4,9 @@ doc/html
 doc/latex
 doc/_build
 doc/doxygen_sqlite3.db
+experiments/data*/*.conf
 experiments/data*/*.pdf
 experiments/data*/*.jpg
 experiments/data*/*.npz
 experiments/data*/*.wav
+experiments/data*/*.h5

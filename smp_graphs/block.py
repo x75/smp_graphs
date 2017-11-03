@@ -45,7 +45,7 @@ from smp_graphs.graph import nxgraph_node_by_id, nxgraph_node_by_id_recursive
 from smp_graphs.graph import nxgraph_nodes_iter
 
 # finally, ros
-import rospy
+# import rospy
 from std_msgs.msg import Float64MultiArray
 
 # FIXME: make it optional in core
@@ -581,6 +581,7 @@ class decStep():
     def block_is_scheduled(self, xself):
         """Block is scheduled when its count modulo its blocksize is element of the blockphase array
         """
+        # print "xself.cnt", xself.cnt, "xself.blocksize", xself.blocksize
         return (xself.cnt % xself.blocksize) in xself.blockphase
 
     def block_is_finished(self, xself):
@@ -1292,6 +1293,7 @@ class Block2(object):
 
             # ros?
             if hasattr(self, 'ros') and self.ros:
+                import rospy
                 self.msgs[k] = Float64MultiArray()
                 self.pubs[k] = rospy.Publisher('%s/%s' % (self.id, k, ), Float64MultiArray, queue_size = 2)
             
@@ -2452,7 +2454,7 @@ class CountBlock2(PrimBlock2):
         self.outk = self.outputs.keys()[0]
         # init cnt_ of blocksize
         # self.cnt_ = np.zeros(self.outputs[self.outk]['shape'] + (self.blocksize,))
-        self.cnt = None
+        # self.cnt = None # ???
         self.cnt_ = np.zeros(self.outputs[self.outk]['shape'])
         # print self.inputs
         # FIXME: modulo / cout range with reset/overflow

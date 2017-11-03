@@ -22,7 +22,6 @@ from mdp.nodes import PolynomialExpansionNode
 # import sklearn
 from sklearn import linear_model, kernel_ridge
             
-
 # reservoir lib from smp_base
 from smp_base.reservoirs import res_input_matrix_random_sparse, res_input_matrix_disjunct_proj
 from smp_base.reservoirs import Reservoir, LearningRules

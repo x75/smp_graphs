@@ -5,6 +5,9 @@ the config is python, so we
  - put the graph config into a dict
 """
 
+# from smp_graphs.block import FuncBlock2
+# from smp_graphs.block_models import ModelBlock2
+
 randseed = 24
 # reused variables
 numsteps = 10000

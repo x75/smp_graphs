@@ -74,6 +74,13 @@ Simulators and robots
  - sphero_ros
  - MORSE
 
+TODO
+ - prepare requirements.txt: numpy, scipy, sklearn scikit-learn,
+   seaborn, fix: rlspy from git, jpype = jpypex, link infodynamics,
+   mdp = MDP, fix Oger from git, cma is cma, add: colorcet, pyunicorn
+   deps: weave, igraph/jgraph
+ - clean path for running without ROS
+
 ** Examples
 
 Go into smp_graphs/experiments directory where experiments are run from

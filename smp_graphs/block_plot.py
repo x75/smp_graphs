@@ -448,8 +448,12 @@ class PlotBlock2(FigPlotBlock2):
 
                     # explicit shape key
                     if subplotconf.has_key('shape'):
+                        if len(subplotconf['shape']) > 1:
+                            subplotconf_shape = subplotconf['shape'][k]
+                        else:
+                            subplotconf_shape = subplotconf['shape'][0]
                         # get the shape spec, custom transpose from horiz t to row t
-                        plotshape = mytupleroll(subplotconf['shape'][k])
+                        plotshape = mytupleroll(subplotconf_shape)
                         # update plot length
                         plotlen = plotshape[0]
                         # and xsclice

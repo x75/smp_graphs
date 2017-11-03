@@ -7,9 +7,9 @@ from collections import OrderedDict
 from functools import partial
 from types import FunctionType
 
+import smp_graphs
 from smp_base.common import set_attr_from_dict
 from smp_graphs.utils import print_dict
-import smp_graphs
 
 ################################################################################
 # static config templates
@@ -27,6 +27,7 @@ from smp_graphs.block import dBlock2, IBlock2, DelayBlock2
 from smp_graphs.block_ols import FileBlock2
 from smp_graphs.block_plot import PlotBlock2
 from smp_graphs.block_plot import SnsMatrixPlotBlock2, ImgPlotBlock2
+from smp_graphs.block_models import ModelBlock2
 
 from smp_graphs.funcs import f_sin, f_motivation, f_motivation_bin, f_random_uniform
 
@@ -520,12 +521,17 @@ def vtransform(v):
     if vtype is dict or vtype is OrderedDict or vtype is list:
         v_ = conf_strip_variables(v)
     else:
-        # FIXME: this destroys information about the partial config, maybe OK for changing the plots?
+        # FIXME: this destroys information about the partial config,
+        # maybe OK for changing the plots?
+        # print "vtype", vtype, dir(smp_graphs)
         if vtype is partial: # functools.partial
             v_ = 'partial.func.%s' % v.func.func_name
         elif vtype is FunctionType:
             v_ = 'func.%s' % v.func_name
+        # FIXME: this produces import error when block_models isnt
+        # imported in config?
         elif vtype is smp_graphs.block_models.model:
+            # 
             v_ = 'model.%s' % v.modelstr
         else:
             v_ = v

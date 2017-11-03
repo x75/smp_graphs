@@ -49,7 +49,7 @@ def get_args():
     
     # add commandline arguments
     parser.add_argument("-c", "--conf",       type=str, default=default_conf,     help="Configuration file [%s]" % default_conf)
-    parser.add_argument("-dc", "--do-cache",  dest='docache', action='store_true', help="Enable experiment and block caching mechanisms [True].", default = True)
+    parser.add_argument("-dc", "--do-cache",  dest='docache', action='store_true', help="Enable experiment and block caching mechanisms [False].", default = False)
     parser.add_argument("-nc", "--no-cache",  dest='docache', action='store_false', help="Enable experiment and block caching mechanisms [True].")
     parser.add_argument("-dr", "--do-ros",    dest="ros", action="store_true",    default = None, help = "Do / enable ROS?")
     parser.add_argument("-nr", "--no-ros",    dest="ros", action="store_false",   default = None, help = "No / disable ROS?")
