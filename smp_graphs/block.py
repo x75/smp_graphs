@@ -46,7 +46,7 @@ from smp_graphs.graph import nxgraph_nodes_iter
 
 # finally, ros
 # import rospy
-from std_msgs.msg import Float64MultiArray
+# from std_msgs.msg import Float64MultiArray
 
 # FIXME: make it optional in core
 from hyperopt import STATUS_OK, STATUS_FAIL
@@ -556,10 +556,12 @@ class decStep():
         # if count aligns with block's execution blocksize
         if self.block_is_scheduled(xself):
             cache_top = xself.top.cached
-            cache_block = (hasattr(xself, 'isprimitive') and xself.isprimitive) or isinstance(self, SeqLoopBlock2)
-            cache_inst = xself.cache is not None and xself.cache.shape[0] != 0
+
+            if cache_top:
+                cache_block = (hasattr(xself, 'isprimitive') and xself.isprimitive) or isinstance(self, SeqLoopBlock2)
+                cache_inst = xself.cache is not None and xself.cache.shape[0] != 0
             
-            if cache_block and cache_top and cache_inst:
+            if cache_top and cache_block and cache_inst:
                 # pass
                 # if xself.cnt % 100 == 0:
                 #     print "%s-%s using cached data with shapes" % (xself.cname, xself.id, ),
@@ -1300,6 +1302,7 @@ class Block2(object):
             # ros?
             if hasattr(self, 'ros') and self.ros:
                 import rospy
+                from std_msgs.msg import Float64MultiArray
                 self.msgs[k] = Float64MultiArray()
                 self.pubs[k] = rospy.Publisher('%s/%s' % (self.id, k, ), Float64MultiArray, queue_size = 2)
             
