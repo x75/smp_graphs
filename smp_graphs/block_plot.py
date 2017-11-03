@@ -71,6 +71,7 @@ def subplot_input_fix(input_spec):
 
 class AnalysisBlock2(PrimBlock2):
     defaults = {
+        'nocache': True,
         'saveplot': False,
         'savetype': 'jpg',
         'block_group': 'measure',

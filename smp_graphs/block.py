@@ -555,8 +555,11 @@ class decStep():
         # if (xself.cnt % xself.blocksize) in xself.blockphase: # or (xself.cnt % xself.rate) == 0:
         # if count aligns with block's execution blocksize
         if self.block_is_scheduled(xself):
-
-            if xself.top.cached and hasattr(xself, 'isprimitive') and xself.isprimitive and xself.cache is not None and xself.cache.shape[0] != 0:
+            cache_top = xself.top.cached
+            cache_block = (hasattr(xself, 'isprimitive') and xself.isprimitive) or isinstance(self, SeqLoopBlock2)
+            cache_inst = xself.cache is not None and xself.cache.shape[0] != 0
+            
+            if cache_block and cache_top and cache_inst:
                 # pass
                 # if xself.cnt % 100 == 0:
                 #     print "%s-%s using cached data with shapes" % (xself.cname, xself.id, ),
@@ -824,6 +827,9 @@ class Block2(object):
         else:
             self.init_primitive()
 
+        # initialize block caching, FIXME: before logging?
+        self.init_block_cache()
+
     def node_cloning(self):
         if True:
             ##############################################################################
@@ -949,9 +955,6 @@ class Block2(object):
             
         # initialize block logging
         self.init_logging()
-
-        # initialize block caching, FIXME: before logging?
-        self.init_block_cache()
         
     def init_block_cache(self):
         """init_block_cache
@@ -972,6 +975,9 @@ class Block2(object):
             m = md5(str(conf_))
             self.md5 = m.hexdigest()
             self.cache = None
+
+            if hasattr(self, 'nocache') and self.nocache:
+                return
             
             # store exists?
             if len(block.top.block_store.keys()) > 0:
@@ -996,9 +1002,8 @@ class Block2(object):
             if self.top.cached and self.cache is not None and self.cache.shape[0] != 0:
                 print "%s-%s.check_block_store: found cache for %s\n   cache['log_stores'] = %s" % (self.cname, self.id, self.md5, self.cache['log_store'].values)
                 
+                # load cached data only once
                 # FIXME: check experiment.cache to catch randseed and numsteps
-                # load cached data
-                # self.cache_h5 = pd.HDFStore(self.cache['log_store'].values[0])
                 if block.top.log_store_cache is None:
                     block.top.log_store_cache = pd.HDFStore(self.cache['log_store'].values[0])
                     
@@ -1011,6 +1016,7 @@ class Block2(object):
                     self.cache_data[outk] = x_.copy()
                     setattr(self, outk, self.cache_data[outk][...,[0]])
                 # self.cache_h5.close()
+            # no cache found
             else:
                 print "%s-%s.check_block_store: no cache exists for %s, storing %s at %s" % (self.cname, self.id, self.md5, self.conf, self.md5)
                 
@@ -1544,6 +1550,32 @@ class Block2(object):
         if self.debug:
             print fmtstring % data
 
+    def step_cache(self):
+        """Block2.step_cache
+
+        Compute data for all subordinate nodes by outputting this block's cache
+        """
+        print "%s-%s[%d] is cached at %s\n    cache = %s" % (self.cname, self.id, self.cnt, self.md5, self.cache)
+        if hasattr(self, 'cache_data') and isinstance(self, SeqLoopBlock2):
+            print "    ready for batch playback of %s" % (self.cname, self.id, self.cnt, self.cache_data.keys())
+
+    def step_compute(self):
+        """Block2.step_compute
+
+        Compute or recompute data for all nodes in the graph, as
+        opposed to cache playback
+        """
+        for i in nxgraph_nodes_iter(self.nxgraph, 'enable'):
+            # get node
+            v = self.nxgraph.node[i]
+            # get node id
+            k = v['params']['id']
+            # step node
+            v['block_'].step()
+            # debug
+            # print "%s-%s.step[%d]: k = %s, v = %s" % (self.cname, self.id, self.cnt, k, type(v))
+
+            
     # undecorated step, need to count ourselves
     @decStep()
     def step(self, x = None):
@@ -1558,16 +1590,11 @@ class Block2(object):
         # mode 1 for handling hierarchical blocks: graph is flattened during init, only topblock iterates nodes
         # first step all
         # for i in range(self.nxgraph.number_of_nodes()):
-        for i in nxgraph_nodes_iter(self.nxgraph, 'enable'):
-            # get node
-            v = self.nxgraph.node[i]
-            # get node id
-            k = v['params']['id']
-            # step node
-            v['block_'].step()
-            # debug
-            # print "%s-%s.step[%d]: k = %s, v = %s" % (self.cname, self.id, self.cnt, k, type(v))
-
+        if not self.topblock and self.cache is not None:
+            self.step_cache()
+        else:
+            self.step_compute()
+        
         if self.topblock:
 
             # store log incrementally
