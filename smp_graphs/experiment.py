@@ -62,7 +62,7 @@ def get_args():
 
     # parse arguments
     args = parser.parse_args()
-    
+
     # return arguments
     return args
 
@@ -232,7 +232,7 @@ class Experiment(object):
         m = make_expr_md5(self.conf_)
         # FIXME: 1) block class knows which params to hash, 2) append localvars to retain environment
         
-        # update experiments database with the current expr
+        # cache: update experiments database with the current expr
         xid = self.update_experiments_store(xid = m.hexdigest())
             
         # store md5 in params _after_ we computed the md5 hash
