@@ -63,7 +63,7 @@ def nxgraph_add_node_from_conf(k, v, G, nc):
     assert type(v) is dict, "Expected type(v) = dict, got type %s, %s\n    node conf not a tuple?" % (type(v), v)
     if not v.has_key('params'): v['params'] = {}
     v['params']['id'] = k
-    print "graphs.py: adding node = %s" % (v['params']['id'],)
+    # print "graphs.py: adding node = %s" % (v['params']['id'],)
     G.add_node(nc, **v)
     nc += 1
     return (G, nc)

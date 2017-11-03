@@ -1125,7 +1125,7 @@ class Block2(object):
         if hasattr(self, 'subgraph_rewrite_id') and self.subgraph_rewrite_id:
             # self.outputs_copy = copy.deepcopy(self.conf['params']['outputs'])
             nks_0 = dict_get_nodekeys_recursive(self.conf['params']['graph'])
-            print "nodekeys", nks_0
+            # print "nodekeys", nks_0
             # xid = self.conf['params']['id'][-1:]
             # v['bus'] = re.sub(id_orig, clone['params']['id'], v['bus'])
             # p = re.compile('(.*)(_ll[0-9]+)$')
@@ -1149,7 +1149,7 @@ class Block2(object):
                     xid_[-1][len(loop_delim[1:]):]
                 )
             
-            print  "init_subgraph subgraph_rewrite_id", self.conf['params']['id'], "xid", xid
+            # print  "init_subgraph subgraph_rewrite_id", self.conf['params']['id'], "xid", xid
             
             self.conf['params']['graph'] = dict_replace_idstr_recursive2(
                 d = self.conf['params']['graph'], xid = xid)
@@ -1592,10 +1592,10 @@ class Block2(object):
         for k, v in [(k_, v_) for k_, v_ in self.outputs.items() if v_.has_key('buscopy')]:
             buskey = v['buscopy']
             assert self.bus.has_key(buskey), "Assuming in %s-%s that bus has key %s but %s" % (self.cname, self.id, buskey, self.bus.keys())
-            if buskey.startswith('b4') and np.mean(self.bus[buskey]) != 0.0: # or 'measure' in buskey:
-                print "buscopy[%d]: from buskey = %s to bus %s/%s" % (self.cnt, buskey, self.id, k)
-                # , getattr(self, k), self.bus[buskey], self.bus.keys()
-                print "         data = %s" % (self.bus[buskey], )
+            # if buskey.startswith('b4') and np.mean(self.bus[buskey]) != 0.0: # or 'measure' in buskey:
+            #     # , getattr(self, k), self.bus[buskey], self.bus.keys()
+            #     print "buscopy[%d]: from buskey = %s to bus %s/%s" % (self.cnt, buskey, self.id, k)
+            #     print "         data = %s" % (self.bus[buskey], )
             setattr(self, k, self.bus[buskey])
             
         # for k, v in self.outputs.items():

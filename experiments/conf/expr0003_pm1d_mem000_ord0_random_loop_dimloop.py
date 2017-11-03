@@ -351,8 +351,8 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'pdf',
-            'wspace': 0.1,
-            'hspace': 0.1,
+            'wspace': 0.15,
+            'hspace': 0.15,
             'inputs': {
                 'mins_s': {'bus': 'b5/credit_min', 'shape': (1, numloop * numloop_inner)},
                 'maxs_s': {'bus': 'b5/credit_max', 'shape': (1, numloop * numloop_inner)},

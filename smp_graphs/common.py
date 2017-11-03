@@ -479,7 +479,7 @@ def dict_get_nodekeys_recursive(d):
     return nodekeys
 
 def dict_replace_nodekeys_loop(d = {}, nodekeys = set(), loopiter = 0):
-    print "dict_replace_nodekeys_loop", d.keys(), nodekeys, loopiter
+    # print "dict_replace_nodekeys_loop", d.keys(), nodekeys, loopiter
     loopiter_ = None
     if type(loopiter) is tuple:
         loopiter_ = loopiter
