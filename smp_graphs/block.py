@@ -1561,6 +1561,8 @@ class Block2(object):
         print "%s-%s[%d] is cached at %s\n    cache = %s" % (self.cname, self.id, self.cnt, self.md5, self.cache)
         if hasattr(self, 'cache_data') and isinstance(self, SeqLoopBlock2):
             print "    ready for batch playback of %s" % (self.cname, self.id, self.cnt, self.cache_data.keys())
+        for outk in self.outputs.keys():
+            print "cached self.%s = %s" % (outk, getattr(self, outk))
 
     def step_compute(self):
         """Block2.step_compute
@@ -1577,7 +1579,11 @@ class Block2(object):
             v['block_'].step()
             # debug
             # print "%s-%s.step[%d]: k = %s, v = %s" % (self.cname, self.id, self.cnt, k, type(v))
-
+            
+        # all Block2's
+        if (self.cnt % self.blocksize) in self.blockphase:
+            # buscopy: copy outputs from subblocks as configured in enclosing block outputs spec
+            self.bus_copy()
             
     # undecorated step, need to count ourselves
     @decStep()
@@ -1612,11 +1618,6 @@ class Block2(object):
                 # save plot figures
                 self.plot_close()
                 
-        # all Block2's
-        if (self.cnt % self.blocksize) in self.blockphase:
-            # buscopy: copy outputs from subblocks as configured in enclosing block outputs spec
-            self.bus_copy()
-            
         # need to to count ourselves
         # self.cnt += 1
 
@@ -2451,7 +2452,9 @@ class ConstBlock2(PrimBlock2):
         
         # either column vector to be replicated or blocksize already
         # assert self.x.shape[-1] in [1, self.blocksize]
-        assert self.inputs['c']['val'].shape[:-1] == self.x.shape[:-1], "ConstBlock2 input / output shapes must agree: %s == %s?" % (self.inputs['c']['val'].shape[:-1], self.x.shape[:-1])
+        
+        # print"self.inputs['c']['val'].shape[:-1] == self.x.shape[:-1]", self.inputs['c']['val'].shape[:-1], self.x.shape[:-1]
+        # assert self.inputs['c']['val'].shape[:-1] == self.x.shape[:-1], "ConstBlock2 input / output shapes must agree: %s == %s?" % (self.inputs['c']['val'].shape[:-1], self.x.shape[:-1])
         
         # replicate column vector
         # if self.x.shape[1] == 1: # this was wrong

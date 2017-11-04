@@ -10,8 +10,7 @@ the config is python, so we
 
 randseed = 24
 # reused variables
-numsteps = 10000
-
+numsteps = 8000
 
 # graph
 graph = OrderedDict([

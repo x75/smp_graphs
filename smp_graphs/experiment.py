@@ -57,6 +57,8 @@ def get_args():
     parser.add_argument("-n", "--numsteps",   type=int, default=default_numsteps, help="Number of outer loop steps [%s]" % default_numsteps)
     parser.add_argument("-s", "--randseed",   type=int, default=None,             help="Random seed [None], if None, seed is taken from config file")
     parser.add_argument("-pg", "--plotgraph", dest="plotgraph", action="store_true", default = False, help = "Enable plot of smp graph [False]")
+    parser.add_argument("-shp",  "--showplot",     dest="showplot",  action="store_true", default = None, help = "Show plots at all? [None]")
+    parser.add_argument("-nshp",  "--no-showplot",     dest="showplot",  action="store_false", default = None, help = "Show plots at all? [None]")
     parser.add_argument("-sp",  "--saveplot",     dest="saveplot",  action="store_true", default = None, help = "Enable saving the plots of this experiment [None]")
     parser.add_argument("-nsp", "--no-saveplot",  dest="saveplot",  action="store_false", default = None, help = "Disable saving the plots of this experiment [None]")
 
@@ -82,7 +84,7 @@ def set_config_commandline_args(conf, args):
     """
     # for commandline_arg in conf['params'].has_key("numsteps"):
     #     conf['params']['numsteps'] = 100
-    gparams = ['numsteps', 'randseed', 'ros', 'docache', 'saveplot']
+    gparams = ['numsteps', 'randseed', 'ros', 'docache', 'saveplot', 'showplot']
     for clarg in gparams:
         if getattr(args, clarg) is not None:
             conf['params'][clarg] = getattr(args, clarg)
