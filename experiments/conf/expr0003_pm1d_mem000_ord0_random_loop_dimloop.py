@@ -216,8 +216,8 @@ from smp_graphs.utils_conf import get_systemblock_sa
 # loop = [('randseed', 1000 + i) for i in range(0, numloop)]
 
 # for dims
-numloop = 2
-numloop_inner = 10
+numloop = 5
+numloop_inner = 3
 loopblock = {
 # loopblock = OrderedDict([('bhier', {
         'block': Block2,
@@ -351,8 +351,8 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'pdf',
-            'wspace': 0.15,
-            'hspace': 0.15,
+            'wspace': 0.35,
+            'hspace': 0.25,
             'inputs': {
                 'mins_s': {'bus': 'b5/credit_min', 'shape': (1, numloop * numloop_inner)},
                 'maxs_s': {'bus': 'b5/credit_max', 'shape': (1, numloop * numloop_inner)},
@@ -366,7 +366,7 @@ graph = OrderedDict([
                         'xslice': (i * numloop_inner, (i+1) * numloop_inner),
                         'plot': partial(
                                 timeseries,
-                        ylim = (-10, 1010),
+                        ylim = (-30, 1030),
                         yscale = 'linear',
                         linestyle = 'none',
                         marker = 'o')},
@@ -376,7 +376,7 @@ graph = OrderedDict([
                         'plot': partial(
                         histogram,
                         title = 'mean/min budget hist',
-                        ylim = (-10, 1010),
+                        ylim = (-30, 1030),
                         yscale = 'linear',
                         orientation = 'horizontal')},]
                 for i in range(numloop)

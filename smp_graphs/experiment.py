@@ -282,20 +282,20 @@ class Experiment(object):
         if not self.params['docache']: return xid
         
         # prepare experiment database
-        experiments_store = 'data/experiments_store.h5'
+        self.experiments_store = 'data/experiments_store.h5'
         columns = ['md5', 'timestamp', 'topblock', 'params', 'topblock_nxgraph', 'topblock_bus']
         values = [[xid, pd.to_datetime(datetime.datetime.now()), str(self.conf['block']), str(self.conf['params']), '', '']]
         # print "%s.update_experiments_store values = %s" % (self.__class__.__name__, values)
         # values = [[xid, self.conf['block'], self.conf['params']]]
 
         # load experiment database if one exists
-        if os.path.exists(experiments_store):
+        if os.path.exists(self.experiments_store):
             try:
-                self.experiments = pd.read_hdf(experiments_store, key = 'experiments')
-                print "Experiment.update_experiments_store loaded experiments_store = %s with shape = %s" % (experiments_store, self.experiments.shape)
+                self.experiments = pd.read_hdf(self.experiments_store, key = 'experiments')
+                print "Experiment.update_experiments_store loaded experiments_store = %s with shape = %s" % (self.experiments_store, self.experiments.shape)
                 # search for hash
             except Exception, e:
-                print "Loading store %s failed with %s" % (experiments_store, e)
+                print "Loading store %s failed with %s" % (self.experiments_store, e)
                 sys.exit(1)
         # create a new experiment database if it does not exist
         else:
@@ -326,7 +326,7 @@ class Experiment(object):
             self.cache = df
             
         # write store
-        self.experiments.to_hdf(experiments_store, key = 'experiments')
+        self.experiments.to_hdf(self.experiments_store, key = 'experiments')
 
         # return the hash
         return xid
@@ -474,13 +474,24 @@ class Experiment(object):
             print "    topblock.bus", self.cache['topblock_bus']
             # update the experiment store
             # self.update_experiments_store(xid = self.conf['params']['md5'])
+            # write store
+            self.experiments.to_hdf(self.experiments_store, key = 'experiments')
+            G = self.topblock.nxgraph
+            Gbus = self.topblock.bus
+        else:
+            # G = self.cache['topblock_nxgraph']
+            # Gbus = self.cache['topblock_bus']
+            # print "G", G
+            # print "Gbus", Gbus
+            G = self.topblock.nxgraph
+            Gbus = self.topblock.bus
 
-        self.printgraph()
+        self.printgraph(G = G)
         
         # plot the computation graph and the bus
         set_interactive(True)
         if self.plotgraph_flag:
-            self.plotgraph()
+            self.plotgraph(G = G, Gbus = Gbus)
 
         if self.conf['params']['showplot']:
             set_interactive(False)

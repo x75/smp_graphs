@@ -602,8 +602,8 @@ class PlotBlock2(FigPlotBlock2):
                 # [subplotconf['slice'][0]:subplotconf['slice'][1]].T)
         # subplots pass 1: done
 
+        ################################################################################
         # subplots pass 2: clean up and compute globally shared dynamic vars
-        
         # adjust xaxis
         for i, subplot in enumerate(self.subplots):
             for j, subplotconf in enumerate(subplot):
