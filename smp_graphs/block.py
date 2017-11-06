@@ -125,6 +125,15 @@ class Bus(MutableMapping):
     def setval(self, k, v):
         self.store[k] = v
 
+    def __str__(self):
+        storekeys = self.store.keys()
+        storekeys.sort()
+        ret = ''
+        for k in storekeys:
+            v = self.store[k]
+            ret += "k = %s, v.shape = %s, mu = %s, var = %s\n" % (k, v.shape, np.mean(v, axis = -1), np.var(v, axis = -1))
+        return ret
+
     def plot(self, ax = None, blockid = None):
         """Bus.plot
 
@@ -519,8 +528,9 @@ class decStep():
                     xself.pubs[k].publish(xself.msgs[k])
         
         # print "Block2.step[%d] not topblock" % (xself.cnt,)
-        if self.block_is_finished(xself) and hasattr(xself, 'isprimitive') and xself.isprimitive:
+        if self.block_is_finished(xself):
             # print "Block2.step end of episode and primitive"
+
             
             def update_block_store(block = None, top = None):
                 import datetime
@@ -531,7 +541,11 @@ class decStep():
                 print "update_block_store block = %s (%s)" % (block, block.md5)
 
                 print "block_store", block.top.block_store.keys()
-                
+
+                # if hasattr(xself, 'nxgraph'):
+                #     xself.cache['nxgraph'] = nxgraph_to_smp_graph(block.nxgraph, asdict = True) # str()
+                #     print "block_store['/blocks'] nxgraph", xself.cache['nxgraph']
+                    
                 # create entry and save
                 # columns = ['md5', 'timestamp', 'block', 'params', 'log_store'] # 'experiment', 
                 # values = [[block.md5, pd.to_datetime(datetime.datetime.now()), str(block.conf['block']), str(block.conf['params']), 'bla.h5']]
@@ -545,7 +559,11 @@ class decStep():
                 # xself.top.block_store['blocks'] = pd.concat([xself.top.block_store['blocks'], df])
                 # xself.top.block_store['blocks']['md5' == self.md5][] = 
 
-            # update_block_store(block = xself)
+            if xself.top.docache and xself.cache is not None and not xself.cache_loaded:
+                if hasattr(xself, 'isprimitive') and xself.isprimitive:
+                    pass
+                else:
+                    update_block_store(block = xself, top = xself.top)
 
     def f_eval(self, xself, f):
         # call the function on blocksize boundaries
@@ -704,15 +722,20 @@ class Block2(object):
             # dump the execution graph configuration to a file
             finalconf = self.dump_final_config()
             
-            # # this needs more work
+            # # FIXME: this needs more work
             # log.log_pd_store_config_final(finalconf)
-            # nx.write_yaml(self.nxgraph, 'nxgraph.yaml')
-            try:
-                nx.write_gpickle(self.nxgraph, 'nxgraph.pkl')
-            except Exception, e:
-                print "%s-%s init pickling graph failed on downstream objects, e = %s" % (self.cname, self.id, e)
-                # print "Trying nxgraph_dump"
+            # nxgraph_ = copy.copy(self.nxgraph)
+            # del nxgraph_['block_']
+            # nx.write_yaml(nxgraph_to_smp_graph(self.nxgraph), 'nxgraph.yaml')
+            
+            # # this always fails
+            # try:
+            #     nx.write_gpickle(self.nxgraph, 'nxgraph.pkl')
+            # except Exception, e:
+            #     print "%s-%s init pickling graph failed on downstream objects, e = %s" % (self.cname, self.id, e)
+            #     # print "Trying nxgraph_dump"
 
+            # store final static graph
             log.log_pd_store_config_final(nxgraph_to_smp_graph(self.nxgraph))
 
             # step the thing once
@@ -798,9 +821,9 @@ class Block2(object):
 
             self.nxgraph = nxgraph_from_smp_graph(self.conf)
 
-            if isinstance(self, SeqLoopBlock2):
-                print "Block2.init_block   nxgraph", self.nxgraph.name, self.nxgraph.number_of_nodes()
-                print "Block2.init_block self.conf", print_dict(self.conf)
+            # if isinstance(self, SeqLoopBlock2):
+            #     print "Block2.init_block   nxgraph", self.nxgraph.name, self.nxgraph.number_of_nodes()
+            #     print "Block2.init_block self.conf", print_dict(self.conf)
 
             # experimental: node cloning
             self.node_cloning()
@@ -1022,6 +1045,14 @@ class Block2(object):
                     # FIXME: check cache and runtime shape geometry
                     self.cache_data[outk] = x_.copy()
                     setattr(self, outk, self.cache_data[outk][...,[0]])
+
+                # # load the graph in case of composite block
+                # if str(self.cache['nxgraph']) != 'nxgraph':
+                #     nxgraph_new = nxgraph_from_smp_graph(str(self.cache['nxgraph']))
+                #     print "type(nxgraph_new)", str(nxgraph_new)
+                #     setattr(self, 'nxgraph', nxgraph_new)
+                #     print "type(nxgraph)", str(self.nxgraph)
+                
                 # self.cache_h5.close()
                 self.cache_loaded = True
             # no cache found
@@ -1029,8 +1060,12 @@ class Block2(object):
                 print "%s-%s.check_block_store: no cache exists for %s, storing %s at %s" % (self.cname, self.id, self.md5, 'self.conf', self.md5)
                 
                 # create entry and save
-                columns = ['md5', 'timestamp', 'block', 'params', 'log_store'] # 'experiment',
-                values = [[self.md5, pd.to_datetime(datetime.datetime.now()), str(block.conf['block']), str(block.conf['params']), log.log_store.filename]]
+                columns = [
+                    'md5', 'timestamp', 'block', 'params', 'log_store', 'nxgraph'] # 'experiment',
+                values = [[
+                    self.md5, pd.to_datetime(datetime.datetime.now()),
+                    str(block.conf['block']), str(block.conf['params']),
+                    log.log_store.filename, str('nxgraph')]]
                 df = pd.DataFrame(data = values, columns = columns)
                 # print "df =\n", df
 
@@ -1043,6 +1078,10 @@ class Block2(object):
                     # print "df2 concat(store, df)", df2.shape, df2
                     block.top.block_store['/blocks'] = df2
                     print "init_block_cache no cache found, but cache entries exist", block.top.block_store['/blocks'].shape, df2.shape
+
+                # re-get cache
+                self.cache = block.top.block_store['/blocks'][:][block.top.block_store['/blocks']['md5'] == self.md5]
+                # print "self.cache",self.cache
                     
                 print "block_store shape = %s" % (block.top.block_store['/blocks'].shape, )
 
@@ -1934,6 +1973,7 @@ class SeqLoopBlock2(Block2):
 
     @decStep()
     def step_cache(self, x = None):
+        print "%s-%s[%d] this should never print but be caught by step decorator :)" % (self.cname, self.id, self.cnt)
         print "%s-%s[%d] is cached at %s\n    cache = %s" % (self.cname, self.id, self.cnt, self.md5, self.cache)
         if isinstance(self, SeqLoopBlock2): # hasattr(self, 'cache_data') and 
             print "    ready for batch playback of %s" % (self.cache_data.keys(),)
@@ -2118,9 +2158,8 @@ class SeqLoopBlock2(Block2):
 
         confgraph_full = {'block': Block2, 'params': {'id': self.id, 'graph': self.confgraph}}
 
-        # print "%s-%s.step conf['params']['id'] = %s" % (self.cname, self.id, confgraph_full['params']['id'])
+        # print "%s-%s.step dynamic graph = %s" % (self.cname, self.id, confgraph_full)
         self.nxgraph = nxgraph_from_smp_graph(confgraph_full)
-
 
         for outk in self.outputs.keys():
             print "%s-%s[%d/%d] output %s = %s" % (self.cname, self.id, self.top.cnt, self.cnt, outk, getattr(self, outk))

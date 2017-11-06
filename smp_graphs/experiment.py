@@ -30,7 +30,7 @@ from smp_graphs.common import conf_header, conf_footer, conf_strip_variables
 from smp_graphs.common import md5, get_config_raw
 from smp_graphs.graph import nxgraph_plot, recursive_draw, recursive_hierarchical
 from smp_graphs.graph import nxgraph_flatten, nxgraph_add_edges, nxgraph_get_node_colors
-from smp_graphs.graph import nxgraph_nodes_iter
+from smp_graphs.graph import nxgraph_nodes_iter, nxgraph_to_smp_graph
 
 ################################################################################
 # utils, TODO: move to utils.py
@@ -283,8 +283,8 @@ class Experiment(object):
         
         # prepare experiment database
         experiments_store = 'data/experiments_store.h5'
-        columns = ['md5', 'timestamp', 'block', 'params']
-        values = [[xid, pd.to_datetime(datetime.datetime.now()), str(self.conf['block']), str(self.conf['params'])]]
+        columns = ['md5', 'timestamp', 'topblock', 'params', 'topblock_nxgraph', 'topblock_bus']
+        values = [[xid, pd.to_datetime(datetime.datetime.now()), str(self.conf['block']), str(self.conf['params']), '', '']]
         # print "%s.update_experiments_store values = %s" % (self.__class__.__name__, values)
         # values = [[xid, self.conf['block'], self.conf['params']]]
 
@@ -303,11 +303,13 @@ class Experiment(object):
 
         # query database about current experiment
         self.cache = self.experiments[:][self.experiments['md5'] == xid]
+        self.cache_loaded = False
 
         # load the cached experiment if it exists
         if self.cache is not None and self.cache.shape[0] != 0:
             # experiment.cache is the loaded entry
             print "Experiment.update_experiments_store found cached results = %s\n%s" % (self.cache.shape, self.cache)
+            self.cache_loaded = True
         # store the experiment in the cache if it doesn't exist
         else:
             print "Experiment.update_experiments_store no cached results found, creating new entry"
@@ -323,13 +325,13 @@ class Experiment(object):
             # experiment.cache is the newly created entry
             self.cache = df
             
-        # write store 
+        # write store
         self.experiments.to_hdf(experiments_store, key = 'experiments')
 
         # return the hash
         return xid
         
-    def plotgraph(self):
+    def plotgraph(self, G = None, Gbus = None):
         """Experiment.plotgraph
 
         Show a visualization of the initialized top graph defining the
@@ -341,9 +343,6 @@ class Experiment(object):
         fig_nxgr = makefig(
             rows = 1, cols = 1, wspace = 0.1, hspace = 0.1,
             axesspec = axesspec, title = "%s"  % (self.topblock.id.split('-')[0], )) # "nxgraph")
-        fig_bus = makefig(
-            rows = 1, cols = 1, wspace = 0.1, hspace = 0.1,
-            axesspec = axesspec, title = "%s"  % (self.topblock.id.split('-')[0], ))
         axi = 0
         # nxgraph_plot(self.topblock.nxgraph, ax = fig_nxgr.axes[0])
 
@@ -361,7 +360,11 @@ class Experiment(object):
         # # plot the flattened graph
         # nxgraph_plot(G, ax = fig_nxgr.axes[0], layout_type = "spring", node_size = 300)
 
-        G_, G_number_of_nodes_total = recursive_hierarchical(self.topblock.nxgraph)
+        if G is None:
+            G = self.topblock.nxgraph
+            
+        G_, G_number_of_nodes_total = recursive_hierarchical(G)
+
         G_cols = nxgraph_get_node_colors(G_)
         # print "G_cols", G_cols
         nxgraph_plot(G_, ax = fig_nxgr.axes[axi], layout_type = "linear_hierarchical", node_color = G_cols, node_size = 300)
@@ -377,8 +380,19 @@ class Experiment(object):
         #     shrink = 0.8)
 
         # plot the bus with its builtin plot method
+        fig_bus = makefig(
+            rows = 1, cols = 1, wspace = 0.1, hspace = 0.1,
+            axesspec = axesspec, title = "%s"  % (self.topblock.id.split('-')[0], ))
+        
+        if Gbus is None:
+            Gbus = self.topblock.bus
+
+        if len(Gbus) > 40:
+            print "Gbus\n%s" % (Gbus, )
+            return
+            
         axi = 0
-        (xmax, ymax) = self.topblock.bus.plot(fig_bus.axes[axi])
+        (xmax, ymax) = Gbus.plot(fig_bus.axes[axi])
         print "experiment plotting bus xmax = %s, ymax = %s"  % (xmax, ymax)
         # fig_bus.axes[axi].set_aspect(1)
         fig_bus.set_size_inches((5, ymax / 25.0))
@@ -414,9 +428,11 @@ class Experiment(object):
                 print "%s  .nodes = %s" % (indent, ", ".join([G_.node[n]['params']['id'] for n in G_.nodes()]))
                 self.printgraph_recursive(G = G_, lvl = lvl)
                 
-    def printgraph(self):
-        print "\nPrinting graph\n", 
-        G = self.topblock.nxgraph
+    def printgraph(self, G = None):
+        print "\nPrinting graph\n",
+        if G is None:
+            G = self.topblock.nxgraph
+            
         print "G.name  = %s" % (G.name,)
         # print "G.nodes = %s" % ([(G.node[n]['params']['id'], G.node[n].keys()) for n in G.nodes()])
         print " .nodes = %s" % (", ".join([G.node[n]['params']['id'] for n in G.nodes()]))
@@ -449,7 +465,16 @@ class Experiment(object):
 
         # final writes: log store, experiment/block store?, graphics, models
         # self.topblock.bus.plot(fig_nxgr.axes[3])
-        
+
+        if not self.cache_loaded:
+            print "experiment cache: storing final top level nxgraph", self.topblock.nxgraph
+            self.cache['topblock_nxgraph'] = nxgraph_to_smp_graph(self.topblock.nxgraph)
+            self.cache['topblock_bus'] = str(self.topblock.bus)
+            print "    topblock.nxgraph", self.cache['topblock_nxgraph']
+            print "    topblock.bus", self.cache['topblock_bus']
+            # update the experiment store
+            # self.update_experiments_store(xid = self.conf['params']['md5'])
+
         self.printgraph()
         
         # plot the computation graph and the bus

@@ -295,8 +295,15 @@ def nxgraph_flatten(G):
     # FIXME: currently dropping edges?
     return qG
 
-def nxgraph_to_smp_graph(G, level = 0):
+def nxgraph_to_smp_graph(G, level = 0, asdict = False):
     """Walk the hierarchical graph depth-first and dump a dict"""
+    if asdict:
+        g = OrderedDict()
+        for n in nxgraph_nodes_iter(G, 'enable'):
+            g[G.node[n]['block_'].id] = G.node[n]
+
+        return g
+    
     gstr = str()
     # for n in G.nodes():
     for n in nxgraph_nodes_iter(G, 'enable'):
