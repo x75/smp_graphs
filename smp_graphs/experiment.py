@@ -239,8 +239,8 @@ class Experiment(object):
             
         # store md5 in params _after_ we computed the md5 hash
         self.conf['params']['md5'] = xid
-        self.conf['params']['cached'] = self.params['docache'] and self.cache is not None and self.cache.shape[0]
-        # print "experiment %s cached with %s" % (self.conf['params']['md5'], self.conf['params']['cached'], )
+        self.conf['params']['docache'] = self.params['docache'] and self.cache is not None and self.cache.shape[0]
+        print "experiment %s docache with %s" % (self.conf['params']['md5'], self.conf['params']['docache'], )
         
         # instantiate topblock
         self.topblock = Block2(conf = self.conf, conf_localvars = self.conf_localvars)
@@ -306,6 +306,7 @@ class Experiment(object):
 
         # load the cached experiment if it exists
         if self.cache is not None and self.cache.shape[0] != 0:
+            # experiment.cache is the loaded entry
             print "Experiment.update_experiments_store found cached results = %s\n%s" % (self.cache.shape, self.cache)
         # store the experiment in the cache if it doesn't exist
         else:
@@ -319,7 +320,9 @@ class Experiment(object):
         
             # concatenated onto main df
             self.experiments = pd.concat(dfs)
-
+            # experiment.cache is the newly created entry
+            self.cache = df
+            
         # write store 
         self.experiments.to_hdf(experiments_store, key = 'experiments')
 

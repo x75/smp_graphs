@@ -505,7 +505,8 @@ class decStep():
                 # copy data into logging
                 if xself.logging:
                     # try:
-                    # print "logging", v['buskey'], xself.bus[v['buskey']]
+                    if xself.cname == 'SeqLoopBlock2':
+                        print "logging", v['buskey'], xself.bus[v['buskey']]
                     log.log_pd(tbl_name = v['buskey'], data = xself.bus[v['buskey']])
                     # except:
                     # print "Logging failed"
@@ -551,28 +552,28 @@ class decStep():
         # FIXME: might not be the best idea to control that on the wrapper level as some
         #        blocks might need to be called every step nonetheless?
         # if (xself.cnt % xself.blocksize) == 0: # or (xself.cnt % xself.rate) == 0:
-        # print "xself.cnt", xself.cnt, "blocksize", xself.blocksize, "blockphase", xself.blockphase
+        # print "decStep.f_eval", xself.id, "xself.cnt", xself.cnt, "blocksize", xself.blocksize, "blockphase", xself.blockphase
         # if (xself.cnt % xself.blocksize) in xself.blockphase: # or (xself.cnt % xself.rate) == 0:
         # if count aligns with block's execution blocksize
         if self.block_is_scheduled(xself):
-            cache_top = xself.top.cached
+            cache_top = xself.top.docache
 
-            if cache_top:
-                cache_block = (hasattr(xself, 'isprimitive') and xself.isprimitive) or isinstance(self, SeqLoopBlock2)
-                cache_inst = xself.cache is not None and xself.cache.shape[0] != 0
+            # if cache_top:
+            #     cache_block = (hasattr(xself, 'isprimitive') and xself.isprimitive) or isinstance(self, SeqLoopBlock2)
+            #     cache_inst = xself.cache is not None and xself.cache.shape[0] != 0
             
-            if cache_top and cache_block and cache_inst:
+            if cache_top and xself.cache_loaded: # cache_block and cache_inst:
                 # pass
-                # if xself.cnt % 100 == 0:
-                #     print "%s-%s using cached data with shapes" % (xself.cname, xself.id, ),
+                shapes = []
                 for outk, outv in xself.outputs.items():
                     setattr(xself, outk, xself.cache_data[outk][xself.cnt-xself.blocksize:xself.cnt,...].T)
                     # if xself.cnt % 100 == 0:
-                    #     print xself.cache_data[outk].shape,
-                    # print "%s-%s" % (xself.cname, xself.id), "outk", outk, getattr(xself, outk).T
+                    #     # print xself.cache_data[outk].shape,
+                    #     # print "%s-%s" % (xself.cname, xself.id), "outk", outk, getattr(xself, outk).T
+                    shapes.append(xself.cache_data[outk].shape)
                     # print "outk", outk, xself.cache_data[outk] # [xself.cnt-xself.blocksize:xself.cnt]
-                # if xself.cnt % 100 == 0:
-                #     print ""
+                if xself.cnt % 100 == 0:
+                    print "decStep.f_eval\n    %s-%s cache hit at %s\n        using cached data with shapes %s\n" % (xself.cname, xself.id, xself.md5, shapes)
                 f_out = None
             else:
                 # compute the block with step()
@@ -718,6 +719,9 @@ class Block2(object):
             # self.step()
             # print "Block2.init topblock self.blocksize", self.blocksize
 
+            # # topblock init block cache
+            # self.init_block_cache()
+            
         # not topblock
         else:
             # check numsteps commandline arg vs. config blocksizes
@@ -972,18 +976,19 @@ class Block2(object):
             conf_ = conf_strip_variables(block.conf)
             # append top_md5 to ensure the right context in terms of numsteps, randseed, ...
             conf_['top_md5'] = block.top.md5
-            print "Block2 %s-%s conf_.keys = %s" % (self.cname, self.id, conf_.keys()) # print_dict(conf_)
+            # print "Block2 %s-%s conf_.keys = %s" % (self.cname, self.id, conf_.keys()) # print_dict(conf_)
             # m = md5(str(block.conf))
             m = md5(str(conf_))
             self.md5 = m.hexdigest()
             self.cache = None
+            self.cache_loaded = False
 
             if hasattr(self, 'nocache') and self.nocache:
                 return
             
             # store exists?
             if len(block.top.block_store.keys()) > 0:
-                print "init_block_cache: block.top.block_store.keys()", block.top.block_store.keys()
+                # print "init_block_cache: block.top.block_store.keys()", block.top.block_store.keys()
                 # print "init_block_cache: block.top.block_store.has_key('/blocks')", '/blocks' in block.top.block_store.keys()
                 # print "check_block_store", block.top.block_store['blocks'] # .shape
                 # print "init_block_cache: self.md5", self.cname, self.id, self.md5
@@ -1001,7 +1006,7 @@ class Block2(object):
                 # print "init_block_cache: self.cache", self.cache
                 
             # found cache
-            if self.top.cached and self.cache is not None and self.cache.shape[0] != 0:
+            if self.top.docache and self.cache is not None and self.cache.shape[0] != 0:
                 print "%s-%s.check_block_store: found cache for %s\n   cache['log_stores'] = %s" % (self.cname, self.id, self.md5, self.cache['log_store'].values)
                 
                 # load cached data only once
@@ -1018,9 +1023,10 @@ class Block2(object):
                     self.cache_data[outk] = x_.copy()
                     setattr(self, outk, self.cache_data[outk][...,[0]])
                 # self.cache_h5.close()
+                self.cache_loaded = True
             # no cache found
             else:
-                print "%s-%s.check_block_store: no cache exists for %s, storing %s at %s" % (self.cname, self.id, self.md5, self.conf, self.md5)
+                print "%s-%s.check_block_store: no cache exists for %s, storing %s at %s" % (self.cname, self.id, self.md5, 'self.conf', self.md5)
                 
                 # create entry and save
                 columns = ['md5', 'timestamp', 'block', 'params', 'log_store'] # 'experiment',
@@ -1031,14 +1037,16 @@ class Block2(object):
                 # block store is empty
                 if len(block.top.block_store.keys()) < 1:
                     block.top.block_store['/blocks'] = df
+                    print "init_block_cache no cache found, no cache entries exist", block.top.block_store['/blocks'].shape, df.shape
                 else:
                     df2 = pd.concat([block.top.block_store['/blocks'], df])
-                    print "df2 concat(store, df)", df2.shape, df2
+                    # print "df2 concat(store, df)", df2.shape, df2
                     block.top.block_store['/blocks'] = df2
+                    print "init_block_cache no cache found, but cache entries exist", block.top.block_store['/blocks'].shape, df2.shape
                     
                 print "block_store shape = %s" % (block.top.block_store['/blocks'].shape, )
 
-        if self.top.cached:
+        if self.top.docache:
             check_block_store(block = self)
         
     def init_subgraph(self):
@@ -1558,11 +1566,7 @@ class Block2(object):
 
         Compute data for all subordinate nodes by outputting this block's cache
         """
-        print "%s-%s[%d] is cached at %s\n    cache = %s" % (self.cname, self.id, self.cnt, self.md5, self.cache)
-        if hasattr(self, 'cache_data') and isinstance(self, SeqLoopBlock2):
-            print "    ready for batch playback of %s" % (self.cname, self.id, self.cnt, self.cache_data.keys())
-        for outk in self.outputs.keys():
-            print "cached self.%s = %s" % (outk, getattr(self, outk))
+        pass
 
     def step_compute(self):
         """Block2.step_compute
@@ -1599,7 +1603,8 @@ class Block2(object):
         # mode 1 for handling hierarchical blocks: graph is flattened during init, only topblock iterates nodes
         # first step all
         # for i in range(self.nxgraph.number_of_nodes()):
-        if not self.topblock and self.cache is not None:
+        # print "%s-%s[%d] step before cache" % (self.cname, self.id, self.cnt, )
+        if not self.topblock and self.cache_loaded: # hasattr(self, 'cache') and self.cache is not None and len(self.outputs) > 0:
             self.step_cache()
         else:
             self.step_compute()
@@ -1904,7 +1909,6 @@ class SeqLoopBlock2(Block2):
         
         # initialize block output
         self.init_outputs()
-            
         
         # check 'loop' parameter type and set the loop function
         if type(self.loop) is list: # it's a list
@@ -1927,9 +1931,18 @@ class SeqLoopBlock2(Block2):
     def f_loop_func(self, i, f_obj):
         results = self.loop(self, i, f_obj)
         return results
-            
+
     @decStep()
-    def step(self, x = None):
+    def step_cache(self, x = None):
+        print "%s-%s[%d] is cached at %s\n    cache = %s" % (self.cname, self.id, self.cnt, self.md5, self.cache)
+        if isinstance(self, SeqLoopBlock2): # hasattr(self, 'cache_data') and 
+            print "    ready for batch playback of %s" % (self.cache_data.keys(),)
+        for outk in self.outputs.keys():
+            print "cached self.%s = %s" % (outk, getattr(self, outk))
+            pass
+    
+    @decStep()
+    def step_compute(self, x = None):
         """SeqLoopBlock2.step"""
         self.debug_print("%s.step:\n\tx = %s,\n\tbus = %s,\n\tinputs = %s,\n\toutputs = %s",
                              (self.__class__.__name__,self.outputs.keys(),
@@ -2107,7 +2120,10 @@ class SeqLoopBlock2(Block2):
 
         # print "%s-%s.step conf['params']['id'] = %s" % (self.cname, self.id, confgraph_full['params']['id'])
         self.nxgraph = nxgraph_from_smp_graph(confgraph_full)
-        
+
+
+        for outk in self.outputs.keys():
+            print "%s-%s[%d/%d] output %s = %s" % (self.cname, self.id, self.top.cnt, self.cnt, outk, getattr(self, outk))
         # # hack for checking hpo minimum
         # if hasattr(self, 'hp_bests'):
         #     print "%s.step: bests = %s, %s" % (self.cname, self.hp_bests[-1], f_obj_hpo(tuple([self.hp_bests[-1][k] for k in sorted(self.hp_bests[-1])])))
