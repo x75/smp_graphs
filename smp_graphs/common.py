@@ -517,6 +517,8 @@ def dict_replace_nodekeys_loop(d = {}, nodekeys = set(), loopiter = 0):
     return d
 
 def vtransform(v):
+    """transform pointer type objects to string repr for useful hashing
+    """
     vtype = type(v)
     if vtype is dict or vtype is OrderedDict or vtype is list:
         v_ = conf_strip_variables(v)
@@ -538,12 +540,20 @@ def vtransform(v):
     return v_
                 
 def conf_strip_variables(conf):
-
+    """strip variables with uncontrollable values from a config dict for useful hashing
+    """
     conftype = type(conf)
     # print "conf = %s" % (conftype, )
+    # instantiate type
     conf_ = conftype()
     if conftype is dict or conftype is OrderedDict:
+        # strip analysis blocks / PlotBlock2 from hashing
+        if conf.has_key('block'):
+            if 'PlotBlock2' in str(conf['block']): return conf_
+                
         for k, v in conf.items():
+            # print "v", v
+            # if k == 'block' and 'PlotBlock2' in v: continue
             vtype = type(v)
             # print "conf_strip_variables k = %s, v = %s/%s" % (k, vtype, v)
             v_ = vtransform(v)
