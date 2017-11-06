@@ -217,7 +217,7 @@ from smp_graphs.utils_conf import get_systemblock_sa
 
 # for dims
 numloop = 5
-numloop_inner = 3
+numloop_inner = 10
 loopblock = {
 # loopblock = OrderedDict([('bhier', {
         'block': Block2,

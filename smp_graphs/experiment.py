@@ -468,14 +468,16 @@ class Experiment(object):
 
         if not self.cache_loaded:
             print "experiment cache: storing final top level nxgraph", self.topblock.nxgraph
-            self.cache['topblock_nxgraph'] = nxgraph_to_smp_graph(self.topblock.nxgraph)
-            self.cache['topblock_bus'] = str(self.topblock.bus)
-            print "    topblock.nxgraph", self.cache['topblock_nxgraph']
-            print "    topblock.bus", self.cache['topblock_bus']
+            # filename = "data/%s_%s.yaml" % (self.topblock.id, 'nxgraph',)
+            # nx.write_yaml(self.topblock.nxgraph, filename)
+            # self.cache['topblock_nxgraph'] = filename
+            # self.cache['topblock_bus'] = str(self.topblock.bus)
+            # print "    topblock.nxgraph", self.cache['topblock_nxgraph']
+            # print "    topblock.bus", self.cache['topblock_bus']
             # update the experiment store
             # self.update_experiments_store(xid = self.conf['params']['md5'])
             # write store
-            self.experiments.to_hdf(self.experiments_store, key = 'experiments')
+            # self.experiments.to_hdf(self.experiments_store, key = 'experiments')
             G = self.topblock.nxgraph
             Gbus = self.topblock.bus
         else:
@@ -483,7 +485,7 @@ class Experiment(object):
             # Gbus = self.cache['topblock_bus']
             # print "G", G
             # print "Gbus", Gbus
-            G = self.topblock.nxgraph
+            G = self.topblock.nxgraph # nx.read_yaml(self.cache['topblock_nxgraph'])
             Gbus = self.topblock.bus
 
         self.printgraph(G = G)

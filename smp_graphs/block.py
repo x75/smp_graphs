@@ -514,8 +514,8 @@ class decStep():
                 # copy data into logging
                 if xself.logging:
                     # try:
-                    if xself.cname == 'SeqLoopBlock2':
-                        print "logging", v['buskey'], xself.bus[v['buskey']]
+                    # if xself.cname == 'SeqLoopBlock2':
+                    #     print "logging", v['buskey'], xself.bus[v['buskey']]
                     log.log_pd(tbl_name = v['buskey'], data = xself.bus[v['buskey']])
                     # except:
                     # print "Logging failed"

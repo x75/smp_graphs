@@ -80,6 +80,7 @@ graph = OrderedDict([
         'params': {
             'numsteps': 1, # numsteps,
             'id': 'braina',
+            'nocache': True,
             'graph': OrderedDict([
                 # every brain has a budget
                 ('budget', {

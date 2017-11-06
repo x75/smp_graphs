@@ -39,7 +39,7 @@ from smp_base.plot       import get_colorcycler, kwargs_plot_clean
 #   - modality-timedelay matrix is: different dependency measures xcorr, expansion-xcorr, mi, rp, kldiv, ...
 #   - information decomposition matrix (ica?)
 # 
-rcParams['figure.titlesize'] = 8
+rcParams['figure.titlesize'] = 10
 
 # smp_graphs style
 rcParams['axes.grid'] = False
@@ -50,9 +50,9 @@ rcParams['axes.spines.right'] = False
 rcParams['axes.facecolor'] = 'none'
 # rcParams['axes.labelcolor'] = .15
 # rcParams['axes.labelpad'] = 4.0
-rcParams['axes.labelsize'] = 6.0
+rcParams['axes.labelsize'] = 7.0
 rcParams['axes.labelweight'] = 'normal'
-rcParams['legend.fontsize'] = 6.0
+rcParams['legend.fontsize'] = 8.0
 rcParams['legend.labelspacing'] = 0.5
 rcParams['xtick.labelsize'] = 6.0
 rcParams['ytick.labelsize'] = 6.0
@@ -255,9 +255,10 @@ class FigPlotBlock2(BaseplotBlock2):
         # print "%s.save filename = %s, subplotstr = %s" % (plotinst.cname, filename, subplotstr)
         # plotinst.fig.set_size_inches((min(plotinst.fig_cols * 2 * 2.5, 20), min(plotinst.fig_rows * 1.2 * 2.5, 12)))
         if not hasattr(plotinst, 'savesize'):
+            savescale = 3
             plotinst.savesize = (
-                min(plotinst.fig_cols * 9.0, 24),
-                min(plotinst.fig_rows * 4.5, 12))
+                min(plotinst.fig_cols * 2.5 * savescale, 24),
+                min(plotinst.fig_rows * 1.0 * savescale, 12))
             
         print "savesize w/h = %f/%f, fig_cols/fig_rows = %s/%s" % (plotinst.savesize[0], plotinst.savesize[1], plotinst.fig_cols, plotinst.fig_rows)
         plotinst.fig.set_size_inches(plotinst.savesize)
@@ -265,8 +266,8 @@ class FigPlotBlock2(BaseplotBlock2):
         # write the figure to file
         try:
             print "%s-%s.save saving plot %s to filename = %s" % (plotinst.cname, plotinst.id, plotinst.title, filename)
-            # plotinst.fig.savefig(filename, dpi=300, bbox_inches="tight")
-            plotinst.fig.savefig(filename, dpi=300)
+            plotinst.fig.savefig(filename, dpi=300, bbox_inches="tight")
+            # plotinst.fig.savefig(filename, dpi=300)
         except Exception, e:
             print "%s.save saving failed with %s" % ('FigPlotBlock2', e)
             

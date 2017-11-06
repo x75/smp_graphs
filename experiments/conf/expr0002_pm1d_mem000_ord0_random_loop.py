@@ -31,7 +31,7 @@ from smp_graphs.utils_conf import get_systemblock_pm
 from smp_graphs.utils_conf import get_systemblock_sa
 
 lconf = {
-    'numloop': 4,
+    'numloop': 100,
     'dim': 1,
     }
     
@@ -377,6 +377,8 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'pdf',
+            'hspace': 0.2,
+            'wspace': 0.2,
             'inputs': {
                 'mins_s': {'bus': 'b4/credit_min', 'shape': (1, numloop)},
                 'maxs_s': {'bus': 'b4/credit_max', 'shape': (1, numloop)},
@@ -389,14 +391,14 @@ graph = OrderedDict([
                     'input': ['mins_s', 'maxs_s', 'mus_s'],
                     'plot': partial(
                         timeseries,
-                        ylim = (-10, 1010),
+                        ylim = (-30, 1030),
                         yscale = 'linear',
                         linestyle = 'none',
                         marker = 'o')},
                     {'input': ['mins_s', 'maxs_s', 'mus_s'], 'plot': partial(
                         histogram,
                         title = 'mean/min budget hist',
-                        ylim = (-10, 1010),
+                        ylim = (-30, 1030),
                         yscale = 'linear',
                         orientation = 'horizontal')}
                 ],
