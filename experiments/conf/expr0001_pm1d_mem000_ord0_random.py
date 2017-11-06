@@ -190,22 +190,22 @@ graph = OrderedDict([
                     {
                         'input': ['pre_l0', 's_p', 'pre_l1'],
                         'plot': [
-                            partial(timeseries, linewidth = 1.0, alpha = 0.3),
-                            partial(timeseries, alpha = 0.3),
-                            partial(timeseries, linewidth = 2.0, xticks = False)]},
+                            partial(timeseries, linewidth = 1.0, alpha = 1.0),
+                            partial(timeseries, alpha = 1.0),
+                            partial(timeseries, linewidth = 2.0, alpha = 1.0, xticks = False)]},
                     {
                         'input': ['pre_l0', 's_p', 'pre_l1'],
                         'plot': [partial(
-                            histogram, orientation = 'horizontal', histtype = 'step',
-                            yticks = False, xticks = False) for _ in range(3)],
+                            histogram, orientation = 'horizontal', histtype = 'stepfilled',
+                            yticks = False, xticks = False, alpha = 1.0) for _ in range(3)],
                         # 'mode': 'stack'
                     },
                 ],
                 [
-                    {'input': 'credit_l1', 'plot': partial(timeseries, ylim = (0, 1000))},
+                    {'input': 'credit_l1', 'plot': partial(timeseries, ylim = (0, 1000), alpha = 1.0)},
                     {'input': 'credit_l1', 'plot': partial(
-                        histogram, orientation = 'horizontal', histtype = 'step',
-                        yticks = False, ylim = (0, 1000))},
+                        histogram, orientation = 'horizontal', histtype = 'stepfilled',
+                        yticks = False, ylim = (0, 1000), alpha = 1.0)},
                 ]
             ],
         },

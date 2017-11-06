@@ -574,20 +574,15 @@ class decStep():
         # if (xself.cnt % xself.blocksize) in xself.blockphase: # or (xself.cnt % xself.rate) == 0:
         # if count aligns with block's execution blocksize
         if self.block_is_scheduled(xself):
-            cache_top = xself.top.docache
-
-            # if cache_top:
-            #     cache_block = (hasattr(xself, 'isprimitive') and xself.isprimitive) or isinstance(self, SeqLoopBlock2)
-            #     cache_inst = xself.cache is not None and xself.cache.shape[0] != 0
-            
-            if cache_top and xself.cache_loaded: # cache_block and cache_inst:
+            # are we caching?
+            if xself.top.docache and xself.cache is not None and xself.cache_loaded: # cache_block and cache_inst:
                 # pass
                 shapes = []
                 for outk, outv in xself.outputs.items():
                     setattr(xself, outk, xself.cache_data[outk][xself.cnt-xself.blocksize:xself.cnt,...].T)
-                    # if xself.cnt % 100 == 0:
-                    #     # print xself.cache_data[outk].shape,
-                    #     # print "%s-%s" % (xself.cname, xself.id), "outk", outk, getattr(xself, outk).T
+                    if xself.cnt < 10:
+                        print "%s-%s[%d]" % (xself.cname, xself.id, xself.cnt), "outk", outk, getattr(xself, outk).T
+                        # print "    ", xself.cache_data[outk].shape
                     shapes.append(xself.cache_data[outk].shape)
                     # print "outk", outk, xself.cache_data[outk] # [xself.cnt-xself.blocksize:xself.cnt]
                 if xself.cnt % 100 == 0:
@@ -1643,7 +1638,7 @@ class Block2(object):
         # first step all
         # for i in range(self.nxgraph.number_of_nodes()):
         # print "%s-%s[%d] step before cache" % (self.cname, self.id, self.cnt, )
-        if not self.topblock and self.cache_loaded: # hasattr(self, 'cache') and self.cache is not None and len(self.outputs) > 0:
+        if not self.topblock and self.top.docache and self.cache_loaded: # hasattr(self, 'cache') and self.cache is not None and len(self.outputs) > 0:
             self.step_cache()
         else:
             self.step_compute()

@@ -236,10 +236,14 @@ Arguments:
     # get last index
     cloc = log_lognodes_idx[tbl_name]
 
+    # 20171106 first data point compute vs. log
+    # start count mangling
     if cloc == 0 and blocksize == 1:
-        cloc = 1
-        log_lognodes_idx[tbl_name] = 1
+        cloc_ = 1
+        # log_lognodes_idx[tbl_name] = 1
         # bsinc = blocksize - 1
+    else:
+        cloc_ = cloc
         
     # if cloc == 0:
     #     cloc += 1
@@ -252,14 +256,14 @@ Arguments:
     sl1 = cloc
     sl2 = cloc + blocksize
     # sl2 -= sl2 % blocksize
-        
+
     # else:
     # print "cloc", cloc
     # print "log_lognodes[tbl_name].loc[cloc].shape = %s, data.shape = %s" % (log_lognodes[tbl_name].loc[cloc].shape, data.shape)
     # using flatten to remove last axis, FIXME for block based logging
     # print "logging.log_pd: data.shape", data.shape, cloc, cloc + blocksize - 1, "bs", blocksize
     # print log_logarray[tbl_name][:,[-1]].shape, data.shape
-    
+
     # log_logarray[tbl_name][:,[-1]] = data
     # np.roll(log_logarray[tbl_name], shift = -1, axis = 1)
 
@@ -267,7 +271,7 @@ Arguments:
     sl = slice(sl1, sl2)
     # print "logging: sl", sl
     # assert len(data.shape) == 2, "data of %s is multidimensional array with shape %s, not fully supported yet" % (tbl_name, data.shape)
-    
+
     # print "%s log_pd sl = %s, data.shape = %s" % (tbl_name, sl, data.shape)
     # if cloc == 1 and blocksize > 1:
     #     log_logarray[tbl_name][:,sl] = data[:,1:].copy()
@@ -275,13 +279,15 @@ Arguments:
     # print "logging: tbl_name", tbl_name, "log_pd data.shape", data.shape, "blocksize", blocksize
     tmplogdata = data.copy().reshape((-1, blocksize))
     # print "tmplogdata.sh", tmplogdata.shape
-    
+
     # assert log_logarray[tbl_name][:,sl].shape == tmplogdata.shape, "logging.log_pd: Block output shape for %s doesn't agree with logging shape %s/%s" % (tbl_name, log_logarray[tbl_name][:,sl].shape, tmplogdata.shape, sl1, sl2)
-    
+
     log_logarray[tbl_name][:,sl] = tmplogdata # to copy or not to copy?
 
     # if logging blocksize aligns with count
-    if cloc % log_blocksize[tbl_name] == 0:
+    # if cloc % log_blocksize[tbl_name] == 0:
+    # 20171106 first data point compute vs. log
+    if cloc_ % log_blocksize[tbl_name] == 0:
         dloc = log_lognodes_blockidx[tbl_name]
         pdsl = slice(dloc, dloc + log_blocksize[tbl_name] - 1)
         sl = slice(dloc, dloc + log_blocksize[tbl_name])

@@ -31,7 +31,7 @@ from smp_graphs.utils_conf import get_systemblock_pm
 from smp_graphs.utils_conf import get_systemblock_sa
 
 lconf = {
-    'numloop': 100,
+    'numloop': 10,
     'dim': 1,
     }
     

@@ -466,7 +466,7 @@ class Experiment(object):
         # final writes: log store, experiment/block store?, graphics, models
         # self.topblock.bus.plot(fig_nxgr.axes[3])
 
-        if not self.cache_loaded:
+        if self.conf['params']['docache'] and not self.cache_loaded:
             print "experiment cache: storing final top level nxgraph", self.topblock.nxgraph
             # filename = "data/%s_%s.yaml" % (self.topblock.id, 'nxgraph',)
             # nx.write_yaml(self.topblock.nxgraph, filename)

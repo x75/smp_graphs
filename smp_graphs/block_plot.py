@@ -52,7 +52,7 @@ rcParams['axes.facecolor'] = 'none'
 # rcParams['axes.labelpad'] = 4.0
 rcParams['axes.labelsize'] = 7.0
 rcParams['axes.labelweight'] = 'normal'
-rcParams['legend.fontsize'] = 8.0
+rcParams['legend.fontsize'] = 9.0
 rcParams['legend.labelspacing'] = 0.5
 rcParams['xtick.labelsize'] = 6.0
 rcParams['ytick.labelsize'] = 6.0
@@ -534,7 +534,8 @@ class PlotBlock2(FigPlotBlock2):
                 num_cgroup_color = 5
                 num_cgroup_dist = 255/num_cgroups
                 # cmap_str = 'cyclic_mrybm_35_75_c68'
-                cmap_str = 'colorwheel'
+                # cmap_str = 'colorwheel'
+                cmap_str = 'rainbow'
                 
                 # axis handle shortcut
                 ax = self.fig.axes[idx]
