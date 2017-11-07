@@ -241,6 +241,8 @@ class Experiment(object):
         self.conf['params']['md5'] = xid
         self.conf['params']['docache'] = self.params['docache'] and self.cache is not None and self.cache.shape[0]
         print "experiment %s docache with %s" % (self.conf['params']['md5'], self.conf['params']['docache'], )
+
+        # FIXME: check / create logging dir in data/experiment-id-and-hash
         
         # instantiate topblock
         self.topblock = Block2(conf = self.conf, conf_localvars = self.conf_localvars)
