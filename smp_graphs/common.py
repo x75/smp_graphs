@@ -1,6 +1,6 @@
 
 import traceback
-import sys, pickle, re, ast
+import os, sys, pickle, re, ast
 
 from collections import OrderedDict
 
@@ -595,3 +595,41 @@ def md5(obj):
     #     obj = str(obj)
     m = hashlib.md5(obj)
     return m
+
+def create_datadir(datadir = None):
+    assert datadir is not None, "create_datadir needs a datadir argument"
+    try:
+        os.mkdir(datadir)
+    except OSError, e:
+        print "Couldn't create datadir = %s with error %s" % (datadir, e)
+        return False
+    
+    return True
+
+def check_datadir(conf = {}):
+    """check if path 'datadir' exists and create it if it doesn't
+
+    Arguments:
+     - conf(dict): smp_graphs configuration dict containing the variables
+      - datadir(str):  path top level datadir
+      - datadir_expr(str):  path to experiment's datasubdir
+      - datafile_expr(str):  filename base for experiment's files
+
+    Returns:
+     - status(bool): True if ok, False on error
+    """
+    for k in ['datadir', 'datadir_expr', 'datafile_expr']:
+        assert conf.has_key(k), "check_datadir expects key %s in its 'conf' argument, conf.keys = %s" % (k, conf.keys(), )
+
+    r = True
+    
+    if r and not os.path.exists(conf['datadir']):
+        r = create_datadir(conf['datadir'])
+
+    print "r datadir", r
+    if r and not os.path.exists(conf['datadir_expr']):
+        r = create_datadir(conf['datadir_expr'])
+
+    print "r datadir_expr", r
+
+    return r

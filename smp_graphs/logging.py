@@ -30,9 +30,10 @@ def log_tb_init(config):
     # global handles
     global h5file, loginit, lognodes
     # experiment signature
-    experiment = "%s" % (config["id"])
+    # experiment = "%s" % (config["id"])
     # filename
-    tblfile = "data/%s.h5" % (experiment)
+    tblfile = '%s_log_tb.h5' % (config['params']['datafile_expr'], )
+    # tblfile = "data/%s.h5" % (experiment)
     # h5 file
     h5file  = tb.open_file(tblfile, mode = "w", title = "%s" % (experiment))
     root = h5file.root
@@ -112,8 +113,10 @@ def log_pd_init(config):
         - config: the global configuration dictionary
     """
     global log_store
-    experiment = "%s" % (config['params']['id'])
-    log_store = pd.HDFStore("data/%s_pd.h5" % (experiment))
+    log_store_filename = '%s_log_pd.h5' % (config['params']['datafile_expr'], )
+    log_store = pd.HDFStore(log_store_filename)
+    # experiment = "%s" % (config['params']['id'])
+    # log_store = pd.HDFStore("data/%s_pd.h5" % (experiment))
     # print "logging.log_pd_init log_store.root = %s" % (log_store.root)
 
 def log_pd_store_config_initial(conf):

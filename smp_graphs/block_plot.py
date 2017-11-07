@@ -251,7 +251,8 @@ class FigPlotBlock2(BaseplotBlock2):
         subplotstr = "_".join(np.array([["r%d_c%d_%s" % (r, c, "_".join(subplot_input_fix(sbc['input'])),) for c,sbc in enumerate(sbr)] for r, sbr in enumerate(plotinst.subplots)]).flatten())
         # filename = "data/%s_%s_%s_%s.%s" % (plotinst.top.id, plotinst.id, "_".join(plotinst.inputs.keys()), subplotstr, plotinst.savetype)
         # filename = "data/%s_%s_%s.%s" % (plotinst.top.id, plotinst.id, "_".join(plotinst.inputs.keys()), plotinst.savetype)
-        filename = "data/%s_%s.%s" % (plotinst.top.id, plotinst.id, plotinst.savetype)
+        # filename = "data/%s_%s.%s" % (plotinst.top.id, plotinst.id, plotinst.savetype)
+        filename = '%s_%s.%s' % (plotinst.top.datafile_expr, plotinst.id, plotinst.savetype)
         # print "%s.save filename = %s, subplotstr = %s" % (plotinst.cname, filename, subplotstr)
         # plotinst.fig.set_size_inches((min(plotinst.fig_cols * 2 * 2.5, 20), min(plotinst.fig_rows * 1.2 * 2.5, 12)))
         if not hasattr(plotinst, 'savesize'):

@@ -1754,7 +1754,8 @@ class Block2(object):
         finalconf = self.get_config()
         # print "Block2.dump_final_config", type(finalconf), finalconf
         # pickle.dump(finalconf, open("data/%s_conf.pkl" % (self.id, ), "wb"))
-        dump_final_config_file = "data/%s.conf" % (self.id)
+        # dump_final_config_file = "data/%s.conf" % (self.id)
+        dump_final_config_file = "%s_final.conf" % (self.datafile_expr, )
         f = open(dump_final_config_file, "w")
         # confstr = repr(finalconf[1]['params'])
         confstr = print_dict(pdict = finalconf[1]['params']['graph'])

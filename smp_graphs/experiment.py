@@ -27,10 +27,11 @@ from smp_base.plot import set_interactive, makefig
 from smp_graphs.block import Block2
 from smp_graphs.utils import print_dict
 from smp_graphs.common import conf_header, conf_footer, conf_strip_variables
-from smp_graphs.common import md5, get_config_raw
+from smp_graphs.common import md5, get_config_raw, check_datadir
 from smp_graphs.graph import nxgraph_plot, recursive_draw, recursive_hierarchical
 from smp_graphs.graph import nxgraph_flatten, nxgraph_add_edges, nxgraph_get_node_colors
 from smp_graphs.graph import nxgraph_nodes_iter, nxgraph_to_smp_graph
+
 
 ################################################################################
 # utils, TODO: move to utils.py
@@ -42,6 +43,7 @@ def get_args():
     """
     # define defaults
     default_conf     = "conf/default.py"
+    default_datadir = 'data'
     default_numsteps = None
     
     # create parser
@@ -49,6 +51,7 @@ def get_args():
     
     # add commandline arguments
     parser.add_argument("-c", "--conf",       type=str, default=default_conf,     help="Configuration file [%s]" % default_conf)
+    parser.add_argument("-d", "--datadir",    type=str, default=default_datadir,  help="Data directory [%s]" % default_datadir)
     parser.add_argument("-dc", "--do-cache",  dest='docache', action='store_true', help="Enable experiment and block caching mechanisms [False].", default = False)
     parser.add_argument("-nc", "--no-cache",  dest='docache', action='store_false', help="Enable experiment and block caching mechanisms [True].")
     parser.add_argument("-dr", "--do-ros",    dest="ros", action="store_true",    default = None, help = "Do / enable ROS?")
@@ -90,17 +93,20 @@ def set_config_commandline_args(conf, args):
             conf['params'][clarg] = getattr(args, clarg)
     return conf
 
-def make_expr_id_configfile(name = "experiment", configfile = "conf/default2.py"):
+def make_expr_id_configfile(name = "experiment", configfile = "conf/default2.py", timestamp = True):
     """Experiment.py.make_expr_id_configfile
 
     Make experiment signature from name and timestamp
     """
     # split configuration path
     confs = configfile.split("/")
-    # get last element config filename
+    # get last element config filename, split at '.' to remove '.py'
     confs = confs[-1].split(".")[0]
     # format and return
-    return "%s_%s_%s" % (name, confs, make_expr_sig())
+    if timestamp:
+        return "%s_%s_%s" % (name, confs, make_expr_sig())
+    else:
+        return "%s_%s" % (name, confs)
 
 def make_expr_id(name = "experiment"):
     """Experiment.py.make_expr_id
@@ -110,11 +116,16 @@ def make_expr_id(name = "experiment"):
     pass
 
 def make_expr_sig(args =  None):
+    return make_timestamp_Ymd_HMS(args = args)
+
+def make_timestamp_Ymd_HMS(args =  None, timestamp_format = None):
     """Experiment.py.make_expr_sig
 
-    Return formatted timestamp
+    Return Ymd_HMS-formatted timestamp
     """
-    return time.strftime("%Y%m%d_%H%M%S")
+    if timestamp_format is None:
+        timestamp_format = "%Y%m%d_%H%M%S"
+    return time.strftime(timestamp_format)
 
 def make_expr_md5(obj):
     return md5(str(obj))
@@ -189,7 +200,7 @@ class Experiment(object):
         # get global func pointer
         global make_expr_id
         # point at other func, global make_expr_id is used in common (FIXME please)
-        make_expr_id = partial(make_expr_id_configfile, name = 'smp', configfile = args.conf)
+        make_expr_id = partial(make_expr_id_configfile, name = 'smp', configfile = args.conf, timestamp = False)
 
         # set random seed _before_ compiling conf
         set_random_seed(args)
@@ -219,6 +230,8 @@ class Experiment(object):
             #     print "        self.%s = %s\n" % (k, print_dict(selfattr))
             # else:
             #     print "        self.%s = %s\n" % (k, selfattr)
+
+        self.args = args
         """
 
         Hash functions
@@ -238,11 +251,27 @@ class Experiment(object):
         xid = self.update_experiments_store(xid = m.hexdigest())
             
         # store md5 in params _after_ we computed the md5 hash
+        # set the experiment's id
+        # self.conf['params']['id'] = make_expr_id() + "-" + xid
+        self.conf['params']['id'] = make_expr_id()
+        self.conf['params']['timestamp'] = make_timestamp_Ymd_HMS()
         self.conf['params']['md5'] = xid
+        self.conf['params']['datadir'] = self.args.datadir
+        self.conf['params']['datadir_expr'] = '%s/%s' % (
+            self.args.datadir,
+            self.conf['params']['id'])
+        self.conf['params']['datafile_expr'] = '%s/%s_%s_%s' % (
+            self.conf['params']['datadir_expr'],
+            self.conf['params']['id'],
+            self.conf['params']['md5'],
+            self.conf['params']['timestamp'])
         self.conf['params']['docache'] = self.params['docache'] and self.cache is not None and self.cache.shape[0]
         print "experiment %s docache with %s" % (self.conf['params']['md5'], self.conf['params']['docache'], )
 
         # FIXME: check / create logging dir in data/experiment-id-and-hash
+        if not check_datadir(conf = self.conf['params']):
+            print "Fail creating directories"
+            sys.exit(1)
         
         # instantiate topblock
         self.topblock = Block2(conf = self.conf, conf_localvars = self.conf_localvars)
@@ -277,14 +306,11 @@ class Experiment(object):
             m = make_expr_md5(self.conf_)
             xid = m.hexdigest()
 
-        # set the experiment's id
-        self.conf['params']['id'] = make_expr_id() + "-" + xid
-
         # check no-cache argument
         if not self.params['docache']: return xid
         
         # prepare experiment database
-        self.experiments_store = 'data/experiments_store.h5'
+        self.experiments_store = '%s/experiments_store.h5' % (self.args.datadir, )
         columns = ['md5', 'timestamp', 'topblock', 'params', 'topblock_nxgraph', 'topblock_bus']
         values = [[xid, pd.to_datetime(datetime.datetime.now()), str(self.conf['block']), str(self.conf['params']), '', '']]
         # print "%s.update_experiments_store values = %s" % (self.__class__.__name__, values)
@@ -411,7 +437,7 @@ class Experiment(object):
             savetype = 'pdf'
             # save the plot if saveplot is set
             if self.params['saveplot']:
-                filename = "data/%s_%s_%d.%s" % (self.topblock.id, 'graph_bus', fi, savetype)
+                filename = "%s/%s_%s_%d.%s" % (self.conf['params']['datadir_expr'], self.topblock.id, 'graph_bus', fi, savetype)
                 try:
                     print "Saving experiment graph plot to %s" % (filename, )
                     fig_.savefig(filename, dpi=300, bbox_inches="tight")
@@ -500,6 +526,8 @@ class Experiment(object):
         if self.conf['params']['showplot']:
             set_interactive(False)
             plt.show()
+
+        # close files
 
 import networkx as nx
 import re
