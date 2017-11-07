@@ -261,7 +261,7 @@ class Experiment(object):
             self.args.datadir,
             self.conf['params']['id'])
         self.conf['params']['datafile_md5'] = '%s/%s_%s' % (
-            self.args.datadir,
+            self.conf['params']['datadir_expr'],
             self.conf['params']['id'],
             self.conf['params']['md5'],
         )

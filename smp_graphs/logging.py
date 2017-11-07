@@ -241,8 +241,8 @@ Arguments:
 
     # 20171106 first data point compute vs. log
     # start count mangling
-    if cloc == 0 and blocksize == 1:
-        cloc_ = 1
+    if cloc == 0 and blocksize == 1: # we will see cloc == 1 only with blocksize 1 anyway?
+        cloc_ = 0
         # log_lognodes_idx[tbl_name] = 1
         # bsinc = blocksize - 1
     else:
@@ -290,7 +290,7 @@ Arguments:
     # if logging blocksize aligns with count
     # if cloc % log_blocksize[tbl_name] == 0:
     # 20171106 first data point compute vs. log
-    if cloc_ % log_blocksize[tbl_name] == 0:
+    if (cloc + 1) % log_blocksize[tbl_name] == 0:
         dloc = log_lognodes_blockidx[tbl_name]
         pdsl = slice(dloc, dloc + log_blocksize[tbl_name] - 1)
         sl = slice(dloc, dloc + log_blocksize[tbl_name])
