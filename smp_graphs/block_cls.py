@@ -51,7 +51,8 @@ class PointmassBlock2(SysBlock2):
         # print "dims", self.system.x # .keys()
         for k,v in self.system.dims.items():
             # print "adding output", k, self.system.x[k].shape
-            conf['params']['outputs'][k] = {'shape': self.system.x[k].shape}
+            # conf['params']['outputs'][k] = {'shape': self.system.x[k].shape}
+            conf['params']['outputs'][k] = {'shape': (self.system.x[k].shape[0], conf['params']['blocksize'])}
             # setattr(self, k, self.x[k])
             
         SysBlock2.__init__(self, conf = conf, paren = paren, top = top)
@@ -92,9 +93,9 @@ class PointmassBlock2(SysBlock2):
 
             # print "block_cls u", self.u
             
-            self.x = self.system.step(self.u * self.mode)
+            self.x_ = self.system.step(self.u * self.mode)
             # print "self.x", self.x
-            self.__dict__.update(self.x)
+            # self.__dict__.update(self.x)
             # print "PointmassBlock2-%s.step[%d] self.u = %s, self.x = %s" % (self.id, self.cnt, self.u, self.x)
             # real output variables defined by config
             # for k in ['s_proprio', 's_extero', 's_all']:
@@ -102,10 +103,12 @@ class PointmassBlock2(SysBlock2):
                 # print "k", k, getattr(self, k)
                 # print "%s.step[%d]: x = %s/%s" % (self.cname, self.cnt, self.x, self.system.x)
                 k_ = getattr(self, k)
-                if self.x.has_key(k):
-                    k_[:,[i]] = self.x[k]
+                # print "k", k, "self.k", k_.shape
+                if self.x_.has_key(k):
+                    #   print "i", i, "k", k, "self.x", self.x_[k].shape, "k_", k_.shape
+                    k_[...,[i]] = self.x_[k]
                 elif v.has_key('remap'):
-                    k_[:,[i]] = self.x[v['remap']]
+                    k_[...,[i]] = self.x_[v['remap']]
                 # setattr(self, k, self.x[k])
                 
 class SimplearmBlock2(SysBlock2):

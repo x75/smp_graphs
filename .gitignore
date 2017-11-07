@@ -10,4 +10,4 @@ experiments/data*/*.jpg
 experiments/data*/*.npz
 experiments/data*/*.wav
 experiments/data*/*.h5
-experiments/data*/smp_expr0*
+experiments/data*/smp_expr[0-9]*

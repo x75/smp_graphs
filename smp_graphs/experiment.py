@@ -531,8 +531,7 @@ class Experiment(object):
             # self.experiments.to_hdf(self.experiments_store, key = 'experiments')
             # G = self.topblock.nxgraph
             # Gbus = self.topblock.bus
-        # else:
-        if True:
+
             from smp_graphs.block import Bus
             # G = self.cache['topblock_nxgraph']
             # Gbus = self.cache['topblock_bus']
@@ -543,6 +542,9 @@ class Experiment(object):
             print "Gbus", Gbus
             # G = self.topblock.nxgraph # nx.read_yaml(self.cache['topblock_nxgraph'])
             # Gbus = self.topblock.bus
+        else:
+            G, G_number_of_nodes_total = recursive_hierarchical(self.topblock.nxgraph)
+            Gbus = self.topblock.bus
 
         self.printgraph(G = G)
         

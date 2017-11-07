@@ -12,6 +12,7 @@ lconf = {
     'lag': 2,
     'budget': 1000,
     'lim': 1.0,
+    'order': 0,
 }
     
 dim = lconf['dim']
@@ -201,7 +202,7 @@ graph = OrderedDict([
                                 'meshgrid_d1', 's_proprio0'],
                             'ndslice': [
                                 (slice(None), slice(None), slice(None)),
-                                (slice(None), slice(None), slice(None)),],
+                                (slice(None), slice(None)),],
                             'shape': [
                                 (dim_s_proprio * 3, sweepsys_input_flat),
                                 (dim_s_proprio * 1, sweepsys_input_flat),],

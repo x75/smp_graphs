@@ -77,6 +77,7 @@ class AnalysisBlock2(PrimBlock2):
         'saveplot': False,
         'savetype': 'jpg',
         'block_group': 'measure',
+        'desc': 'Some kind of analysis'
         }
     def __init__(self, conf = {}, paren = None, top = None):
         # use inputs from logfile even in no-cached epxeriment
@@ -492,7 +493,9 @@ class PlotBlock2(FigPlotBlock2):
                     if subplotconf.has_key('ndslice'):
                         # plotdata[ink_] = myt(self.inputs[ink_]['val'])[-1,subplotconf['ndslice'][0],subplotconf['ndslice'][1],:] # .reshape((21, -1))
                         # slice the data to spec, custom transpose from h to v time
-                        plotdata[ink_] = myt(self.inputs[ink]['val'])[subplotconf['ndslice'][k]]
+                        ndslice = subplotconf['ndslice'][k]
+                        print "k", k, "ink", ink, "ndslice", ndslice
+                        plotdata[ink_] = myt(self.inputs[ink]['val'])[ndslice]
                         # print "      ndslice %s: %s, numslice = %d" % (ink, subplotconf['ndslice'][k], len(subplotconf['ndslice']))
                     else:
                         plotdata[ink_] = myt(self.inputs[ink]['val'])[xslice] # .reshape((xslice.stop - xslice.start, -1))
