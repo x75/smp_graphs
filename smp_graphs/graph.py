@@ -16,7 +16,7 @@ from numpy import array
 from matplotlib import colors
 
 from smp_graphs.utils import print_dict
-from smp_graphs.common import loop_delim, dict_replace_idstr_recursive
+from smp_graphs.common import loop_delim, dict_replace_idstr_recursive, conf_strip_variables
 
 # colors
 colors_ = list(six.iteritems(colors.cnames))
@@ -25,6 +25,30 @@ from smp_base.plot import plot_colors
 
 # colors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)
 # colors = dict(mcolors.BASE_COLORS)
+
+def nxgraph_nodes_iter_recursive(G, filt = None, data = False, level = 0, iterfunc = None):
+    if iterfunc is None:
+        def iterfunc(node, data, level):
+            print "node = %s, data = %s, level = %d" % (node, data, level)
+            return level
+
+    r = []
+            
+    for n in G.nodes(data = data):
+        if type(n) is tuple:
+            d = n[1]
+            n = n[0]
+        else:
+            d = None
+
+        node = G.node[n]
+        r_ = iterfunc(node, d, level)
+        r.append(r_)
+
+        if hasattr(node['block_'], 'nxgraph'):
+            r += nxgraph_nodes_iter_recursive(node['block_'].nxgraph, filt = filt, data = data, level = level + 1, iterfunc = iterfunc)
+
+    return r
 
 def nxgraph_nodes_iter(G, filt = None, data = False):
     if filter is None:
@@ -588,8 +612,15 @@ def recursive_hierarchical(G, lvlx = 0, lvly = 0):
         G.node[node]['layout']['y'] = lvly
         # G_.add_node('l%d_%s_%s' % (lvl, node, G.node[node]['block_'].id), G.node[node])
         nodeid_ = 'l%d_%s' % (lvlx, G.node[node]['block_'].id)
-        # print "node", nodeid_ # G.node[node]['block_'].id # .keys()
+        # print "node", nodeid_, G.node[node] # ['block_'].id # .keys()
+
+        # add the node
+        # if strip:
+        #     node_ = nxgraph_node_strip(G.node[node])
+        #     G_.add_node(nodeid_, **node_)
+        # else:
         G_.add_node(nodeid_, **G.node[node])
+        
         # descend into subgraph
         if hasattr(G.node[node]['block_'], 'nxgraph'):
             # print "node.nxgraph:", G.node[node]['block_'].nxgraph
@@ -617,6 +648,50 @@ def recursive_hierarchical(G, lvlx = 0, lvly = 0):
         # nxgraph_plot2(G_)
     return G_, G_.number_of_nodes()
 
+class Dummy(object):
+    def __init__(self):
+        pass
+
+def nxgraph_strip(G):
+    """for serialization strip graph G of memory blobs
+
+    Arguments:
+     - G(nx.Graph): flattended hierarchical nxgraph
+
+    Returns:
+     - G_(nx.Graph): same as G but with all memory objects removed or stringified
+    """
+
+    G_ = type(G)()
+    
+    for n in G.nodes(data = False):
+        print "n", n
+        # node_ = type(G.node[n])()
+        node_ = conf_strip_variables(G.node[n], omits = [])
+        # print "node_", node_
+        if node_.has_key('block_'):
+            # block_ = node_['block_']
+            o_ = Dummy()
+            # if hasattr(block_, 'nxgraph'):
+            #     setattr(o_, 'nxgraph', 1)
+            for block_attr in ['block_color', 'id', 'cname']:
+                setattr(o_, block_attr, getattr(G.node[n]['block_'], block_attr))
+            node_['block_'] = o_
+            # del node_['block_']
+            
+        # G_.add_node(n, **G.node[n])
+        if node_.has_key('params'):
+            G_.add_node(n, **node_)
+        # print "G_.node[n]", G_.node[n]
+        
+    for e_ in G.edges(data = True):
+        print "e", e_
+        e = (e_[0], e_[1])
+        # avoid to reintroduce skipped nodes
+        if len(G_.node[e[0]]) > 0 and len(G_.node[e[1]]) > 0:
+            G_.add_edge(*e, **e_[2])
+        
+    return G_
 
 def nxgraph_get_node_colors(G):
     """nxgraph_get_node_colors
@@ -627,8 +702,10 @@ def nxgraph_get_node_colors(G):
     pcks = plot_colors.keys()
     pcks.sort()
     for i, n in enumerate(G.nodes()):
-        if hasattr(G.node[n]['block_'], 'block_color'):
+        if G.node[n].has_key('block_') and hasattr(G.node[n]['block_'], 'block_color'):
             block_color = G.node[n]['block_'].block_color
+        # elif G.node[n].has_key('layout') and G.node[n]['layout'].has_key('block_color'):
+        #     block_color = G.node[n]['layout']['block_color']
         else:
             # block_color = "k"
             # block_color = random.choice(colors_)[1]
@@ -636,3 +713,56 @@ def nxgraph_get_node_colors(G):
         # print "nxgraph_get_node_colors node", n, "block_color", block_color
         G_cols.append(block_color)
     return G_cols
+
+
+graph_io_funcs = {
+    'gml': {'read': nx.read_gml, 'write': nx.write_gml},
+    'pickle': {'read': nx.read_gpickle, 'write': nx.write_gpickle},
+    # 'json': {'read': nx.read_json, 'write': nx.write_json},
+    'yaml': {'read': nx.read_yaml, 'write': nx.write_yaml},
+}
+        
+def nxgraph_store(conf = None, G = None):
+    """serialization and store an nxgraph
+
+    Arguments:
+     - conf(dict): smp_graphs config dict at params level
+     - G(nx.Graph): an nx.Graph instance to pickle
+
+    Pickling fails because: 
+    """
+    assert conf is not None, \
+      "nxgraph_store bad_argument: needs valid configuration dict 'conf' with 'datadir', 'datadir_expr', and 'datafile_expr' entries"
+    assert G is not None, "nxgraph_store bad_argument: needs a graph G to store"
+    # graph_io = {(k, {'read': graph_io_funcs[k]['read'], 'read': graph_io_funcs[k]['write']}) for i, k in enumerate(graph_io_funcs.keys())}
+    print "nxgraph_store graph_io_funcs = %s" % (graph_io_funcs, )
+    graph_filetype = 'pickle' # 'gml' # , 'json', 'yaml'
+    graph_filename = '%s_%s.%s' % (conf['datafile_md5'], 'nxgraph', graph_filetype)
+
+    def iterfunc(node, data, level):
+        levelspace = " " * 4 * level
+        # print "%snode = %s, data = %s" % (" " * 4 * level, node.keys(), data.keys())
+        print "%snode = %s" % (levelspace, node.keys(), ),
+        print " block_.id = %s, params['id'] = %s" % (node['block_'].id, node['params']['id'])
+        # for k, v in node['block_'].items():
+        #     print "%s    k = %s, v = %s" % (levelspace, k, v)
+        return node['params']['id']
+        
+    # print "nxgraph_nodes_iter_recursive", nxgraph_nodes_iter_recursive(G = G, filt = None, data = True, level = 0, iterfunc = iterfunc)
+
+    G_, G_number_of_nodes_total = recursive_hierarchical(G)
+
+    G_cols_ = nxgraph_get_node_colors(G_)
+
+    for i, n in enumerate(G_.nodes()):
+        G_.node[n]['layout']['block_color'] = G_cols_[i]
+
+    G_stripped = nxgraph_strip(G = G_)
+
+    graph_io_funcs[graph_filetype]['write'](G = G_stripped, path = graph_filename)
+
+def nxgraph_load(conf = None):
+    graph_filetype = 'pickle' # 'gml' # , 'json', 'yaml'
+    graph_filename = '%s_%s.%s' % (conf['datafile_md5'], 'nxgraph', graph_filetype)
+
+    return graph_io_funcs[graph_filetype]['read'](graph_filename)

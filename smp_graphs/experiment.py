@@ -31,7 +31,7 @@ from smp_graphs.common import md5, get_config_raw, check_datadir
 from smp_graphs.graph import nxgraph_plot, recursive_draw, recursive_hierarchical
 from smp_graphs.graph import nxgraph_flatten, nxgraph_add_edges, nxgraph_get_node_colors
 from smp_graphs.graph import nxgraph_nodes_iter, nxgraph_to_smp_graph
-
+from smp_graphs.graph import nxgraph_load, nxgraph_store
 
 ################################################################################
 # utils, TODO: move to utils.py
@@ -260,6 +260,11 @@ class Experiment(object):
         self.conf['params']['datadir_expr'] = '%s/%s' % (
             self.args.datadir,
             self.conf['params']['id'])
+        self.conf['params']['datafile_md5'] = '%s/%s_%s' % (
+            self.args.datadir,
+            self.conf['params']['id'],
+            self.conf['params']['md5'],
+        )
         self.conf['params']['datafile_expr'] = '%s/%s_%s_%s' % (
             self.conf['params']['datadir_expr'],
             self.conf['params']['id'],
@@ -359,7 +364,7 @@ class Experiment(object):
         # return the hash
         return xid
         
-    def plotgraph(self, G = None, Gbus = None):
+    def plotgraph(self, G = None, Gbus = None, G_cols = None):
         """Experiment.plotgraph
 
         Show a visualization of the initialized top graph defining the
@@ -388,12 +393,17 @@ class Experiment(object):
         # # plot the flattened graph
         # nxgraph_plot(G, ax = fig_nxgr.axes[0], layout_type = "spring", node_size = 300)
 
-        if G is None:
-            G = self.topblock.nxgraph
+        assert G is not None
+        # if G is None:
+        #     G = self.topblock.nxgraph
             
-        G_, G_number_of_nodes_total = recursive_hierarchical(G)
+        # G_, G_number_of_nodes_total = recursive_hierarchical(G)
+        G_ = G
+        G_number_of_nodes_total = G_.number_of_nodes()
 
-        G_cols = nxgraph_get_node_colors(G_)
+        if G_cols is None:
+            G_cols = nxgraph_get_node_colors(G_)
+            
         # print "G_cols", G_cols
         nxgraph_plot(G_, ax = fig_nxgr.axes[axi], layout_type = "linear_hierarchical", node_color = G_cols, node_size = 300)
         # fig_nxgr.axes[axi].set_aspect(1)
@@ -407,59 +417,67 @@ class Experiment(object):
         #     currentscalefactor = 1.0,
         #     shrink = 0.8)
 
-        # plot the bus with its builtin plot method
-        fig_bus = makefig(
-            rows = 1, cols = 1, wspace = 0.1, hspace = 0.1,
-            axesspec = axesspec, title = "%s"  % (self.topblock.id.split('-')[0], ))
-        
-        if Gbus is None:
-            Gbus = self.topblock.bus
+        assert Gbus is not None
+        # if Gbus is None:
+        #     Gbus = self.topblock.bus
 
         if len(Gbus) > 40:
             print "Gbus\n%s" % (Gbus, )
-            return
-            
-        axi = 0
-        (xmax, ymax) = Gbus.plot(fig_bus.axes[axi])
-        print "experiment plotting bus xmax = %s, ymax = %s"  % (xmax, ymax)
-        # fig_bus.axes[axi].set_aspect(1)
-        fig_bus.set_size_inches((5, ymax / 25.0))
-        axi += 1
+            #     return
+        else:
+            # plot the bus with its builtin plot method
+            fig_bus = makefig(
+                rows = 1, cols = 1, wspace = 0.1, hspace = 0.1,
+                axesspec = axesspec, title = "%s"  % (self.topblock.id.split('-')[0], ))
 
-        for fi, fig_ in enumerate([fig_nxgr, fig_bus]): # 
-            # for ax in fig_.axes:
-            #     xlim = ax.get_xlim()
-            #     ylim = ax.get_ylim()
-            #     print "fig", fig_, "ax xlim", xlim, "ylim", ylim
-            #     width = (xlim[1] - xlim[0])/1.0
-            #     height = (ylim[1] - ylim[0])/1.0
-            #     fig_.set_size_inches((width, height))
-            savetype = 'pdf'
-            # save the plot if saveplot is set
-            if self.params['saveplot']:
-                filename = "%s/%s_%s_%d.%s" % (self.conf['params']['datadir_expr'], self.topblock.id, 'graph_bus', fi, savetype)
-                try:
-                    print "Saving experiment graph plot to %s" % (filename, )
-                    fig_.savefig(filename, dpi=300, bbox_inches="tight")
-                except Exception, e:
-                    print "Saving experiment graph plot to %s failed with %s" % (filename, e,)
+            
+            axi = 0
+            (xmax, ymax) = Gbus.plot(fig_bus.axes[axi])
+            print "experiment plotting bus xmax = %s, ymax = %s"  % (xmax, ymax)
+            # fig_bus.axes[axi].set_aspect(1)
+            fig_bus.set_size_inches((5, ymax / 25.0))
+            axi += 1
+
+            for fi, fig_ in enumerate([fig_nxgr, fig_bus]): # 
+                # for ax in fig_.axes:
+                #     xlim = ax.get_xlim()
+                #     ylim = ax.get_ylim()
+                #     print "fig", fig_, "ax xlim", xlim, "ylim", ylim
+                #     width = (xlim[1] - xlim[0])/1.0
+                #     height = (ylim[1] - ylim[0])/1.0
+                #     fig_.set_size_inches((width, height))
+                savetype = 'pdf'
+                # save the plot if saveplot is set
+                if self.params['saveplot']:
+                    filename = "%s/%s_%s_%d.%s" % (self.conf['params']['datadir_expr'], self.topblock.id, 'graph_bus', fi, savetype)
+                    try:
+                        print "Saving experiment graph plot to %s" % (filename, )
+                        fig_.savefig(filename, dpi=300, bbox_inches="tight")
+                    except Exception, e:
+                        print "Saving experiment graph plot to %s failed with %s" % (filename, e,)
 
     def printgraph_recursive(self, G, lvl = 0):
         indent = " " * 4 * lvl
         # iterate enabled nodes
         for node in nxgraph_nodes_iter(G, 'enable'):
-            print "%snode = %s" % (indent, G.node[node]['block_'].id, )
-            if hasattr(G.node[node]['block_'], 'nxgraph'):
-                G_ = G.node[node]['block_'].nxgraph
-                lvl += 1
-                print "%sG%d.name = %s" % (indent, lvl, G_.name)
-                print "%s  .nodes = %s" % (indent, ", ".join([G_.node[n]['params']['id'] for n in G_.nodes()]))
-                self.printgraph_recursive(G = G_, lvl = lvl)
-                
+            if G.node[node].has_key('block_'):
+                # nodedata_key = 'block_'
+                print "%snode = %s" % (indent, G.node[node]['block_'].id, )
+                if hasattr(G.node[node]['block_'], 'nxgraph'):
+                    G_ = G.node[node]['block_'].nxgraph
+                    lvl += 1
+                    print "%sG%d.name = %s" % (indent, lvl, G_.name)
+                    print "%s  .nodes = %s" % (indent, ", ".join([G_.node[n]['params']['id'] for n in G_.nodes()]))
+                    self.printgraph_recursive(G = G_, lvl = lvl)
+            else:
+                # nodedata_key = 'params'
+                print "%snode = %s" % (indent, G.node[node]['params']['id'], )
+
     def printgraph(self, G = None):
         print "\nPrinting graph\n",
-        if G is None:
-            G = self.topblock.nxgraph
+        # if G is None:
+        #     G = self.topblock.nxgraph
+        assert G is not None
             
         print "G.name  = %s" % (G.name,)
         # print "G.nodes = %s" % ([(G.node[n]['params']['id'], G.node[n].keys()) for n in G.nodes()])
@@ -494,8 +512,13 @@ class Experiment(object):
         # final writes: log store, experiment/block store?, graphics, models
         # self.topblock.bus.plot(fig_nxgr.axes[3])
 
+        # initial run, no cached data: store the graph
         if self.conf['params']['docache'] and not self.cache_loaded:
             print "experiment cache: storing final top level nxgraph", self.topblock.nxgraph
+            # store the full dynamically expanded state of the toplevel nxgraph
+            nxgraph_store(conf = self.conf['params'], G = self.topblock.nxgraph)
+            self.topblock.bus.store_pickle(conf = self.conf['params'])
+            
             # filename = "data/%s_%s.yaml" % (self.topblock.id, 'nxgraph',)
             # nx.write_yaml(self.topblock.nxgraph, filename)
             # self.cache['topblock_nxgraph'] = filename
@@ -506,15 +529,20 @@ class Experiment(object):
             # self.update_experiments_store(xid = self.conf['params']['md5'])
             # write store
             # self.experiments.to_hdf(self.experiments_store, key = 'experiments')
-            G = self.topblock.nxgraph
-            Gbus = self.topblock.bus
-        else:
+            # G = self.topblock.nxgraph
+            # Gbus = self.topblock.bus
+        # else:
+        if True:
+            from smp_graphs.block import Bus
             # G = self.cache['topblock_nxgraph']
             # Gbus = self.cache['topblock_bus']
-            # print "G", G
-            # print "Gbus", Gbus
-            G = self.topblock.nxgraph # nx.read_yaml(self.cache['topblock_nxgraph'])
-            Gbus = self.topblock.bus
+            print "experiment cache: loading cached top level nxgraph"
+            G = nxgraph_load(conf = self.conf['params'])
+            Gbus = Bus.load_pickle(conf = self.conf['params'])
+            print "G", G, G.number_of_nodes()
+            print "Gbus", Gbus
+            # G = self.topblock.nxgraph # nx.read_yaml(self.cache['topblock_nxgraph'])
+            # Gbus = self.topblock.bus
 
         self.printgraph(G = G)
         

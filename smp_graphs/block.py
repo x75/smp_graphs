@@ -14,8 +14,9 @@ The set of standard blocks includes :class:`FuncBlock2`,
 
 import pdb
 import uuid, sys, time, copy, re
+import itertools, pickle
+
 from collections import OrderedDict, MutableMapping
-import itertools
 from functools import partial, wraps
 
 # import lshash
@@ -134,6 +135,25 @@ class Bus(MutableMapping):
             ret += "k = %s, v.shape = %s, mu = %s, var = %s\n" % (k, v.shape, np.mean(v, axis = -1), np.var(v, axis = -1))
         return ret
 
+    def store_pickle(self, conf = {}):
+        bus_filetype = 'pickle' # 'gml' # , 'json', 'yaml'
+        bus_filename = '%s_%s.%s' % (conf['datafile_md5'], 'bus', bus_filetype)
+        tmp_ = {}
+        for k, v in self.store.items():
+            # print "Bus k = %s, v = %s" % (k, v)
+            tmp_[k] = v.shape
+        pickle.dump(tmp_, open(bus_filename, 'wb'))
+
+    @staticmethod
+    def load_pickle(conf = {}):
+        bus_filetype = 'pickle' # 'gml' # , 'json', 'yaml'
+        bus_filename = '%s_%s.%s' % (conf['datafile_md5'], 'bus', bus_filetype)
+        b = Bus()
+        tmp_ = pickle.load(open(bus_filename, 'rb'))
+        for k, v in tmp_.items():
+            b[k] = np.zeros(v)
+        return b
+        
     def plot(self, ax = None, blockid = None):
         """Bus.plot
 
@@ -276,7 +296,6 @@ def get_blocksize_input(G, buskey):
     (srcid, srcvar) = buskey.split("/") # [-1]
     # print "G.nodes()", G.nodes()
     n = nxgraph_node_by_id(G, srcid)
-
     
     # search graph and all subgraphs, greedy + depth first
     n_ = nxgraph_node_by_id_recursive(G, srcid)

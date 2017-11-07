@@ -520,6 +520,7 @@ def vtransform(v):
     """transform pointer type objects to string repr for useful hashing
     """
     vtype = type(v)
+    # print "vtransform v = %s, vtype = %s" % (v, vtype)
     if vtype is dict or vtype is OrderedDict or vtype is list:
         v_ = conf_strip_variables(v)
     else:
@@ -527,19 +528,26 @@ def vtransform(v):
         # maybe OK for changing the plots?
         # print "vtype", vtype, dir(smp_graphs)
         if vtype is partial: # functools.partial
+            # print "    type partial"
             v_ = 'partial.func.%s' % v.func.func_name
         elif vtype is FunctionType:
             v_ = 'func.%s' % v.func_name
+            # print "    type FunctionType", v, v_
         # FIXME: this produces import error when block_models isnt
         # imported in config?
         elif vtype is smp_graphs.block_models.model:
-            # 
             v_ = 'model.%s' % v.modelstr
+            # print "    type model", v, v_
+        elif vtype is type:
+            v_ = str(v)
+            # print "    type type", v, v_
         else:
             v_ = v
+    if "func" in str(vtype):
+        print "    type %s, v = %s, v_ = %s" % (vtype, v, v_)
     return v_
                 
-def conf_strip_variables(conf):
+def conf_strip_variables(conf, omits = ['PlotBlock2']):
     """strip variables with uncontrollable values from a config dict for useful hashing
     """
     conftype = type(conf)
@@ -549,12 +557,14 @@ def conf_strip_variables(conf):
     if conftype is dict or conftype is OrderedDict:
         # strip analysis blocks / PlotBlock2 from hashing
         if conf.has_key('block'):
-            if 'PlotBlock2' in str(conf['block']): return conf_
+            for omit in omits:
+                # if 'PlotBlock2' in str(conf['block']): return conf_
+                if omit in str(conf['block']): return conf_
                 
         for k, v in conf.items():
             # print "v", v
             # if k == 'block' and 'PlotBlock2' in v: continue
-            vtype = type(v)
+            # vtype = type(v)
             # print "conf_strip_variables k = %s, v = %s/%s" % (k, vtype, v)
             v_ = vtransform(v)
             conf_[k] = v_
