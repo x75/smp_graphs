@@ -20,7 +20,7 @@ from smp_graphs.utils_conf import get_systemblock
 
 # global parameters can be overwritten from the commandline
 ros = False
-numsteps = 10000/10
+numsteps = 10000/100
 recurrent = True
 debug = False
 showplot = True
@@ -185,27 +185,39 @@ graph = OrderedDict([
                 'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
                 'credit_l1': {'bus': 'budget/credit', 'shape': (1, numsteps)},
                 },
+            'desc': 'Single episode pm1d baseline',
             'subplots': [
                 [
                     {
                         'input': ['pre_l0', 's_p', 'pre_l1'],
                         'plot': [
-                            partial(timeseries, linewidth = 1.0, alpha = 1.0),
-                            partial(timeseries, alpha = 1.0),
-                            partial(timeseries, linewidth = 2.0, alpha = 1.0, xticks = False)]},
+                            partial(timeseries, linewidth = 1.0, alpha = 1.0, xlabel = None),
+                            partial(timeseries, alpha = 1.0, xlabel = None),
+                            partial(timeseries, linewidth = 2.0, alpha = 1.0, xticks = False, xlabel = None)],
+                        'title': 'two-level prediction and measurement (timeseries)',
+                    },
                     {
                         'input': ['pre_l0', 's_p', 'pre_l1'],
                         'plot': [partial(
                             histogram, orientation = 'horizontal', histtype = 'stepfilled',
-                            yticks = False, xticks = False, alpha = 1.0) for _ in range(3)],
+                            yticks = False, xticks = False, alpha = 1.0, normed = False) for _ in range(3)],
+                        'title': 'two-level prediction and measurement (histogram)',
+                        'desc': 'Single episode pm1d baseline \autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
                         # 'mode': 'stack'
                     },
                 ],
                 [
-                    {'input': 'credit_l1', 'plot': partial(timeseries, ylim = (0, 1000), alpha = 1.0)},
+                    {'input': 'credit_l1', 'plot': partial(timeseries, ylim = (0, 1000), alpha = 1.0),
+                         'title': 'agent budget (timeseries)',
+                        'desc': 'Single episode pm1d baseline \autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
+                    },
                     {'input': 'credit_l1', 'plot': partial(
                         histogram, orientation = 'horizontal', histtype = 'stepfilled',
-                        yticks = False, ylim = (0, 1000), alpha = 1.0)},
+                        yticks = False, ylim = (0, 1000), alpha = 1.0, normed = False),
+                        'title': 'agent budget (histogram)',
+                        'xlabel': 'count [n]',
+                        'desc': 'Single episode pm1d baseline \autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
+                    },
                 ]
             ],
         },

@@ -39,7 +39,7 @@ from smp_base.plot       import get_colorcycler, kwargs_plot_clean
 #   - modality-timedelay matrix is: different dependency measures xcorr, expansion-xcorr, mi, rp, kldiv, ...
 #   - information decomposition matrix (ica?)
 # 
-rcParams['figure.titlesize'] = 10
+rcParams['figure.titlesize'] = 11
 
 # smp_graphs style
 rcParams['axes.grid'] = False
@@ -50,12 +50,14 @@ rcParams['axes.spines.right'] = False
 rcParams['axes.facecolor'] = 'none'
 # rcParams['axes.labelcolor'] = .15
 # rcParams['axes.labelpad'] = 4.0
-rcParams['axes.labelsize'] = 7.0
+rcParams['axes.titlesize'] = 10.0
+rcParams['axes.labelsize'] = 8.0
 rcParams['axes.labelweight'] = 'normal'
+rcParams['legend.framealpha'] = 0.3
 rcParams['legend.fontsize'] = 9.0
 rcParams['legend.labelspacing'] = 0.5
-rcParams['xtick.labelsize'] = 6.0
-rcParams['ytick.labelsize'] = 6.0
+rcParams['xtick.labelsize'] = 8.0
+rcParams['ytick.labelsize'] = 8.0
 
 # f = open("rcparams.txt", "w")
 # f.write("rcParams = %s" % (rcParams, ))
@@ -95,7 +97,8 @@ class AnalysisBlock2(PrimBlock2):
         # default title?
         if not hasattr(self, 'title'):
             # self.title = "%s - %s-%s" % (self.top.id, self.cname, self.id)
-            self.title = "%s of %s" % (self.cname, self.top.id[:20], )
+            # self.title = "%s of %s" % (self.cname, self.top.id[:20], )
+            self.title = "%s of %s, numsteps = %d" % (self.id, self.top.id, self.top.numsteps,)
         
     def save(self):
         """Save the analysis, redirect to corresponding class method, passing the instance
@@ -268,6 +271,11 @@ class FigPlotBlock2(BaseplotBlock2):
         try:
             print "%s-%s.save saving plot %s to filename = %s" % (plotinst.cname, plotinst.id, plotinst.title, filename)
             plotinst.fig.savefig(filename, dpi=300, bbox_inches="tight")
+            plotinst.top.latex_conf['figures'][plotinst.id] = {
+                'filename': filename,
+                'label': plotinst.top.id,
+                'id': plotinst.id,
+                'desc': plotinst.desc}
             # plotinst.fig.savefig(filename, dpi=300)
         except Exception, e:
             print "%s.save saving failed with %s" % ('FigPlotBlock2', e)
@@ -416,7 +424,8 @@ class PlotBlock2(FigPlotBlock2):
                 # print "%s-%s plotfunc_conf = %s" % (self.cname, self.id, plotfunc_conf)
                 assert type(plotfunc_conf) is list, "plotfunc_conf must be a list, not %s" % (type(plotfunc_conf), )
 
-                title += self.get_title_from_plot_type(plotfunc_conf)
+                if title == '':
+                    title += self.get_title_from_plot_type(plotfunc_conf)
 
                 # loop over inputs
                 for k, ink in enumerate(subplotconf['input']):
@@ -496,8 +505,9 @@ class PlotBlock2(FigPlotBlock2):
                     # fix nans
                     plotdata[ink_][np.isnan(plotdata[ink_])] = -1.0
                     plotvar += "%s, " % (self.inputs[ink]['bus'],)
-                # assign and trim title
-                title += plotvar[:-2]
+                    
+                # # assign and trim title
+                # title += plotvar[:-2]
                     
                 # combine inputs into one backend plot call to automate color cycling etc
                 if subplotconf.has_key('mode'):
@@ -527,6 +537,11 @@ class PlotBlock2(FigPlotBlock2):
 
                 # plot the plotdata
                 # kwargs_ = {} # kwargs_plot_clean(**kwargs)
+                kwargs = {}
+                for k in ['xlabel', 'ylabel']:
+                    if subplotconf.has_key(k):
+                        kwargs[k] = subplotconf[k]
+                        
                 labels = []
                 self.fig.axes[idx].clear()
                 inkc = 0
@@ -550,7 +565,7 @@ class PlotBlock2(FigPlotBlock2):
                 # stacked data?
                 if plotdata.has_key('_stacked'):
                     print "block_plot.py plotting stacked"
-                    plotfunc_conf[0](ax, data = plotdata['_stacked'], ordinate = t, title = title) # , **kwargs)
+                    plotfunc_conf[0](ax, data = plotdata['_stacked'], ordinate = t, title = title, **kwargs)
                 
                 # iterate over plotdata items
                 for ink, inv in plotdata.items():
@@ -570,7 +585,7 @@ class PlotBlock2(FigPlotBlock2):
                     
                     # this is the plot function array from the config
                     if not plotdata.has_key('_stacked'):
-                        plotfunc_conf[plotfunc_idx](ax = ax, data = inv, ordinate = t) # , **kwargs)
+                        plotfunc_conf[plotfunc_idx](ax = ax, data = inv, ordinate = t, title = title, **kwargs)
 
                     # label = "%s" % ink, title = title
                     # tmp_cmaps_ = [k for k in cc.cm.keys() if 'cyclic' in k and not 'grey' in k]

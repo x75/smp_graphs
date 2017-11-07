@@ -728,6 +728,11 @@ class Block2(object):
             # write initial configuration to dummy table attribute in hdf5
             log.log_pd_store_config_initial(print_dict(self.conf))
 
+            # latex output
+            self.latex_conf = {
+                'figures': {},
+                }
+            
             # initialize the graph
             self.init_block()
 
@@ -1675,6 +1680,9 @@ class Block2(object):
                 self.log_close()
                 # save plot figures
                 self.plot_close()
+
+                # latex output?
+                self.latex_close()
                 
         # need to to count ourselves
         # self.cnt += 1
@@ -1698,7 +1706,34 @@ class Block2(object):
         #         # else:
         #         # print "%s-%s[%d] self.%s = %s from bus %s / %s" % (
         #         #     self.cname, self.id, self.cnt, k, getattr(self, k), v['buscopy'], self.bus[v['buscopy']])
+    def latex_close(self):
+        latex_filename = '%s/%s_texfrag.tex' % (self.datadir_expr, self.id)
+        f = open(latex_filename, 'w')
 
+        texbuf = ''
+        for k, v in self.latex_conf.items():
+            if k is 'figures':
+                descs = []
+                refs = []
+                texbuf += "\\begin{figure}[!htbp]\n\\centering\n"
+                for figk, figv in v.items():
+                    desc = figv['desc']
+                    ref = "%s-%s" % (figv['label'], figv['id'], )
+                    texbuf += "\n\\begin{subfigure}[]{0.99\\textwidth}\n        \\centering\n\
+        \\includegraphics[width=0.99\\textwidth]{%s}\n\
+	\\caption{\\label{fig:%s}}\n\
+    \\end{subfigure}\n""" % (figv['filename'], ref, )
+                    refs.append(ref)
+                    descs.append(desc)
+
+                c_ = ','.join(["%s \\autoref{fig:%s}}" % (desc, ref) for (desc, ref) in zip(descs, refs)])
+                caption = "\\caption{\\label{fig:%s}%s\n\\end{figure}\n" % (figv['label'], c_)
+                texbuf += caption
+
+        f.write(texbuf)
+        f.flush()
+        f.close()
+        
     def plot_close(self):
         # print "%s-%s\n    .plot_close closing %d nodes" % (self.cname, self.id, self.nxgraph.number_of_nodes())
         for n in nxgraph_nodes_iter(self.nxgraph, 'enable'):
