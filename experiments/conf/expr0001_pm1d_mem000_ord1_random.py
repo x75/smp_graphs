@@ -20,7 +20,7 @@ from smp_graphs.utils_conf import get_systemblock
 
 # global parameters can be overwritten from the commandline
 ros = False
-numsteps = 10000/10
+numsteps = 10000/1
 recurrent = True
 debug = False
 showplot = True
@@ -166,6 +166,7 @@ graph = OrderedDict([
                 },
             'hspace': 0.2,
             'wspace': 0.2,
+            'desc': 'Baseline agent single episode 1D predictions and budget',
             'subplots': [
                 [
                     {

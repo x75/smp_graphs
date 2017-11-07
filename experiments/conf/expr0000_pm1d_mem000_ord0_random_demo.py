@@ -185,7 +185,7 @@ graph = OrderedDict([
                 'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
                 'credit_l1': {'bus': 'budget/credit', 'shape': (1, numsteps)},
                 },
-            'desc': 'Single episode pm1d baseline',
+            'desc': 'Baseline agent illustration',
             'subplots': [
                 [
                     {

@@ -19,7 +19,7 @@ from smp_graphs.funcs import f_sin, f_motivation, f_motivation_bin
 
 # global parameters can be overwritten from the commandline
 ros = False
-numsteps = 10000/10
+numsteps = 10000/1
 recurrent = True
 debug = False
 showplot = True
@@ -207,7 +207,7 @@ loopblock = {
         # 'robot1/dim': 2,
         'lconf': lconf_,
         # contains the subgraph specified in this config file
-        'subgraph': 'conf/expr0001_pm1d_mem000_ord0_random.py',
+        'subgraph': 'conf/expr0010_pm1d_mem000_ord0_random.py',
         'subgraph_rewrite_id': True,
         'subgraph_ignore_nodes': ['plot'],
         'subgraphconf': {
