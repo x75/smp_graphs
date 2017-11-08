@@ -239,6 +239,17 @@ class FigPlotBlock2(BaseplotBlock2):
         # self.fig.tight_layout(pad = 1.0)
         # self.debug_print("fig.axes = %s", (self.fig.axes, ))
 
+        # register outputs if saveplot
+        if self.saveplot:
+            self.filename = '%s_%s.%s' % (self.top.datafile_expr, self.id, self.savetype)
+            self.top.outputs['%s' % (self.id, )] = {
+                'type': 'fig',
+                'filename': self.filename,
+                'label': self.top.id,
+                'id': self.id,
+                'desc': self.desc
+            }
+
         # FIXME: too special
         self.isprimitive = False
         
@@ -256,7 +267,8 @@ class FigPlotBlock2(BaseplotBlock2):
         # filename = "data/%s_%s_%s_%s.%s" % (plotinst.top.id, plotinst.id, "_".join(plotinst.inputs.keys()), subplotstr, plotinst.savetype)
         # filename = "data/%s_%s_%s.%s" % (plotinst.top.id, plotinst.id, "_".join(plotinst.inputs.keys()), plotinst.savetype)
         # filename = "data/%s_%s.%s" % (plotinst.top.id, plotinst.id, plotinst.savetype)
-        filename = '%s_%s.%s' % (plotinst.top.datafile_expr, plotinst.id, plotinst.savetype)
+        # filename = '%s_%s.%s' % (plotinst.top.datafile_expr, plotinst.id, plotinst.savetype)
+        filename = plotinst.filename
         # print "%s.save filename = %s, subplotstr = %s" % (plotinst.cname, filename, subplotstr)
         # plotinst.fig.set_size_inches((min(plotinst.fig_cols * 2 * 2.5, 20), min(plotinst.fig_rows * 1.2 * 2.5, 12)))
         if not hasattr(plotinst, 'savesize'):
@@ -272,7 +284,8 @@ class FigPlotBlock2(BaseplotBlock2):
         try:
             print "%s-%s.save saving plot %s to filename = %s" % (plotinst.cname, plotinst.id, plotinst.title, filename)
             plotinst.fig.savefig(filename, dpi=300, bbox_inches="tight")
-            plotinst.top.latex_conf['figures'][plotinst.id] = {
+            # if plotinst.top.
+            plotinst.top.outputs['latex']['figures'][plotinst.id] = {
                 'filename': filename,
                 'label': plotinst.top.id,
                 'id': plotinst.id,

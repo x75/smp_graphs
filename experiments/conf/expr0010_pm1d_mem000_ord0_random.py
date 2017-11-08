@@ -41,6 +41,11 @@ order = lconf['order']
 budget = lconf['budget'] # 510
 lim = lconf['lim'] # 1.0
 
+outputs = {
+    'latex': {'type': 'latex',},
+}
+
+# configure system block 
 systemblock   = get_systemblock['pm'](
     dim_s_proprio = dim, dim_s_extero = dim, lag = 1, order = order)
 # systemblock   = get_systemblock['sa'](

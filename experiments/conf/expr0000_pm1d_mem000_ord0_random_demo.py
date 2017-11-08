@@ -34,9 +34,9 @@ lconf = {
     'budget': 1000/1,
     'lim': 1.0,
     'order': 0,
-    'outputs': {
-        'latex': {'type': 'text'},
-    },
+    # 'outputs': {
+    #     'latex': {'type': 'latex'},
+    # },
 }
 
 dim = lconf['dim']
@@ -44,8 +44,9 @@ order = lconf['order']
 budget = lconf['budget'] # 510
 lim = lconf['lim'] # 1.0
 
+# outputs = lconf['outputs']
 outputs = {
-    'latex': {'type': 'text'},
+    'latex': {'type': 'latex',},
 }
 
 # prepare system block

@@ -30,6 +30,11 @@ from smp_graphs.utils_conf import get_systemblock
 from smp_graphs.utils_conf import get_systemblock_pm
 from smp_graphs.utils_conf import get_systemblock_sa
 
+desc = "expr0030"
+outputs = {
+    'latex': {'type': 'latex',},
+}
+
 # dim = 1
 # motors = dim
 # dt = 0.1
@@ -241,7 +246,7 @@ loopblock = {
             'lconf': {},
             # contains the subgraph specified in this config file
             # 'subgraph': 'conf/expr0001_pm1d_mem000_ord0_random.py',
-            'subgraph': 'conf/expr0002_pm1d_mem000_ord0_random_loop.py',
+            'subgraph': 'conf/expr0020_pm1d_mem000_ord0_random_loop.py',
             'subgraph_rewrite_id': True,
             'subgraph_ignore_nodes': ['plot'],
             'subgraphconf': {

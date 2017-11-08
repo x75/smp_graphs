@@ -19,7 +19,7 @@ from smp_graphs.funcs import f_sin, f_motivation, f_motivation_bin
 
 # global parameters can be overwritten from the commandline
 ros = False
-numsteps = 10000/1
+numsteps = 10000/10
 recurrent = True
 debug = False
 showplot = True
@@ -45,6 +45,11 @@ lconf_ = {
     'budget': 1000,
     'lim': 1.0,
     'order': 0,
+}
+
+desc = "expr0020"
+outputs = {
+    'latex': {'type': 'latex',},
 }
 
 # dim = 1

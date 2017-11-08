@@ -709,10 +709,11 @@ class decStep():
                 # pass
                 shapes = []
                 for outk, outv in xself.outputs.items():
+                    # only ndarray type outputs
                     if outputs_check_type(outk, outv):
                         continue
                     setattr(xself, outk, xself.cache_data[outk][xself.cnt-xself.blocksize:xself.cnt,...].T)
-                    print "cache out key", outk, getattr(xself, outk)
+                    # print "cache out key", outk, getattr(xself, outk)
                     # if xself.cnt < 10:
                     #     print "%s-%s[%d]" % (xself.cname, xself.id, xself.cnt), "outk", outk, getattr(xself, outk).T
                     #     # print "    ", xself.cache_data[outk].shape
@@ -847,24 +848,24 @@ class Block2(object):
             # write initial configuration to dummy table attribute in hdf5
             log.log_pd_store_config_initial(print_dict(self.conf))
 
-            # debug out
-            print "Block2 topblock init self.conf['params'] = {"
-            pkeys = self.conf['params'].keys()
-            pkeys.sort()
-            for pk in pkeys:
-                pv = self.conf['params'][pk]
-                if type(pv) is OrderedDict:
-                    pv = pv.keys()
-                print "    k = %s, v = %s" % (pk, pv,)
-            print "}"
+            # # debug out
+            # print "Block2 topblock init self.conf['params'] = {"
+            # pkeys = self.conf['params'].keys()
+            # pkeys.sort()
+            # for pk in pkeys:
+            #     pv = self.conf['params'][pk]
+            #     if type(pv) is OrderedDict:
+            #         pv = pv.keys()
+            #     print "    k = %s, v = %s" % (pk, pv,)
+            # print "}"
 
-            print "Block2 topblock outputs", self.outputs
-            # self.outputs
-                
-            # latex output
-            self.latex_conf = {
-                'figures': {},
-                }
+            # print "Block2 topblock outputs", self.outputs
+            # # self.outputs
+            
+            # # latex output
+            # self.latex_conf = {
+            #     'figures': {},
+            #     }
             
             # initialize the graph
             self.init_block()
@@ -1478,16 +1479,16 @@ class Block2(object):
                 
             if v['type'] == 'ndarray':
                 self.init_outputs_ndarray(k = k, v = v)
-            elif v['type'] == 'text':
-                self.init_outputs_text(k = k, v = v)
+            elif v['type'] == 'latex':
+                self.init_outputs_latex(k = k, v = v)
             elif v['type'] in ['fig', 'plot']:
                 self.init_outputs_plot(k = k, v = v)
 
-    def init_outputs_text(self, k = None, v = None):
-        print "k", k, "v", v
+    def init_outputs_latex(self, k = None, v = None):
+        print "Block2.init_outputs_latex k", k, "v", v
         
     def init_outputs_plot(self, k = None, v = None):
-        print "k", k, "v", v
+        print "Block2.init_outputs_plot k", k, "v", v
                 
     def init_outputs_ndarray(self, k = None, v = None):
 
@@ -1828,8 +1829,11 @@ class Block2(object):
 
             # store log finally: on final step, also copy data attributes to log attributes
             if self.cnt == self.numsteps:
+                # close all outputs
+                
                 # store and close logging
                 self.log_close()
+                
                 # save plot figures
                 self.plot_close()
 
@@ -1860,30 +1864,60 @@ class Block2(object):
         #         #     self.cname, self.id, self.cnt, k, getattr(self, k), v['buscopy'], self.bus[v['buscopy']])
         
     def latex_close(self):
+        """close latex output channel if one is configured
+
+        Map topblock conf variables into a latex template to generate
+        a fragment that describes the experiment and includes all
+        relevant output items, usually plots.
+
+        Freestyle text copied verbatim from conf keys:
+         - id, title, desc_expr, desc_result
+
+        Depending on the configuration, relevant parameter
+        descriptions and figures are generated systematically.
+
+        FIXME: use pylatex (if available)?
+        """
+        # check if latex output is configured
+        output_latex = [(k, v) for k, v in self.outputs.items() if v.has_key('type') and v['type'] == 'latex']
+        if len(output_latex) < 1:
+            print "Block2.latex_close: not latex output configured", output_latex
+            return
+
+        # write latex fragment for experiment
         latex_filename = '%s/%s_texfrag.tex' % (self.datadir_expr, self.id)
         f = open(latex_filename, 'w')
 
         texbuf = ''
-        for k, v in self.latex_conf.items():
-            print "latex_close", k, v
-            if k is 'figures':
-                descs = []
-                refs = []
-                if len(v) > 0:
-                    texbuf += "\\begin{figure}[!htbp]\n\\centering\n"
-                    for figk, figv in v.items():
-                        desc = figv['desc']
-                        ref = "%s-%s" % (figv['label'], figv['id'], )
-                        texbuf += "\n\\begin{subfigure}[]{0.99\\textwidth}\n        \\centering\n\
-        \\includegraphics[width=0.99\\textwidth]{%s}\n\
-	\\caption{\\label{fig:%s}}\n\
-    \\end{subfigure}\n""" % (figv['filename'], ref, )
-                        refs.append(ref)
-                        descs.append(desc)
+        # for k, v in self.latex_conf.items():
+        id_ = re.sub('_', '-', self.id)
+        texbuf = '\\section{%s}\n\\label{expr:%s}\n\n' % (id_, id_, )
+        output_figures = [(k, v) for k, v in self.outputs.items() if v.has_key('type') and v['type'] in ['fig', 'plot']]
+        print "Block2.latex_close: output_figures", output_figures
 
-                    c_ = ','.join(["%s \\autoref{fig:%s}}" % (desc, ref) for (desc, ref) in zip(descs, refs)])
-                    caption = "\\caption{\\label{fig:%s}%s\n\\end{figure}\n" % (figv['label'], c_)
-                    texbuf += caption
+        if len(output_figures) > 0:
+            descs = []
+            refs = []
+            texbuf += "\\begin{figure}[!htbp]\n  \\centering\n"
+            for figk, figv in output_figures:
+                print "Block2.latex_close: output_figures loop k = %s, v = %s" % (figk, figv)
+                # if k is 'figures':
+                # if len(v) > 0:
+                # for figk, figv in v.items():
+                desc = figv['desc']
+                figlabel_ = re.sub('_', '-', figv['label'])
+                figid_ = re.sub('_', '-', figv['id'])
+                ref = "%s-%s" % (figlabel_, figid_, ) # 
+                texbuf += "  \\begin{subfigure}[]{0.99\\textwidth}\n    \\centering\n\
+    \\includegraphics[width=0.99\\textwidth]{%s}\n\
+	\\caption{\\label{fig:%s}}\n\
+  \\end{subfigure}\n""" % (figv['filename'], ref, )
+                refs.append(ref)
+                descs.append(desc)
+
+            c_ = ','.join(["%s \\autoref{fig:%s}}" % (desc, ref) for (desc, ref) in zip(descs, refs)])
+            caption = "  \\caption{\\label{fig:%s}%s\n\\end{figure}\n" % (figv['label'], c_)
+            texbuf += caption
 
         f.write(texbuf)
         f.flush()

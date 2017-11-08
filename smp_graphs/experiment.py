@@ -78,8 +78,12 @@ def set_config_defaults(conf):
     """
     if not conf['params'].has_key("numsteps"):
         conf['params']['numsteps'] = 100
-    if conf['params'].has_key('lconf'):
-        print "set_config_defaults", conf['params']['lconf']
+        
+    if not conf['params'].has_key('desc'):
+        conf['params']['desc'] = conf['params']['id']
+        
+    # if conf['params'].has_key('lconf'):
+    #     print "set_config_defaults", conf['params']['lconf']
     return conf
 
 def set_config_commandline_args(conf, args):
@@ -223,30 +227,34 @@ class Experiment(object):
         #     else:
         #         print "    BANG params/vars mismatch on %s" % (pk,)
         # topblock outputs: new types in addition to np.ndarray signals: 'text', 'plot', ...
-        for paramkey in ['outputs']:
+        for paramkey in ['outputs', 'desc']:
             if self.conf_vars.has_key(paramkey):
-                print "vars -> params found %s" % (paramkey, )
                 self.conf['params'][paramkey] = self.conf_vars[paramkey]
+                print "vars -> params found %s, %s" % (paramkey, self.conf['params'][paramkey], )
         
         # fill in missing defaults
         self.conf = set_config_defaults(self.conf)
         # update conf from commandline arguments
         self.conf = set_config_commandline_args(self.conf, args)
 
+        # print self.conf['params']['desc']
+        
         # initialize ROS if needed
         if self.conf['params']['ros']:
             import rospy
             rospy.init_node("smp_graph")
 
         # store all conf entries in self
-        for k in self.conf.keys():
-            setattr(self, k, self.conf[k])
+        for k, v in self.conf.items():
+            setattr(self, k, v)
+            
             # selfattr = getattr(self, k)
             # if type(selfattr) is dict:
             #     print "        self.%s = %s\n" % (k, print_dict(selfattr))
             # else:
             #     print "        self.%s = %s\n" % (k, selfattr)
 
+        # print self.desc
         self.args = args
         """
 
@@ -295,10 +303,27 @@ class Experiment(object):
             sys.exit(1)
         
         # instantiate topblock
-        self.topblock = Block2(conf = self.conf, conf_vars = self.conf_vars)
+        self.top = Block2(conf = self.conf, conf_vars = self.conf_vars)
 
         # plotting
+        self.init_plotgraph(args)
+
+    def init_plotgraph(self, args):
         self.plotgraph_flag = args.plotgraph
+        if self.plotgraph_flag:
+            # self.filename = '%s_%s.%s' % (self.top.datafile_expr, self.top.id, self.savetype)
+            self.plotgraph_savetype = 'pdf'
+            self.plotgraph_filename = "%s/%s_%s_%d.%s" % (
+                self.conf['params']['datadir_expr'], self.top.id, 'nxgraph', 1,
+                self.plotgraph_savetype)
+            
+            self.top.outputs['%s' % ('plotgraph', )] = {
+                'type': 'fig',
+                'filename': self.plotgraph_filename,
+                'label': self.top.id,
+                'id': self.top.id,
+                'desc': self.params['desc']
+            }
 
     def update_experiments_store(self, xid = None):
         """Experiment.update_experiments_store
@@ -384,19 +409,20 @@ class Experiment(object):
         """Experiment.plotgraph
 
         Show a visualization of the initialized top graph defining the
-        experiment in 'self.topblock.nxgraph'.
+        experiment in 'self.top.nxgraph'.
         """
         # axesspec = [(0, 0), (0, 1), (0, 2), (0, slice(3, None))]
         # axesspec = [(0, 0), (0,1), (1, 0), (1,1)]
         axesspec = None
+        # FIXME: uses makefig directly from smp_base.plot instead of FigPlotBlock2
         fig_nxgr = makefig(
             rows = 1, cols = 1, wspace = 0.1, hspace = 0.1,
-            axesspec = axesspec, title = "%s"  % (self.topblock.id.split('-')[0], )) # "nxgraph")
+            axesspec = axesspec, title = "%s"  % (self.top.id.split('-')[0], )) # "nxgraph")
         axi = 0
-        # nxgraph_plot(self.topblock.nxgraph, ax = fig_nxgr.axes[0])
+        # nxgraph_plot(self.top.nxgraph, ax = fig_nxgr.axes[0])
 
         # # flatten for drawing, quick hack
-        # G = nxgraph_flatten(self.topblock.nxgraph)
+        # G = nxgraph_flatten(self.top.nxgraph)
         # # # debug flattened graph
         # # for node,noded in G.nodes(data=True):
         # #     print "node.id = %s\n    .data = %s\n    .graphnode = %s\n" % (node, noded, G.node[node])
@@ -411,7 +437,7 @@ class Experiment(object):
 
         assert G is not None
         # if G is None:
-        #     G = self.topblock.nxgraph
+        #     G = self.top.nxgraph
             
         # G_, G_number_of_nodes_total = recursive_hierarchical(G)
         G_ = G
@@ -427,7 +453,7 @@ class Experiment(object):
         
         # # plot the nested graph
         # recursive_draw(
-        #     self.topblock.nxgraph,
+        #     self.top.nxgraph,
         #     ax = fig_nxgr.axes[2],
         #     node_size = 100,
         #     currentscalefactor = 1.0,
@@ -435,7 +461,7 @@ class Experiment(object):
 
         assert Gbus is not None
         # if Gbus is None:
-        #     Gbus = self.topblock.bus
+        #     Gbus = self.top.bus
 
         if len(Gbus) > 40:
             print "Gbus\n%s" % (Gbus, )
@@ -444,7 +470,7 @@ class Experiment(object):
             # plot the bus with its builtin plot method
             fig_bus = makefig(
                 rows = 1, cols = 1, wspace = 0.1, hspace = 0.1,
-                axesspec = axesspec, title = "%s"  % (self.topblock.id.split('-')[0], ))
+                axesspec = axesspec, title = "%s"  % (self.top.id.split('-')[0], ))
 
             
             axi = 0
@@ -462,10 +488,10 @@ class Experiment(object):
                 #     width = (xlim[1] - xlim[0])/1.0
                 #     height = (ylim[1] - ylim[0])/1.0
                 #     fig_.set_size_inches((width, height))
-                savetype = 'pdf'
                 # save the plot if saveplot is set
                 if self.params['saveplot']:
-                    filename = "%s/%s_%s_%d.%s" % (self.conf['params']['datadir_expr'], self.topblock.id, 'graph_bus', fi, savetype)
+                    savetype = self.plotgraph_savetype
+                    filename = self.plotgraph_filename
                     try:
                         print "Saving experiment graph plot to %s" % (filename, )
                         fig_.savefig(filename, dpi=300, bbox_inches="tight")
@@ -492,7 +518,7 @@ class Experiment(object):
     def printgraph(self, G = None):
         print "\nPrinting graph\n",
         # if G is None:
-        #     G = self.topblock.nxgraph
+        #     G = self.top.nxgraph
         assert G is not None
             
         print "G.name  = %s" % (G.name,)
@@ -507,18 +533,18 @@ class Experiment(object):
         Run the experiment by running the graph.
         """
         print '#' * 80
-        print "Init done, running %s" % (self.topblock.nxgraph.name, )
-        print "    Graph: %s" % (self.topblock.nxgraph.nodes(), )
-        print "      Bus: %s" % (self.topblock.bus.keys(),)
-        print " numsteps: {0}/{1}".format(self.params['numsteps'], self.topblock.numsteps)
+        print "Init done, running %s" % (self.top.nxgraph.name, )
+        print "    Graph: %s" % (self.top.nxgraph.nodes(), )
+        print "      Bus: %s" % (self.top.bus.keys(),)
+        print " numsteps: {0}/{1}".format(self.params['numsteps'], self.top.numsteps)
 
         # TODO: try run
         #       except go interactive
         # import pdb
-        # topblock_x = self.topblock.step(x = None)
+        # topblock_x = self.top.step(x = None)
         for i in xrange(self.params['numsteps']):
             # try:
-            topblock_x = self.topblock.step(x = None)
+            topblock_x = self.top.step(x = None)
             # except:
             # pdb.set_trace()
             # FIXME: progress bar / display        
@@ -526,27 +552,27 @@ class Experiment(object):
         # print "final return value topblock.x = %s" % (topblock_x)
 
         # final writes: log store, experiment/block store?, graphics, models
-        # self.topblock.bus.plot(fig_nxgr.axes[3])
+        # self.top.bus.plot(fig_nxgr.axes[3])
 
         # initial run, no cached data: store the graph
         if self.conf['params']['docache'] and not self.cache_loaded:
-            print "experiment cache: storing final top level nxgraph", self.topblock.nxgraph
+            print "experiment cache: storing final top level nxgraph", self.top.nxgraph
             # store the full dynamically expanded state of the toplevel nxgraph
-            nxgraph_store(conf = self.conf['params'], G = self.topblock.nxgraph)
-            self.topblock.bus.store_pickle(conf = self.conf['params'])
+            nxgraph_store(conf = self.conf['params'], G = self.top.nxgraph)
+            self.top.bus.store_pickle(conf = self.conf['params'])
             
-            # filename = "data/%s_%s.yaml" % (self.topblock.id, 'nxgraph',)
-            # nx.write_yaml(self.topblock.nxgraph, filename)
+            # filename = "data/%s_%s.yaml" % (self.top.id, 'nxgraph',)
+            # nx.write_yaml(self.top.nxgraph, filename)
             # self.cache['topblock_nxgraph'] = filename
-            # self.cache['topblock_bus'] = str(self.topblock.bus)
+            # self.cache['topblock_bus'] = str(self.top.bus)
             # print "    topblock.nxgraph", self.cache['topblock_nxgraph']
             # print "    topblock.bus", self.cache['topblock_bus']
             # update the experiment store
             # self.update_experiments_store(xid = self.conf['params']['md5'])
             # write store
             # self.experiments.to_hdf(self.experiments_store, key = 'experiments')
-            # G = self.topblock.nxgraph
-            # Gbus = self.topblock.bus
+            # G = self.top.nxgraph
+            # Gbus = self.top.bus
 
             from smp_graphs.block import Bus
             # G = self.cache['topblock_nxgraph']
@@ -556,11 +582,11 @@ class Experiment(object):
             Gbus = Bus.load_pickle(conf = self.conf['params'])
             print "G", G, G.number_of_nodes()
             print "Gbus", Gbus
-            # G = self.topblock.nxgraph # nx.read_yaml(self.cache['topblock_nxgraph'])
-            # Gbus = self.topblock.bus
+            # G = self.top.nxgraph # nx.read_yaml(self.cache['topblock_nxgraph'])
+            # Gbus = self.top.bus
         else:
-            G, G_number_of_nodes_total = recursive_hierarchical(self.topblock.nxgraph)
-            Gbus = self.topblock.bus
+            G, G_number_of_nodes_total = recursive_hierarchical(self.top.nxgraph)
+            Gbus = self.top.bus
 
         self.printgraph(G = G)
         
