@@ -543,8 +543,8 @@ def vtransform(v):
             # print "    type type", v, v_
         else:
             v_ = v
-    if "func" in str(vtype):
-        print "    type %s, v = %s, v_ = %s" % (vtype, v, v_)
+    # if "func" in str(vtype):
+    #     print "    type %s, v = %s, v_ = %s" % (vtype, v, v_)
     return v_
                 
 def conf_strip_variables(conf, omits = ['PlotBlock2']):
@@ -617,10 +617,11 @@ def create_datadir(datadir = None):
     return True
 
 def check_datadir(conf = {}):
-    """check if path 'datadir' exists and create it if it doesn't
+    """check if path :data:`conf['datadir']` exists and create it if it doesn't
 
     Arguments:
      - conf(dict): smp_graphs configuration dict containing the variables
+
       - datadir(str):  path top level datadir
       - datadir_expr(str):  path to experiment's datasubdir
       - datafile_expr(str):  filename base for experiment's files
@@ -636,10 +637,10 @@ def check_datadir(conf = {}):
     if r and not os.path.exists(conf['datadir']):
         r = create_datadir(conf['datadir'])
 
-    print "r datadir", r
+    # print "r datadir", r
     if r and not os.path.exists(conf['datadir_expr']):
         r = create_datadir(conf['datadir_expr'])
 
-    print "r datadir_expr", r
+    # print "r datadir_expr", r
 
     return r

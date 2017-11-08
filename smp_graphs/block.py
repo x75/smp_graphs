@@ -1,15 +1,115 @@
-"""block.py: Basic computation blocks and support structure for smp_graphs
+"""Basic computation blocks and support structure for smp_graphs (block.py)
 
 .. moduleauthor:: 2017 Oswald Berthold
 
 The Base class is :class:`Block2` supported by decorators
 :class:`decInit` and :class:`decStep` and the :class:`Bus` class. 
 
+Blocks are the fundamental functional building blocks and define the
+computation of each node in the graph. Blocks are instantiated using a
+configuration dictionary :data:`conf`. The items of the configuration
+dict are copied into the Block's attributes on initialization. Blocks
+need to provide a :func:`step` member function which is called at
+every time step. Blocks come as *primitive* blocks, which provide
+their own :func:`step` method and *composite* blocks which contain
+subgraphs. Subgraphs can be specified explicitly as an OrderedDict or
+a standard dict, or implicitly by loading an entire separate
+configuration file from the configured path.
+
+Common block attributes and, by correspondence, configuration items are shown below in a pseudo configuration notation.
+
+.. code:: python
+
+    (
+        'blockid',
+        {
+            'block': Block2,
+            'params': {
+                'id': 'blockid,
+                'debug': False,
+                'blocksize': int,
+                'blockphase': list, 
+               'inputs': {
+                    'input-key-1': {'val': np.ndarray,          'shape': (idim-1, input-bufsize-1)},
+                    'input-key-2': {'bus': 'nodeid/output-key', 'shape': (idim-busref, input-bufsize-2)},
+                    # ...
+                },
+                'outputs': {
+                    'output-key-1': {'shape': (odim-1, input-bufsize-1)},
+                    'output-key-2': {'shape': (odim-2, input-bufsize-2)},
+                    # ...
+                },
+            }
+        }
+    )
+
+An experiment consists of a top block which is composite and contains
+the top-level nxgraph which is constructed from the configuration file
+provided on the command line. The config file is a plain python
+file. During graph initialization the file is loaded, possibly
+modified on the text level, compiled, possibly modified again at the
+:mod:`ast` level and returned as a full runtime configuration
+dict. The dict is used to construct a :mod:`networkx.Graph` whose
+nodes' data includes the node block's class attribute in the 'block'
+item, its configuration in 'params' item and the resulting live block
+instance in the 'block_' item.
+
+The top block's :func:`step` is called :data:`numsteps` times by the
+:mod:`smp_graphs.experiment` shell. A composite block's step function,
+which is the case for the top block, just iterates its subgraph and
+calls each node's step function. Blocks schedule themselves for
+execution with the :data:`blocksize` and :data:`blockphase`
+attributes. The current :data:`cnt` is taken modulo the blocksize and
+step is actually executed if the result is in the blockphase list of
+integers. The default configuration is `'blocksize': 1, 'blockphase':
+[0]` resulting in single time step execution.
+
+The top block also has a :data:`bus` member which is a dictionary
+whose keys are 'buskeys' and whose values are np.ndarrays and which is
+globally available to all blocks. By convention, the block's
+instantaneous outputs are computed by simply looping over the outputs
+dict and copying the block attribute `block.output-key` to the bus
+using the `buskey = 'block-id/output-key'. Block inputs can be
+directly provided in the configuration as np.ndarrays when they are
+constant, but more interestingly, the inputs can be assigned from any
+bus item, including the block's own outputs with the 'bus': 'buskey'
+config entry.
+
+
+.. note::
+
+    The bus item values can be multidimensional arrays (tensors) allowing to pass around complex data types like data batches, images, and so on. By convention, the last dimension of a bus item refers to time. This allows blocks to process input chunks and produce output chunks which have shapes different from their own blocksize.
+
+
+.. note::
+
+    This model has some consequences that might need to be considered when designing a graph. smp graphs are ordered dictionaries and this order is the verbatim execution order of the nodes. This means that a block's inputs, which refer to a block's output further down the graph order, will be dalyed by one time step. This is also the case for self-feedback connections.
+
+Loop blocks: besides the basic composite blocks containing a subgraph
+specification there are two special composite blocks which have
+special powers to modify the graph itself. The :class:`LoopBlock2`
+does so at initialization time and the :class:`SeqLoopBlock2` does so
+at run time. The configuration mechanism is the same for both. Each
+takes its subgraph (historically called 'loopblock') and applies
+variable substitutions to the subgraph configuration using the `loop`
+attribute which can be a list of tuples like `[('config-key',
+'config-value'), ...]` or a pointer to a function yielding such tuples
+on each consecutive call.
+
 The set of standard blocks includes :class:`FuncBlock2`,
 :class:`LoopBlock2`, :class:`SeqLoopBlock2`, :class:`PrimBlock2`,
 :class:`IBlock2`, :class:`dBlock2`, :class:`DelayBlock2`,
 :class:`SliceBlock2`, :class:`StackBlock2`, :class:`ConstBlock2`,
 :class:`CountBlock2`, :class:`UniformRandomBlock2`
+
+There is a growing set of fancy blocks for doing complex I/O, reading
+file input, talking to realtime systems, numerical multivariate
+analysis, and plotting.
+
+.. seealso::
+
+ - the experiments/conf/example_*.py files each demonstrate in a
+   minimal fashion most of the basic features.
 """
 
 import pdb
@@ -85,6 +185,10 @@ block_groups = {
     'output': {'cmap': block_cmaps['sequential2'][9]}, # 'copper'},
 }
 
+def outputs_check_type(k, v, typematch = 'ndarray'):
+    return v.has_key('type') and v['type'] != typematch
+
+    
 ################################################################################
 # smp_graphs types: create some types for use in configurations like const, bus, generator, func, ...
 
@@ -506,7 +610,6 @@ class decStep():
                 # # debug in to out copy
                 # print "%s.%s[%d]  self.%s = %s" % (esname, sname, escnt, k, esk)
                 # print "%s.%s[%d] outkeys = %s" % (esname, sname, escnt, xself.outputs.keys())
-                
     def process_output(self, xself):
         """post-process xself's outputs by copying output attributes to the bus
         """
@@ -514,6 +617,14 @@ class decStep():
         if self.block_is_scheduled(xself):
             # for all output items
             for k, v in xself.outputs.items():
+                # defer non-ndarray types
+                # if v.has_key('type') and v['type'] != 'ndarray':
+                if outputs_check_type(k, v):
+                    # print "wrong type fail", k, v
+                    continue
+                # else:
+                #     print "decstep process_output", k, v
+
                 # get buskey and sanity check
                 buskey = "%s/%s" % (xself.id, k)
                 
@@ -598,15 +709,20 @@ class decStep():
                 # pass
                 shapes = []
                 for outk, outv in xself.outputs.items():
+                    if outputs_check_type(outk, outv):
+                        continue
                     setattr(xself, outk, xself.cache_data[outk][xself.cnt-xself.blocksize:xself.cnt,...].T)
-                    if xself.cnt < 10:
-                        print "%s-%s[%d]" % (xself.cname, xself.id, xself.cnt), "outk", outk, getattr(xself, outk).T
-                        # print "    ", xself.cache_data[outk].shape
+                    print "cache out key", outk, getattr(xself, outk)
+                    # if xself.cnt < 10:
+                    #     print "%s-%s[%d]" % (xself.cname, xself.id, xself.cnt), "outk", outk, getattr(xself, outk).T
+                    #     # print "    ", xself.cache_data[outk].shape
                     shapes.append(xself.cache_data[outk].shape)
                     # print "outk", outk, xself.cache_data[outk] # [xself.cnt-xself.blocksize:xself.cnt]
                 if xself.cnt % 100 == 0:
                     print "decStep.f_eval\n    %s-%s cache hit at %s\n        using cached data with shapes %s\n" % (xself.cname, xself.id, xself.md5, shapes)
                 f_out = None
+                
+            # not caching
             else:
                 # compute the block with step()
                 f_out = f(xself, None)
@@ -633,12 +749,15 @@ class decStep():
 class Block2(object):
     """Block2 class
 
-    Block base class
-    Arguments
-    - conf: Block configuration dictionary
-    - paren: ref to Block's parent
-    - top: ref to top-level node in nested graphs
-    - blockid: override block's id assignment
+    Base class for node blocks. smp_graphs nodes have a 'block' attribute which implements the node's computational function.
+
+    Arguments:
+     - conf(dict): Block configuration dictionary
+     - paren(Block2): ref to Block's parent
+     - top(Block2): ref to top-level node in nested graphs
+     - blockid(str): override block's id assignment
+
+    See also: :mod:`smp_graphs.block`
     """
     
     defaults = {
@@ -662,13 +781,13 @@ class Block2(object):
     }
 
     @decInit()
-    def __init__(self, conf = {}, paren = None, top = None, blockid = None, conf_localvars = None):
+    def __init__(self, conf = {}, paren = None, top = None, blockid = None, conf_vars = None):
         # general stuff
         self.conf = conf
         self.paren = paren
         self.top = top
         self.cname = self.__class__.__name__
-        self.conf_localvars = conf_localvars
+        self.conf_vars = conf_vars
 
         # merge Block2 base defaults with child defaults
         defaults = {}
@@ -728,6 +847,20 @@ class Block2(object):
             # write initial configuration to dummy table attribute in hdf5
             log.log_pd_store_config_initial(print_dict(self.conf))
 
+            # debug out
+            print "Block2 topblock init self.conf['params'] = {"
+            pkeys = self.conf['params'].keys()
+            pkeys.sort()
+            for pk in pkeys:
+                pv = self.conf['params'][pk]
+                if type(pv) is OrderedDict:
+                    pv = pv.keys()
+                print "    k = %s, v = %s" % (pk, pv,)
+            print "}"
+
+            print "Block2 topblock outputs", self.outputs
+            # self.outputs
+                
             # latex output
             self.latex_conf = {
                 'figures': {},
@@ -1135,15 +1268,15 @@ class Block2(object):
             
         # subgraph file containing the OrderedDict
         else:
-            # print "init_subgraph config globals", self.top.conf_localvars.keys()
+            # print "init_subgraph config globals", self.top.conf_vars.keys()
             if hasattr(self, 'lconf'):
                 # print "lconf", self.lconf
-                subconf_localvars = get_config_raw(conf = self.subgraph, confvar = None, lconf = self.lconf)
-                # print "init_subgraph %s returning localvars = %s" % (self.id, subconf_localvars.keys())
-                subconf = subconf_localvars['conf']
+                subconf_vars = get_config_raw(conf = self.subgraph, confvar = None, lconf = self.lconf)
+                # print "init_subgraph %s returning localvars = %s" % (self.id, subconf_vars.keys())
+                subconf = subconf_vars['conf']
             else:
-                subconf_localvars = get_config_raw(self.subgraph, confvar = None, lconf = self.top.conf_localvars) # 'graph')
-                subconf = subconf_localvars['conf']
+                subconf_vars = get_config_raw(self.subgraph, confvar = None, lconf = self.top.conf_vars) # 'graph')
+                subconf = subconf_vars['conf']
                 
         assert subconf is not None, "Block2.init_subgraph subconf not initialized"
         assert type(subconf) is dict
@@ -1337,46 +1470,65 @@ class Block2(object):
         for k, v in self.outputs.items(): # problematic
         # for k, v in self.conf['params']['outputs'].items():
             # print "%s.init_outputs: outk = %s, outv = %s" % (self.cname, k, v)
-            assert type(v) is dict, "Old config of %s output %s with type %s, %s" % (self.id, k, type(v), v)
-            # print "v.keys()", v.keys()
-            # assert v.keys()[0] in ['shape', 'bus'], "Need 'bus' or 'shape' key in outputs spec of %s" % (self.id, )
-            assert v.has_key('shape'), "Output spec %s: %s needs 'shape' param" % (k, v)
-            # if v.has_key('shape'):
-            assert len(v['shape']) > 1, "Block %s, output %s 'shape' tuple is needs at least (dim1 x output blocksize), v = %s" % (self.id, k, v)
-            # # create new shape tuple by appending the blocksize to original dimensions
-            # if v['shape'][-1] != self.blocksize: # FIXME: heuristic
-            #     v['bshape']  = v['shape'] + (self.blocksize,)
-            #     v['shape']   = v['bshape']
-            if v['shape'][-1] > self.oblocksize:
-                self.oblocksize = v['shape'][-1]
+            assert type(v) is dict, "Old config of block %s, output %s, type %s, %s" % (self.id, k, type(v), v)
 
-            # compute buskey from id and variable name
-            v['buskey'] = "%s/%s" % (self.id, k)
-
-            # logging by output item
-            if not v.has_key('logging'):
-                v['logging'] = True
+            # check type
+            if not v.has_key('type'):
+                v['type'] = 'ndarray'
                 
-            # set self attribute to that shape
-            if not hasattr(self, k) or getattr(self, k).shape != v['shape']:
-                setattr(self, k, np.zeros(v['shape']))
-            
-            # print "%s.init_outputs: %s.bus[%s] = %s" % (self.cname, self.id, v['buskey'], getattr(self, k).shape)
-            self.bus[v['buskey']] = getattr(self, k).copy()
-            # self.bus.setval(v['buskey'], getattr(self, k))
+            if v['type'] == 'ndarray':
+                self.init_outputs_ndarray(k = k, v = v)
+            elif v['type'] == 'text':
+                self.init_outputs_text(k = k, v = v)
+            elif v['type'] in ['fig', 'plot']:
+                self.init_outputs_plot(k = k, v = v)
 
-            # ros?
-            if hasattr(self, 'ros') and self.ros:
-                import rospy
-                from std_msgs.msg import Float64MultiArray
-                self.msgs[k] = Float64MultiArray()
-                self.pubs[k] = rospy.Publisher('%s/%s' % (self.id, k, ), Float64MultiArray, queue_size = 2)
-            
-            # output item initialized
-            v['init'] = True
+    def init_outputs_text(self, k = None, v = None):
+        print "k", k, "v", v
+        
+    def init_outputs_plot(self, k = None, v = None):
+        print "k", k, "v", v
+                
+    def init_outputs_ndarray(self, k = None, v = None):
 
-    # def init_colors(self):
-    #     self.nodecolor
+        assert k is not None, "init_outputs_ndarray called with output key = None"
+        assert v is not None, "init_outputs_ndarray called with output val = None"
+            
+        # assert v.keys()[0] in ['shape', 'bus'], "Need 'bus' or 'shape' key in outputs spec of %s" % (self.id, )
+        assert v.has_key('shape'), "Output spec %s: %s needs 'shape' param" % (k, v)
+        # if v.has_key('shape'):
+        assert len(v['shape']) > 1, "Block %s, output %s 'shape' tuple is needs at least (dim1 x output blocksize), v = %s" % (self.id, k, v)
+        # # create new shape tuple by appending the blocksize to original dimensions
+        # if v['shape'][-1] != self.blocksize: # FIXME: heuristic
+        #     v['bshape']  = v['shape'] + (self.blocksize,)
+        #     v['shape']   = v['bshape']
+        if v['shape'][-1] > self.oblocksize:
+            self.oblocksize = v['shape'][-1]
+
+        # compute buskey from id and variable name
+        v['buskey'] = "%s/%s" % (self.id, k)
+
+        # logging by output item
+        if not v.has_key('logging'):
+            v['logging'] = True
+                
+        # set self attribute to that shape
+        if not hasattr(self, k) or getattr(self, k).shape != v['shape']:
+            setattr(self, k, np.zeros(v['shape']))
+            
+        # print "%s.init_outputs: %s.bus[%s] = %s" % (self.cname, self.id, v['buskey'], getattr(self, k).shape)
+        self.bus[v['buskey']] = getattr(self, k).copy()
+        # self.bus.setval(v['buskey'], getattr(self, k))
+
+        # ros?
+        if hasattr(self, 'ros') and self.ros:
+            import rospy
+            from std_msgs.msg import Float64MultiArray
+            self.msgs[k] = Float64MultiArray()
+            self.pubs[k] = rospy.Publisher('%s/%s' % (self.id, k, ), Float64MultiArray, queue_size = 2)
+            
+        # output item initialized
+        v['init'] = True
 
     def init_logging(self):
         # initialize block logging
@@ -1706,29 +1858,32 @@ class Block2(object):
         #         # else:
         #         # print "%s-%s[%d] self.%s = %s from bus %s / %s" % (
         #         #     self.cname, self.id, self.cnt, k, getattr(self, k), v['buscopy'], self.bus[v['buscopy']])
+        
     def latex_close(self):
         latex_filename = '%s/%s_texfrag.tex' % (self.datadir_expr, self.id)
         f = open(latex_filename, 'w')
 
         texbuf = ''
         for k, v in self.latex_conf.items():
+            print "latex_close", k, v
             if k is 'figures':
                 descs = []
                 refs = []
-                texbuf += "\\begin{figure}[!htbp]\n\\centering\n"
-                for figk, figv in v.items():
-                    desc = figv['desc']
-                    ref = "%s-%s" % (figv['label'], figv['id'], )
-                    texbuf += "\n\\begin{subfigure}[]{0.99\\textwidth}\n        \\centering\n\
+                if len(v) > 0:
+                    texbuf += "\\begin{figure}[!htbp]\n\\centering\n"
+                    for figk, figv in v.items():
+                        desc = figv['desc']
+                        ref = "%s-%s" % (figv['label'], figv['id'], )
+                        texbuf += "\n\\begin{subfigure}[]{0.99\\textwidth}\n        \\centering\n\
         \\includegraphics[width=0.99\\textwidth]{%s}\n\
 	\\caption{\\label{fig:%s}}\n\
     \\end{subfigure}\n""" % (figv['filename'], ref, )
-                    refs.append(ref)
-                    descs.append(desc)
+                        refs.append(ref)
+                        descs.append(desc)
 
-                c_ = ','.join(["%s \\autoref{fig:%s}}" % (desc, ref) for (desc, ref) in zip(descs, refs)])
-                caption = "\\caption{\\label{fig:%s}%s\n\\end{figure}\n" % (figv['label'], c_)
-                texbuf += caption
+                    c_ = ','.join(["%s \\autoref{fig:%s}}" % (desc, ref) for (desc, ref) in zip(descs, refs)])
+                    caption = "\\caption{\\label{fig:%s}%s\n\\end{figure}\n" % (figv['label'], c_)
+                    texbuf += caption
 
         f.write(texbuf)
         f.flush()

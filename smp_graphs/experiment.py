@@ -78,6 +78,8 @@ def set_config_defaults(conf):
     """
     if not conf['params'].has_key("numsteps"):
         conf['params']['numsteps'] = 100
+    if conf['params'].has_key('lconf'):
+        print "set_config_defaults", conf['params']['lconf']
     return conf
 
 def set_config_commandline_args(conf, args):
@@ -205,12 +207,27 @@ class Experiment(object):
         # set random seed _before_ compiling conf
         set_random_seed(args)
 
-        # get configuration from file # , this implicitly sets the id via global make_expr_id which is crap
-        self.conf_localvars = get_config_raw(args.conf, confvar = None)
-        # print "experiment.py conf_localvars", self.conf_localvars.keys()
-        self.conf = self.conf_localvars['conf']
+        #: load, compile and run configuration from file
+        #:  - returns the variables 'vars' from its eval context
+        #:  - special item vars['conf'] is explicit top block configuration 'conf'
+        #:  - all keys in conf['params'] should match the variables in vars
+        self.conf_vars = get_config_raw(args.conf, confvar = None)
+        # print "experiment.py conf_vars", self.conf_vars.keys()
+        self.conf = self.conf_vars['conf']
         # print "conf.params.id", self.conf['params']['id']
         assert self.conf is not None, "%s.init: Couldn't read config file %s" % (self.__class__.__name__, args.conf)
+        # check consistency
+        # for pk, pv in self.conf['params'].items():
+        #     if self.conf_vars.has_key(pk):
+        #         print "    %s - params[%s] = %s, vars[%s] = %s" % (pv == self.conf_vars[pk], pk, type(pv), pk, type(self.conf_vars[pk]))
+        #     else:
+        #         print "    BANG params/vars mismatch on %s" % (pk,)
+        # topblock outputs: new types in addition to np.ndarray signals: 'text', 'plot', ...
+        for paramkey in ['outputs']:
+            if self.conf_vars.has_key(paramkey):
+                print "vars -> params found %s" % (paramkey, )
+                self.conf['params'][paramkey] = self.conf_vars[paramkey]
+        
         # fill in missing defaults
         self.conf = set_config_defaults(self.conf)
         # update conf from commandline arguments
@@ -222,7 +239,6 @@ class Experiment(object):
             rospy.init_node("smp_graph")
 
         # store all conf entries in self
-        # print "%s-%s.init\n" % (self.__class__.__name__, None),
         for k in self.conf.keys():
             setattr(self, k, self.conf[k])
             # selfattr = getattr(self, k)
@@ -279,7 +295,7 @@ class Experiment(object):
             sys.exit(1)
         
         # instantiate topblock
-        self.topblock = Block2(conf = self.conf, conf_localvars = self.conf_localvars)
+        self.topblock = Block2(conf = self.conf, conf_vars = self.conf_vars)
 
         # plotting
         self.plotgraph_flag = args.plotgraph

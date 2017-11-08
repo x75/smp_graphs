@@ -34,13 +34,21 @@ lconf = {
     'budget': 1000/1,
     'lim': 1.0,
     'order': 0,
+    'outputs': {
+        'latex': {'type': 'text'},
+    },
 }
-    
+
 dim = lconf['dim']
 order = lconf['order']
 budget = lconf['budget'] # 510
 lim = lconf['lim'] # 1.0
 
+outputs = {
+    'latex': {'type': 'text'},
+}
+
+# prepare system block
 systemblock   = get_systemblock['pm'](
     dim_s_proprio = dim, dim_s_extero = dim, lag = 1, order = order)
 # systemblock   = get_systemblock['sa'](
@@ -73,13 +81,13 @@ graph = OrderedDict([
     ('robot1', systemblock),
         
     # brain
-    ('braina', {
+    ('brain', {
         # FIXME: idea: this guy needs to pass down its input/output configuration
         #        to save typing / errors on the individual modules
         'block': Block2,
         'params': {
             'numsteps': 1, # numsteps,
-            'id': 'braina',
+            'id': 'brain',
             'nocache': True,
             'graph': OrderedDict([
                 # every brain has a budget
@@ -202,21 +210,21 @@ graph = OrderedDict([
                             histogram, orientation = 'horizontal', histtype = 'stepfilled',
                             yticks = False, xticks = False, alpha = 1.0, normed = False) for _ in range(3)],
                         'title': 'two-level prediction and measurement (histogram)',
-                        'desc': 'Single episode pm1d baseline \autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
+                        'desc': 'Single episode pm1d baseline \\autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
                         # 'mode': 'stack'
                     },
                 ],
                 [
                     {'input': 'credit_l1', 'plot': partial(timeseries, ylim = (0, 1000), alpha = 1.0),
                          'title': 'agent budget (timeseries)',
-                        'desc': 'Single episode pm1d baseline \autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
+                        'desc': 'Single episode pm1d baseline \\autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
                     },
                     {'input': 'credit_l1', 'plot': partial(
                         histogram, orientation = 'horizontal', histtype = 'stepfilled',
                         yticks = False, ylim = (0, 1000), alpha = 1.0, normed = False),
                         'title': 'agent budget (histogram)',
                         'xlabel': 'count [n]',
-                        'desc': 'Single episode pm1d baseline \autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
+                        'desc': 'Single episode pm1d baseline \\autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
                     },
                 ]
             ],
