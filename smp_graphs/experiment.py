@@ -399,8 +399,11 @@ class Experiment(object):
         
         # prepare experiment database
         self.experiments_store = '%s/experiments_store.h5' % (self.args.datadir, )
-        columns = ['md5', 'timestamp', 'topblock', 'params', 'topblock_nxgraph', 'topblock_bus']
-        values = [[xid, pd.to_datetime(datetime.datetime.now()), str(self.conf['block']), str(self.conf['params']), '', '']]
+        columns = ['id', 'timestamp', 'md5', 'topblock', 'params', 'topblock_nxgraph', 'topblock_bus']
+        values = [[
+            self.params['id'], pd.to_datetime(datetime.datetime.now()),
+            xid,
+            str(self.conf['block']), str(self.conf['params']), '', '']]
         # print "%s.update_experiments_store values = %s" % (self.__class__.__name__, values)
         # values = [[xid, self.conf['block'], self.conf['params']]]
 
@@ -419,9 +422,25 @@ class Experiment(object):
             self.experiments = pd.DataFrame(columns = columns)
 
         # query database about current experiment
-        self.cache = self.experiments[:][self.experiments['md5'] == xid]
+        self.cache_index = -1
+        if self.experiments.shape[0] > 0:
+            self.cache_index = self.experiments.index[-1]
+
+        print "md5", self.experiments.md5
+        print "xid", xid, self.experiments.md5 == xid
+        self.cache = self.experiments[:][self.experiments.md5 == xid]
         self.cache_loaded = False
 
+        def new_cache_entry(values, columns, index):
+            df = pd.DataFrame(data = values, columns = columns, index = index)
+            dfs = [self.experiments, df]
+            print "dfs", dfs
+        
+            # concatenated onto main df
+            self.experiments = pd.concat(dfs)
+            # experiment.cache is the newly created entry
+            self.cache = df
+        
         # load the cached experiment if it exists
         if self.cache is not None and self.cache.shape[0] != 0:
             # experiment.cache is the loaded entry
@@ -429,22 +448,15 @@ class Experiment(object):
             self.cache_loaded = True
 
             if self.params['cache_clear']:
-                print "Experiment.update_experiments_store: cache found, dropping it"
-                self.experiments.drop(index = [self.cache.loc])
+                print "Experiment.update_experiments_store: cache found, dropping it", type(self.experiments)
+                self.experiments.drop(index = [(self.experiments.md5 == xid).argmax()])
+            new_cache_entry(values, columns, index = [self.cache_index + 1])
         # store the experiment in the cache if it doesn't exist
         else:
             print "Experiment.update_experiments_store no cached results found, creating new entry"
             # temp dataframe
-            df = pd.DataFrame(values, columns = columns, index = [self.experiments.index[-1] + 1])
-
-            dfs = [self.experiments, df]
-
-            print "dfs", dfs
-        
-            # concatenated onto main df
-            self.experiments = pd.concat(dfs)
-            # experiment.cache is the newly created entry
-            self.cache = df
+            # self.experiments.index[-1] + 1
+            new_cache_entry(values, columns, index = [self.cache_index + 1])
             
         # write store
         self.experiments.to_hdf(self.experiments_store, key = 'experiments')
