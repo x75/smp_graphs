@@ -1,6 +1,6 @@
 """smp_graphs configuration
 
-baseline behaviour - open-loop uniform random search in finite isotropic space
+Baseline behaviour - open-loop uniform random search in finite isotropic space
 
 id:thesis_smpx0001
 
@@ -8,7 +8,6 @@ Oswald Berthold 2017
 
 special case of kinesis with coupling = 0 between measurement and action
 """
-
 from smp_graphs.block import FuncBlock2
 from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2
 from smp_graphs.block_models import ModelBlock2
@@ -43,6 +42,10 @@ dim = lconf['dim']
 order = lconf['order']
 budget = lconf['budget'] # 510
 lim = lconf['lim'] # 1.0
+
+# print "expr0000 __doc__", __doc__
+
+desc = "Baseline behaviour - open-loop uniform random search in finite isotropic space"
 
 # outputs = lconf['outputs']
 outputs = {

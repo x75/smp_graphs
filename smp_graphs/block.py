@@ -239,6 +239,18 @@ class Bus(MutableMapping):
             ret += "k = %s, v.shape = %s, mu = %s, var = %s\n" % (k, v.shape, np.mean(v, axis = -1), np.var(v, axis = -1))
         return ret
 
+    def astable(self):
+        """Return a table based bus representation for debug, print, and display.
+        """
+        storekeys = self.store.keys()
+        storekeys.sort()
+        ret = ''
+        for k in storekeys:
+            v = self.store[k]
+            # ret += "k = %s, v.shape = %s, mu = %s, var = %s\n" % (k, v.shape, np.mean(v, axis = -1), np.var(v, axis = -1))
+            ret += "{0:<20} | {1:<20}\n".format(k, v.shape)
+        return ret
+    
     def store_pickle(self, conf = {}):
         bus_filetype = 'pickle' # 'gml' # , 'json', 'yaml'
         bus_filename = '%s_%s.%s' % (conf['datafile_md5'], 'bus', bus_filetype)
@@ -1158,20 +1170,25 @@ class Block2(object):
             self.md5 = m.hexdigest()
             self.cache = None
             self.cache_loaded = False
+            self.cache_num_entries = 0
 
             if hasattr(self, 'nocache') and self.nocache:
                 return
             
-            # store exists?
+            # store exists
             if len(block.top.block_store.keys()) > 0:
                 # print "init_block_cache: block.top.block_store.keys()", block.top.block_store.keys()
                 # print "init_block_cache: block.top.block_store.has_key('/blocks')", '/blocks' in block.top.block_store.keys()
-                # print "check_block_store", block.top.block_store['blocks'] # .shape
+                # print "check_block_store", block.top.block_store['blocks'].shape
                 # print "init_block_cache: self.md5", self.cname, self.id, self.md5
                 # print "blocks", type(block.top.block_store['/blocks'])
                 # print block.top.block_store['blocks']['md5'] == self.md5
                 # print block.top.block_store['/blocks']
+
+                # get number of cache entries
+                self.cache_num_entries = block.top.block_store['blocks'].index[-1]
                 
+                # try to load the cache entry from the store
                 try:
                     self.cache = block.top.block_store['/blocks'][:][block.top.block_store['/blocks']['md5'] == self.md5]
                 except Exception, e:
@@ -1181,7 +1198,7 @@ class Block2(object):
                 # print "check_block_store", self.md5, block.top.block_store['blocks']['md5']
                 # print "init_block_cache: self.cache", self.cache
                 
-            # found cache
+            # cache loaded successfully
             if self.top.docache and self.cache is not None and self.cache.shape[0] != 0:
                 print "%s-%s.check_block_store: found cache for %s\n   cache['log_stores'] = %s" % (self.cname, self.id, self.md5, self.cache['log_store'].values)
                 
@@ -1208,18 +1225,20 @@ class Block2(object):
                 
                 # self.cache_h5.close()
                 self.cache_loaded = True
-            # no cache found
+                
+            # no cache entry was found or loading failed for some other reason
             else:
                 print "%s-%s.check_block_store: no cache exists for %s, storing %s at %s" % (self.cname, self.id, self.md5, 'self.conf', self.md5)
                 
-                # create entry and save
+                # create entry and save it
                 columns = [
                     'md5', 'timestamp', 'block', 'params', 'log_store', 'nxgraph'] # 'experiment',
                 values = [[
                     self.md5, pd.to_datetime(datetime.datetime.now()),
                     str(block.conf['block']), str(block.conf['params']),
                     log.log_store.filename, str('nxgraph')]]
-                df = pd.DataFrame(data = values, columns = columns)
+                index = self.cache_num_entries + 1
+                df = pd.DataFrame(data = values, index = [index], columns = columns) # index = 
                 # print "df =\n", df
 
                 # block store is empty
@@ -1893,8 +1912,9 @@ class Block2(object):
         id_ = re.sub('_', '-', self.id)
         texbuf = '\\section{%s}\n\\label{expr:%s}\n\n' % (id_, id_, )
         output_figures = [(k, v) for k, v in self.outputs.items() if v.has_key('type') and v['type'] in ['fig', 'plot']]
-        print "Block2.latex_close: output_figures", output_figures
+        print "Block2.latex_close: |output_figures| = %s" % ( len(output_figures), )
 
+        """
         if len(output_figures) > 0:
             descs = []
             refs = []
@@ -1910,14 +1930,77 @@ class Block2(object):
                 ref = "%s-%s" % (figlabel_, figid_, ) # 
                 texbuf += "  \\begin{subfigure}[]{0.99\\textwidth}\n    \\centering\n\
     \\includegraphics[width=0.99\\textwidth]{%s}\n\
-	\\caption{\\label{fig:%s}}\n\
-  \\end{subfigure}\n""" % (figv['filename'], ref, )
+	\\caption{\\label{fig:%s}}\n\  \\end{subfigure}\n" % (figv['filename'], ref, )
                 refs.append(ref)
                 descs.append(desc)
 
-            c_ = ','.join(["%s \\autoref{fig:%s}}" % (desc, ref) for (desc, ref) in zip(descs, refs)])
-            caption = "  \\caption{\\label{fig:%s}%s\n\\end{figure}\n" % (figv['label'], c_)
+            c_ = ','.join(["%s \\autoref{fig:%s}" % (desc, ref) for (desc, ref) in zip(descs, refs)])
+            caption = "  \\caption{\\label{fig:%s}%s}\n\\end{figure}\n" % (figv['label'], c_)
             texbuf += caption
+        """
+    
+        if len(output_figures) > 0:
+            for figk, figv in output_figures:
+                descs = []
+                refs = []
+                figbuf = "%% figure key = {0}, label = {1}\n".format(figk, figv['label'])
+                # figbuf += "\\begin{figure}[!htbp]\n  \\centering\n"
+                figbuf += "\\begin{figure}[!htbp]\n  \\captionsetup[subfigure]{position=t}\n  \\centering\n"
+                print "                    output_figures fig key = %s, fig val = %s" % (figk, figv)
+                # if k is 'figures':
+                # if len(v) > 0:
+                # for figk, figv in v.items():
+
+                # get filename for includegraphics
+                figfilename = figv['filename']
+                
+                # fix array repr for scalar entries
+                if type(figfilename) is str:
+                    figfilename = [figfilename]
+                    figdesc = [figv['desc']]
+                    figlabel = [figv['label']]
+                    figid = [figv['id']]
+                else:
+                    # figfilename = figfilename
+                    figdesc = figv['desc']
+                    figlabel = [figv['label']] * len(figfilename)
+                    figid = figv['id']
+                    
+                # loop over subfigure array
+                for i, figfilename_ in enumerate(figfilename):
+                    figdesc_ = figdesc[i]
+                    figlabel_ = re.sub('_', '-', figlabel[i])
+                    figid_ = re.sub('_', '-', figid[i])
+                    figref_ = "%s-%s" % (figlabel_, figid_, )
+                    
+                    print "                    i = %d, filename = %s" % (i, figfilename_)
+                    subfigref_ = '%s-%d' % (figref_, i)
+
+                    figwidth_ = '0.99\\textwidth'
+                    if figv.has_key('width'):
+                        if type(figv['width']) is list:
+                            if figv['width'][i] is not None:
+                                figwidth_ = figv['width'][i]
+                        else:
+                            figwidth_ = figv['width']
+                    if type(figwidth_) is float:
+                        figwidth_ = '%f\\textwidth' % (figwidth_, )
+                    subfigwidth_ = '0.99\\textwidth' # figwidth_
+                        
+                    figbuf += "  \subcaptionbox{{\\label{{fig:{3}}}}}{{\\includegraphics[width={0}]{{{2}}}}}\n".format(figwidth_, subfigwidth_, figfilename_, subfigref_, )
+  #                   figbuf += "  \\begin{subfigure}[]{%s}\n    \\centering\n\
+  #   \\includegraphics[width=%s]{%s}\n\
+  #   \\caption{\\label{fig:%s}}\n\
+  # \\end{subfigure}\n" % (figwidth_, subfigwidth_, figfilename_, subfigref_, )
+
+                    refs.append(subfigref_)
+                    descs.append(figdesc_)
+
+                c_ = ', '.join(["%s \\autoref{fig:%s}" % (desc, ref) for (desc, ref) in zip(descs, refs)])
+                caption = "  \\caption{\\label{fig:%s}%s}\n\\end{figure}\n\n\n" % (figlabel_, c_)
+                figbuf += caption
+                
+                texbuf += figbuf
 
         f.write(texbuf)
         f.flush()

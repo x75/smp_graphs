@@ -247,7 +247,8 @@ class FigPlotBlock2(BaseplotBlock2):
                 'filename': self.filename,
                 'label': self.top.id,
                 'id': self.id,
-                'desc': self.desc
+                'desc': self.desc,
+                'width': 1.0,
             }
 
         # FIXME: too special

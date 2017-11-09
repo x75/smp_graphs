@@ -15,6 +15,9 @@ from functools import partial
 # from types import FunctionType
 
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+import PIL
+from PIL import Image, ImageDraw, ImageFont
 
 import numpy as np
 import pandas as pd
@@ -64,6 +67,7 @@ def get_args():
     parser.add_argument("-nshp",  "--no-showplot",     dest="showplot",  action="store_false", default = None, help = "Show plots at all? [None]")
     parser.add_argument("-sp",  "--saveplot",     dest="saveplot",  action="store_true", default = None, help = "Enable saving the plots of this experiment [None]")
     parser.add_argument("-nsp", "--no-saveplot",  dest="saveplot",  action="store_false", default = None, help = "Disable saving the plots of this experiment [None]")
+    parser.add_argument("-cc", "--cache-clear",  dest='cache_clear', action='store_true', help="Clear the cache entry for cache hits of this experiment [False].", default = False)
 
     # parse arguments
     args = parser.parse_args()
@@ -93,7 +97,7 @@ def set_config_commandline_args(conf, args):
     """
     # for commandline_arg in conf['params'].has_key("numsteps"):
     #     conf['params']['numsteps'] = 100
-    gparams = ['numsteps', 'randseed', 'ros', 'docache', 'saveplot', 'showplot']
+    gparams = ['numsteps', 'randseed', 'ros', 'docache', 'saveplot', 'showplot', 'cache_clear']
     for clarg in gparams:
         if getattr(args, clarg) is not None:
             conf['params'][clarg] = getattr(args, clarg)
@@ -311,20 +315,58 @@ class Experiment(object):
     def init_plotgraph(self, args):
         self.plotgraph_flag = args.plotgraph
         if self.plotgraph_flag:
-            # self.filename = '%s_%s.%s' % (self.top.datafile_expr, self.top.id, self.savetype)
+            self.plotgraph_figures = {}
+
+            # graph plot
             self.plotgraph_savetype = 'pdf'
             self.plotgraph_filename = "%s/%s_%s_%d.%s" % (
                 self.conf['params']['datadir_expr'], self.top.id, 'nxgraph', 1,
                 self.plotgraph_savetype)
             
-            self.top.outputs['%s' % ('plotgraph', )] = {
+            self.plotgraph_figures['nxgraph'] = {
                 'type': 'fig',
+                'fig': None,
                 'filename': self.plotgraph_filename,
                 'label': self.top.id,
-                'id': self.top.id,
-                'desc': self.params['desc']
+                'id': 'graph',
+                'desc': 'Graph (nxgraph)',
+                # 'width': '378.52pt',
+                'width': 0.59,
             }
 
+            # bus plot
+            self.plotgraph_savetype = 'png' # 'pgm' # 'jpg'
+            self.plotgraph_filename = "%s/%s_%s_%d.%s" % (
+                self.conf['params']['datadir_expr'], self.top.id, 'bus', 1,
+                self.plotgraph_savetype)
+            
+            self.plotgraph_figures['bus'] = {
+                'type': 'fig',
+                'fig': None,
+                'filename': self.plotgraph_filename,
+                'label': self.top.id,
+                'id': 'bus',
+                'desc': 'Bus',
+                # 'width': '320pt',
+                'width': 0.39,
+            }
+
+
+            # plotgraph_figures = [
+            #     dict([(ik, iv) for ik, iv in v.items() if ik not in ['type', 'fig', 'label']]) for k, v in self.plotgraph_figures.items()]
+            
+            plotgraph_figures = dict([(k, [fv[k] for fk, fv in self.plotgraph_figures.items()]) for k in ['filename', 'id', 'desc', 'width']])
+            print "plotgraph_figures", plotgraph_figures
+            # copy to outputs for latex figures
+            self.top.outputs['graph-bus'] = {
+                'type': 'fig', 'fig': None,
+                'filename': plotgraph_figures['filename'],
+                'label': self.top.id,
+                'id': plotgraph_figures['id'],
+                'desc': plotgraph_figures['desc'],
+                'width': plotgraph_figures['width'],
+            }
+            
     def update_experiments_store(self, xid = None):
         """Experiment.update_experiments_store
 
@@ -369,8 +411,9 @@ class Experiment(object):
                 print "Experiment.update_experiments_store loaded experiments_store = %s with shape = %s" % (self.experiments_store, self.experiments.shape)
                 # search for hash
             except Exception, e:
-                print "Loading store %s failed with %s" % (self.experiments_store, e)
-                sys.exit(1)
+                print "Loading store %s failed with %s, continuing without cache" % (self.experiments_store, e)
+                return xid
+                # sys.exit(1)
         # create a new experiment database if it does not exist
         else:
             self.experiments = pd.DataFrame(columns = columns)
@@ -384,11 +427,15 @@ class Experiment(object):
             # experiment.cache is the loaded entry
             print "Experiment.update_experiments_store found cached results = %s\n%s" % (self.cache.shape, self.cache)
             self.cache_loaded = True
+
+            if self.params['cache_clear']:
+                print "Experiment.update_experiments_store: cache found, dropping it"
+                self.experiments.drop(index = [self.cache.loc])
         # store the experiment in the cache if it doesn't exist
         else:
             print "Experiment.update_experiments_store no cached results found, creating new entry"
             # temp dataframe
-            df = pd.DataFrame(values, columns = columns, index = [self.experiments.shape[0]])
+            df = pd.DataFrame(values, columns = columns, index = [self.experiments.index[-1] + 1])
 
             dfs = [self.experiments, df]
 
@@ -414,10 +461,12 @@ class Experiment(object):
         # axesspec = [(0, 0), (0, 1), (0, 2), (0, slice(3, None))]
         # axesspec = [(0, 0), (0,1), (1, 0), (1,1)]
         axesspec = None
+        plotgraph_figures = list()
+        figtitle = self.top.id.split('-')[0]
         # FIXME: uses makefig directly from smp_base.plot instead of FigPlotBlock2
         fig_nxgr = makefig(
             rows = 1, cols = 1, wspace = 0.1, hspace = 0.1,
-            axesspec = axesspec, title = "%s"  % (self.top.id.split('-')[0], )) # "nxgraph")
+            axesspec = axesspec, title = "%s"  % (figtitle, )) # "nxgraph")
         axi = 0
         # nxgraph_plot(self.top.nxgraph, ax = fig_nxgr.axes[0])
 
@@ -450,6 +499,8 @@ class Experiment(object):
         nxgraph_plot(G_, ax = fig_nxgr.axes[axi], layout_type = "linear_hierarchical", node_color = G_cols, node_size = 300)
         # fig_nxgr.axes[axi].set_aspect(1)
         axi += 1
+        # plotgraph_figures.append(fig_nxgr)
+        self.plotgraph_figures['nxgraph']['fig'] = fig_nxgr
         
         # # plot the nested graph
         # recursive_draw(
@@ -463,14 +514,11 @@ class Experiment(object):
         # if Gbus is None:
         #     Gbus = self.top.bus
 
-        if len(Gbus) > 40:
-            print "Gbus\n%s" % (Gbus, )
-            #     return
-        else:
+        if len(Gbus) < 0:
             # plot the bus with its builtin plot method
             fig_bus = makefig(
                 rows = 1, cols = 1, wspace = 0.1, hspace = 0.1,
-                axesspec = axesspec, title = "%s"  % (self.top.id.split('-')[0], ))
+                axesspec = axesspec, title = "%s"  % (figtitle, ))
 
             
             axi = 0
@@ -480,23 +528,79 @@ class Experiment(object):
             fig_bus.set_size_inches((5, ymax / 25.0))
             axi += 1
 
-            for fi, fig_ in enumerate([fig_nxgr, fig_bus]): # 
-                # for ax in fig_.axes:
-                #     xlim = ax.get_xlim()
-                #     ylim = ax.get_ylim()
-                #     print "fig", fig_, "ax xlim", xlim, "ylim", ylim
-                #     width = (xlim[1] - xlim[0])/1.0
-                #     height = (ylim[1] - ylim[0])/1.0
-                #     fig_.set_size_inches((width, height))
-                # save the plot if saveplot is set
-                if self.params['saveplot']:
-                    savetype = self.plotgraph_savetype
-                    filename = self.plotgraph_filename
-                    try:
-                        print "Saving experiment graph plot to %s" % (filename, )
+            # plotgraph_figures.append(fig_bus)
+            self.plotgraph_figures['bus']['fig'] = fig_bus
+        else:
+            # bustxt = "%s\n\nbus\n%s" % (figtitle, Gbus.astable(), )
+            # bustxt = "{0}\n\n{1:^40}\n\n{2}".format(figtitle, 'signal bus', Gbus.astable(), )
+
+            # configure
+            img_figtitle = "{0}".format(figtitle)
+            img_figsubtitle = "{0:^40}".format('signal bus')
+            img_bustable = "{0}".format(Gbus.astable())
+
+            fontsize = 12
+            lineheight = int(fontsize * 1.4)
+            width = 320
+            height = (img_bustable.count('\n') + 5) * lineheight
+            offset_y = 10
+            colwidth = 150
+
+            # init image objects
+            # image = Image.new("RGBA", (width,height), (255,255,255))
+            image = Image.new(mode = "L", size = (width, height), color = 1.0)
+            draw = ImageDraw.Draw(image)
+            # font = ImageFont.truetype("/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf", fontsize)
+            font_normal = ImageFont.truetype("DejaVuSans.ttf", fontsize)
+            font_bold = ImageFont.truetype("DejaVuSans-Bold.ttf", fontsize)
+            # font_normal = ImageFont.truetype("FreeSans.ttf", fontsize)
+            # font_bold = ImageFont.truetype("FreeSansBold.ttf", fontsize)
+            fontcolor = (0,0,0)
+            fontcolor = 0
+
+            # draw header
+            draw.text((10, offset_y + 0), img_figtitle, fontcolor, font = font_bold)
+            draw.text((10, offset_y + 20), img_figsubtitle, fontcolor, font = font_normal)
+
+            # draw bus items
+            for i, k in enumerate(Gbus.keys()):
+                draw.text(
+                    (10, offset_y + (i * lineheight) + 40), '| %s' % (k, ), fontcolor, font = font_normal)
+                draw.text(
+                    (10 + colwidth, offset_y + (i * lineheight) + 40), '| %s' % (Gbus[k].shape,), fontcolor, font = font_normal)
+            # imgage_s = image.resize((188,45), Image.ANTIALIAS)
+            # image_s = image.resize((width, height), Image.ANTIALIAS)
+            self.plotgraph_figures['bus']['fig'] = image
+            # filename = re.sub('\.%s' % (savetype, '.jpg', self.plotgraph_figures['bus']['filename']
+            # img_resized.save()
+            
+            # if self.conf['params']['showplot']:
+            #     image.show()
+
+        # for fi, fig_ in enumerate(plotgraph_figures): #
+        for plotk, plotv in self.plotgraph_figures.items():
+            # for ax in fig_.axes:
+            #     xlim = ax.get_xlim()
+            #     ylim = ax.get_ylim()
+            #     print "fig", fig_, "ax xlim", xlim, "ylim", ylim
+            #     width = (xlim[1] - xlim[0])/1.0
+            #     height = (ylim[1] - ylim[0])/1.0
+            #     fig_.set_size_inches((width, height))
+            # save the plot if saveplot is set
+            if self.params['saveplot']:
+                # savetype = self.plotgraph_savetype
+                fig_ = plotv['fig']
+                filename = plotv['filename'] # self.plotgraph_filename
+                try:
+                    print "Saving experiment graph plot of type = %s to %s" % (type(fig_), filename, )
+                    if type(fig_) is Figure:
                         fig_.savefig(filename, dpi=300, bbox_inches="tight")
-                    except Exception, e:
-                        print "Saving experiment graph plot to %s failed with %s" % (filename, e,)
+                    elif type(fig_) is PIL.Image.Image:
+                        fig_.save(filename)
+                    else:
+                        print "            watn scheis\n\n\n\n"
+                except Exception, e:
+                    print "Saving experiment graph plot to %s failed with %s" % (filename, e,)
 
     def printgraph_recursive(self, G, lvl = 0):
         indent = " " * 4 * lvl
