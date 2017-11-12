@@ -8,7 +8,7 @@ from smp_base.plot import rp_timeseries_embedding
 from smp_graphs.block_meas_essentia import EssentiaBlock2
 
 # reuse
-numsteps = 500
+numsteps = 8192 # 65535
 # xdim = 6
 # ydim = 4
 xdim = 1
@@ -103,12 +103,13 @@ loopblock_graph = OrderedDict([
             'id': 'puppydata',
             'debug': False,
             'blocksize': numsteps,
+            'samplerate': 1024,
             'inputs': {
-                'x_in': {'bus': 'filedata/x'},
+                'x': {'bus': 'filedata/x'},
             },
             'outputs': {
-                'x': {'shape': (xdim, numsteps)},
-                'y': {'shape': (ydim, numsteps)}
+                'y': {'shape': (xdim, numsteps)},
+                # 'y': {'shape': (ydim, numsteps)}
             },
         },
     }),
@@ -141,13 +142,23 @@ loopblock = {
 }
 
 def make_puppy_rp_plot_inputs():
-    global looparray, numsteps
-    # buskey_base = 'puppyloop'
-    buskey_base = 'filedata'
-    inspec = {'d3': {'bus': 'b2/x', 'shape': (3, numsteps)}}
+    global looparray, numsteps, xdim, ydim
+    # buskey_base = ['puppyloop']
+    # buskey_bases = ['filedata', 'essentia1']
+    # buskey_signal = ['x', 'y']
+    buskey_bases = ['essentia1']
+    buskey_signal = [ 'y']
+    # inspec = {'d3': {'bus': 'b2/x', 'shape': (3, numsteps)}}
+    inspec = {}
     for i,l in enumerate(looparray):
-        inspec['x_ll%d' % (i, )] = {'bus': '%s_ll%d_ll0_ll0/x' % (buskey_base, i, )}
-        inspec['y_ll%d' % (i, )] = {'bus': '%s_ll%d_ll0_ll0/y' % (buskey_base, i, )}
+        for j, buskey_base in enumerate(buskey_bases):
+            inspec['%s_ll%d_%d' % (buskey_signal[j], i, j, )] = {
+                'bus': '%s_ll%d_ll0_ll0/%s' % (buskey_base, i, buskey_signal[j]),
+                'shape': (xdim, numsteps / 1024 + 1),
+            }
+            # inspec['%s_ll%d_%d' % (buskey_signal[j], i, j, )] = {'bus': '%s_ll%d_ll0_ll0/%s' % (buskey_base, i, buskey_signal[j])}
+            # inspec['y_ll%d_%d' % (i, j, )] = {'bus': '%s_ll%d_ll0_ll0/y' % (buskey_base, i, )}
+            # inspec['x_e_ll%d' % (i, )] = {'bus': '%s_ll%d_ll0_ll0/x' % (buskey_base, i, )}
     return inspec
 
 # graph
@@ -204,11 +215,15 @@ graph = OrderedDict([
             'inputs': make_puppy_rp_plot_inputs(),
             'ylim_share': False,
             'subplots': [[
-                {'input': '%s_ll%d' % (itup[1], itup[0]), 'plot': timeseries},
-                {'input': '%s_ll%d' % (itup[1], itup[0]), 'plot': histogram},
-                {'input': '%s_ll%d' % (itup[1], itup[0]), 'plot': rp_timeseries_embedding}
-                ] for itup in zip(map(lambda x: x/2, range(len(looparray)*2)), ['x', 'y'] * len(looparray))]
-
+                # {'input': '%s_ll%d' % (itup[1], itup[0]), 'plot': timeseries},
+                # {'input': '%s_ll%d' % (itup[1], itup[0]), 'plot': histogram},
+                # {'input': '%s_ll%d' % (itup[1], itup[0]), 'plot': timeseries},
+                # {'input': '%s' % (itup[0], ), 'plot': timeseries},
+                {'input': '%s' % (itup[0], ), 'plot': partial(timeseries, marker = 'o')},
+                # {'input': '%s_ll%d' % (itup[1], itup[0]), 'plot': rp_timeseries_embedding}
+                # , 'y'
+                # ] for itup in zip(map(lambda x: x/2, range(len(looparray)*2)), ['x'] * len(looparray))]
+                ] for itup in make_puppy_rp_plot_inputs().items()]
             # [
             #     [
             #     {'input': 'x_%d' % (i, ), 'slice': (0, 6), 'plot': timeseries},
