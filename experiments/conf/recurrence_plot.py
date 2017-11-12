@@ -13,6 +13,7 @@ numsteps = 8192 # 65535
 # ydim = 4
 xdim = 1
 ydim = 1
+mfccdim = xdim * 12
 # offset_range = 
 
 lconf = {
@@ -108,7 +109,9 @@ loopblock_graph = OrderedDict([
                 'x': {'bus': 'filedata/x'},
             },
             'outputs': {
-                'y': {'shape': (xdim, numsteps)},
+                'centroid': {'shape': (xdim * 1, numsteps / 1024 + 1), 'etype': 'centroid'},
+                'mfcc': {'shape': (mfccdim, numsteps / 1024 + 1), 'etype': 'mfcc', 'numberCoefficients': mfccdim},
+                # 'y': {'shape': (xdim, numsteps)},
                 # 'y': {'shape': (ydim, numsteps)}
             },
         },
@@ -142,19 +145,22 @@ loopblock = {
 }
 
 def make_puppy_rp_plot_inputs():
-    global looparray, numsteps, xdim, ydim
+    global looparray, numsteps, xdim, ydim, mfccdim
     # buskey_base = ['puppyloop']
     # buskey_bases = ['filedata', 'essentia1']
     # buskey_signal = ['x', 'y']
-    buskey_bases = ['essentia1']
-    buskey_signal = [ 'y']
+    # buskey_bases = ['essentia1']
+    # buskey_signal = [ 'y']
+    buskey_bases = ['essentia1'] * 2
+    buskey_signal = [ 'centroid', 'mfcc']
+    buskey_shapes = [ (xdim, numsteps / 1024 + 1), (mfccdim, numsteps / 1024 + 1)]
     # inspec = {'d3': {'bus': 'b2/x', 'shape': (3, numsteps)}}
     inspec = {}
     for i,l in enumerate(looparray):
         for j, buskey_base in enumerate(buskey_bases):
             inspec['%s_ll%d_%d' % (buskey_signal[j], i, j, )] = {
                 'bus': '%s_ll%d_ll0_ll0/%s' % (buskey_base, i, buskey_signal[j]),
-                'shape': (xdim, numsteps / 1024 + 1),
+                'shape': buskey_shapes[j], # (xdim, numsteps / 1024 + 1),
             }
             # inspec['%s_ll%d_%d' % (buskey_signal[j], i, j, )] = {'bus': '%s_ll%d_ll0_ll0/%s' % (buskey_base, i, buskey_signal[j])}
             # inspec['y_ll%d_%d' % (i, j, )] = {'bus': '%s_ll%d_ll0_ll0/y' % (buskey_base, i, )}
@@ -219,7 +225,7 @@ graph = OrderedDict([
                 # {'input': '%s_ll%d' % (itup[1], itup[0]), 'plot': histogram},
                 # {'input': '%s_ll%d' % (itup[1], itup[0]), 'plot': timeseries},
                 # {'input': '%s' % (itup[0], ), 'plot': timeseries},
-                {'input': '%s' % (itup[0], ), 'plot': partial(timeseries, marker = 'o')},
+                {'input': '%s' % (itup[0], ), 'plot': partial(timeseries, marker = 'o'), 'shape': itup[1]['shape']},
                 # {'input': '%s_ll%d' % (itup[1], itup[0]), 'plot': rp_timeseries_embedding}
                 # , 'y'
                 # ] for itup in zip(map(lambda x: x/2, range(len(looparray)*2)), ['x'] * len(looparray))]

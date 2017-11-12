@@ -18,24 +18,53 @@ class EssentiaBlock2(PrimBlock2):
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
-    
+
         self.pool = e.Pool()
-        self.pool2 = []
+        self.pool2 = {}
         self.w = estd.Windowing(type = 'hamming')
-        # FFT() would return the complex FFT, here we just want the magnitude spectrum        
+        
+        # FFT() would return the complex FFT, here we just want the magnitude spectrum
         self.spectrum = estd.Spectrum()
-        self.mfcc = estd.MFCC()
-        self.danceability = estd.Danceability(
-            maxTau = 10000, minTau = 300, sampleRate = self.samplerate)
+        
+        for outk, outv in self.outputs.items():
+            if not outv.has_key('etype'): continue
+            if outv['etype'] == 'mfcc':
+                outv['func'] = estd.MFCC()
+            elif outv['etype'] == 'centroid':
+                outv['func'] = estd.Centroid()
+            elif outv['etype'] == 'danceability':
+                outv['func'] = estd.Danceability(
+                    maxTau = 10000, minTau = 300, sampleRate = self.samplerate)
         
     @decStep()
     def step(self, x = None):
         # print "MomentBlock2"
-        for k, v in self.inputs.items():
-            print "EssentiaBlock2 step[%d] input %s = %s" % (self.cnt, k, v.keys())
+        
+        # # silently assuming only one item named 'x'
+        # for k, v in self.inputs.items():
+        #     pass
 
-            frame_ = v['val']
-            print "                        frame_ = %s" % (frame_.shape, )
+        # inputs
+        print "EssentiaBlock2 step[%d] input %s = %s" % (
+            self.cnt, 'x', self.inputs['x'].keys())
+        frame_ = self.inputs['x']['val']
+
+        spec = []
+        for frame in estd.FrameGenerator(
+                frame_, frameSize = 2 * self.samplerate,
+                hopSize = 1 * self.samplerate):
+            # common funcs
+            spec_ = self.spectrum(self.w(frame))
+            spec.append(spec_)
+        self.spec = np.array(spec)
+            
+        # outputs
+        for outk, outv in self.outputs.items():
+            print "EssentiaBlock2 step[%d] output %s = %s" % (
+                self.cnt, outk, outv.keys())
+
+            # frame_ = v['val']
+            # print "                        frame_ = %s" % (frame_.shape, )
             
             # spec = self.spectrum(self.w(frame))
             # mfcc_bands, mfcc_coeffs = self.mfcc(spec)
@@ -48,19 +77,34 @@ class EssentiaBlock2(PrimBlock2):
             # for frame in estd.FrameGenerator(
             #         frame_, frameSize = 2 * self.samplerate,
             #         hopSize = 1 * self.samplerate):
-            for frameidx in range(self.blocksize / self.samplerate):
-                frame = frame_[frameidx * self.samplerate:(frameidx + 1) * self.samplerate]
+            
+            # for frameidx in range(self.blocksize / self.samplerate):
+            #     frame = frame_[frameidx * self.samplerate:(frameidx + 1) * self.samplerate]
+            outtypek = '%s-%s' % (outk, outv['etype'])
+            self.pool2[outtypek] = []
+            print "    spec.shape", self.spec.shape
+            for spec_ in self.spec:
+                frame = spec_
                 print "                            frame = %s" % (frame.shape, )
-                dreal, ddfa = self.danceability(self.w(frame))
-                print "d", dreal # , "frame", frame
-                self.pool.add('rhythm.danceability', dreal)
-                self.pool2.append(dreal)
+                # dreal, ddfa = self.danceability(self.w(frame))
+                # print "d", dreal # , "frame", frame
+                # self.pool.add('rhythm.danceability', dreal)
+                # self.pool2.append(dreal)
+                # self.pool.add('rhythm.danceability', dreal)
+                y_ = outv['func'](frame)
+                if outv['etype'] == 'mfcc':
+                    y_ = y_[1][1:]
+                # print "        EssentiaBlock2 compute", y_
+                self.pool2[outtypek].append(y_)
 
-            print "rhythm.danceability", type(self.pool['rhythm.danceability']), self.pool['rhythm.danceability'].shape
-            self.y = np.atleast_2d(np.array(self.pool2))
-            print "y.shape", self.y.shape
+            # print "rhythm.danceability", type(self.pool['rhythm.danceability']), self.pool['rhythm.danceability'].shape
 
-            # setattr(self, 'y', spec)
+            y_ = np.atleast_2d(np.array(self.pool2[outtypek]))
+            if outv['etype'] == 'mfcc':
+                y_ = y_.T
+
+            setattr(self, outk, y_.copy())
+            print "%s/%s = %s" % (self.id, outk, getattr(self, outk))
             # setattr(self, 'y', self.pool['rhythm.danceability'])
             # setattr(self, 'y', y)
 

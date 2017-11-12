@@ -517,7 +517,8 @@ class PlotBlock2(FigPlotBlock2):
                         plotdata[ink_] = myt(self.inputs[ink]['val'])[xslice] # .reshape((xslice.stop - xslice.start, -1))
 
                     assert plotdata[ink_].shape != (0,), "no data to plot"
-                    # print "      id %s, ink = %s, plotdata = %s, plotshape = %s" % (self.id, ink_, plotdata[ink_].shape, plotshape)
+                    print "      input = %s" % self.inputs[ink]['val']
+                    print "      id %s, ink = %s, plotdata = %s, plotshape = %s" % (self.id, ink_, plotdata[ink_], plotshape)
                     # plotdata[ink_] = plotdata[ink_].reshape((plotshape[1], plotshape[0])).T
                     plotdata[ink_] = plotdata[ink_].reshape(plotshape)
                     
