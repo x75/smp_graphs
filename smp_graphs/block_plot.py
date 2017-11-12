@@ -93,7 +93,7 @@ class AnalysisBlock2(PrimBlock2):
         
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
         # print "AnalysisBlock2.init", conf['params']['saveplot'], self.conf['params']['saveplot']
-        print "AnalysisBlock2.init saveplot =", self.saveplot
+        # print "AnalysisBlock2.init saveplot =", self.saveplot
 
         # default title?
         if not hasattr(self, 'title'):
@@ -360,6 +360,8 @@ class PlotBlock2(FigPlotBlock2):
         #     'x': {'bus': 'x'}, # FIXME: how can this be known? id-1?
         # },
         'blocksize': 1,
+        'xlim_share': True,
+        'ylim_share': True,
         'subplots': [[{'input': ['x'], 'plot': timeseries}]],
      }
     
@@ -602,6 +604,8 @@ class PlotBlock2(FigPlotBlock2):
                     
                     # this is the plot function array from the config
                     if not plotdata.has_key('_stacked'):
+                        # print "    plot_subplots plotfunc", plotfunc_conf[plotfunc_idx]
+                        # print "                      args", ax, inv, t, title, kwargs
                         plotfunc_conf[plotfunc_idx](ax = ax, data = inv, ordinate = t, title = title, **kwargs)
 
                     # label = "%s" % ink, title = title
@@ -650,8 +654,10 @@ class PlotBlock2(FigPlotBlock2):
                 ax = self.fig.axes[idx]
 
                 # consolidate axis limits
-                ax.set_xlim(cols_xlim_max[j])
-                ax.set_ylim(rows_ylim_max[i])
+                if self.xlim_share:
+                    ax.set_xlim(cols_xlim_max[j])
+                if self.ylim_share:
+                    ax.set_ylim(rows_ylim_max[i])
                 
                 # fix legends
                 # ax.legend(labels)

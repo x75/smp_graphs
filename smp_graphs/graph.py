@@ -92,6 +92,41 @@ def nxgraph_add_node_from_conf(k, v, G, nc):
     nc += 1
     return (G, nc)
 
+def check_loopblock_parallel(conf):
+    return conf['params'].has_key('loopblock') \
+      and conf['params'].has_key('loopmode') \
+      and conf['params']['loopmode'] is not 'sequential' \
+      and type(conf['params']['loop']) is list # FIXME: list and func
+
+def check_graph_subgraph(conf, G, nc):
+    # node order: fixed with numeric keys, alternative: key array
+    # slightly different types: graph, subgraph, loopblock
+    if conf['params'].has_key('graph') or conf['params'].has_key('subgraph'):
+        # two subordinate cases
+        # 1 standard graph as dict
+        # 2 existing node which we want to clone
+
+        # print "type graph", type(conf['params']['graph'])
+        if type(conf['params']['graph']) is OrderedDict:
+            # print "nc", nc
+            (G, nc) = nxgraph_add_nodes_from_dict(conf['params']['graph'], G, nc)
+            # print "nc", nc
+            
+        # elif type(conf['params']['graph']) is str and \
+        #     conf['params']['graph'].startswith("id:"):
+        #     # FIXME: obsolete, from cloning
+        #     # look at the structure we want to copy and copy the input / output
+        #     # spec?
+        #     # no, input / output spec needs to be given, do the inference in a
+        #     # later version
+            
+        #     # 1 get the block by id
+        #     # 2 store the block in the graph
+        #     # 3 check in step if things need initialization
+        #     pass
+        
+    return G, nc
+      
 def nxgraph_from_smp_graph(conf):
     """nxgraph_from_smp_graph
 
@@ -106,7 +141,11 @@ def nxgraph_from_smp_graph(conf):
 
     FIXME: graph G has no edges
     """
-    # print "graph.py nxgraph_from_smp_graph kwargs[conf] = %s" % ( conf.keys(), )
+    # # debug
+    # print "    graph.py nxgraph_from_smp_graph kwargs[conf] = %s" % ( conf.keys(), )
+    # for k, v in conf['params'].items():
+    #     print "             %s = %s" % (k, v)
+    
     # new empty graph
     G = nx.MultiDiGraph()
     G.name = conf['params']['id']
@@ -114,74 +153,68 @@ def nxgraph_from_smp_graph(conf):
     nc = 0
     
     # assert conf['params'].has_key('loopmode'), "%s-%s loopmode?" % (conf['params']['id'], conf['block'])
+    # # do loopblock specific preprocessing for list based loop
+    # if check_loopblock_parallel(conf):
+    #     loopgraph_unrolled = OrderedDict()
+    #     # print "        - nxgraph_from_smp_graph loopblock %s unroll %s" % (
+    #     #     conf['params']['id'],
+    #     #     conf['params']['loop'],)
+        
+    #     # construction loop
+    #     for i, item in enumerate(conf['params']['loop']):
+            
+    #         # at least a one element list of key:val tuples
+    #         if type(item) is tuple:
+    #             item = [item]
+                
+    #         # get template and copy
+    #         lpconf = copy.deepcopy(conf['params']['loopblock'])
+
+    #         # rewrite block ids with loop count
+    #         lpconf = dict_replace_idstr_recursive(d = lpconf, cid = conf['params']['id'], xid = "%d" % (i, ))
+    #         # print "         - nxgraph_from_smp_graph loopblock unroll-%d lpconf = %s" % (i, lpconf, )
+            
+    #         # conf['params']['subgraph'] = conf['params']['loopblock']
+    #         # G, nc = check_graph_subgraph(conf, G, nc)
+            
+    #         """Examples for loop specification
+
+    #         [('inputs', {'x': {'val': 1}}), ('inputs', {'x': {'val': 2}})]
+    #         or
+    #         [
+    #             [
+    #                 ('inputs',  {'x': {'val': 1}}),
+    #                 ('gain',    0.5),
+    #                 ],
+    #             [
+    #                 ('inputs', {'x': {'val': 2}})
+    #                 ('gain',    0.75),
+    #                 ]
+    #             ]
+    #         """
+    #         # copy loop items into full conf
+    #         for (paramk, paramv) in item:
+    #             lpconf['params'][paramk] = paramv # .copy()
+
+    #         # print "nxgraph_from_smp_graph", lpconf['params']['id']
+    #         # print "nxgraph_from_smp_graph", print_dict(lpconf['params'])
+    #         # print "|G|", G.name, G.number_of_nodes()
+
+    #         loopgraph_unrolled[lpconf['params']['id']] = lpconf
+                
+    #         # G.add_node(nc, **lpconf)
+    #         # # print "|G|", G.name, G.number_of_nodes()
+    #         # nc += 1
+
+    #     print "        loopgraph_unrolled", loopgraph_unrolled
+    #     conf['params']['subgraph'] = loopgraph_unrolled
+    #     conf['params']['graph'] = loopgraph_unrolled
     
-    # node order: fixed with numeric keys, alternative: key array
-    # slightly different types: graph, subgraph, loopblock
-    if conf['params'].has_key('graph') or conf['params'].has_key('subgraph'):
-        # two subordinate cases
-        # 1 standard graph as dict
-        # 2 existing node which we want to clone
-
-        # print "type graph", type(conf['params']['graph'])
-        if type(conf['params']['graph']) is OrderedDict:
-            # print "nc", nc
-            (G, nc) = nxgraph_add_nodes_from_dict(conf['params']['graph'], G, nc)
-            # print "nc", nc
-        elif type(conf['params']['graph']) is str and \
-            conf['params']['graph'].startswith("id:"):
-            # FIXME: obsolete, from cloning
-            # look at the structure we want to copy and copy the input / output
-            # spec?
-            # no, input / output spec needs to be given, do the inference in a
-            # later version
-            
-            # 1 get the block by id
-            # 2 store the block in the graph
-            # 3 check in step if things need initialization
-            pass
-            
-    # do loopblock specific preprocessing for list based loop
+    # else:
+    G, nc = check_graph_subgraph(conf, G, nc)
+                    
     # FIXME: only do this for Loop, not SeqLoop
-    elif conf['params'].has_key('loopblock') \
-      and conf['params'].has_key('loopmode') \
-      and conf['params']['loopmode'] is not 'sequential' \
-      and type(conf['params']['loop']) is list:
-        # construction loop
-        for i, item in enumerate(conf['params']['loop']):
-            # at least a one element list of key:val tuples
-            if type(item) is tuple:
-                item = [item]
-            # get template and copy
-            lpconf = copy.deepcopy(conf['params']['loopblock'])
-
-            # rewrite block ids with loop count
-            lpconf = dict_replace_idstr_recursive(d = lpconf, cid = conf['params']['id'], xid = "%d" % (i, ))
-            
-            """Examples for loop specification
-
-            [('inputs', {'x': {'val': 1}}), ('inputs', {'x': {'val': 2}})]
-            or
-            [
-                [
-                    ('inputs',  {'x': {'val': 1}}),
-                    ('gain',    0.5),
-                    ],
-                [
-                    ('inputs', {'x': {'val': 2}})
-                    ('gain',    0.75),
-                    ]
-                ]
-            """
-            # copy loop items into full conf
-            for (paramk, paramv) in item:
-                lpconf['params'][paramk] = paramv # .copy()
-
-            # print "nxgraph_from_smp_graph", lpconf['params']['id']
-            # print "nxgraph_from_smp_graph", print_dict(lpconf['params'])
-            # print "|G|", G.name, G.number_of_nodes()
-            G.add_node(nc, **lpconf)
-            # print "|G|", G.name, G.number_of_nodes()
-            nc += 1
+    # elif check_loopblock_parallel(conf):
 
     # FIXME: function based loops, only used with SeqLoop yet
     # print "G.name", G.name, G.number_of_nodes()

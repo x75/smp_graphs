@@ -297,21 +297,27 @@ def dict_replace_idstr_recursive(d, cid, xid):
     # assert d['params'].has_key('id')
 
     # print "dict_replace_idstr_recursive", print_dict(d)
-    
-    if cid is not None:
-        # change param 'id' with loop marker and number
-        d['params']['id'] = "%s%s%s" % (cid, loop_delim, xid)
 
-        # change param 'inputs'
-        if d['params'].has_key('inputs'):
-            for ink, inv in d['params']['inputs'].items():
-                if inv.has_key('bus'):
-                    # print "bus old", inv['bus']
-                    inv['bus'] = re.sub(
-                        r'%s' % (cid, ),
-                        r'%s' % (d['params']['id'], ),
-                        inv['bus'])
-                    # print "bus new", inv['bus']
+    if cid is None:
+        return d
+    
+    # if cid is not None:
+    # change param 'id' with loop marker and number
+    d['params']['id'] = "%s%s%s" % (cid, loop_delim, xid)
+    print "dict_replace_idstr_recursive newid", d['params']['id']
+
+    # change param 'inputs'
+    if d['params'].has_key('inputs'):
+        for ink, inv in d['params']['inputs'].items():
+            # print "        cid = %s, id = %s, ink = %s, inv = %s" % (
+            #    cid, d['params']['id'], ink, inv.keys())
+            if inv.has_key('bus'):
+                # print "        bus old", inv['bus']
+                inv['bus'] = re.sub(
+                    r'%s' % (cid, ),
+                    r'%s' % (d['params']['id'], ),
+                    inv['bus'])
+                # print "        bus new", inv['bus']
                     
         # change param '?'
 

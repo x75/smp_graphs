@@ -4,6 +4,15 @@ import os
 import numpy as np
 import pandas as pd
 
+HAVE_ESSENTIA = False
+try:
+    import essentia as e
+    import essentia.standard as estd
+    HAVE_ESSENTIA = True
+except ImportError, e:
+    print "Failed to import essentia", e
+
+
 from smp_graphs.common import read_puppy_hk_pickles
 from smp_graphs.block  import Block2, decInit, decStep
 from smp_graphs.block  import PrimBlock2
@@ -31,11 +40,16 @@ class FileBlock2(Block2):
             # make it a dict
             conf['params']['file'] = {'filename': lfile}
             
-        print "%s.init Loading %s-type data from %s" % (self.__class__.__name__, conf['params']['type'], lfile)
         
         ############################################################
         # puppy homeokinesis (andi)
-        if conf['params']['type'] == 'puppy':
+        if conf['params']['file'].has_key('filetype'):
+            filetype = conf['params']['file']['filetype']
+        else:
+            filetype = conf['params']['type']
+        print "%s.init Loading %s-type data from %s" % (self.__class__.__name__, filetype, lfile)
+        
+        if filetype == 'puppy':
             offset = 0
             if conf['params']['outputs'].has_key('log'):
                 del conf['params']['outputs']['log']
@@ -50,20 +64,25 @@ class FileBlock2(Block2):
 
             # reslice
             sl = slice(offset, offset + length)
-            for k in ['x', 'y']:
-                self.data[k] = self.data[k][sl]
+            # for k in ['x', 'y']:
+            #     self.data[k] = self.data[k][sl]
                 
+            print "%sFileBlock2 loading puppy, outputs = %s" % (
+                ' ' * 8, conf['params']['outputs'])
+                    
             for k in ['x', 'y']:
                 self.data[k] = self.data[k][sl]
                 # setattr(self, 'x', self.data['x'])
-                # print "self.data", self.data.keys()
+                print "    self.data = %s %s/%s" % (
+                    self.data[k].shape,
+                    np.mean(self.data[k], axis = 0),
+                    np.var(self.data[k], axis = 0))
                 # for k,v in self.data.items():
                 #     if type(v) is np.ndarray:
                 #         print "puppylog", k, lfile, v.shape, np.mean(v), np.var(v), v
                 # setattr(self, 'x', self.data['x'])
                 # print "fileblock 'puppy' data.keys()", self.data.keys(), conf['params']['blocksize']
 
-                print "bla", conf['params']['outputs']
                 if not conf['params']['outputs'][k].has_key('shape'):
                     conf['params']['outputs'][k] = {'shape': self.data[k].T.shape} # [:-1]
                 # conf['params']['outputs']['y'] = {'shape': self.data['y'].T.shape} # [:-1]
@@ -74,7 +93,7 @@ class FileBlock2(Block2):
             self.step = self.step_puppy
         ############################################################
         # sphero res learner
-        elif conf['params']['type'] == 'sphero_res_learner':
+        elif filetype == 'sphero_res_learner':
             self.data = np.load(lfile)
             print "fileblock self.data sphero", self.data.keys()
             del conf['params']['outputs']['log']
@@ -94,7 +113,7 @@ class FileBlock2(Block2):
             print "fileblock sphero_res_learner conf", conf['params']['outputs']
         ############################################################
         # test data format 1
-        elif conf['params']['type'] == 'testdata1':
+        elif filetype == 'testdata1':
             self.data = np.load(lfile)
             print "fileblock self.data testdata1", self.data.keys()
             del conf['params']['outputs']['log']
@@ -115,13 +134,13 @@ class FileBlock2(Block2):
             
         ############################################################
         # selflogconfs
-        elif conf['params']['type'] == 'selflogconf':
+        elif filetype == 'selflogconf':
             assert os.path.exists(lfile), "logfile %s not found" % (lfile, )
             self.store = pd.HDFStore(lfile)
             self.step = self.step_selflogconf
         ############################################################
         # selflog
-        elif conf['params']['type'] == 'selflog':
+        elif filetype == 'selflog':
             # print "FileBlock2 selflog", conf['params']['blocksize']
             assert os.path.exists(lfile), "logfile %s not found" % (lfile, )
             self.store = pd.HDFStore(lfile)
@@ -153,7 +172,7 @@ class FileBlock2(Block2):
             self.step = self.step_selflog
         ############################################################
         # wav file
-        elif conf['params']['type'] == 'wav':
+        elif filetype == 'wav':
             import scipy.io.wavfile as wavfile
             rate, data = wavfile.read(lfile)
             sl = slice(conf['params']['file']['offset'], conf['params']['file']['offset'] + conf['params']['file']['length'])
@@ -161,6 +180,17 @@ class FileBlock2(Block2):
             print "data", data.shape, self.data['x'].shape
             self.step = self.step_wav
 
+        elif filetype == 'mp3':
+            # import scipy.io.wavfile as wavfile
+            # rate, data = wavfile.read(lfile)
+            rate = 44100 # FIXME: get_rate(lfile)
+            loader = estd.MonoLoader(filename = lfile, sampleRate = 44100)
+            data = loader.compute()
+            
+            sl = slice(conf['params']['file']['offset'], conf['params']['file']['offset'] + conf['params']['file']['length'])
+            self.data = {'x': data[sl], 'y': data[sl]}
+            print "data", data.shape, self.data['x'].shape
+            self.step = self.step_wav
         # FIXME: perform quick check of data
         
             
@@ -208,7 +238,7 @@ class FileBlock2(Block2):
                 windowlen = v['shape'][-1]
                 if self.cnt < windowlen: continue
                 sl = slice(self.cnt-windowlen, self.cnt)
-                # print "step_puppy: self.cnt", self.cnt, "bs", self.blocksize, "win", windowlen, "sl", sl, "k", k, self.data[k][sl].T.shape
+                # print "    step_puppy: self.cnt", self.cnt, "bs", self.blocksize, "win", windowlen, "sl", sl, "k", k, self.data[k][sl].T.shape
                 setattr(self, k, self.data[k][sl].T)
                 # setattr(self, k, self.data[k][[self.cnt]].T)
             

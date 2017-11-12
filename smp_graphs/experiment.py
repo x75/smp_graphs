@@ -36,6 +36,11 @@ from smp_graphs.graph import nxgraph_flatten, nxgraph_add_edges, nxgraph_get_nod
 from smp_graphs.graph import nxgraph_nodes_iter, nxgraph_to_smp_graph
 from smp_graphs.graph import nxgraph_load, nxgraph_store
 
+# filter warnings
+import warnings
+warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning)
+
+
 ################################################################################
 # utils, TODO: move to utils.py
 def get_args():
@@ -208,7 +213,7 @@ class Experiment(object):
         - args: argparse configuration namespace (key, value) containing args.conf
         """
         # get global func pointer
-        global make_expr_id
+        # global make_expr_id
         # point at other func, global make_expr_id is used in common (FIXME please)
         make_expr_id = partial(make_expr_id_configfile, name = 'smp', configfile = args.conf, timestamp = False)
 
@@ -274,14 +279,17 @@ class Experiment(object):
         # print "experiment self.conf stripped", print_dict(self.conf_)
         m = make_expr_md5(self.conf_)
         # FIXME: 1) block class knows which params to hash, 2) append localvars to retain environment
+
+        # get id from config file name
+        self.conf['params']['id'] = make_expr_id()
         
         # cache: update experiments database with the current expr
-        xid = self.update_experiments_store(xid = m.hexdigest())
+        xid = self.check_experiments_store(xid = m.hexdigest())
             
         # store md5 in params _after_ we computed the md5 hash
         # set the experiment's id
         # self.conf['params']['id'] = make_expr_id() + "-" + xid
-        self.conf['params']['id'] = make_expr_id()
+        # self.conf['params']['id'] = 
         self.conf['params']['timestamp'] = make_timestamp_Ymd_HMS()
         self.conf['params']['md5'] = xid
         self.conf['params']['datadir'] = self.args.datadir
@@ -299,7 +307,7 @@ class Experiment(object):
             self.conf['params']['md5'],
             self.conf['params']['timestamp'])
         self.conf['params']['docache'] = self.params['docache'] and self.cache is not None and self.cache.shape[0]
-        print "experiment %s docache with %s" % (self.conf['params']['md5'], self.conf['params']['docache'], )
+        # print "    experiment %s docache with %s" % (self.conf['params']['md5'], self.conf['params']['docache'], )
 
         # FIXME: check / create logging dir in data/experiment-id-and-hash
         if not check_datadir(conf = self.conf['params']):
@@ -367,8 +375,8 @@ class Experiment(object):
                 'width': plotgraph_figures['width'],
             }
             
-    def update_experiments_store(self, xid = None):
-        """Experiment.update_experiments_store
+    def check_experiments_store(self, xid = None):
+        """Experiment.check_experiments_store
 
         Update the global store of experiments with the current one.
 
@@ -404,17 +412,26 @@ class Experiment(object):
             self.params['id'], pd.to_datetime(datetime.datetime.now()),
             xid,
             str(self.conf['block']), str(self.conf['params']), '', '']]
-        # print "%s.update_experiments_store values = %s" % (self.__class__.__name__, values)
+
+        # pandas PerformanceWarning type check
+        # for k, v in zip(columns, values[0]):
+        #     print "    df[%s].type = %s" % (k, type(v))
+        
+        # print "%s.check_experiments_store values = %s" % (self.__class__.__name__, values)
         # values = [[xid, self.conf['block'], self.conf['params']]]
 
+        print "Experiment.check_experiments_store"
+        
         # load experiment database if one exists
         if os.path.exists(self.experiments_store):
             try:
                 self.experiments = pd.read_hdf(self.experiments_store, key = 'experiments')
-                print "Experiment.update_experiments_store loaded experiments_store = %s with shape = %s" % (self.experiments_store, self.experiments.shape)
+                print "    loaded experiments_store = %s with shape = %s" % (
+                    self.experiments_store, self.experiments.shape)
+                
                 # search for hash
             except Exception, e:
-                print "Loading store %s failed with %s, continuing without cache" % (self.experiments_store, e)
+                print "    loading store %s failed with %s, continuing without cache" % (self.experiments_store, e)
                 return xid
                 # sys.exit(1)
         # create a new experiment database if it does not exist
@@ -426,15 +443,15 @@ class Experiment(object):
         if self.experiments.shape[0] > 0:
             self.cache_index = self.experiments.index[-1]
 
-        print "md5", self.experiments.md5
-        print "xid", xid, self.experiments.md5 == xid
+        # print "md5", self.experiments.md5
+        # print "xid", xid, self.experiments.md5 == xid
         self.cache = self.experiments[:][self.experiments.md5 == xid]
         self.cache_loaded = False
 
         def new_cache_entry(values, columns, index):
             df = pd.DataFrame(data = values, columns = columns, index = index)
             dfs = [self.experiments, df]
-            print "dfs", dfs
+            # print "dfs", dfs
         
             # concatenated onto main df
             self.experiments = pd.concat(dfs)
@@ -444,16 +461,16 @@ class Experiment(object):
         # load the cached experiment if it exists
         if self.cache is not None and self.cache.shape[0] != 0:
             # experiment.cache is the loaded entry
-            print "Experiment.update_experiments_store found cached results = %s\n%s" % (self.cache.shape, self.cache)
+            print "    found cached results = %s\n%s" % (self.cache.shape, self.cache)
             self.cache_loaded = True
 
             if self.params['cache_clear']:
-                print "Experiment.update_experiments_store: cache found, dropping it", type(self.experiments)
+                print "    cache found, dropping and recreating it", type(self.experiments)
                 self.experiments.drop(index = [(self.experiments.md5 == xid).argmax()])
             new_cache_entry(values, columns, index = [self.cache_index + 1])
         # store the experiment in the cache if it doesn't exist
         else:
-            print "Experiment.update_experiments_store no cached results found, creating new entry"
+            print "    no cached results found, creating new entry"
             # temp dataframe
             # self.experiments.index[-1] + 1
             new_cache_entry(values, columns, index = [self.cache_index + 1])
@@ -684,7 +701,7 @@ class Experiment(object):
             # print "    topblock.nxgraph", self.cache['topblock_nxgraph']
             # print "    topblock.bus", self.cache['topblock_bus']
             # update the experiment store
-            # self.update_experiments_store(xid = self.conf['params']['md5'])
+            # self.check_experiments_store(xid = self.conf['params']['md5'])
             # write store
             # self.experiments.to_hdf(self.experiments_store, key = 'experiments')
             # G = self.top.nxgraph

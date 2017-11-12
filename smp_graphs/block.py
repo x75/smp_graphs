@@ -140,6 +140,7 @@ from smp_graphs.common import md5, get_config_raw, get_config_raw_from_string
 from smp_graphs.common import set_attr_from_dict, loop_delim
 from smp_graphs.common import dict_get_nodekeys_recursive, dict_replace_nodekeys_loop
 from smp_graphs.common import dict_search_recursive, dict_replace_idstr_recursive2
+from smp_graphs.common import dict_replace_idstr_recursive
 
 from smp_graphs.graph import nxgraph_from_smp_graph, nxgraph_to_smp_graph
 from smp_graphs.graph import nxgraph_node_by_id, nxgraph_node_by_id_recursive
@@ -795,6 +796,7 @@ class Block2(object):
 
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None, blockid = None, conf_vars = None):
+        ################################################################################
         # general stuff
         self.conf = conf
         self.paren = paren
@@ -834,11 +836,13 @@ class Block2(object):
         if type(self.block_group) is str: self.block_group = [self.block_group]
         
         ################################################################################
-        # 1 general top block stuff: init bus, set top to self, init logging
-        #   all the rest should be the same as for hier from file, hier from dict, loop, loop_seq
+        # 1 topblock: init bus, set top to self, init logging
+        #   all the rest should be the same as for file, dict, loop, or loopseq
+        #   subgraphs
         if self.topblock:
             # print "Block2.init topblock conf.keys", self.conf['params'].keys()
-            # print "Block2.init topblock numsteps", self.numsteps
+            print "topblock init with numsteps = %s" %(self.numsteps, )
+            
             # fix the random seed
             # np.random.seed(self.randseed)
                 
@@ -952,12 +956,14 @@ class Block2(object):
                nodeid
             """
 
-            # print "has all these attrs %s-%s" % (self.cname, self.id)
+            print "%s%s-%s.init_block composite" % (self.nesting_indent, self.cname, self.id)
+            # print "%s   with attrs = %s" % (self.nesting_indent, self.__dict__.keys())
             # for k,v in self.__dict__.items():
             #     print "%s-%s k = %s, v = %s" % (self.cname, self.id, k, v)
 
             # subgraph preprocess, propagate additional subgraph configuration
             if hasattr(self, 'subgraph'):
+                # print "%s%s-%s.init_block composite init_subgraph" % (self.nesting_indent, self.cname, self.id)
                 self.init_subgraph()
                 # set_attr_from_dict(self, self.conf['params'])
 
@@ -1192,7 +1198,9 @@ class Block2(object):
                 try:
                     self.cache = block.top.block_store['/blocks'][:][block.top.block_store['/blocks']['md5'] == self.md5]
                 except Exception, e:
-                    print "%s-%s.check_block_store cache retrieval for %s failed with %s" % (self.cname, self.id, self.md5, e)
+                    print "%s%s-%s.check_block_store cache retrieval for %s failed with %s" % (
+                        self.nesting_indent,
+                        self.cname, self.id, self.md5, e)
                     self.cache = None
                     
                 # print "check_block_store", self.md5, block.top.block_store['blocks']['md5']
@@ -1200,7 +1208,9 @@ class Block2(object):
                 
             # cache loaded successfully
             if self.top.docache and self.cache is not None and self.cache.shape[0] != 0:
-                print "%s-%s.check_block_store: found cache for %s\n   cache['log_stores'] = %s" % (self.cname, self.id, self.md5, self.cache['log_store'].values)
+                print "%s%s-%s.check_block_store: found cache for %s\n   cache['log_stores'] = %s" % (
+                    self.nesting_indent,
+                    self.cname, self.id, self.md5, self.cache['log_store'].values)
                 
                 # load cached data only once
                 # FIXME: check experiment.cache to catch randseed and numsteps
@@ -1211,7 +1221,9 @@ class Block2(object):
                 for outk in self.outputs.keys():
                     # x_ = self.cache_h5['%s/%s' % (self.id, outk)].values
                     x_ = block.top.log_store_cache['%s/%s' % (self.id, outk)].values
-                    print "%s-%s.check_block_store:     loading output %s cached data = %s" % (self.cname, self.id, outk, x_.shape)
+                    print "%s%s-%s.check_block_store:     loading output %s cached data = %s" % (
+                        self.nesting_indent,
+                        self.cname, self.id, outk, x_.shape)
                     # FIXME: check cache and runtime shape geometry
                     self.cache_data[outk] = x_.copy()
                     setattr(self, outk, self.cache_data[outk][...,[0]])
@@ -1228,7 +1240,9 @@ class Block2(object):
                 
             # no cache entry was found or loading failed for some other reason
             else:
-                print "%s-%s.check_block_store: no cache exists for %s, storing %s at %s" % (self.cname, self.id, self.md5, 'self.conf', self.md5)
+                # print "%s%s-%s.check_block_store: no cache exists for %s, storing %s at %s" % (
+                #     self.nesting_indent,
+                #     self.cname, self.id, self.md5, 'self.conf', self.md5)
                 
                 # create entry and save it
                 columns = [
@@ -1244,18 +1258,21 @@ class Block2(object):
                 # block store is empty
                 if len(block.top.block_store.keys()) < 1:
                     block.top.block_store['/blocks'] = df
-                    print "init_block_cache no cache found, no cache entries exist", block.top.block_store['/blocks'].shape, df.shape
+                    print "%sinit_block_cache no cache found, no cache entries exist %s, %s" %(
+                        self.nesting_indent, block.top.block_store['/blocks'].shape, df.shape)
                 else:
                     df2 = pd.concat([block.top.block_store['/blocks'], df])
                     # print "df2 concat(store, df)", df2.shape, df2
                     block.top.block_store['/blocks'] = df2
-                    print "init_block_cache no cache found, but cache entries exist", block.top.block_store['/blocks'].shape, df2.shape
+                    print "%sinit_block_cache no cache found, but cache entries exist %s, %s" % (
+                        self.nesting_indent, block.top.block_store['/blocks'].shape, df2.shape)
 
                 # re-get cache
                 self.cache = block.top.block_store['/blocks'][:][block.top.block_store['/blocks']['md5'] == self.md5]
                 # print "self.cache",self.cache
                     
-                print "block_store shape = %s" % (block.top.block_store['/blocks'].shape, )
+                print "%sblock_store shape = %s" % (
+                    self.nesting_indent, block.top.block_store['/blocks'].shape, )
 
         if self.top.docache:
             check_block_store(block = self)
@@ -1272,6 +1289,7 @@ class Block2(object):
         # print "lconf", self.lconf
 
         # subgraph dictionary / orderdeddict
+        
         if type(self.subgraph) is OrderedDict:
             subconfk = 'bla'
             subconf_ = OrderedDict([
@@ -1353,7 +1371,7 @@ class Block2(object):
         if hasattr(self, 'subgraph_rewrite_id') and self.subgraph_rewrite_id:
             # self.outputs_copy = copy.deepcopy(self.conf['params']['outputs'])
             nks_0 = dict_get_nodekeys_recursive(self.conf['params']['graph'])
-            # print "nodekeys", nks_0
+            print "nodekeys", nks_0
             # xid = self.conf['params']['id'][-1:]
             # v['bus'] = re.sub(id_orig, clone['params']['id'], v['bus'])
             # p = re.compile('(.*)(_ll[0-9]+)$')
@@ -1368,8 +1386,12 @@ class Block2(object):
             # xid = self.conf['params']['id'].split('_')[-1]
             # print "m", "split", xid
 
+            # id string rewriting
             xid_ = self.conf['params']['id'].split('_')
-            if xid_[-1].isdigit():
+            print "    xid_", self.conf['params']['id'], xid_
+            if len(xid_) == 1:
+                xid = '0'
+            elif xid_[-1].isdigit():
                 xid = xid_[-1][len(loop_delim[1:]):]
             else:
                 xid = (
@@ -1377,7 +1399,7 @@ class Block2(object):
                     xid_[-1][len(loop_delim[1:]):]
                 )
             
-            # print  "init_subgraph subgraph_rewrite_id", self.conf['params']['id'], "xid", xid
+            # print  "    init_subgraph subgraph_rewrite_id", self.conf['params']['id'], "xid", xid
             
             self.conf['params']['graph'] = dict_replace_idstr_recursive2(
                 d = self.conf['params']['graph'], xid = xid)
@@ -1513,9 +1535,13 @@ class Block2(object):
 
         assert k is not None, "init_outputs_ndarray called with output key = None"
         assert v is not None, "init_outputs_ndarray called with output val = None"
-            
+
+        # auto-fix shape for buscopy
+        if v.has_key('buscopy') and not v.has_key('shape') and self.bus.has_key(v['buscopy']):
+            v['shape'] = self.bus[v['buscopy']].shape
+        
         # assert v.keys()[0] in ['shape', 'bus'], "Need 'bus' or 'shape' key in outputs spec of %s" % (self.id, )
-        assert v.has_key('shape'), "Output spec %s: %s needs 'shape' param" % (k, v)
+        assert v.has_key('shape'), "%s-%d's output spec %s needs 'shape' param but has %s " % (self.cname, self.id, k, v.keys())
         # if v.has_key('shape'):
         assert len(v['shape']) > 1, "Block %s, output %s 'shape' tuple is needs at least (dim1 x output blocksize), v = %s" % (self.id, k, v)
         # # create new shape tuple by appending the blocksize to original dimensions
@@ -1657,7 +1683,7 @@ class Block2(object):
                         # check if key exists or not. if it doesn't, that means this is a block inside dynamical graph construction
                         # print "\nplotblock", self.bus.keys()
 
-                        assert self.bus.has_key(v['bus']), "Requested bus item %s is not in buskeys %s" % (v['bus'], self.bus.keys())
+                        assert self.bus.has_key(v['bus']), "Requested by %s-%s, bus item %s is not in buskeys %s" % (self.cname, self.id, v['bus'], self.bus.keys())
                     
                         # enforce bus blocksize smaller than local blocksize, tackle later
                         # CHECK
@@ -1680,7 +1706,8 @@ class Block2(object):
                 #     if v[0].endswith('.h5'):
                 #         setattr(self, k, v[0])
                 else:
-                    assert v.has_key('val'), "Input spec needs either a 'bus' or 'val' entry in %s" % (v.keys())
+                    assert v.has_key('bus') or v.has_key('val'), "%s-%s's input spec needs either 'bus' or 'val' entry in %s" % (
+                        self.cname, self.id, v.keys())
                     # expand scalar to vector
                     if np.isscalar(v['val']):
                         # check for shape info
@@ -2212,19 +2239,145 @@ class LoopBlock2(Block2):
             ]
 
     """
+    defaults = {
+        'loop': [1],
+        'loopblock': {},
+        'loopmode': 'parallel',
+        'numsteps': 1,
+        }
     def __init__(self, conf = {}, paren = None, top = None):
-        self.defaults['loop'] = [1]
-        self.defaults['loopblock'] = {}
+        # self.defaults['loop'] = [1]
+        # self.defaults['loopblock'] = {}
 
-        # force loopmode set
-        self.loopmode = 'parallel'
+        # # force loopmode 'parallel'
+        # self.loopmode = 'parallel'
+
+        # merge defaults
+        self.defaults.update(conf['params'])
+        conf['params'] = self.defaults
         
-        assert conf['params'].has_key('loop'), "Come on, looping without specification is dumb"
+        # sanity check: loop specification
+        assert conf['params'].has_key('loop'), "LoopBlock2: loop spec missing"
+        assert conf['params'].has_key('loopmode'), "LoopBlock2: loopmode missing"
 
-        # parent Block2 init takes care of constructing self.nxgraph
+        # unroll loop into dictionary
+        conf['params']['subgraph'] = self.subgraph_from_loop_unrolled(conf, paren, top)
+
+        # print "LoopBlock2 params", conf['params'].keys()
+        
+        # parent takes care of initializing the subgraph
         Block2.__init__(self, conf = conf, paren = paren, top = top)
 
         # done
+
+    def subgraph_from_loop_unrolled(self, conf, paren, top):
+        loopgraph_unrolled = OrderedDict()
+        # print "        - nxgraph_from_smp_graph loopblock %s unroll %s" % (
+        #     conf['params']['id'],
+        #     conf['params']['loop'],)
+        
+        # construction loop
+        for i, item in enumerate(conf['params']['loop']):
+            
+            # at least a one element list of key:val tuples
+            if type(item) is tuple:
+                item = [item]
+
+            cid = conf['params']['id']
+            xid = '%d' % (i, )
+
+            # # ['params']['loopblock']
+            # # get parent conf
+            # parenconf = copy.deepcopy(conf['params']['loopblock'])
+            # # parenconf['params'].pop('loopblock')
+            # # parenconf['params'].pop('loopmode')
+            # # parenconf['params'].pop('loop')
+            # parenconf = dict_replace_idstr_recursive(
+            #     d = parenconf,
+            #     cid = cid,
+            #     xid = xid,)
+            
+            # get template and copy
+            lpconf = copy.deepcopy(conf['params']['loopblock'])
+
+            # rewrite block ids with loop count
+            if type(lpconf) is OrderedDict:
+                lpconf_ = {
+                        'block': Block2,
+                        'params': {
+                            'id': None,
+                            'numsteps': top.numsteps,
+                            'subgraph': lpconf,
+                            # 'graph': lpconf,
+                        },
+                }
+                lpconf = lpconf_
+                
+                # for k, v in lpconf.items():
+                #     # lpconf[k] =
+                #     v = dict_replace_idstr_recursive(d = lpconf, cid = cid, xid = xid)
+            # else:
+            #     lpconf_ = dict_replace_idstr_recursive(d = lpconf, cid = cid, xid = xid)
+            #     lpconf = OrderedDict([
+            #         (
+            #             lpconf_['params']['id'],
+            #             lpconf_,)
+            #     ])
+            
+            lpconf = dict_replace_idstr_recursive(d = lpconf, cid = cid, xid = xid)
+            
+            # lpconf = dict_replace_idstr_recursive2(
+            #     d = lpconf, xid = "%d" % (i, ))
+            
+            # print "         - nxgraph_from_smp_graph loopblock unroll-%d lpconf = %s" % (i, lpconf, )
+            # sys.exit(1)
+            
+            # conf['params']['subgraph'] = conf['params']['loopblock']
+            # G, nc = check_graph_subgraph(conf, G, nc)
+            
+            """Examples for loop specification
+
+            [('inputs', {'x': {'val': 1}}), ('inputs', {'x': {'val': 2}})]
+            or
+            [
+                [
+                    ('inputs',  {'x': {'val': 1}}),
+                    ('gain',    0.5),
+                    ],
+                [
+                    ('inputs', {'x': {'val': 2}})
+                    ('gain',    0.75),
+                    ]
+                ]
+            """
+            # copy loop items into full conf
+            for (paramk, paramv) in item:
+                print "    replacing conf from loop", paramk, paramv
+                # lpconf['params'][paramk] = paramv # .copy()
+                # FIXME: include id/params syntax in loop update
+                for (blockk, blockv) in lpconf['params']['subgraph'].items():
+                    if blockv['params'].has_key(paramk):
+                        blockv['params'][paramk] = paramv # .copy()
+
+            # print "nxgraph_from_smp_graph", lpconf['params']['id']
+            # print "nxgraph_from_smp_graph", print_dict(lpconf['params'])
+            # print "|G|", G.name, G.number_of_nodes()
+
+            # loopgraph_unrolled[lpconf['params']['id']] = lpconf
+            # parenconf['params']['subgraph'] = lpconf
+            loopgraph_unrolled[lpconf['params']['id']] = lpconf
+                
+            # G.add_node(nc, **lpconf)
+            # # print "|G|", G.name, G.number_of_nodes()
+            # nc += 1
+
+        # print "        loopgraph_unrolled", loopgraph_unrolled.keys()
+        for k, v in loopgraph_unrolled.items():
+            print "loop %s, params = %s" % (k, v['params'].keys())
+        # sys.exit(1)
+        # conf['params']['subgraph'] = loopgraph_unrolled
+        # conf['params']['graph'] = loopgraph_unrolled
+        return loopgraph_unrolled
         
     def step(self, x = None):
         """LoopBlock2.step

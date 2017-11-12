@@ -3,46 +3,151 @@
 
 import random
 
+from smp_base.plot import rp_timeseries_embedding
+
+from smp_graphs.block_meas_essentia import EssentiaBlock2
+
 # reuse
 numsteps = 500
-xdim = 6
-ydim = 4
+# xdim = 6
+# ydim = 4
+xdim = 1
+ydim = 1
+# offset_range = 
 
+lconf = {
+    'file': {
+        'filename': 'data/goodPickles/recording_eC0.14_eA0.14_c0.50_n1000_id0.pickle',
+        'filetype': 'puppy',
+        'offset': 300,
+        'length': numsteps,
+    },
+}
+
+
+# puppy pickle data homeokinesis episodes
 filearray = [
     'data/goodPickles/recording_eC0.14_eA0.14_c0.50_n1000_id0.pickle',
     'data/goodPickles/recording_eC1.12_eA1.66_c0.50_n1000_id0.pickle',
     'data/goodPickles/recording_eC0.24_eA0.77_c0.50_n1000_id0.pickle',
     ]
-    
+
+# puppy pickle data step response sweep
 filearray = [
 	'data/stepPickles/step_period_34_0.pickle',
-	'data/stepPickles/step_period_16_0.pickle',
-	'data/stepPickles/step_period_2_0.pickle',
-	'data/stepPickles/step_period_64_0.pickle',
-	'data/stepPickles/step_period_14_0.pickle',
-	'data/stepPickles/step_period_20_0.pickle',
+	# 'data/stepPickles/step_period_16_0.pickle',
+	# 'data/stepPickles/step_period_2_0.pickle',
+	# 'data/stepPickles/step_period_64_0.pickle',
+	# 'data/stepPickles/step_period_14_0.pickle',
+	# 'data/stepPickles/step_period_20_0.pickle',
 ]
 
-looparray = [('file', {'filename': fname, 'filetype': 'puppy', 'offset': random.randint(0, 500), 'length': numsteps}) for fname in filearray]
+# audio files
+filearray = [
+    ('/home/lib/audio/work/fm_mix_subcity_sorbierd_20171125/Burial - Beachfires.mp3', 'mp3'),
+    ('/home/lib/audio/work/fm_mix_subcity_sorbierd_20171125/Autechre - spl47.mp3', 'mp3'),
+]
+
+looparray = [
+    ('file', {
+        'filename': fname,
+        'filetype': ftype,
+        'offset': random.randint(100000, 200000),
+        'length': numsteps,
+    }) for fname, ftype in filearray]
+
+# # loopblock 1: puppy
+# loopblock = {
+#     'block': FileBlock2,
+#     'params': {
+#         'id': 'puppydata',
+#         'debug': False,
+#         'blocksize': numsteps,
+#         'type': 'puppy',
+#         'file': {
+#             'filename': 'data/goodPickles/recording_eC0.14_eA0.14_c0.50_n1000_id0.pickle',
+#             'filetype': 'puppy',
+#             'offset': 300,
+#             'length': numsteps,
+#         },
+#         'outputs': {
+#             'x': {'shape': (xdim, numsteps)},
+#             'y': {'shape': (ydim, numsteps)}
+#         },
+#         },
+#     }
+
+# loopblock 2: audio with essentia
+loopblock_graph = OrderedDict([
+    # file block
+    ('filedata', {
+        'block': FileBlock2,
+        'params': {
+            'id': 'filedata',
+            'debug': False,
+            'blocksize': numsteps,
+            'logging': False,
+            'type': 'puppy',
+            # 'lconf': {},
+            'file': {},
+            'outputs': {
+                'x': {'shape': (xdim, numsteps)},
+                'y': {'shape': (ydim, numsteps)}
+            },
+        },
+    }),
+    # analysis block
+    ('essentia1', {
+        'block': EssentiaBlock2,
+        'params': {
+            'id': 'puppydata',
+            'debug': False,
+            'blocksize': numsteps,
+            'inputs': {
+                'x_in': {'bus': 'filedata/x'},
+            },
+            'outputs': {
+                'x': {'shape': (xdim, numsteps)},
+                'y': {'shape': (ydim, numsteps)}
+            },
+        },
+    }),
+    
+    # action block
+    # output / render block
+])
 
 loopblock = {
-    'block': FileBlock2,
+    'block': Block2,
     'params': {
-        'id': 'puppydata',
+        'id': 'loopblock_graph',
         'debug': False,
-        'blocksize': numsteps,
-        'type': 'puppy',
-        'file': {'filename': 'data/goodPickles/recording_eC0.14_eA0.14_c0.50_n1000_id0.pickle', 'filetype': 'puppy', 'offset': 300, 'length': numsteps},
-        'outputs': {'x': {'shape': (xdim, numsteps)}, 'y': {'shape': (ydim, numsteps)}},
+        'topblock': False,
+        'logging': False,
+        'numsteps': numsteps,
+        'blocksize': 1,
+        'blockphase': [0],
+        # 'lconf': {},
+        # 'outputs': {'jh': {'shape': (1,1)}},
+        # 'outputs': {'jh': {'shape': (1, 1), 'buscopy': 'jh/jh'}},
+        'subgraph_rewrite_id': True,
+        # contains the subgraph specified in this config file
+        'subgraph': loopblock_graph,
+        'outputs': {
+            'x': {'buscopy': 'filedata/x'},
+            'y': {'buscopy': 'filedata/y'},
         },
-    }
+    },
+}
 
-def make_puppy_rb_plot_inputs():
+def make_puppy_rp_plot_inputs():
     global looparray, numsteps
+    # buskey_base = 'puppyloop'
+    buskey_base = 'filedata'
     inspec = {'d3': {'bus': 'b2/x', 'shape': (3, numsteps)}}
     for i,l in enumerate(looparray):
-        inspec['x_%d' % (i, )] = {'bus': 'puppyloop_%d/x' % (i, )}
-        inspec['y_%d' % (i, )] = {'bus': 'puppyloop_%d/y' % (i, )}
+        inspec['x_ll%d' % (i, )] = {'bus': '%s_ll%d_ll0_ll0/x' % (buskey_base, i, )}
+        inspec['y_ll%d' % (i, )] = {'bus': '%s_ll%d_ll0_ll0/y' % (buskey_base, i, )}
     return inspec
 
 # graph
@@ -53,7 +158,13 @@ graph = OrderedDict([
         'params': {
             'id': 'puppydata',
             'loop': looparray,
-            'loopblock': loopblock,
+            # 'loopblock': loopblock,
+            'loopblock': loopblock_graph,
+            'numsteps': numsteps,
+            # 'outputs': {
+            #     'x': {'shape': (xdim, numsteps)},
+            #     'y': {'shape': (ydim, numsteps)},
+            #     },
         },
     }),
              
@@ -90,8 +201,13 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'debug': False,
             'wspace': 0.4, 'hspace': 0.4,
-            'inputs': make_puppy_rb_plot_inputs(),
-            'subplots': [[{'input': '%s_%d' % (itup[1], itup[0]), 'plot': timeseries}, {'input': '%s_%d' % (itup[1], itup[0]), 'plot': histogram}, {'input': '%s_%d' % (itup[1], itup[0]), 'plot': rp_timeseries_embedding}] for itup in zip(map(lambda x: x/2, range(len(looparray)*2)), ['x', 'y'] * len(looparray))]
+            'inputs': make_puppy_rp_plot_inputs(),
+            'ylim_share': False,
+            'subplots': [[
+                {'input': '%s_ll%d' % (itup[1], itup[0]), 'plot': timeseries},
+                {'input': '%s_ll%d' % (itup[1], itup[0]), 'plot': histogram},
+                {'input': '%s_ll%d' % (itup[1], itup[0]), 'plot': rp_timeseries_embedding}
+                ] for itup in zip(map(lambda x: x/2, range(len(looparray)*2)), ['x', 'y'] * len(looparray))]
 
             # [
             #     [
