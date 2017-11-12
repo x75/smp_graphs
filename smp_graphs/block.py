@@ -2355,9 +2355,12 @@ class LoopBlock2(Block2):
                 print "    replacing conf from loop", paramk, paramv
                 # lpconf['params'][paramk] = paramv # .copy()
                 # FIXME: include id/params syntax in loop update
-                for (blockk, blockv) in lpconf['params']['subgraph'].items():
-                    if blockv['params'].has_key(paramk):
-                        blockv['params'][paramk] = paramv # .copy()
+                if lpconf['params'].has_key('subgraph'):
+                    for (blockk, blockv) in lpconf['params']['subgraph'].items():
+                        if blockv['params'].has_key(paramk):
+                            blockv['params'][paramk] = paramv # .copy()
+                else:
+                    lpconf['params'][paramk] = paramv # .copy()
 
             # print "nxgraph_from_smp_graph", lpconf['params']['id']
             # print "nxgraph_from_smp_graph", print_dict(lpconf['params'])
