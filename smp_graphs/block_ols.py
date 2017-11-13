@@ -30,6 +30,8 @@ class FileBlock2(Block2):
         assert conf['params'].has_key('type'), "FileBlock2 requires a file 'type' parameter"
         # multiple files: concat? block manipulation blocks?
         self.file = []
+        self.nesting_indent = "        "
+        self.id = "bla"
         # auto odim
         # if self.odim == 'auto':
         # print conf
@@ -47,7 +49,7 @@ class FileBlock2(Block2):
             filetype = conf['params']['file']['filetype']
         else:
             filetype = conf['params']['type']
-        print "%s.init Loading %s-type data from %s" % (self.__class__.__name__, filetype, lfile)
+        print "%s%s.init Loading %s-type data from %s" % (self.nesting_indent, self.__class__.__name__, filetype, lfile)
         
         if filetype == 'puppy':
             offset = 0
@@ -59,16 +61,19 @@ class FileBlock2(Block2):
                 offset = conf['params']['file']['offset']
                 
             # check length
+            length = 0
             if conf['params']['file'].has_key('length'):
                 length = conf['params']['file']['length']
 
             # reslice
-            sl = slice(offset, offset + length)
+            if length is not None:
+                sl = slice(offset, offset + length)
+            else:
+                sl = slice(offset, length)
             # for k in ['x', 'y']:
             #     self.data[k] = self.data[k][sl]
                 
-            print "%sFileBlock2 loading puppy, outputs = %s" % (
-                ' ' * 8, conf['params']['outputs'])
+            print "%sFileBlock2 loading puppy, outputs = %s" % (self.nesting_indent, conf['params']['outputs'])
                     
             for k in ['x', 'y']:
                 self.data[k] = self.data[k][sl]
@@ -181,15 +186,29 @@ class FileBlock2(Block2):
             self.step = self.step_wav
 
         elif filetype == 'mp3':
-            # import scipy.io.wavfile as wavfile
-            # rate, data = wavfile.read(lfile)
-            rate = 44100 # FIXME: get_rate(lfile)
-            loader = estd.MonoLoader(filename = lfile, sampleRate = 44100)
+            # default samplerate
+            if not conf['params']['file'].has_key('samplerate'):
+                conf['params']['file']['samplerate'] = 44100
+
+            # load data
+            loader = estd.MonoLoader(filename = lfile, sampleRate = conf['params']['file']['samplerate'])
             data = loader.compute()
-            
+
+            # if not length is given, create random slice of 60 sec minimal length if file length allows
+            if not conf['params']['file'].has_key('length') or conf['params']['file']['length'] is None or conf['params']['file']['length'] == 0:
+                conf['params']['file']['length'] = min(
+                    data.shape[0],
+                    np.random.randint(
+                        conf['params']['file']['samplerate'] * 60,
+                        data.shape[0] - conf['params']['file']['offset']))
+
+            # compute slice
             sl = slice(conf['params']['file']['offset'], conf['params']['file']['offset'] + conf['params']['file']['length'])
-            self.data = {'x': data[sl], 'y': data[sl]}
-            print "data", data.shape, self.data['x'].shape
+            print "%sFileBlock2-%s fileypte mp3 sl = %s" % (self.nesting_indent, self.id, sl, )
+            # select data
+            self.data = {'x': data[sl]} # , 'y': data[sl]}
+            print "%sFileBlock2-%s data = %s, self.data['x'] = %s" % (self.nesting_indent, self.id, data.shape, self.data['x'].shape)
+            # set step callback
             self.step = self.step_wav
         # FIXME: perform quick check of data
         
@@ -220,12 +239,17 @@ class FileBlock2(Block2):
 
     @decStep()
     def step_wav(self, x = None):
-        # print "step_Wav", self.cnt
+        # print "step_wav[%d]" % (self.cnt, )
         if (self.cnt % self.blocksize) == 0: # (self.blocksize - 1):
             for k, v in self.outputs.items():                
                 sl = slice(self.cnt-self.blocksize, self.cnt)
-                print "wav step [%d]" % (self.cnt), self.data[k][sl].T
-                setattr(self, k, self.data[k][sl].T)
+                # print "self.blocksize", self.blocksize
+                # print "step_wav[%d].outputs[%s][%s] = %s (%s)" % (self.cnt, k, sl, self.data[k][sl].T.shape, self.file)
+                outv_ = self.data[k][sl].T
+                if outv_.shape[-1] < self.blocksize:
+                    padwidth = self.blocksize - outv_.shape[-1]
+                    outv_ = np.pad(outv_, pad_width = (padwidth, 0), mode = 'constant')
+                setattr(self, k, outv_)
                 # setattr(self, k, self.data[k][[self.cnt]].T)
         
     @decStep()

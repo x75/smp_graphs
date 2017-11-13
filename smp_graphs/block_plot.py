@@ -510,15 +510,15 @@ class PlotBlock2(FigPlotBlock2):
                         # plotdata[ink_] = myt(self.inputs[ink_]['val'])[-1,subplotconf['ndslice'][0],subplotconf['ndslice'][1],:] # .reshape((21, -1))
                         # slice the data to spec, custom transpose from h to v time
                         ndslice = subplotconf['ndslice'][k]
-                        print "k", k, "ink", ink, "ndslice", ndslice
+                        # print "k", k, "ink", ink, "ndslice", ndslice
                         plotdata[ink_] = myt(self.inputs[ink]['val'])[ndslice]
                         # print "      ndslice %s: %s, numslice = %d" % (ink, subplotconf['ndslice'][k], len(subplotconf['ndslice']))
                     else:
                         plotdata[ink_] = myt(self.inputs[ink]['val'])[xslice] # .reshape((xslice.stop - xslice.start, -1))
 
                     assert plotdata[ink_].shape != (0,), "no data to plot"
-                    print "      input = %s" % self.inputs[ink]['val']
-                    print "      id %s, ink = %s, plotdata = %s, plotshape = %s" % (self.id, ink_, plotdata[ink_], plotshape)
+                    # print "      input = %s" % self.inputs[ink]['val']
+                    # print "      id %s, ink = %s, plotdata = %s, plotshape = %s" % (self.id, ink_, plotdata[ink_], plotshape)
                     # plotdata[ink_] = plotdata[ink_].reshape((plotshape[1], plotshape[0])).T
                     plotdata[ink_] = plotdata[ink_].reshape(plotshape)
                     

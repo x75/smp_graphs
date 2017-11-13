@@ -8,12 +8,13 @@ from smp_base.plot import rp_timeseries_embedding
 from smp_graphs.block_meas_essentia import EssentiaBlock2
 
 # reuse
-numsteps = 8192 # 65535
+numsteps = 44100 * 120 # 65535 # 8192
 # xdim = 6
 # ydim = 4
 xdim = 1
 ydim = 1
-mfccdim = xdim * 12
+mfcc_numcoef = 13
+winsize = 1024
 # offset_range = 
 
 lconf = {
@@ -45,17 +46,25 @@ filearray = [
 
 # audio files
 filearray = [
-    ('/home/lib/audio/work/fm_mix_subcity_sorbierd_20171125/Burial - Beachfires.mp3', 'mp3'),
-    ('/home/lib/audio/work/fm_mix_subcity_sorbierd_20171125/Autechre - spl47.mp3', 'mp3'),
+    ('/home/lib/audio/work/fm_mix_subcity_sorbierd_20171125//Autechre - spl47.mp3', 'mp3', 14553000, 44100),
+    ('/home/lib/audio/work/fm_mix_subcity_sorbierd_20171125//10. Joy Division - I Remember Nothing (1979).mp3', 'mp3', 15567300, 44100),
+    ('/home/lib/audio/work/fm_mix_subcity_sorbierd_20171125//1going_320.mp3', 'mp3', 6174000, 44100),
+    ('/home/lib/audio/work/fm_mix_subcity_sorbierd_20171125//Burial - Beachfires.mp3', 'mp3', 26063100, 44100),
+    # ('/home/lib/audio/work/fm_mix_subcity_sorbierd_20171125//11-prefuse_73-we_got_our_own_way_feat._kazu-ftd.mp3', 'mp3', 8775900, 44100),
+    # ('/home/lib/audio/work/fm_mix_subcity_sorbierd_20171125//05 FriscoBum.mp3', 'mp3', 9922500, 44100),
+    # ('/home/lib/audio/work/fm_mix_subcity_sorbierd_20171125//07-Bricc_Baby_Shitro-IDK_Feat_Casey_Veggies_Prod_By_Metro_Boomin.mp3', 'mp3', 13009500, 44100),
 ]
 
 looparray = [
     ('file', {
-        'filename': fname,
-        'filetype': ftype,
-        'offset': random.randint(100000, 200000),
-        'length': numsteps,
-    }) for fname, ftype in filearray]
+        'filename': ftup[0],
+        'filetype': ftup[1],
+        # 'offset': random.randint(0, ftup[2] - (ftup[3] * 60)),
+        'offset': 0,
+        # 'length': min(ftup[2] - (ftup[3] * 60), random.randint(ftup[3] * 60, ftup[3] * 60 * 3)),
+        # 'length': None,
+        'samplerate': ftup[3],
+    }) for ftup in filearray]
 
 # # loopblock 1: puppy
 # loopblock = {
@@ -93,7 +102,7 @@ loopblock_graph = OrderedDict([
             'file': {},
             'outputs': {
                 'x': {'shape': (xdim, numsteps)},
-                'y': {'shape': (ydim, numsteps)}
+                # 'y': {'shape': (ydim, numsteps)}
             },
         },
     }),
@@ -104,14 +113,14 @@ loopblock_graph = OrderedDict([
             'id': 'puppydata',
             'debug': False,
             'blocksize': numsteps,
-            'samplerate': 1024,
+            'samplerate': winsize,
             'inputs': {
                 'x': {'bus': 'filedata/x'},
             },
             'outputs': {
-                'centroid': {'shape': (xdim * 1, numsteps / 1024 + 1), 'etype': 'centroid'},
-                'mfcc': {'shape': (mfccdim, numsteps / 1024 + 1), 'etype': 'mfcc', 'numberCoefficients': mfccdim},
-                # 'sbic': {'shape': (xdim * 1, numsteps / 1024 + 1), 'etype': 'sbic'},
+                'centroid': {'shape': (xdim * 1, numsteps / winsize + 1), 'etype': 'centroid'},
+                'mfcc': {'shape': (xdim * mfcc_numcoef, numsteps / winsize + 1), 'etype': 'mfcc', 'numberCoefficients': mfcc_numcoef, 'numberBands': 40},
+                # 'sbic': {'shape': (xdim * 1, numsteps / winsize + 1), 'etype': 'sbic'},
                 # 'y': {'shape': (xdim, numsteps)},
                 # 'y': {'shape': (ydim, numsteps)}
             },
@@ -146,7 +155,8 @@ loopblock = {
 }
 
 def make_puppy_rp_plot_inputs():
-    global looparray, numsteps, xdim, ydim, mfccdim
+    global looparray, numsteps, xdim, ydim, winsize, mfcc_numcoef
+    from collections import OrderedDict
     # buskey_base = ['puppyloop']
     # buskey_bases = ['filedata', 'essentia1']
     # buskey_signal = ['x', 'y']
@@ -154,16 +164,20 @@ def make_puppy_rp_plot_inputs():
     # buskey_signal = [ 'y']
     buskey_bases = ['essentia1'] * 2
     buskey_signal = [ 'centroid', 'mfcc']
-    buskey_shapes = [ (xdim, numsteps / 1024 + 1), (mfccdim, numsteps / 1024 + 1)]
+    buskey_shapes = [ (xdim, numsteps / winsize + 1), (mfcc_numcoef, numsteps / winsize + 1)]
     # inspec = {'d3': {'bus': 'b2/x', 'shape': (3, numsteps)}}
-    inspec = {}
+    # inspec = {}
+    inspec = OrderedDict()
     for i,l in enumerate(looparray):
         # print "l", l
+        if not l[1].has_key('length'):
+            l[1]['length'] = 0
         for j, buskey_base in enumerate(buskey_bases):
             inspec['%s_ll%d_%d' % (buskey_signal[j], i, j, )] = {
                 'bus': '%s_ll%d_ll0_ll0/%s' % (buskey_base, i, buskey_signal[j]),
-                'name': '%s %s[%d:%d]' % (buskey_signal[j], l[1]['filename'].split('/')[-1], l[1]['offset'], l[1]['offset'] + l[1]['length']),
-                'shape': buskey_shapes[j], # (xdim, numsteps / 1024 + 1),
+                # 'name': '%s %s[%d:%d]' % (buskey_signal[j], l[1]['filename'].split('/')[-1], l[1]['offset'], l[1]['offset'] + l[1]['length']),
+                'name': '%s %s' % (buskey_signal[j], l[1]['filename'].split('/')[-1]),
+                'shape': buskey_shapes[j], # (xdim, numsteps / winsize + 1),
             }
             # inspec['%s_ll%d_%d' % (buskey_signal[j], i, j, )] = {'bus': '%s_ll%d_ll0_ll0/%s' % (buskey_base, i, buskey_signal[j])}
             # inspec['y_ll%d_%d' % (i, j, )] = {'bus': '%s_ll%d_ll0_ll0/y' % (buskey_base, i, )}

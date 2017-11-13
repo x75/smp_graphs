@@ -511,7 +511,7 @@ class decStep():
         # xself.cnt += 1 # should be min_blocksize
         # if self.topblock:
         xself.cnt += xself.top.blocksize_min
-        print "xself.cname", xself.cname, xself.top.blocksize_min, xself.cnt
+        # print "xself.cname", xself.cname, xself.top.blocksize_min, xself.cnt
         
         self.process_input(xself)
 

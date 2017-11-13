@@ -29,7 +29,7 @@ class EssentiaBlock2(PrimBlock2):
         for outk, outv in self.outputs.items():
             if not outv.has_key('etype'): continue
             if outv['etype'] == 'mfcc':
-                outv['func'] = estd.MFCC()
+                outv['func'] = estd.MFCC(numberCoefficients = 13)
             elif outv['etype'] == 'centroid':
                 outv['func'] = estd.Centroid()
             elif outv['etype'] == 'sbic':
@@ -47,22 +47,29 @@ class EssentiaBlock2(PrimBlock2):
         #     pass
 
         # inputs
-        print "EssentiaBlock2 step[%d] input %s = %s" % (
-            self.cnt, 'x', self.inputs['x'].keys())
+        # print "EssentiaBlock2 step[%d] input %s = %s" % (
+        #     self.cnt, 'x', self.inputs['x'].keys())
         frame_ = self.inputs['x']['val']
+        print "EssentiaBlock2 step[%d] input.val = %s" % (
+            self.cnt, self.inputs['x']['val'].shape)
 
         spec = []
         for frame in estd.FrameGenerator(
-                frame_, frameSize = 2 * self.samplerate,
-                hopSize = 1 * self.samplerate):
+                frame_,
+                frameSize = 2 * self.samplerate,
+                hopSize = 1 * self.samplerate,
+                startFromZero = True):
             # common funcs
             spec_ = self.spectrum(self.w(frame))
+            # print "    EssentiaBlock2 from frame %s computing spectrum %s" % (frame.shape, spec_.shape)
             spec.append(spec_)
         self.spec = np.array(spec)
+
+        print "   EssentiaBlock2 spectrum = %s" % (self.spec.shape, )
             
         # outputs
         for outk, outv in self.outputs.items():
-            print "EssentiaBlock2 step[%d] output %s = %s" % (
+            print "    EssentiaBlock2 step[%d] output %s = %s" % (
                 self.cnt, outk, outv.keys())
 
             # frame_ = v['val']
@@ -84,10 +91,10 @@ class EssentiaBlock2(PrimBlock2):
             #     frame = frame_[frameidx * self.samplerate:(frameidx + 1) * self.samplerate]
             outtypek = '%s-%s' % (outk, outv['etype'])
             self.pool2[outtypek] = []
-            print "    spec.shape", self.spec.shape
+            # print "    spec.shape", self.spec.shape
             for spec_ in self.spec:
                 frame = spec_
-                print "                            frame = %s" % (frame.shape, )
+                # print "                            frame = %s" % (frame.shape, )
                 # dreal, ddfa = self.danceability(self.w(frame))
                 # print "d", dreal # , "frame", frame
                 # self.pool.add('rhythm.danceability', dreal)
@@ -95,7 +102,8 @@ class EssentiaBlock2(PrimBlock2):
                 # self.pool.add('rhythm.danceability', dreal)
                 y_ = outv['func'](frame)
                 if outv['etype'] == 'mfcc':
-                    y_ = y_[1][1:]
+                    # y_ = y_[1][1:]
+                    y_ = y_[1]
                 # print "        EssentiaBlock2 compute", y_
                 self.pool2[outtypek].append(y_)
 
@@ -106,7 +114,7 @@ class EssentiaBlock2(PrimBlock2):
                 y_ = y_.T
 
             setattr(self, outk, y_.copy())
-            print "%s/%s = %s" % (self.id, outk, getattr(self, outk))
+            print "    %s/%s = %s" % (self.id, outk, getattr(self, outk).shape)
             # setattr(self, 'y', self.pool['rhythm.danceability'])
             # setattr(self, 'y', y)
 
