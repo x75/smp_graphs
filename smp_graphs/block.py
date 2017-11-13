@@ -507,6 +507,12 @@ class decStep():
          3. evaluate the original function
          4. post-process outputs: copy outputs in xself.attr to bus[id/attr]
         """
+        # count calls
+        # xself.cnt += 1 # should be min_blocksize
+        # if self.topblock:
+        xself.cnt += xself.top.blocksize_min
+        print "xself.cname", xself.cname, xself.top.blocksize_min, xself.cnt
+        
         self.process_input(xself)
 
         if not self.get_credit(xself) or self.process_blk_mode(xself): return None
@@ -514,10 +520,7 @@ class decStep():
         f_out = self.f_eval(xself, f)
             
         self.process_output(xself)
-        
-        # count calls
-        xself.cnt += 1 # should be min_blocksize
-        
+                
         return f_out
 
     def process_blk_mode(self, xself):
@@ -834,7 +837,12 @@ class Block2(object):
         # fix the block's group
         # print "Block2 %s self.block_group" % (self.id,), self.block_group
         if type(self.block_group) is str: self.block_group = [self.block_group]
-        
+
+        # blocksize = 1 special cnt init
+        # if self.blocksize != 1:
+        self.cnt = 0
+        # self.cnt = self.blocksize
+            
         ################################################################################
         # 1 topblock: init bus, set top to self, init logging
         #   all the rest should be the same as for file, dict, loop, or loopseq
@@ -849,7 +857,7 @@ class Block2(object):
             self.top = self
             self.bus = Bus()
             # self.lsh_colors = lshash.LSHash(hash_size = 3, input_dim = 1000)
-            
+
             # block_store init, topblock only
             def init_block_store():
                 block_store_filename = 'data/block_store.h5'
@@ -956,6 +964,9 @@ class Block2(object):
                nodeid
             """
 
+            # minimum blocksize of composite block
+            self.blocksize_min = 1e9
+            
             print "%s%s-%s.init_block composite" % (self.nesting_indent, self.cname, self.id)
             # print "%s   with attrs = %s" % (self.nesting_indent, self.__dict__.keys())
             # for k,v in self.__dict__.items():
@@ -1463,6 +1474,8 @@ class Block2(object):
             print "took %f s" % (time.time() - then)
             
             # print "%s self.graph[k]['block'] = %s" % (self.graph[k]['block'].__class__.__name__, self.graph[k]['block'].bus)
+            if v['block_'].blocksize < self.blocksize_min:
+                self.blocksize_min = v['block_'].blocksize
         # done pass 1 init
 
     def init_graph_pass_2(self):
@@ -1868,8 +1881,9 @@ class Block2(object):
         
         if self.topblock:
 
+            print "topblock step cnt = %d" % (self.cnt, )
             # store log incrementally
-            if (self.cnt) % 500 == 0 or self.cnt == (self.numsteps - 1):
+            if (self.cnt) % 500 == 0 or self.cnt == (self.numsteps - 1) or self.cnt == (self.numsteps - self.blocksize_min):
                 print "storing log @iter % 4d/%d" % (self.cnt, self.numsteps)
                 log.log_pd_store()
 
@@ -2401,7 +2415,8 @@ class LoopBlock2(Block2):
 
             v['block_'].step()
 
-        self.cnt += 1
+        # self.cnt += 1
+        self.cnt += self.blocksize_min
 
 class SeqLoopBlock2(Block2):
     """SeqLoopBlock2 class

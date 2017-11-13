@@ -220,10 +220,11 @@ class FileBlock2(Block2):
 
     @decStep()
     def step_wav(self, x = None):
+        # print "step_Wav", self.cnt
         if (self.cnt % self.blocksize) == 0: # (self.blocksize - 1):
             for k, v in self.outputs.items():                
                 sl = slice(self.cnt-self.blocksize, self.cnt)
-                # print "wav step [%d]" % (self.cnt), self.data[k][sl].T
+                print "wav step [%d]" % (self.cnt), self.data[k][sl].T
                 setattr(self, k, self.data[k][sl].T)
                 # setattr(self, k, self.data[k][[self.cnt]].T)
         

@@ -32,6 +32,8 @@ class EssentiaBlock2(PrimBlock2):
                 outv['func'] = estd.MFCC()
             elif outv['etype'] == 'centroid':
                 outv['func'] = estd.Centroid()
+            elif outv['etype'] == 'sbic':
+                outv['func'] = estd.SBic()
             elif outv['etype'] == 'danceability':
                 outv['func'] = estd.Danceability(
                     maxTau = 10000, minTau = 300, sampleRate = self.samplerate)

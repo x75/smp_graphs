@@ -111,6 +111,7 @@ loopblock_graph = OrderedDict([
             'outputs': {
                 'centroid': {'shape': (xdim * 1, numsteps / 1024 + 1), 'etype': 'centroid'},
                 'mfcc': {'shape': (mfccdim, numsteps / 1024 + 1), 'etype': 'mfcc', 'numberCoefficients': mfccdim},
+                # 'sbic': {'shape': (xdim * 1, numsteps / 1024 + 1), 'etype': 'sbic'},
                 # 'y': {'shape': (xdim, numsteps)},
                 # 'y': {'shape': (ydim, numsteps)}
             },
@@ -157,9 +158,11 @@ def make_puppy_rp_plot_inputs():
     # inspec = {'d3': {'bus': 'b2/x', 'shape': (3, numsteps)}}
     inspec = {}
     for i,l in enumerate(looparray):
+        # print "l", l
         for j, buskey_base in enumerate(buskey_bases):
             inspec['%s_ll%d_%d' % (buskey_signal[j], i, j, )] = {
                 'bus': '%s_ll%d_ll0_ll0/%s' % (buskey_base, i, buskey_signal[j]),
+                'name': '%s %s[%d:%d]' % (buskey_signal[j], l[1]['filename'].split('/')[-1], l[1]['offset'], l[1]['offset'] + l[1]['length']),
                 'shape': buskey_shapes[j], # (xdim, numsteps / 1024 + 1),
             }
             # inspec['%s_ll%d_%d' % (buskey_signal[j], i, j, )] = {'bus': '%s_ll%d_ll0_ll0/%s' % (buskey_base, i, buskey_signal[j])}
@@ -174,6 +177,7 @@ graph = OrderedDict([
         'block': LoopBlock2,
         'params': {
             'id': 'puppydata',
+            'blocksize': numsteps,
             'loop': looparray,
             # 'loopblock': loopblock,
             'loopblock': loopblock_graph,
@@ -185,29 +189,29 @@ graph = OrderedDict([
         },
     }),
              
-    # a constant
-    ("b1", {
-        'block': ConstBlock2,
-        'params': {
-            'id': 'b1',
-            'inputs': {'c': {'val': np.random.uniform(-1, 1, (3, 1))}},
-            'outputs': {'x': {'shape': (3, 1)}},
-            'debug': False,
-        },
-    }),
+    # # a constant
+    # ("b1", {
+    #     'block': ConstBlock2,
+    #     'params': {
+    #         'id': 'b1',
+    #         'inputs': {'c': {'val': np.random.uniform(-1, 1, (3, 1))}},
+    #         'outputs': {'x': {'shape': (3, 1)}},
+    #         'debug': False,
+    #     },
+    # }),
     
-    # a random number generator, mapping const input to hi
-    ("b2", {
-        'block': UniformRandomBlock2,
-        'params': {
-            'id': 'b2',
-            # 'lo': 0,
-            # 'hi': 1,
-            'inputs': {'lo': {'val': 0}, 'hi': {'bus': 'b1/x'}},
-            'outputs': {'x': {'shape': (3, 1)}},
-            'debug': False,
-        },
-    }),
+    # # a random number generator, mapping const input to hi
+    # ("b2", {
+    #     'block': UniformRandomBlock2,
+    #     'params': {
+    #         'id': 'b2',
+    #         # 'lo': 0,
+    #         # 'hi': 1,
+    #         'inputs': {'lo': {'val': 0}, 'hi': {'bus': 'b1/x'}},
+    #         'outputs': {'x': {'shape': (3, 1)}},
+    #         'debug': False,
+    #     },
+    # }),
     
     # plot module with blocksize = episode, fetching input from busses
     # and mapping that onto plots
@@ -225,7 +229,12 @@ graph = OrderedDict([
                 # {'input': '%s_ll%d' % (itup[1], itup[0]), 'plot': histogram},
                 # {'input': '%s_ll%d' % (itup[1], itup[0]), 'plot': timeseries},
                 # {'input': '%s' % (itup[0], ), 'plot': timeseries},
-                {'input': '%s' % (itup[0], ), 'plot': partial(timeseries, marker = 'o'), 'shape': itup[1]['shape']},
+                {
+                    'input': '%s' % (itup[0], ),
+                    'plot': partial(timeseries, marker = 'o'),
+                    'title': itup[1]['name'],
+                    'shape': itup[1]['shape'],
+                },
                 # {'input': '%s_ll%d' % (itup[1], itup[0]), 'plot': rp_timeseries_embedding}
                 # , 'y'
                 # ] for itup in zip(map(lambda x: x/2, range(len(looparray)*2)), ['x'] * len(looparray))]

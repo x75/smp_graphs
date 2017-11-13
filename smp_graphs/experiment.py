@@ -675,7 +675,8 @@ class Experiment(object):
         #       except go interactive
         # import pdb
         # topblock_x = self.top.step(x = None)
-        for i in xrange(self.params['numsteps']):
+        for i in xrange(0, self.params['numsteps'], self.top.blocksize_min):
+            print "experiment.py run i = %d" % (i, )
             # try:
             topblock_x = self.top.step(x = None)
             # except:
