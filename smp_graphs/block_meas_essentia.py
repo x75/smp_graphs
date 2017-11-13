@@ -2,6 +2,9 @@ import numpy as np
 
 from smp_graphs.block import decInit, decStep, Block2, PrimBlock2
 
+import matplotlib.pyplot as plt
+from sklearn.manifold import TSNE
+
 # essentia
 HAVE_ESSENTIA = False
 try:
@@ -118,3 +121,128 @@ class EssentiaBlock2(PrimBlock2):
             # setattr(self, 'y', self.pool['rhythm.danceability'])
             # setattr(self, 'y', y)
 
+class AdhocMixBlock2(PrimBlock2):
+    """AdhocMixBlock2 class
+
+    Custom ad-hoc computation block
+     - input is feature matrix, first half of rows is start-features, second half of rows is end-features
+     - compute 1D t-SNE on the entire matrix
+     - plot end and start
+    """
+    @decInit()
+    def __init__(self, conf = {}, paren = None, top = None):
+        PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
+
+        # self.tsne = TSNE(n_components = 1, metric = 'correlation')
+        # self.tsne = TSNE(n_components = 1, metric = 'l2')
+        self.tsne = TSNE(n_components = 1, metric = 'l2')
+        
+    @decStep()
+    def step(self, x = None):
+        print "adhoc inputs", self.inputs['mus']['val'].shape
+        x = self.inputs['mus']['val']
+        # print "x", x
+        x_zeromean = x - np.mean(x, axis = 0)
+        x_std = x_zeromean / np.std(x_zeromean, axis = 0)
+
+        print "x_std", x_std
+        
+        # x_emb = self.tsne.fit_transform(x_std)
+        x_emb = x
+        x_emb[:,1] = 0
+        x_emb_start = x_emb[:x.shape[0]/2]
+        x_emb_end   = x_emb[x.shape[0]/2:]
+        
+        points = []
+        points_start = []
+        d_mat = {
+            'd_l2': np.zeros((x.shape[0]/2, x.shape[0]/2)),
+            'd_corr': np.zeros((x.shape[0]/2, x.shape[0]/2)),
+        }
+            
+        for i, x_e in enumerate(x_emb_end):
+            for j, x_s in enumerate(x_emb_start):
+                # if j == i: continue
+                # points.append(np.hstack([x_e, x_s]))
+                d_l2 = np.linalg.norm(x_e - x_s)
+                # d_corr = np.correlate(x_e, x_s)
+                d_corr = 1 - np.corrcoef(x_e, x_s)[0,1]
+                d_mat['d_l2'][i,j] = d_l2
+                d_mat['d_corr'][i,j] = d_corr
+                points.append(d_corr)
+                points_start.append((i, j))
+
+        print "adhoc inputs x_emb_start", x_emb_start
+        print "adhoc inputs x_emb_end", x_emb_end
+
+        # write mix sequence
+        trk_cnt = 0
+        trk_visited = []
+        trk_do = True
+        trk_mat = d_mat['d_corr'].copy()
+        
+        trk = np.random.randint(x.shape[0]/2)
+        trk_mat[:,trk] = 1000
+        print "trk_mat", trk_mat
+        while trk_do:
+            trk_visited.append((trk, self.filearray[trk][0]))
+            if len(trk_visited) == x.shape[0]/2:
+                trk_do = False
+            # trk_ = np.argmin(d_mat['d_corr'][trk,:])
+            trk_ = np.argmin(trk_mat[trk,:])
+            trk_mat[:,trk_] = 1000
+            trk = trk_
+            print "trk_mat", trk_mat
+
+        trk_seq = "trk_seq = [\n"
+        for seqnum, seqfile in trk_visited:
+            trk_seq += "    (%d, '%s'),\n" % (seqnum, seqfile)
+        trk_seq += "]\n"
+        
+        print "trk_visited", trk_seq
+        f = open('trk_seq_%d.txt' % np.random.randint(1000), 'w')
+        f.write(trk_seq)
+        f.flush()
+        f.close()
+        print "trk_mat", trk_mat
+            
+        # setattr(self, outk, y_.copy())
+
+        plt.ion()
+
+        fig1 = plt.figure()
+        ax0 = fig1.add_subplot(1,3,1)
+        # ax0.plot(x_std.T, 'ko')
+        ax0.boxplot(x_std)
+        
+        ax1 = fig1.add_subplot(1,3,2)
+        ax1.imshow(d_mat['d_corr'], interpolation = 'none', cmap = plt.get_cmap('Reds'))
+
+        ax2 = fig1.add_subplot(1,3,3)
+        ax2.imshow(d_mat['d_l2'], interpolation = 'none', cmap = plt.get_cmap('Reds'))
+        
+        plt.draw()
+        plt.pause(1e-9)
+        
+        # fig1 = plt.figure()
+        # ax1 = fig1.add_subplot(1,1,1)
+        # ax1.plot(x_emb_start, np.zeros_like(x_emb_start), 'ko')
+        # ax1.plot(x_emb_end, np.zeros_like(x_emb_end), 'ro')
+        # plt.draw()
+        # plt.pause(1e-9)
+
+        # # points = zip(x_emb_end, x_emb_start)
+        # # points = np.hstack((x_emb_end, x_emb_start))
+        
+        # points = np.array(points)
+        # print "points", points
+
+        # fig2 = plt.figure()
+        # ax2 = fig2.add_subplot(1,1,1)
+        # # plt.plot(points, 'ko')
+        # ax2.scatter(points[:,0], points[:,1], alpha = 0.5)
+        # for i, p in enumerate(points):
+        #     ax2.text(p[0], p[1], '%d/%d' % (points_start[i][0], points_start[i][1]))
+        # plt.draw()
+        # plt.pause(1e-9)
+        

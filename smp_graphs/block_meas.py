@@ -192,13 +192,20 @@ class MomentBlock2(PrimBlock2):
         for k, v in self.inputs.items():
             # print "%s.step[%d] k = %s, v = %s/%s, bus = %s" % (self.cname, self.cnt, k, v['val'].shape, v['shape'], self.bus[v['bus']].shape)
             data = v['val']
+            axis = -1
             # print "data", data.shape
             k_mu = k + "_mu"
             k_var = k + "_var"
             k_min = k + "_min"
             k_max = k + "_max"
-            setattr(self, k_mu, np.mean(v['val'], keepdims = True))
-            setattr(self, k_var, np.var(v['val'], keepdims = True))
-            setattr(self, k_min, np.min(v['val'], keepdims = True))
-            setattr(self, k_max, np.max(v['val'], keepdims = True))
+            if hasattr(self, 'transpose') and self.transpose:
+                setattr(self, k_mu, np.mean(v['val'], axis = axis, keepdims = True).T)
+                setattr(self, k_var, np.var(v['val'], axis = axis, keepdims = True).T)
+                setattr(self, k_min, np.min(v['val'], axis = axis, keepdims = True).T)
+                setattr(self, k_max, np.max(v['val'], axis = axis, keepdims = True).T)
+            else:
+                setattr(self, k_mu, np.mean(v['val'], axis = axis, keepdims = True))
+                setattr(self, k_var, np.var(v['val'], axis = axis, keepdims = True))
+                setattr(self, k_min, np.min(v['val'], axis = axis, keepdims = True))
+                setattr(self, k_max, np.max(v['val'], axis = axis, keepdims = True))
             print "MomentBlock2: mu, var, min, max", k, getattr(self, k_mu), getattr(self, k_var), getattr(self, k_min), getattr(self, k_max)

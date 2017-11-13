@@ -1554,7 +1554,7 @@ class Block2(object):
             v['shape'] = self.bus[v['buscopy']].shape
         
         # assert v.keys()[0] in ['shape', 'bus'], "Need 'bus' or 'shape' key in outputs spec of %s" % (self.id, )
-        assert v.has_key('shape'), "%s-%d's output spec %s needs 'shape' param but has %s " % (self.cname, self.id, k, v.keys())
+        assert v.has_key('shape'), "%s-%s's output spec %s needs 'shape' param but has %s " % (self.cname, self.id, k, v.keys())
         # if v.has_key('shape'):
         assert len(v['shape']) > 1, "Block %s, output %s 'shape' tuple is needs at least (dim1 x output blocksize), v = %s" % (self.id, k, v)
         # # create new shape tuple by appending the blocksize to original dimensions
