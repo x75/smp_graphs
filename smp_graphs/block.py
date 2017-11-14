@@ -950,7 +950,7 @@ class Block2(object):
 
         # init block color
         self.init_colors()
-        
+
         ################################################################################
         # 2 copy the config dict to exec graph if hierarchical
         if hasattr(self, 'graph') or hasattr(self, 'subgraph') \
@@ -964,14 +964,14 @@ class Block2(object):
                nodeid
             """
 
-            # minimum blocksize of composite block
-            self.blocksize_min = 1e9
-            
             print "%s%s-%s.init_block composite" % (self.nesting_indent, self.cname, self.id)
             # print "%s   with attrs = %s" % (self.nesting_indent, self.__dict__.keys())
             # for k,v in self.__dict__.items():
             #     print "%s-%s k = %s, v = %s" % (self.cname, self.id, k, v)
 
+            # minimum blocksize of composite block
+            self.blocksize_min = np.inf
+            
             # subgraph preprocess, propagate additional subgraph configuration
             if hasattr(self, 'subgraph'):
                 # print "%s%s-%s.init_block composite init_subgraph" % (self.nesting_indent, self.cname, self.id)
@@ -1032,12 +1032,20 @@ class Block2(object):
 
             # if self.conf['params'].has_key('outputs'):
             #     print "Block2-%s.init_block init_outputs self.conf = %s" % (self.id, self.outputs, )
+            
+            if self.blocksize_min < self.top.blocksize_min:
+                self.top.blocksize_min = self.blocksize_min
                 
         ################################################################################
         # 3 initialize a primitive block
         else:
             self.init_primitive()
 
+        # minimum blocksize of composite block
+        # if not self.topblock and self.blocksize < self.top.blocksize_min:
+        if self.blocksize < self.top.blocksize_min:
+            self.top.blocksize_min = self.blocksize
+            
         # initialize block caching, FIXME: before logging?
         self.init_block_cache()
 
@@ -1207,7 +1215,10 @@ class Block2(object):
                 
                 # try to load the cache entry from the store
                 try:
-                    self.cache = block.top.block_store['/blocks'][:][block.top.block_store['/blocks']['md5'] == self.md5]
+                    # query = block.top.block_store['/blocks']['md5'] == self.md5
+                    # self.cache = block.top.block_store['/blocks'][:][query]
+                    query = block.top.block_store.blocks.md5 == self.md5
+                    self.cache = block.top.block_store.blocks[:][query]
                 except Exception, e:
                     print "%s%s-%s.check_block_store cache retrieval for %s failed with %s" % (
                         self.nesting_indent,
@@ -1223,31 +1234,49 @@ class Block2(object):
                     self.nesting_indent,
                     self.cname, self.id, self.md5, self.cache['log_store'].values)
                 
-                # load cached data only once
-                # FIXME: check experiment.cache to catch randseed and numsteps
-                if block.top.log_store_cache is None:
-                    block.top.log_store_cache = pd.HDFStore(self.cache['log_store'].values[0])
-                    
-                self.cache_data = {}
-                for outk in self.outputs.keys():
-                    # x_ = self.cache_h5['%s/%s' % (self.id, outk)].values
-                    x_ = block.top.log_store_cache['%s/%s' % (self.id, outk)].values
-                    print "%s%s-%s.check_block_store:     loading output %s cached data = %s" % (
-                        self.nesting_indent,
-                        self.cname, self.id, outk, x_.shape)
-                    # FIXME: check cache and runtime shape geometry
-                    self.cache_data[outk] = x_.copy()
-                    setattr(self, outk, self.cache_data[outk][...,[0]])
 
-                # # load the graph in case of composite block
-                # if str(self.cache['nxgraph']) != 'nxgraph':
-                #     nxgraph_new = nxgraph_from_smp_graph(str(self.cache['nxgraph']))
-                #     print "type(nxgraph_new)", str(nxgraph_new)
-                #     setattr(self, 'nxgraph', nxgraph_new)
-                #     print "type(nxgraph)", str(self.nxgraph)
+                if block.top.cache_clear:
+                    print "%s    cache_clear set, deleting cache entry %s" % (self.nesting_indent, block.md5)
+                    # hits = pd.Index(block.top.block_store.blocks.md5 == block.md5)
+                    hits = block.top.block_store.blocks.md5 == block.md5
+                    if hits is not None:
+                        for hit in hits.nonzero():
+                            print "hit", hit.shape
+                            hit_ = hit[0] + 1
+                            # print "hits", hits.nonzero()
+                            # hits *= np.arange(0, len(hits) + 0)
+                            # hits = pd.Index(hits)
+                            # print "hits", hits
+                            # print "hits deref", block.top.block_store.blocks[hits]
+                            block.top.block_store.blocks.drop(index = [hit_])
+                    self.cache = None
+                    
+                else:
+                    # load cached data only once
+                    # FIXME: check experiment.cache to catch randseed and numsteps
+                    if block.top.log_store_cache is None:
+                        block.top.log_store_cache = pd.HDFStore(self.cache['log_store'].values[0])
+                    
+                    self.cache_data = {}
+                    for outk in self.outputs.keys():
+                        # x_ = self.cache_h5['%s/%s' % (self.id, outk)].values
+                        x_ = block.top.log_store_cache['%s/%s' % (self.id, outk)].values
+                        print "%s%s-%s.check_block_store:     loading output %s cached data = %s" % (
+                            self.nesting_indent,
+                            self.cname, self.id, outk, x_.shape)
+                        # FIXME: check cache and runtime shape geometry
+                        self.cache_data[outk] = x_.copy()
+                        setattr(self, outk, self.cache_data[outk][...,[0]])
+
+                    # # load the graph in case of composite block
+                    # if str(self.cache['nxgraph']) != 'nxgraph':
+                    #     nxgraph_new = nxgraph_from_smp_graph(str(self.cache['nxgraph']))
+                    #     print "type(nxgraph_new)", str(nxgraph_new)
+                    #     setattr(self, 'nxgraph', nxgraph_new)
+                    #     print "type(nxgraph)", str(self.nxgraph)
                 
-                # self.cache_h5.close()
-                self.cache_loaded = True
+                    # self.cache_h5.close()
+                    self.cache_loaded = True
                 
             # no cache entry was found or loading failed for some other reason
             else:
@@ -1881,7 +1910,7 @@ class Block2(object):
         
         if self.topblock:
 
-            print "topblock step cnt = %d" % (self.cnt, )
+            # print "topblock step cnt = %d" % (self.cnt, )
             # store log incrementally
             if (self.cnt) % 500 == 0 or self.cnt == (self.numsteps - 1) or self.cnt == (self.numsteps - self.blocksize_min):
                 print "storing log @iter % 4d/%d" % (self.cnt, self.numsteps)

@@ -263,6 +263,8 @@ class Experiment(object):
             # else:
             #     print "        self.%s = %s\n" % (k, selfattr)
 
+        self.conf['params']['cache_clear'] = self.params['cache_clear']
+            
         # print self.desc
         self.args = args
         """
@@ -466,7 +468,12 @@ class Experiment(object):
 
             if self.params['cache_clear']:
                 print "    cache found, dropping and recreating it", type(self.experiments)
-                self.experiments.drop(index = [(self.experiments.md5 == xid).argmax()])
+                # self.experiments.drop(index = [(self.experiments.md5 == xid).argmax()])
+                hits = self.experiments.md5 == xid
+                print "expr hits", hits
+                hits *= np.arange(len(hits))
+                print "expr hits", hits
+                self.experiments.drop(index = hits)
             new_cache_entry(values, columns, index = [self.cache_index + 1])
         # store the experiment in the cache if it doesn't exist
         else:
@@ -676,7 +683,7 @@ class Experiment(object):
         # import pdb
         # topblock_x = self.top.step(x = None)
         for i in xrange(0, self.params['numsteps'], self.top.blocksize_min):
-            print "experiment.py run i = %d" % (i, )
+            # print "experiment.py run i = %d" % (i, )
             # try:
             topblock_x = self.top.step(x = None)
             # except:

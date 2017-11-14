@@ -284,7 +284,7 @@ Arguments:
     # print "tmplogdata.sh", tmplogdata.shape
 
     assert log_logarray[tbl_name][:,sl].shape == tmplogdata.shape, \
-      "logging.log_pd: Block output shape for %s doesn't agree with logging shape %s/%s, sl1 = %s, sl2 = %s" % (
+      "logging.log_pd: Block output %s's shape %s doesn't agree with logging shape %s, sl1 = %s, sl2 = %s" % (
           tbl_name, log_logarray[tbl_name][:,sl].shape, tmplogdata.shape, sl1, sl2)
 
     log_logarray[tbl_name][:,sl] = tmplogdata # to copy or not to copy?

@@ -203,9 +203,9 @@ graph = OrderedDict([
                     {
                         'input': ['pre_l0', 's_p', 'pre_l1'],
                         'plot': [
-                            partial(timeseries, linewidth = 1.0, alpha = 1.0, xlabel = None),
-                            partial(timeseries, alpha = 1.0, xlabel = None),
-                            partial(timeseries, linewidth = 2.0, alpha = 1.0, xticks = False, xlabel = None)],
+                            partial(timeseries, linewidth = 1.0, alpha = 1.0, xlabel = None, marker = 'o'),
+                            partial(timeseries, linewidth = 1.0, alpha = 1.0, xlabel = None, marker = 'o'),
+                            partial(timeseries, linewidth = 2.0, alpha = 1.0, xlabel = None, marker = 'o', xticks = False)],
                         'title': 'two-level prediction and measurement (timeseries)',
                     },
                     {

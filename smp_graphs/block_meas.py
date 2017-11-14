@@ -208,4 +208,5 @@ class MomentBlock2(PrimBlock2):
                 setattr(self, k_var, np.var(v['val'], axis = axis, keepdims = True))
                 setattr(self, k_min, np.min(v['val'], axis = axis, keepdims = True))
                 setattr(self, k_max, np.max(v['val'], axis = axis, keepdims = True))
-            print "MomentBlock2: mu, var, min, max", k, getattr(self, k_mu), getattr(self, k_var), getattr(self, k_min), getattr(self, k_max)
+            print "%s%s-%s[%d/%d]\n%s    %s mu = %s, var = %s, min = %s, max = %s" % (
+                self.nesting_indent, self.cname, self.id, self.cnt, self.top.blocksize_min, self.nesting_indent, k, getattr(self, k_mu), getattr(self, k_var), getattr(self, k_min), getattr(self, k_max))
