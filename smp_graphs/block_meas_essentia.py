@@ -1,3 +1,8 @@
+"""wrap essentia in blocks
+
+this is an ad-hoc sketch for a particular processing pipeline, wip
+"""
+
 import numpy as np
 
 from smp_graphs.block import decInit, decStep, Block2, PrimBlock2
@@ -179,7 +184,8 @@ class AdhocMixBlock2(PrimBlock2):
         trk_cnt = 0
         trk_visited = []
         trk_do = True
-        trk_mat = d_mat['d_corr'].copy()
+        # trk_mat = d_mat['d_corr'].copy()
+        trk_mat = d_mat['d_l2'].copy()
         
         trk = np.random.randint(x.shape[0]/2)
         trk_mat[:,trk] = 1000
