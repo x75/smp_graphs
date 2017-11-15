@@ -204,7 +204,7 @@ loopblock = {
     'params': {
         'id': 'bhier',
         'debug': False,
-        'logging': False,
+        'logging': True,
         'topblock': False,
         'numsteps': numsteps,
         'randseed': 1,

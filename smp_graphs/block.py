@@ -511,7 +511,7 @@ class decStep():
         # xself.cnt += 1 # should be min_blocksize
         # if self.topblock:
         xself.cnt += xself.top.blocksize_min
-        # print "xself.cname", xself.cname, xself.top.blocksize_min, xself.cnt
+        # print "%s    %s-%s[%d] step_wrapped" %(xself.nesting_indent, xself.cname, xself.top.blocksize_min, xself.cnt)
         
         self.process_input(xself)
 
@@ -659,6 +659,8 @@ class decStep():
                 
                 # copy data into logging
                 if xself.logging:
+                    if xself.id == 'b4':
+                        print "logging %s-%s to tbl_name = %s, data = %s" % (xself.cname, xself.id, v['buskey'], xself.bus[v['buskey']])
                     # try:
                     # if xself.cname == 'SeqLoopBlock2':
                     #     print "logging", v['buskey'], xself.bus[v['buskey']]
@@ -721,7 +723,7 @@ class decStep():
         # if count aligns with block's execution blocksize
         if self.block_is_scheduled(xself):
             # are we caching?
-            if xself.top.docache and xself.cache is not None and xself.cache_loaded: # cache_block and cache_inst:
+            if not xself.topblock and xself.top.docache and xself.cache is not None and xself.cache_loaded: # cache_block and cache_inst:
                 # pass
                 shapes = []
                 for outk, outv in xself.outputs.items():
@@ -742,7 +744,9 @@ class decStep():
             # not caching
             else:
                 # compute the block with step()
+                # print "%s    %s-%s[%d] f_out 0" % (xself.nesting_indent, xself.cname, xself.id, xself.cnt)
                 f_out = f(xself, None)
+                # print "%s    %s-%s[%d] f_out 1" % (xself.nesting_indent, xself.cname, xself.id, xself.cnt)
                 
         else:
             f_out = None
@@ -758,7 +762,8 @@ class decStep():
     def block_is_finished(self, xself):
         """Block is finished when its count equals toplevel number of steps
         """
-        # and hasattr(xself, 'isprimitive') and xself.isprimitive:    
+        # and hasattr(xself, 'isprimitive') and xself.isprimitive:
+        # print "block_is_finished self.cnt = %d, top.numsteps = %d" % (xself.cnt, xself.top.numsteps)
         return xself.cnt == xself.top.numsteps
     
 ################################################################################
@@ -1184,140 +1189,174 @@ class Block2(object):
         def check_block_store(block = None, top = None):
             import datetime
             assert block is not None, "Need some block to work on"
-            # if not block.isprimitive: return
-            # strip naturally variable parts of the config
-            conf_ = conf_strip_variables(block.conf)
-            # append top_md5 to ensure the right context in terms of numsteps, randseed, ...
-            conf_['top_md5'] = block.top.md5
-            # print "Block2 %s-%s conf_.keys = %s" % (self.cname, self.id, conf_.keys()) # print_dict(conf_)
-            # m = md5(str(block.conf))
-            m = md5(str(conf_))
-            self.md5 = m.hexdigest()
-            self.cache = None
-            self.cache_loaded = False
-            self.cache_num_entries = 0
 
-            if hasattr(self, 'nocache') and self.nocache:
+            # failsafe top ref
+            if top is None: top = block.top
+            assert hasattr(top, 'block_store'), "Top block needs to have a pandas.HDF5Store type 'block_store' attribute"
+                
+            # strip naturally varying parts of the config
+            conf_ = conf_strip_variables(block.conf)
+            
+            # append top_md5 to ensure the right context in terms of numsteps, randseed, ...
+            conf_['top_md5'] = top.md5
+
+            # # debug
+            # print "%s   cache %s-%s top.md5 = %s" % (block.nesting_indent, block.cname, block.id, top.md5)
+            # print "%s   cache %s-%s conf_.keys = %s" % (block.nesting_indent, block.cname, block.id, conf_.keys())
+            # print "%s   cache %s-%s conf_ = %s" % (block.nesting_indent, block.cname, block.id, conf_)
+
+            # compute hash of stripped conf 'conf_'
+            m = md5(str(conf_))
+            block.md5 = m.hexdigest()
+            block.cache = None
+            block.cache_loaded = False
+            block.cache_num_entries = 0
+
+            # return if we don't want caching here
+            if hasattr(block, 'nocache') and block.nocache:
                 return
+
+            # print "block_store has blocks? is %s" % (hasattr(top.block_store, 'blocks'), )
+            # print "top.block_store['/blocks'] is top.block_store.blocks? is %s" % (top.block_store['/blocks'] is top.block_store.blocks, )
             
             # store exists
-            if len(block.top.block_store.keys()) > 0:
-                # print "init_block_cache: block.top.block_store.keys()", block.top.block_store.keys()
-                # print "init_block_cache: block.top.block_store.has_key('/blocks')", '/blocks' in block.top.block_store.keys()
-                # print "check_block_store", block.top.block_store['blocks'].shape
-                # print "init_block_cache: self.md5", self.cname, self.id, self.md5
-                # print "blocks", type(block.top.block_store['/blocks'])
-                # print block.top.block_store['blocks']['md5'] == self.md5
-                # print block.top.block_store['/blocks']
+            # if len(top.block_store.keys()) > 0:
+            if hasattr(top.block_store, 'blocks'):
+                # blocks dataframe ref
+                blocks = top.block_store.blocks
+                # print "    blocks", blocks
+                
+                # print "init_block_cache: top.block_store.keys()", top.block_store.keys()
+                # print "init_block_cache: top.block_store.has_key('/blocks')", '/blocks' in top.block_store.keys()
+                # print "check_block_store", blocks.shape
+                # print "init_block_cache: block.md5", block.cname, block.id, self.md5
+                # print blocks['md5'] == block.md5
 
                 # get number of cache entries
-                self.cache_num_entries = block.top.block_store['blocks'].index[-1]
+                block.cache_num_entries = blocks.index[-1]
                 
                 # try to load the cache entry from the store
                 try:
-                    # query = block.top.block_store['/blocks']['md5'] == self.md5
-                    # self.cache = block.top.block_store['/blocks'][:][query]
-                    query = block.top.block_store.blocks.md5 == self.md5
-                    self.cache = block.top.block_store.blocks[:][query]
+                    # query = top.block_store['/blocks']['md5'] == block.md5
+                    # block.cache = top.block_store['/blocks'][:][query]
+                    query = blocks.md5 == block.md5
+                    # print "    blocks query\n", query
+                    block.cache = blocks[:][query]
+                    if block.cache is not None and block.cache.shape[0] < 1:
+                        block.cache = None
                 except Exception, e:
                     print "%s%s-%s.check_block_store cache retrieval for %s failed with %s" % (
-                        self.nesting_indent,
-                        self.cname, self.id, self.md5, e)
-                    self.cache = None
+                        block.nesting_indent,
+                        block.cname, block.id, block.md5, e)
+                    block.cache = None
                     
-                # print "check_block_store", self.md5, block.top.block_store['blocks']['md5']
-                # print "init_block_cache: self.cache", self.cache
+                # print "check_block_store", block.md5, blocks['md5']
+                # print "init_block_cache: block.cache", block.md5, block.cache, blocks.md5
                 
             # cache loaded successfully
-            if self.top.docache and self.cache is not None and self.cache.shape[0] != 0:
-                print "%s%s-%s.check_block_store: found cache for %s\n%s    cache['log_stores'] = %s" % (
-                    self.nesting_indent, self.cname, self.id, self.md5,
-                    self.nesting_indent, self.cache['log_store'].values)
+            if top.docache and block.cache is not None and block.cache.shape[0] != 0:
+                print "%s%s-%s.check_block_store" % (block.nesting_indent, block.cname, block.id)
+                print "%s    cache found for %s\n%s    cache['log_stores'] = %s" % (
+                    block.nesting_indent, block.md5,
+                    block.nesting_indent, block.cache['log_store'].values)
 
-                if block.top.cache_clear:
-                    print "%s    cache_clear set, deleting cache entry %s / %s" % (self.nesting_indent, block.md5, block.top.block_store.blocks.shape)
-                    # hits = pd.Index(block.top.block_store.blocks.md5 == block.md5)
-                    hits = block.top.block_store.blocks.md5 == block.md5
+                if top.cache_clear:
+                    print "%s    cache_clear set, deleting cache entry %s / %s" % (block.nesting_indent, block.md5, blocks.shape)
+                    # hits = pd.Index(blocks.md5 == block.md5)
+                    hits = blocks.md5 == block.md5
                     if hits is not None:
                         # for hit in hits.nonzero():
                         for hit in hits.index[hits]:
-                            # print "%s    hit = %s/%s" % (self.nesting_indent, type(hit), hit)
+                            # print "%s    hit = %s/%s" % (block.nesting_indent, type(hit), hit)
                             # hit_ = hit[0] + 1
                             hit_ = hit
                             # print "hits", hits.nonzero()
                             # hits *= np.arange(0, len(hits) + 0)
                             # hits = pd.Index(hits)
                             # print "hits", hits
-                            # print "hits deref", block.top.block_store.blocks[hits]
-                            block.top.block_store.blocks = block.top.block_store.blocks.drop(index = [hit_])
-                            print "%s    dropped = %s" % (self.nesting_indent, block.top.block_store.blocks.shape)
-                    self.cache = None
+                            # print "hits deref", blocks[hits]
+                            blocks_pre_drop_shape = blocks.shape
+                            blocks = blocks.drop(index = [hit_])
+                            print "%s    cache_clear set, dropping, pre = %s, post = %s" % (block.nesting_indent, blocks_pre_drop_shape, blocks.shape)
+                    # # save
+                    # blocks.to_hdf(top.block_store, key = 'blocks')
+                    block.cache = None
                     
                 else:
                     # load cached data only once
                     # FIXME: check experiment.cache to catch randseed and numsteps
-                    if block.top.log_store_cache is None:
-                        block.top.log_store_cache = pd.HDFStore(self.cache['log_store'].values[0])
+                    if top.log_store_cache is None:
+                        top.log_store_cache = pd.HDFStore(block.cache['log_store'].values[0])
                     
-                    self.cache_data = {}
-                    for outk in self.outputs.keys():
-                        # x_ = self.cache_h5['%s/%s' % (self.id, outk)].values
-                        x_ = block.top.log_store_cache['%s/%s' % (self.id, outk)].values
+                    block.cache_data = {}
+                    for outk, outv in block.outputs.items():
+                        if outv.has_key('type') and outv['type'] != 'ndarray': continue
+                        # x_ = block.cache_h5['%s/%s' % (block.id, outk)].values
+                        x_ = top.log_store_cache['%s/%s' % (block.id, outk)].values
                         print "%s%s-%s.check_block_store:     loading output %s cached data = %s" % (
-                            self.nesting_indent,
-                            self.cname, self.id, outk, x_.shape)
+                            block.nesting_indent,
+                            block.cname, block.id, outk, x_)
                         # FIXME: check cache and runtime shape geometry
-                        self.cache_data[outk] = x_.copy()
-                        setattr(self, outk, self.cache_data[outk][...,[0]])
+                        block.cache_data[outk] = x_.copy()
+                        setattr(block, outk, block.cache_data[outk][...,[0]])
 
                     # # load the graph in case of composite block
-                    # if str(self.cache['nxgraph']) != 'nxgraph':
-                    #     nxgraph_new = nxgraph_from_smp_graph(str(self.cache['nxgraph']))
+                    # if str(block.cache['nxgraph']) != 'nxgraph':
+                    #     nxgraph_new = nxgraph_from_smp_graph(str(block.cache['nxgraph']))
                     #     print "type(nxgraph_new)", str(nxgraph_new)
-                    #     setattr(self, 'nxgraph', nxgraph_new)
-                    #     print "type(nxgraph)", str(self.nxgraph)
+                    #     setattr(block, 'nxgraph', nxgraph_new)
+                    #     print "type(nxgraph)", str(block.nxgraph)
                 
-                    # self.cache_h5.close()
-                    self.cache_loaded = True
+                    # block.cache_h5.close()
+                    block.cache_loaded = True
                 
-            # no cache entry was found or loading failed for some other reason
-            else:
+            # else:
+            # no cache entry was found, cache was found but cleared, or loading failed for some other reason
+            # cache loaded successfully
+            if top.docache and block.cache is None:
                 # print "%s%s-%s.check_block_store: no cache exists for %s, storing %s at %s" % (
-                #     self.nesting_indent,
-                #     self.cname, self.id, self.md5, 'self.conf', self.md5)
+                #     block.nesting_indent,
+                #     block.cname, block.id, block.md5, 'block.conf', block.md5)
                 
                 # create entry and save it
                 columns = [
                     'md5', 'timestamp', 'block', 'params', 'log_store', 'nxgraph'] # 'experiment',
                 values = [[
-                    self.md5, pd.to_datetime(datetime.datetime.now()),
+                    block.md5, pd.to_datetime(datetime.datetime.now()),
                     str(block.conf['block']), str(block.conf['params']),
                     log.log_store.filename, str('nxgraph')]]
-                index = self.cache_num_entries + 1
+                index = block.cache_num_entries + 1
                 df = pd.DataFrame(data = values, index = [index], columns = columns) # index = 
                 # print "df =\n", df
 
                 # block store is empty
-                if len(block.top.block_store.keys()) < 1:
-                    block.top.block_store['/blocks'] = df
-                    print "%sinit_block_cache no cache found, no cache entries exist %s, %s" %(
-                        self.nesting_indent, block.top.block_store['/blocks'].shape, df.shape)
+                if len(top.block_store.keys()) < 1:
+                    top.block_store['/blocks'] = df
+                    blocks = top.block_store.blocks
+                    print "%scache None found, no cache entries exist %s, %s" %(
+                        block.nesting_indent, blocks.shape, df.shape)
                 else:
-                    df2 = pd.concat([block.top.block_store['/blocks'], df])
+                    print "%s    cache None found, cache entries exist %s" % (
+                        block.nesting_indent, blocks.shape)
+                    print "%s    cache_new blocks pre  concat = %s" % (block.nesting_indent, blocks.shape)
+                    blocks = pd.concat([blocks, df])
+                    print "%s    cache_new blocks post concat = %s" % (block.nesting_indent, blocks.shape)
                     # print "df2 concat(store, df)", df2.shape, df2
-                    block.top.block_store['/blocks'] = df2
-                    print "%sinit_block_cache no cache found, but cache entries exist %s, %s" % (
-                        self.nesting_indent, block.top.block_store['/blocks'].shape, df2.shape)
+                    #  top.block_store['/blocks'] = df2
+                    print "%s    cache_new inserted entry at index %s with md5 = %s" % (
+                        block.nesting_indent, index, block.md5) # , df.md5, df2.shape)
 
                 # re-get cache
-                self.cache = block.top.block_store['/blocks'][:][block.top.block_store['/blocks']['md5'] == self.md5]
-                # print "self.cache",self.cache
-                    
-            print "%s    cache block_store shape = %s" % (
-                self.nesting_indent, block.top.block_store.blocks.shape, )
+                block.cache = blocks[:][blocks.md5 == block.md5]
+                # print "block.cache",block.cache
+                
+                # # save
+                # blocks.to_hdf(top.block_store, key = 'blocks')
 
-            # # save
-            # block.top.block_store.blocks.to_hdf(block.top.block_store, key = 'blocks')
+            # synchronize these two
+            top.block_store['/blocks'] = blocks
+            print "%s    cache block_store final shape = %s" % (
+                block.nesting_indent, blocks.shape, )
 
         if self.top.docache:
             check_block_store(block = self)
@@ -1872,6 +1911,7 @@ class Block2(object):
 
         Compute data for all subordinate nodes by outputting this block's cache
         """
+        print "%s-%s cached" % (self.cname,self.id,)
         pass
 
     def step_compute(self):
@@ -1947,6 +1987,7 @@ class Block2(object):
             #     # , getattr(self, k), self.bus[buskey], self.bus.keys()
             #     print "buscopy[%d]: from buskey = %s to bus %s/%s" % (self.cnt, buskey, self.id, k)
             #     print "         data = %s" % (self.bus[buskey], )
+            # print "    buscopy outputs[%s] from bus[%s] = %s" % (k, buskey, self.bus[buskey])
             setattr(self, k, self.bus[buskey])
             
         # for k, v in self.outputs.items():
@@ -2504,7 +2545,7 @@ class SeqLoopBlock2(Block2):
         results = self.loop(self, i, f_obj)
         return results
 
-    @decStep()
+    # @decStep()
     def step_cache(self, x = None):
         print "%s-%s[%d] this should never print but be caught by step decorator :)" % (self.cname, self.id, self.cnt)
         print "%s-%s[%d] is cached at %s\n    cache = %s" % (self.cname, self.id, self.cnt, self.md5, self.cache)
@@ -2514,13 +2555,14 @@ class SeqLoopBlock2(Block2):
             print "cached self.%s = %s" % (outk, getattr(self, outk))
             pass
     
-    @decStep()
+    # @decStep()
     def step_compute(self, x = None):
         """SeqLoopBlock2.step"""
-        self.debug_print("%s.step:\n\tx = %s,\n\tbus = %s,\n\tinputs = %s,\n\toutputs = %s",
-                             (self.__class__.__name__,self.outputs.keys(),
-                                  self.bus, self.inputs, self.outputs))
+        # self.debug_print("%s.step:\n\tx = %s,\n\tbus = %s,\n\tinputs = %s,\n\toutputs = %s",
+        #                      (self.__class__.__name__,self.outputs.keys(),
+        #                           self.bus, self.inputs, self.outputs))
 
+        print "SeqLoopBlock2 cnt = %d" % (self.cnt, )
         def f_obj(lparams):
             """instantiate the loopblock and run it"""
             # print "f_obj lparams", lparams

@@ -489,7 +489,7 @@ class Experiment(object):
             # temp dataframe
             # self.experiments.index[-1] + 1
             new_cache_entry(values, columns, index = [self.cache_index + 1])
-            
+
         # write store
         self.experiments.to_hdf(self.experiments_store, key = 'experiments')
 
@@ -737,7 +737,7 @@ class Experiment(object):
             G, G_number_of_nodes_total = recursive_hierarchical(self.top.nxgraph)
             Gbus = self.top.bus
 
-        self.printgraph(G = G)
+        # self.printgraph(G = G)
         
         # plot the computation graph and the bus
         set_interactive(True)
