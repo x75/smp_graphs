@@ -1230,25 +1230,27 @@ class Block2(object):
                 
             # cache loaded successfully
             if self.top.docache and self.cache is not None and self.cache.shape[0] != 0:
-                print "%s%s-%s.check_block_store: found cache for %s\n   cache['log_stores'] = %s" % (
-                    self.nesting_indent,
-                    self.cname, self.id, self.md5, self.cache['log_store'].values)
-                
+                print "%s%s-%s.check_block_store: found cache for %s\n%s    cache['log_stores'] = %s" % (
+                    self.nesting_indent, self.cname, self.id, self.md5,
+                    self.nesting_indent, self.cache['log_store'].values)
 
                 if block.top.cache_clear:
-                    print "%s    cache_clear set, deleting cache entry %s" % (self.nesting_indent, block.md5)
+                    print "%s    cache_clear set, deleting cache entry %s / %s" % (self.nesting_indent, block.md5, block.top.block_store.blocks.shape)
                     # hits = pd.Index(block.top.block_store.blocks.md5 == block.md5)
                     hits = block.top.block_store.blocks.md5 == block.md5
                     if hits is not None:
-                        for hit in hits.nonzero():
-                            print "hit", hit.shape
-                            hit_ = hit[0] + 1
+                        # for hit in hits.nonzero():
+                        for hit in hits.index[hits]:
+                            # print "%s    hit = %s/%s" % (self.nesting_indent, type(hit), hit)
+                            # hit_ = hit[0] + 1
+                            hit_ = hit
                             # print "hits", hits.nonzero()
                             # hits *= np.arange(0, len(hits) + 0)
                             # hits = pd.Index(hits)
                             # print "hits", hits
                             # print "hits deref", block.top.block_store.blocks[hits]
-                            block.top.block_store.blocks.drop(index = [hit_])
+                            block.top.block_store.blocks = block.top.block_store.blocks.drop(index = [hit_])
+                            print "%s    dropped = %s" % (self.nesting_indent, block.top.block_store.blocks.shape)
                     self.cache = None
                     
                 else:
@@ -1311,8 +1313,11 @@ class Block2(object):
                 self.cache = block.top.block_store['/blocks'][:][block.top.block_store['/blocks']['md5'] == self.md5]
                 # print "self.cache",self.cache
                     
-                print "%sblock_store shape = %s" % (
-                    self.nesting_indent, block.top.block_store['/blocks'].shape, )
+            print "%s    cache block_store shape = %s" % (
+                self.nesting_indent, block.top.block_store.blocks.shape, )
+
+            # # save
+            # block.top.block_store.blocks.to_hdf(block.top.block_store, key = 'blocks')
 
         if self.top.docache:
             check_block_store(block = self)
@@ -1568,10 +1573,12 @@ class Block2(object):
                 self.init_outputs_plot(k = k, v = v)
 
     def init_outputs_latex(self, k = None, v = None):
-        print "Block2.init_outputs_latex k", k, "v", v
+        # print "Block2.init_outputs_latex k", k, "v", v
+        pass
         
     def init_outputs_plot(self, k = None, v = None):
-        print "Block2.init_outputs_plot k", k, "v", v
+        # print "Block2.init_outputs_plot k", k, "v", v
+        pass
                 
     def init_outputs_ndarray(self, k = None, v = None):
 

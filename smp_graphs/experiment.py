@@ -235,11 +235,14 @@ class Experiment(object):
         #         print "    %s - params[%s] = %s, vars[%s] = %s" % (pv == self.conf_vars[pk], pk, type(pv), pk, type(self.conf_vars[pk]))
         #     else:
         #         print "    BANG params/vars mismatch on %s" % (pk,)
+
+        print "experiment.Experiment init with conf = %s" % (self.conf.keys(), )
+        
         # topblock outputs: new types in addition to np.ndarray signals: 'text', 'plot', ...
         for paramkey in ['outputs', 'desc']:
             if self.conf_vars.has_key(paramkey):
                 self.conf['params'][paramkey] = self.conf_vars[paramkey]
-                print "vars -> params found %s, %s" % (paramkey, self.conf['params'][paramkey], )
+                print "    vars -> params found %s, %s" % (paramkey, self.conf['params'][paramkey], )
         
         # fill in missing defaults
         self.conf = set_config_defaults(self.conf)
@@ -422,7 +425,7 @@ class Experiment(object):
         # print "%s.check_experiments_store values = %s" % (self.__class__.__name__, values)
         # values = [[xid, self.conf['block'], self.conf['params']]]
 
-        print "Experiment.check_experiments_store"
+        # print "Experiment.check_experiments_store"
         
         # load experiment database if one exists
         if os.path.exists(self.experiments_store):
@@ -463,17 +466,22 @@ class Experiment(object):
         # load the cached experiment if it exists
         if self.cache is not None and self.cache.shape[0] != 0:
             # experiment.cache is the loaded entry
-            print "    found cached results = %s\n%s" % (self.cache.shape, self.cache)
+            print "    found cached results = %s\n    %s\n    %s" % (self.cache.shape, '', '') #, self.cache, self.experiments.index)
             self.cache_loaded = True
 
             if self.params['cache_clear']:
-                print "    cache found, dropping and recreating it", type(self.experiments)
+                # print "    cache found, dropping and recreating it", type(self.experiments)
                 # self.experiments.drop(index = [(self.experiments.md5 == xid).argmax()])
                 hits = self.experiments.md5 == xid
-                print "expr hits", hits
-                hits *= np.arange(len(hits))
-                print "expr hits", hits
-                self.experiments.drop(index = hits)
+                # print "    hits = %s, %s" % (hits.index[hits], type(hits))
+                # print "expr hits", hits
+                # hits *= np.arange(len(hits))
+                # print "expr hits", hits
+                # for hit in hits.nonzero():
+                for hit in hits.index[hits]:
+                    # print "    hit = %s/%s" % (type(hit), hit)
+                    hit_ = hit
+                    self.experiments = self.experiments.drop(index = [hit_])
             new_cache_entry(values, columns, index = [self.cache_index + 1])
         # store the experiment in the cache if it doesn't exist
         else:
