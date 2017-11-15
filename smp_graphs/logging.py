@@ -217,8 +217,9 @@ def log_pd_store():
     # store logs, FIXME incrementally
     global log_lognodes, log_store
     for k,v in log_lognodes.items():
-        if 'b4/' in k:
-            print "storing table k = %s with data type = %s" % (k, v)
+        # if 'b4/' in k:
+        if np.any(np.isnan(v)):
+            print "storing nan values, table k = %s with data type = %s" % (k, v)
         log_store[k] = v
 
 def log_pd(tbl_name, data):
@@ -288,8 +289,8 @@ Arguments:
       "logging.log_pd: Block output %s's shape %s doesn't agree with logging shape %s, sl1 = %s, sl2 = %s" % (
           tbl_name, log_logarray[tbl_name][:,sl].shape, tmplogdata.shape, sl1, sl2)
 
-    if 'b4/' in tbl_name:
-        print "logging b4", tbl_name, sl, tmplogdata, log_logarray[tbl_name].shape
+    # if 'b4/' in tbl_name:
+    #     print "logging b4", tbl_name, sl, tmplogdata, log_logarray[tbl_name].shape
     
     log_logarray[tbl_name][:,sl] = tmplogdata # to copy or not to copy?
 
@@ -312,8 +313,8 @@ Arguments:
     # print "log_lognodes[tbl_name]", log_lognodes[tbl_name], log_lognodes[tbl_name].loc[cloc]
     log_lognodes_idx[tbl_name] += blocksize
     
-    if 'b4/' in tbl_name:
-        print "logging b4 post log_blocksize", tbl_name, log_logarray[tbl_name]
+    # if 'b4/' in tbl_name:
+    #     print "logging b4 post log_blocksize", tbl_name, log_logarray[tbl_name]
 
 def log_pd_dump_config(h5store, storekey = None):
     assert h5store is not None

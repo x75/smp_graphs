@@ -2034,7 +2034,7 @@ class Block2(object):
         texbuf += '%s\n' % (self.desc, )
         
         output_figures = [(k, v) for k, v in self.outputs.items() if v.has_key('type') and v['type'] in ['fig', 'plot']]
-        print "Block2.latex_close: |output_figures| = %s" % ( len(output_figures), )
+        # print "Block2.latex_close: |output_figures| = %s" % ( len(output_figures), )
 
         """
         if len(output_figures) > 0:
@@ -2068,7 +2068,7 @@ class Block2(object):
                 figbuf = "%% figure key = {0}, label = {1}\n".format(figk, figv['label'])
                 # figbuf += "\\begin{figure}[!htbp]\n  \\centering\n"
                 figbuf += "\\begin{figure}[!htbp]\n  \\captionsetup[subfigure]{position=t}\n  \\centering\n"
-                print "                    output_figures fig key = %s, fig val = %s" % (figk, figv)
+                # print "                    output_figures fig key = %s, fig val = %s" % (figk, figv)
                 # if k is 'figures':
                 # if len(v) > 0:
                 # for figk, figv in v.items():
@@ -2095,7 +2095,7 @@ class Block2(object):
                     figid_ = re.sub('_', '-', figid[i])
                     figref_ = "%s-%s" % (figlabel_, figid_, )
                     
-                    print "                    i = %d, filename = %s" % (i, figfilename_)
+                    # print "                    i = %d, filename = %s" % (i, figfilename_)
                     subfigref_ = '%s-%d' % (figref_, i)
 
                     figwidth_ = '0.99\\textwidth'

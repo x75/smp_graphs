@@ -1,13 +1,14 @@
 """actinf_m1_goal_error_ND.py
 
 smp_graphs config for experiment: active inference m1 e2p
+- proprio model type 1 (goal error)
+- using two explicit proprio and extero models to demonstrate the principle
+- set of systems
 
-    proprio model type 1 (goal error)
-    using two explicit proprio and extero models to demonstrate the principle
-    set of systems
-
-    schedule: 1) train proprio model goal directed, 2) fit e2p to the proprio episode, 3) predict extero to drive proprio
-
+schedule:
+1. train proprio model goal directed
+2. fit e2p to the proprio episode
+3. predict extero to drive proprio
 """
 
 import copy
@@ -43,217 +44,219 @@ sysname = 'sa'
 # sysname = 'lpzbarrel'
 # sysname = 'sphero'
 
-"""system block
- - a robot
-"""
-def get_systemblock_pm(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
-    global np, PointmassBlock2
-    return {
-        'block': PointmassBlock2,
-        'params': {
-            'id': 'robot1',
-            'blocksize': 1, # FIXME: make pm blocksize aware!
-            'sysdim': dim_s_proprio,
-            # initial state
-            'x0': np.random.uniform(-0.3, 0.3, (dim_s_proprio * 3, 1)),
-            # 'inputs': {'u': {'val': np.random.uniform(-1, 1, (3, numsteps))}},
-            'inputs': {'u': {'bus': 'pre_l0/pre'}},
-            'outputs': {
-                's_proprio': {'shape': (dim_s_proprio, 1)},
-                's_extero':  {'shape': (dim_s_extero, 1)}
-                }, # , 's_all': [(9, 1)]},
-            'statedim': dim_s_proprio * 3,
-            'dt': dt,
-            'mass': 1.0,
-            'force_max':  1.0,
-            'force_min': -1.0,
-            'friction': 0.05, # 0.01,
-            'sysnoise': 1e-2,
-            'debug': False,
-            'dim_s_proprio': dim_s_proprio,
-            'length_ratio': 3./2., # gain curve?
-            'm_mins': [-1.] * dim_s_proprio,
-            'm_maxs': [ 1.] * dim_s_proprio,
-            'dim_s_extero': dim_s_extero,
-            'lag_min': 1,
-            'lag_max': 2, # 2, # 20, # 2, # 5
-            }
-        }
+from smp_graphs.utils_conf import get_systemblock
 
-def get_systemblock_sa(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
-    global np, SimplearmBlock2
-    return {
-        'block': SimplearmBlock2,
-        'params': {
-            'id': 'robot1',
-            'blocksize': 1, # FIXME: make pm blocksize aware!
-            'sysdim': dim_s_proprio,
-            # initial state
-            'x0': np.random.uniform(-0.3, 0.3, (dim_s_proprio * 3, 1)),
-            # 'inputs': {'u': {'val': np.random.uniform(-1, 1, (3, numsteps))}},
-            'inputs': {'u': {'bus': 'pre_l0/pre'}},
-            'outputs': {
-                's_proprio': {'shape': (dim_s_proprio, 1)},
-                's_extero':  {'shape': (dim_s_extero,  1)}
-                }, # , 's_all': [(9, 1)]},
-            'statedim': dim_s_proprio * 3,
-            'dt': dt,
-            'mass': 1.0/3.0,
-            'force_max':  1.0,
-            'force_min': -1.0,
-            'friction': 0.001,
-            'sysnoise': 1e-2,
-            'debug': False,
-            'dim_s_proprio': dim_s_proprio,
-            'length_ratio': 3./2.0,
-            'm_mins': [-1.] * dim_s_proprio,
-            'm_maxs': [ 1.] * dim_s_proprio,
-            # 's_mins': [-1.00] * 9,
-            # 's_maxs': [ 1.00] * 9,
-            # 'm_mins': -1,
-            # 'm_maxs': 1,
-            'dim_s_extero': dim_s_extero,
-            'lag_min': 1,
-            'lag_max': 2, # 5
-            }
-        }
+# """system block
+#  - a robot
+# """
+# def get_systemblock_pm(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
+#     global np, PointmassBlock2
+#     return {
+#         'block': PointmassBlock2,
+#         'params': {
+#             'id': 'robot1',
+#             'blocksize': 1, # FIXME: make pm blocksize aware!
+#             'sysdim': dim_s_proprio,
+#             # initial state
+#             'x0': np.random.uniform(-0.3, 0.3, (dim_s_proprio * 3, 1)),
+#             # 'inputs': {'u': {'val': np.random.uniform(-1, 1, (3, numsteps))}},
+#             'inputs': {'u': {'bus': 'pre_l0/pre'}},
+#             'outputs': {
+#                 's_proprio': {'shape': (dim_s_proprio, 1)},
+#                 's_extero':  {'shape': (dim_s_extero, 1)}
+#                 }, # , 's_all': [(9, 1)]},
+#             'statedim': dim_s_proprio * 3,
+#             'dt': dt,
+#             'mass': 1.0,
+#             'force_max':  1.0,
+#             'force_min': -1.0,
+#             'friction': 0.05, # 0.01,
+#             'sysnoise': 1e-2,
+#             'debug': False,
+#             'dim_s_proprio': dim_s_proprio,
+#             'length_ratio': 3./2., # gain curve?
+#             'm_mins': [-1.] * dim_s_proprio,
+#             'm_maxs': [ 1.] * dim_s_proprio,
+#             'dim_s_extero': dim_s_extero,
+#             'lag_min': 1,
+#             'lag_max': 2, # 2, # 20, # 2, # 5
+#             }
+#         }
 
-def get_systemblock_bha(dim_s_proprio = 9, dim_s_extero = 3, dt = 0.1):
-    global np, BhasimulatedBlock2
-    return {
-        'block': BhasimulatedBlock2,
-        'params': {
-            'id': 'robot1',
-            'blocksize': 1, # FIXME: make pm blocksize aware!
-            'sysdim': dim_s_proprio,
-            # initial state
-            'x0': np.random.uniform(-0.3, 0.3, (dim_s_proprio * 3, 1)),
-            # 'inputs': {'u': {'val': np.random.uniform(-1, 1, (3, numsteps))}},
-            'inputs': {'u': {'bus': 'pre_l0/pre'}},
-            'outputs': {
-                's_proprio': {'shape': (dim_s_proprio, 1)},
-                's_extero':  {'shape': (dim_s_extero,  1)}
-                }, # , 's_all': [(9, 1)]},
-            'statedim': dim_s_proprio * 3,
-            'dt': dt,
-            'mass': 1.0/3.0,
-            'force_max':  1.0,
-            'force_min': -1.0,
-            'friction': 0.001,
-            'sysnoise': 1e-2,
-            'debug': False,
-            'dim_s_proprio': dim_s_proprio,
-            # 'length_ratio': 3./2.,
-            # 'm_mins': 0.05, # 0.1
-            # 'm_maxs': 0.4,  # 0.3
-            'dim_s_extero': 3,
-            'numsegs': 3,
-            'segradii': np.array([0.1,0.093,0.079]),
-            'm_mins': [ 0.10] * dim_s_proprio,
-            'm_maxs': [ 0.30] * dim_s_proprio,
-            's_mins': [ 0.10] * dim_s_proprio, # fixme all sensors
-            's_maxs': [ 0.30] * dim_s_proprio,
-            'doplot': False,
-            'lag_min': 1,
-            'lag_max': 3 # 5
-            }
-        }
+# def get_systemblock_sa(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
+#     global np, SimplearmBlock2
+#     return {
+#         'block': SimplearmBlock2,
+#         'params': {
+#             'id': 'robot1',
+#             'blocksize': 1, # FIXME: make pm blocksize aware!
+#             'sysdim': dim_s_proprio,
+#             # initial state
+#             'x0': np.random.uniform(-0.3, 0.3, (dim_s_proprio * 3, 1)),
+#             # 'inputs': {'u': {'val': np.random.uniform(-1, 1, (3, numsteps))}},
+#             'inputs': {'u': {'bus': 'pre_l0/pre'}},
+#             'outputs': {
+#                 's_proprio': {'shape': (dim_s_proprio, 1)},
+#                 's_extero':  {'shape': (dim_s_extero,  1)}
+#                 }, # , 's_all': [(9, 1)]},
+#             'statedim': dim_s_proprio * 3,
+#             'dt': dt,
+#             'mass': 1.0/3.0,
+#             'force_max':  1.0,
+#             'force_min': -1.0,
+#             'friction': 0.001,
+#             'sysnoise': 1e-2,
+#             'debug': False,
+#             'dim_s_proprio': dim_s_proprio,
+#             'length_ratio': 3./2.0,
+#             'm_mins': [-1.] * dim_s_proprio,
+#             'm_maxs': [ 1.] * dim_s_proprio,
+#             # 's_mins': [-1.00] * 9,
+#             # 's_maxs': [ 1.00] * 9,
+#             # 'm_mins': -1,
+#             # 'm_maxs': 1,
+#             'dim_s_extero': dim_s_extero,
+#             'lag_min': 1,
+#             'lag_max': 2, # 5
+#             }
+#         }
+
+# def get_systemblock_bha(dim_s_proprio = 9, dim_s_extero = 3, dt = 0.1):
+#     global np, BhasimulatedBlock2
+#     return {
+#         'block': BhasimulatedBlock2,
+#         'params': {
+#             'id': 'robot1',
+#             'blocksize': 1, # FIXME: make pm blocksize aware!
+#             'sysdim': dim_s_proprio,
+#             # initial state
+#             'x0': np.random.uniform(-0.3, 0.3, (dim_s_proprio * 3, 1)),
+#             # 'inputs': {'u': {'val': np.random.uniform(-1, 1, (3, numsteps))}},
+#             'inputs': {'u': {'bus': 'pre_l0/pre'}},
+#             'outputs': {
+#                 's_proprio': {'shape': (dim_s_proprio, 1)},
+#                 's_extero':  {'shape': (dim_s_extero,  1)}
+#                 }, # , 's_all': [(9, 1)]},
+#             'statedim': dim_s_proprio * 3,
+#             'dt': dt,
+#             'mass': 1.0/3.0,
+#             'force_max':  1.0,
+#             'force_min': -1.0,
+#             'friction': 0.001,
+#             'sysnoise': 1e-2,
+#             'debug': False,
+#             'dim_s_proprio': dim_s_proprio,
+#             # 'length_ratio': 3./2.,
+#             # 'm_mins': 0.05, # 0.1
+#             # 'm_maxs': 0.4,  # 0.3
+#             'dim_s_extero': 3,
+#             'numsegs': 3,
+#             'segradii': np.array([0.1,0.093,0.079]),
+#             'm_mins': [ 0.10] * dim_s_proprio,
+#             'm_maxs': [ 0.30] * dim_s_proprio,
+#             's_mins': [ 0.10] * dim_s_proprio, # fixme all sensors
+#             's_maxs': [ 0.30] * dim_s_proprio,
+#             'doplot': False,
+#             'lag_min': 1,
+#             'lag_max': 3 # 5
+#             }
+#         }
     
-# ROS system STDR
-def get_systemblock_stdr(dim_s_proprio = 2, dim_s_extero = 3, dt = 0.1):
-    global np, STDRCircularBlock2
-    return {
-        'block': STDRCircularBlock2,
-        'params': {
-            'id': 'robot1',
-            'debug': False,
-            'blocksize': 1, # FIXME: make pm blocksize aware!
-            'inputs': {'u': {'bus': 'pre_l0/pre'}},
-            'outputs': {
-                's_proprio': {'shape': (dim_s_proprio, 1)},
-                's_extero': {'shape': (dim_s_extero, 1)}
-                }, # , 's_all': [(9, 1)]},
-            'ros': True,
-            'dt': dt,
-            'm_mins': [-0.3, 0], # [-0.1] * dim_s_proprio,
-            'm_maxs': [0.3, np.pi/4.0],    # [ 0.1] * dim_s_proprio,
-            'dim_s_proprio': dim_s_proprio, 
-            'dim_s_extero': dim_s_extero,   
-            'outdict': {},
-            'smdict': {},
-            'lag_min': 1, # ha
-            'lag_max': 4, # 5
-            }
-        }
+# # ROS system STDR
+# def get_systemblock_stdr(dim_s_proprio = 2, dim_s_extero = 3, dt = 0.1):
+#     global np, STDRCircularBlock2
+#     return {
+#         'block': STDRCircularBlock2,
+#         'params': {
+#             'id': 'robot1',
+#             'debug': False,
+#             'blocksize': 1, # FIXME: make pm blocksize aware!
+#             'inputs': {'u': {'bus': 'pre_l0/pre'}},
+#             'outputs': {
+#                 's_proprio': {'shape': (dim_s_proprio, 1)},
+#                 's_extero': {'shape': (dim_s_extero, 1)}
+#                 }, # , 's_all': [(9, 1)]},
+#             'ros': True,
+#             'dt': dt,
+#             'm_mins': [-0.3, 0], # [-0.1] * dim_s_proprio,
+#             'm_maxs': [0.3, np.pi/4.0],    # [ 0.1] * dim_s_proprio,
+#             'dim_s_proprio': dim_s_proprio, 
+#             'dim_s_extero': dim_s_extero,   
+#             'outdict': {},
+#             'smdict': {},
+#             'lag_min': 1, # ha
+#             'lag_max': 4, # 5
+#             }
+#         }
 
-# ROS system using lpzrobots' roscontroller to interact with the 'Barrel'
-def get_systemblock_lpzbarrel(dim_s_proprio = 2, dim_s_extero = 1, dt = 0.01):
-    global LPZBarrelBlock2
-    systemblock_lpz = {
-        'block': LPZBarrelBlock2,
-        'params': {
-            'id': 'robot1',
-            'debug': False,
-            'blocksize': 1, # FIXME: make pm blocksize aware!
-            'inputs': {'u': {'bus': 'pre_l0/pre'}},
-            'outputs': {
-                's_proprio': {'shape': (dim_s_proprio, 1)},
-                's_extero': {'shape': (dim_s_extero, 1)}
-                }, # , 's_all': [(9, 1)]},
-            'ros': True,
-            'dt': dt,
-            'm_mins': [-1.] * dim_s_proprio,
-            'm_maxs': [ 1.] * dim_s_proprio,
-            'dim_s_proprio': dim_s_proprio, 
-            'dim_s_extero': dim_s_extero,   
-            'outdict': {},
-            'smdict': {},
-            'lag_min': 1, # 5, 4
-            'lag_max': 2,
-            }
-        }
-    return systemblock_lpz
+# # ROS system using lpzrobots' roscontroller to interact with the 'Barrel'
+# def get_systemblock_lpzbarrel(dim_s_proprio = 2, dim_s_extero = 1, dt = 0.01):
+#     global LPZBarrelBlock2
+#     systemblock_lpz = {
+#         'block': LPZBarrelBlock2,
+#         'params': {
+#             'id': 'robot1',
+#             'debug': False,
+#             'blocksize': 1, # FIXME: make pm blocksize aware!
+#             'inputs': {'u': {'bus': 'pre_l0/pre'}},
+#             'outputs': {
+#                 's_proprio': {'shape': (dim_s_proprio, 1)},
+#                 's_extero': {'shape': (dim_s_extero, 1)}
+#                 }, # , 's_all': [(9, 1)]},
+#             'ros': True,
+#             'dt': dt,
+#             'm_mins': [-1.] * dim_s_proprio,
+#             'm_maxs': [ 1.] * dim_s_proprio,
+#             'dim_s_proprio': dim_s_proprio, 
+#             'dim_s_extero': dim_s_extero,   
+#             'outdict': {},
+#             'smdict': {},
+#             'lag_min': 1, # 5, 4
+#             'lag_max': 2,
+#             }
+#         }
+#     return systemblock_lpz
 
-# systemblock_lpzbarrel = get_systemblock_lpzbarrel(dt = dt)
+# # systemblock_lpzbarrel = get_systemblock_lpzbarrel(dt = dt)
 
-# ROS system using the Sphero
-def get_systemblock_sphero(dim_s_proprio = 2, dim_s_extero = 1, dt = 0.05):
-    global SpheroBlock2
-    systemblock_sphero = {
-        'block': SpheroBlock2,
-        'params': {
-            'id': 'robot1',
-            'debug': False,
-            'blocksize': 1, # FIXME: make pm blocksize aware!
-            'inputs': {'u': {'bus': 'pre_l0/pre'}},
-            'outputs': {
-                's_proprio': {'shape': (dim_s_proprio, 1)},
-                's_extero': {'shape': (dim_s_extero, 1)}
-                }, # , 's_all': [(9, 1)]},
-                'ros': True,
-                'dt': dt,
-            'm_mins': [-0.75] * dim_s_proprio,
-            'm_maxs': [ 0.75] * dim_s_proprio,
-            'dim_s_proprio': dim_s_proprio, 
-            'dim_s_extero': dim_s_extero,   
-            'outdict': {},
-            'smdict': {},
-            'lag_min': 2, # 2, # 4, # 2
-            'lag_max': 5,
-            }
-        }
-    return systemblock_sphero
+# # ROS system using the Sphero
+# def get_systemblock_sphero(dim_s_proprio = 2, dim_s_extero = 1, dt = 0.05):
+#     global SpheroBlock2
+#     systemblock_sphero = {
+#         'block': SpheroBlock2,
+#         'params': {
+#             'id': 'robot1',
+#             'debug': False,
+#             'blocksize': 1, # FIXME: make pm blocksize aware!
+#             'inputs': {'u': {'bus': 'pre_l0/pre'}},
+#             'outputs': {
+#                 's_proprio': {'shape': (dim_s_proprio, 1)},
+#                 's_extero': {'shape': (dim_s_extero, 1)}
+#                 }, # , 's_all': [(9, 1)]},
+#                 'ros': True,
+#                 'dt': dt,
+#             'm_mins': [-0.75] * dim_s_proprio,
+#             'm_maxs': [ 0.75] * dim_s_proprio,
+#             'dim_s_proprio': dim_s_proprio, 
+#             'dim_s_extero': dim_s_extero,   
+#             'outdict': {},
+#             'smdict': {},
+#             'lag_min': 2, # 2, # 4, # 2
+#             'lag_max': 5,
+#             }
+#         }
+#     return systemblock_sphero
 
-# systemblock_sphero = get_systemblock_sphero()
+# # systemblock_sphero = get_systemblock_sphero()
 
-get_systemblock = {
-    'pm': partial(get_systemblock_pm, dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1),
-    'sa': partial(get_systemblock_sa, dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1),
-    'bha': partial(get_systemblock_bha, dim_s_proprio = 9, dim_s_extero = 3, dt = 0.1),
-    'lpzbarrel': partial(get_systemblock_lpzbarrel, dim_s_proprio = 2, dim_s_extero = 1, dt = 2.0/92.0), # 0.025),
-    'stdr': partial(get_systemblock_stdr, dim_s_proprio = 2, dim_s_extero = 3, dt = 0.1),
-    'sphero': partial(get_systemblock_sphero, dim_s_proprio = 2, dim_s_extero = 1, dt = 0.0167),
-    }
+# get_systemblock = {
+#     'pm': partial(get_systemblock_pm, dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1),
+#     'sa': partial(get_systemblock_sa, dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1),
+#     'bha': partial(get_systemblock_bha, dim_s_proprio = 9, dim_s_extero = 3, dt = 0.1),
+#     'lpzbarrel': partial(get_systemblock_lpzbarrel, dim_s_proprio = 2, dim_s_extero = 1, dt = 2.0/92.0), # 0.025),
+#     'stdr': partial(get_systemblock_stdr, dim_s_proprio = 2, dim_s_extero = 3, dt = 0.1),
+#     'sphero': partial(get_systemblock_sphero, dim_s_proprio = 2, dim_s_extero = 1, dt = 0.0167),
+#     }
     
 
 ################################################################################
@@ -281,10 +284,20 @@ dim_s_proprio = systemblock['params']['dim_s_proprio']
 dim_s_extero  = systemblock['params']['dim_s_extero']
 m_mins = np.array([systemblock['params']['m_mins']]).T
 m_maxs = np.array([systemblock['params']['m_maxs']]).T
-minlag = systemblock['params']['lag_min']
-maxlag = systemblock['params']['lag_max']
+
+lag = systemblock['params']['lag']
+lag_past = systemblock['params']['lag_past']
+lag_future = systemblock['params']['lag_future']
+
+minlag = 1 # -lag_future[1]
+# maxlag = -lag_past[0] # + lag_future[1]
+maxlag = max(20, -lag_past[0])
+laglen = maxlag # - minlag
+
+# minlag = systemblock['params']['lag_min']
+# maxlag = systemblock['params']['lag_max']
 dt = systemblock['params']['dt']
-laglen = maxlag - minlag
+# laglen = maxlag - minlag
 
 # eta = 0.95
 eta = 0.7
