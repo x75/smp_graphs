@@ -13,6 +13,7 @@ import time, datetime
 from collections import OrderedDict
 from functools import partial
 # from types import FunctionType
+import copy
 
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
@@ -267,7 +268,9 @@ class Experiment(object):
             #     print "        self.%s = %s\n" % (k, selfattr)
 
         self.conf['params']['cache_clear'] = self.params['cache_clear']
-            
+        print "self.params.keys()", self.params.keys()
+
+        
         # print self.desc
         self.args = args
         """
@@ -277,7 +280,7 @@ class Experiment(object):
         - locally sensitive hashes, lshash. this is not independent of input size, would need maxsize kludge
         """
         # for hashing the conf, strip all entries with uncontrollably variable values (function pointers, ...)
-        self.conf_ = conf_strip_variables(self.conf)
+        self.conf_ = conf_strip_variables(copy.deepcopy(self.conf))
         # print "numsteps", self.conf['params']['numsteps']
         # print "numsteps_", self.conf_['params']['numsteps']
         # compute id hash of the experiment from the configuration dict string
@@ -469,6 +472,7 @@ class Experiment(object):
             print "    found cached results = %s\n    %s\n    %s" % (self.cache.shape, '', '') #, self.cache, self.experiments.index)
             self.cache_loaded = True
 
+            print "self.params.keys()", self.params.keys()
             if self.params['cache_clear']:
                 # print "    cache found, dropping and recreating it", type(self.experiments)
                 # self.experiments.drop(index = [(self.experiments.md5 == xid).argmax()])
@@ -723,14 +727,15 @@ class Experiment(object):
             # G = self.top.nxgraph
             # Gbus = self.top.bus
 
+        if self.conf['params']['docache']:
             from smp_graphs.block import Bus
             # G = self.cache['topblock_nxgraph']
             # Gbus = self.cache['topblock_bus']
             print "experiment cache: loading cached top level nxgraph"
             G = nxgraph_load(conf = self.conf['params'])
             Gbus = Bus.load_pickle(conf = self.conf['params'])
-            print "G", G, G.number_of_nodes()
-            print "Gbus", Gbus
+            # print "G", G, G.number_of_nodes()
+            # print "Gbus", Gbus
             # G = self.top.nxgraph # nx.read_yaml(self.cache['topblock_nxgraph'])
             # Gbus = self.top.bus
         else:

@@ -242,12 +242,12 @@ Arguments:
 
     # 20171106 first data point compute vs. log
     # start count mangling
-    if cloc == 0 and blocksize == 1: # we will see cloc == 1 only with blocksize 1 anyway?
-        cloc_ = 0
-        # log_lognodes_idx[tbl_name] = 1
-        # bsinc = blocksize - 1
-    else:
-        cloc_ = cloc
+    # if cloc == 0 and blocksize == 1: # we will see cloc == 1 only with blocksize 1 anyway?
+    #     cloc_ = 0
+    #     # log_lognodes_idx[tbl_name] = 1
+    #     # bsinc = blocksize - 1
+    # else:
+    #     cloc_ = cloc
         
     # if cloc == 0:
     #     cloc += 1
@@ -293,13 +293,14 @@ Arguments:
     
     log_logarray[tbl_name][:,sl] = tmplogdata # to copy or not to copy?
 
-    if 'b4/' in tbl_name:
-        print "logging b4", tbl_name, log_logarray[tbl_name]
+    # if 'b4/' in tbl_name:
+    #     print "logging b4", tbl_name, log_logarray[tbl_name]
 
     # if logging blocksize aligns with count
     # if cloc % log_blocksize[tbl_name] == 0:
     # 20171106 first data point compute vs. log
-    if (cloc + 1) % log_blocksize[tbl_name] == 0:
+    # 20171115 just cloc after step decorator pre-increment fix
+    if (cloc + 0) % log_blocksize[tbl_name] == 0:
         dloc = log_lognodes_blockidx[tbl_name]
         pdsl = slice(dloc, dloc + log_blocksize[tbl_name] - 1)
         sl = slice(dloc, dloc + log_blocksize[tbl_name])
@@ -310,6 +311,9 @@ Arguments:
     # log_lognodes[tbl_name].loc[0] = 1
     # print "log_lognodes[tbl_name]", log_lognodes[tbl_name], log_lognodes[tbl_name].loc[cloc]
     log_lognodes_idx[tbl_name] += blocksize
+    
+    if 'b4/' in tbl_name:
+        print "logging b4 post log_blocksize", tbl_name, log_logarray[tbl_name]
 
 def log_pd_dump_config(h5store, storekey = None):
     assert h5store is not None
