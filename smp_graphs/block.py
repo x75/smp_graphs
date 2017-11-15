@@ -1981,6 +1981,10 @@ class Block2(object):
         # for k, v in self.latex_conf.items():
         id_ = re.sub('_', '-', self.id)
         texbuf = '\\section{%s}\n\\label{expr:%s}\n\n' % (id_, id_, )
+
+        # copy expr description from conf
+        texbuf += '%s\n' % (self.desc, )
+        
         output_figures = [(k, v) for k, v in self.outputs.items() if v.has_key('type') and v['type'] in ['fig', 'plot']]
         print "Block2.latex_close: |output_figures| = %s" % ( len(output_figures), )
 

@@ -45,7 +45,11 @@ lim = lconf['lim'] # 1.0
 
 # print "expr0000 __doc__", __doc__
 
-desc = "Baseline behaviour - open-loop uniform random search in finite isotropic space"
+desc = """The baseline of agent behaviour is open-loop uniform random
+search in finite isotropic space. This experiment consists of only a
+short episode of 100 time steps and is intended to introduce the style
+of documentation of an experiment in this thesis, and to illustrate
+the scenario. """
 
 # outputs = lconf['outputs']
 outputs = {
