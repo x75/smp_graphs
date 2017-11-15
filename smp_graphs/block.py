@@ -1881,7 +1881,7 @@ class Block2(object):
         
         if self.topblock:
 
-            print "topblock step cnt = %d" % (self.cnt, )
+            # print "topblock step cnt = %d" % (self.cnt, )
             # store log incrementally
             if (self.cnt) % 500 == 0 or self.cnt == (self.numsteps - 1) or self.cnt == (self.numsteps - self.blocksize_min):
                 print "storing log @iter % 4d/%d" % (self.cnt, self.numsteps)
@@ -1952,6 +1952,10 @@ class Block2(object):
         # for k, v in self.latex_conf.items():
         id_ = re.sub('_', '-', self.id)
         texbuf = '\\section{%s}\n\\label{expr:%s}\n\n' % (id_, id_, )
+
+        # copy expr description from conf
+        texbuf += '%s\n' % (self.desc, )
+        
         output_figures = [(k, v) for k, v in self.outputs.items() if v.has_key('type') and v['type'] in ['fig', 'plot']]
         print "Block2.latex_close: |output_figures| = %s" % ( len(output_figures), )
 
