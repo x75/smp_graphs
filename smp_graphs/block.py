@@ -245,18 +245,65 @@ class Bus(MutableMapping):
             ret += "k = %s, v.shape = %s, mu = %s, var = %s\n" % (k, v.shape, np.mean(v, axis = -1), np.var(v, axis = -1))
         return ret
 
-    def astable(self):
+    def astable(self, loop_compress = False):
         """Return a table based bus representation for debug, print, and display.
+
+        Arguments:
+         - loop_compress(bool): try to collapse each set of loop signatures into single bus
         """
-        storekeys = self.store.keys()
-        storekeys.sort()
         ret = ''
+
+        if not loop_compress:
+            storekeys = self.store.keys()
+            storekeys.sort()
+            # print "storekeys", storekeys
+            for k in storekeys:
+                v = self.store[k]
+                ret += "{0:<20} | {1:<20}\n".format(k, v.shape)
+            return ret
+
+        loop_compressor = {}
+        for k in self.store.keys():
+            # squash loop delimiters down to base node-id/signal
+            k_ = re.sub(r'([A-Za-z0-9]+)(_(ll)([0-9]+))+\/(.*)', r'\1/\5', k)
+            # add if not there
+            if not loop_compressor.has_key(k_):
+                # print "new key", k_, k
+                loop_compressor[k_] = {
+                    'v': self.store[k],
+                    'cnt': 1,
+                }
+            else:
+                loop_compressor[k_]['cnt'] += 1
+
+        storekeys = loop_compressor.keys()
+        print "storekeys", storekeys
+        storekeys.sort()
+        print "storekeys", storekeys
+
+        # for k, v in loop_compressor.items():
         for k in storekeys:
-            v = self.store[k]
+            v = loop_compressor[k]
             # ret += "k = %s, v.shape = %s, mu = %s, var = %s\n" % (k, v.shape, np.mean(v, axis = -1), np.var(v, axis = -1))
-            ret += "{0:<20} | {1:<20}\n".format(k, v.shape)
+            ret += "{0:<20}[{2}] | {1:<20}\n".format(k, v['v'].shape, v['cnt'])
         return ret
-    
+
+    def keys_loop_compress(self):
+        loop_compressor = {}
+        for k in self.store.keys():
+            # squash loop delimiters down to base node-id/signal
+            k_ = re.sub(r'([A-Za-z0-9]+)(_(ll)([0-9]+))+\/(.*)', r'\1/\5', k)
+            # add if not there
+            if not loop_compressor.has_key(k_):
+                print "new key", k_, k
+                loop_compressor[k_] = {
+                    'v': self.store[k],
+                    'cnt': 1,
+                }
+            else:
+                loop_compressor[k_]['cnt'] += 1
+        return loop_compressor
+        
     def store_pickle(self, conf = {}):
         bus_filetype = 'pickle' # 'gml' # , 'json', 'yaml'
         bus_filename = '%s_%s.%s' % (conf['datafile_md5'], 'bus', bus_filetype)
@@ -1222,8 +1269,8 @@ class Block2(object):
             if hasattr(block, 'nocache') and block.nocache:
                 return
 
-            print "block_store keys = %s" % (top.block_store.keys(), )
-            print "block_store has blocks? is %s" % (hasattr(top.block_store, 'blocks'), )
+            logger.debug("block_store keys = %s" % (top.block_store.keys(), ))
+            logger.debug("block_store has blocks? is %s" % (hasattr(top.block_store, 'blocks'), ))
             # print "top.block_store['/blocks'] is top.block_store.blocks? is %s" % (top.block_store['/blocks'] is top.block_store.blocks, )
             
             # store exists

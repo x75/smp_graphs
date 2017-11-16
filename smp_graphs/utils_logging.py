@@ -15,6 +15,11 @@ Log variables are global in smp_graphs. There are two logging mechanisms
 import numpy as np
 import tables as tb
 
+from logging import INFO as logging_INFO
+from smp_base.common import get_module_logger
+
+logger = get_module_logger(modulename = 'logging', loglevel = logging_INFO)
+
 # declare global h5 file handle
 h5file = 0
 loginit = True
@@ -219,7 +224,7 @@ def log_pd_store():
     for k,v in log_lognodes.items():
         # if 'b4/' in k:
         if np.any(np.isnan(v)):
-            print "storing nan values, table k = %s with data type = %s" % (k, v)
+            logger.warning("storing nan values, table k = %s with data type = %s" % (k, type(v)))
         log_store[k] = v
 
 def log_pd(tbl_name, data):

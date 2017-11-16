@@ -31,7 +31,7 @@ from smp_graphs.utils_conf import get_systemblock_pm
 from smp_graphs.utils_conf import get_systemblock_sa
 
 lconf = {
-    'numloop': 20,
+    'numloop': 3, #20,
     'dim': 1,
     }
     
@@ -47,7 +47,7 @@ lconf_ = {
     'order': 0,
 }
 
-desc = "expr0020"
+desc = "Experiment expr0020 shows the budget statistics over %d runs of expr0010." % (numloop, )
 outputs = {
     'latex': {'type': 'latex',},
 }

@@ -563,7 +563,7 @@ def conf_strip_variables(conf, omits = ['PlotBlock2']):
     # instantiate type
     conf_ = conftype()
     # omit keys
-    omit_keys = ['timestamp', 'datafile_expr', 'cache_clear']
+    omit_keys = ['timestamp', 'datafile_expr', 'cache_clear', 'saveplot', 'desc', 'plotgraph', 'docache']
     
     if conftype is dict or conftype is OrderedDict:
         # strip analysis blocks / PlotBlock2 from hashing
@@ -572,11 +572,12 @@ def conf_strip_variables(conf, omits = ['PlotBlock2']):
                 # if 'PlotBlock2' in str(conf['block']): return conf_
                 if omit in str(conf['block']): return conf_
 
-        for ok in omit_keys:
-            if conf.has_key(ok):
-                conf.pop(ok)
+        # for ok in omit_keys:
+        #     if conf.has_key(ok):
+        #         conf.pop(ok)
                     
         for k, v in conf.items():
+            if k in omit_keys: continue
             # print "v", v
             # if k == 'block' and 'PlotBlock2' in v: continue
             # vtype = type(v)

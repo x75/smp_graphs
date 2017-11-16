@@ -182,6 +182,39 @@ def init_polyexp(ref, conf, mconf):
 def step_polyexp(ref):
     setattr(ref, 'polyexp', ref.polyexpnode.execute(ref.inputs['x']['val'].T).T)
 
+# model func: lookup table expansion with parametric map randomness
+def do_random_lookup(ref):
+    ref.x_idx = np.searchsorted(ref.h_lin, ref.x, side = 'left')
+    print "ref.x_idx", ref.x_idx, ref.h.shape
+    ref.y = ref.h[ref.x_idx - 1]
+
+def init_random_lookup(ref, conf, mconf):
+    """init_random_lookup
+    
+    Arguments:
+     - dist(float): dist in [0, 1]
+    """
+    
+    params = conf['params']
+    params['numelem'] = 1001
+    inshape = params['inputs']['x']['shape']    
+    ref.h_lin = np.linspace(-1, 1, params['numelem']) # .reshape(1, params['numelem'])
+    # noise: additive
+    ref.h_noise = np.random.uniform(-1, 1, (params['numelem'], )) # .reshape(1, params['numelem'])
+    # noise: color (1/f)
+    # ref.
+    d = mconf['d']
+    ref.h = (1 - d) * ref.h_lin + d * ref.h_noise
+    ref.x = np.zeros((inshape))
+    print "    model init_random_lookup ref.x = %s, ref.h = %s" % (ref.x.shape, ref.h.shape)
+    do_random_lookup(ref)
+    
+def step_random_lookup(ref):
+    # setattr(ref, 'polyexp', ref.polyexpnode.execute(ref.inputs['x']['val'].T).T)
+    ref.x = ref.inputs['x']['val']
+    do_random_lookup(ref)
+    # ref.y = np.searchsorted(ref.h, ref.x)
+    
 # model func: random_uniform model
 def init_random_uniform(ref, conf, mconf):
     params = conf['params']
@@ -1728,6 +1761,7 @@ class model(object):
         'musig': {'init': init_musig, 'step': step_musig},
         'res': {'init': init_res, 'step': step_res},
         'polyexp': {'init': init_polyexp, 'step': step_polyexp},
+        'random_lookup': {'init': init_random_lookup, 'step': step_random_lookup},
         # budget
         'budget_linear': {'init': init_budget, 'step': step_budget},
         # constants
@@ -1787,12 +1821,31 @@ class ModelBlock2(PrimBlock2):
        general func, with memory, see morphism
      - FIXME: not sure if this is a good final repr for models and their scope
     """
-    
+    defaults = {
+        'models': {
+            'uniform': {
+                'type': 'random_uniform',
+                
+            },
+        },
+        'inputs': {
+            'lo': {'val': -np.ones((1,1))},
+            'hi': {'val':  np.ones((1,1))},
+        },
+        'outputs': {
+            'pre': {'shape': (1,1)},
+        },
+    }
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
         """ModelBlock2 init"""
-        params = conf['params']
+        params = {}
+        params.update(self.defaults)
+        params.update(conf['params'])
 
+        conf['params'].update(params)
+        # conf.update(params)
+        
         self.top = top
         # self.lag = 1
 

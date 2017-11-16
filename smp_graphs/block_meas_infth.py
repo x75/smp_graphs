@@ -145,6 +145,9 @@ class InfoDistBlock2(InfthPrimBlock2):
     """!@brief Compute elementwise information distance among all variables in dataset. This is
     obtained via the MI by interpreting the MI as proximity and inverting it. It's normalized by
     the joint entropy."""
+    defaults = {
+        'shift': [0, 1],
+    }
     @decInitInfthPrim()
     def __init__(self, conf = {}, paren = None, top = None):
         InfthPrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
@@ -177,15 +180,18 @@ class InfoDistBlock2(InfthPrimBlock2):
             # blank out the diagonal since it's always one
             # np.fill_diagonal(mi, np.max(mi))
             
-        print ""            
+        # print ""            
         mis = np.array(mis)
-        print "%s-%s.step infodist.shape = %s / %s" % (self.cname, self.id, mis.shape, mis.T.shape)
+        # print "%s-%s.step infodist.shape = %s / %s" % (self.cname, self.id, mis.shape, mis.T.shape)
         # print "%s.%s infodist = %s" % (self.cname, self.id, mi)
 
         # why transpose?
-        self.infodist = myt(mis, direction = -1).copy()
+        # self.infodist = myt(mis, direction = -1).copy()
+        self.infodist = np.clip(myt(mis, direction = -1), 0, 1) # implicit copy?
+        self.infodist_pos = np.clip(myt(mis, direction = -1), 1, np.inf)
+        self.infodist_neg = np.clip(myt(mis, direction = -1), -np.inf, 0)
         # self.infodist = mis.copy()
-        # print "infodist block", self.infodist.shape, mi.shape
+        print "infodist block", self.infodist.shape, self.infodist # , mi.shape
         
 class TEBlock2(InfthPrimBlock2):
     """!@brief Compute elementwise transfer entropy from src to dst variables in dataset"""

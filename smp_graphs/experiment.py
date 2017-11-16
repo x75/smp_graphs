@@ -614,14 +614,14 @@ class Experiment(object):
             # configure
             img_figtitle = "{0}".format(figtitle)
             img_figsubtitle = "{0:^40}".format('signal bus')
-            img_bustable = "{0}".format(Gbus.astable())
+            img_bustable = "{0}".format(Gbus.astable(loop_compress = True))
 
             fontsize = 12
             lineheight = int(fontsize * 1.4)
             width = 320
             height = (img_bustable.count('\n') + 5) * lineheight
             offset_y = 10
-            colwidth = 150
+            colwidth = 170
 
             # init image objects
             # image = Image.new("RGBA", (width,height), (255,255,255))
@@ -640,11 +640,23 @@ class Experiment(object):
             draw.text((10, offset_y + 20), img_figsubtitle, fontcolor, font = font_normal)
 
             # draw bus items
-            for i, k in enumerate(Gbus.keys()):
+            
+            # keys = Gbus.keys()
+            # for i, k in enumerate(keys):
+            Gbus_items = Gbus.keys_loop_compress()
+            Gbus_keys  = Gbus_items.keys()
+            Gbus_keys.sort()
+            
+            # for i, item in enumerate(Gbus_items.items()):
+            for i, k in enumerate(Gbus_keys):
+                # k = item[0]
+                item = (k, Gbus_items[k])
+                v = item[1]['v']
+                c = item[1]['cnt']
                 draw.text(
-                    (10, offset_y + (i * lineheight) + 40), '| %s' % (k, ), fontcolor, font = font_normal)
+                    (10, offset_y + (i * lineheight) + 40), '| %s[%d]' % (k, c), fontcolor, font = font_normal)
                 draw.text(
-                    (10 + colwidth, offset_y + (i * lineheight) + 40), '| %s' % (Gbus[k].shape,), fontcolor, font = font_normal)
+                    (10 + colwidth, offset_y + (i * lineheight) + 40), '| %s' % (v.shape,), fontcolor, font = font_normal)
             # imgage_s = image.resize((188,45), Image.ANTIALIAS)
             # image_s = image.resize((width, height), Image.ANTIALIAS)
             self.plotgraph_figures['bus']['fig'] = image

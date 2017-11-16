@@ -30,7 +30,13 @@ from smp_graphs.utils_conf import get_systemblock
 from smp_graphs.utils_conf import get_systemblock_pm
 from smp_graphs.utils_conf import get_systemblock_sa
 
-desc = "expr0030"
+numloop = 5
+numloop_inner = 10
+
+desc = "Experiment expr0030 computes the budget statistics over {0} episodes for sensorimotor dimension $d = {1}$".format(
+    numloop_inner,
+    range(1, numloop + 1),
+)
 outputs = {
     'latex': {'type': 'latex',},
 }
@@ -221,8 +227,6 @@ outputs = {
 # loop = [('randseed', 1000 + i) for i in range(0, numloop)]
 
 # for dims
-numloop = 5
-numloop_inner = 10
 loopblock = {
 # loopblock = OrderedDict([('bhier', {
         'block': Block2,
