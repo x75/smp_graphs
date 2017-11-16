@@ -129,9 +129,10 @@ import pandas as pd
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+from smp_base.common import get_module_logger
 from smp_base.plot import plot_colors, makefig, set_interactive
 
-import smp_graphs.logging as log
+import smp_graphs.utils_logging as log
 from smp_graphs.utils import print_dict, ordereddict_insert, xproduct, myt
 
 from smp_graphs.common import conf_header, conf_footer, get_input, conf_strip_variables
@@ -145,6 +146,10 @@ from smp_graphs.common import dict_replace_idstr_recursive
 from smp_graphs.graph import nxgraph_from_smp_graph, nxgraph_to_smp_graph
 from smp_graphs.graph import nxgraph_node_by_id, nxgraph_node_by_id_recursive
 from smp_graphs.graph import nxgraph_nodes_iter
+
+from logging import DEBUG as logging_DEBUG
+# import logging
+logger = get_module_logger(modulename = 'block', loglevel = logging_DEBUG)
 
 # finally, ros
 # import rospy
@@ -670,6 +675,7 @@ class decStep():
 
                 # copy data onto ros
                 if hasattr(xself, 'ros') and xself.ros:
+                    # assert rospy.core.is_initialized(), "%s-%s is configured self.ros = %s but roscore is not initialized."
                     theattr = getattr(xself, k).flatten().tolist()
                     # print "theattr", k, v, theattr
                     xself.msgs[k].data = theattr
@@ -1262,7 +1268,9 @@ class Block2(object):
                     block.nesting_indent, block.cache['log_store'].values)
 
                 if top.cache_clear:
-                    print "%s    cache_clear set, deleting cache entry %s / %s" % (block.nesting_indent, block.md5, blocks.shape)
+                    logstr = "%s    cache_clear set, deleting cache entry %s / %s" % (block.nesting_indent, block.md5, blocks.shape)
+                    logger.debug(logstr)
+                    
                     # hits = pd.Index(blocks.md5 == block.md5)
                     hits = blocks.md5 == block.md5
                     if hits is not None:

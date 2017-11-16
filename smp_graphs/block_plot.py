@@ -17,7 +17,7 @@ import colorcet as cc
 from smp_graphs.block import decStep, decInit, block_cmaps
 from smp_graphs.block import PrimBlock2
 from smp_graphs.utils import myt, mytupleroll
-import smp_graphs.logging as log
+import smp_graphs.utils_logging as log
 
 from smp_base.plot_utils import put_legend_out_right, put_legend_out_top
 from smp_base.dimstack   import dimensional_stacking, digitize_pointcloud

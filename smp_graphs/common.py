@@ -7,6 +7,8 @@ from collections import OrderedDict
 from functools import partial
 from types import FunctionType
 
+import logging
+
 import smp_graphs
 from smp_base.common import set_attr_from_dict
 from smp_graphs.utils import print_dict

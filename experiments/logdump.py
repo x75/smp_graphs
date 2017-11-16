@@ -7,7 +7,7 @@ load a logfile and dump the initial and final config dictionaries to stdout
 
 
 import argparse
-import smp_graphs.logging as log
+import smp_graphs.utils_logging as log
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

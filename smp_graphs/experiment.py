@@ -26,6 +26,7 @@ import pandas as pd
 # for config reading
 from numpy import array
 
+from smp_base.common import get_module_logger
 from smp_base.plot import set_interactive, makefig
 
 from smp_graphs.block import Block2
@@ -41,6 +42,34 @@ from smp_graphs.graph import nxgraph_load, nxgraph_store
 import warnings
 warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning)
 
+from logging import DEBUG as logging_DEBUG
+# import logging
+logger = get_module_logger(modulename = 'experiment', loglevel = logging_DEBUG)
+
+# # 'application' code
+# logger.debug('debug message')
+# logger.info('info message')
+# logger.warn('warn message')
+# logger.error('error message')
+# logger.critical('critical message')
+
+# logging.basicConfig(
+# logger = logging.getLogger(__name__)    # filename = 'example.log',
+#     level = logging.DEBUG,
+#     format = '%(levelname)s:%(message)s',
+# )
+
+# logger = logging.getLogger()
+# print "logger handlers", logger.handlers
+
+# logging.basicConfig(
+#     format='%(levelname)s:%(message)s',
+#     level=logging.DEBUG
+# )
+
+# logging.basicConfig(format='%(asctime)s %(message)s')
+
+# logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 
 ################################################################################
 # utils, TODO: move to utils.py
@@ -256,7 +285,8 @@ class Experiment(object):
         if self.conf['params']['ros']:
             import rospy
             rospy.init_node("smp_graph")
-
+            self.conf['params']['roscore'] = rospy.core
+            
         # store all conf entries in self
         for k, v in self.conf.items():
             setattr(self, k, v)
@@ -269,7 +299,6 @@ class Experiment(object):
 
         self.conf['params']['cache_clear'] = self.params['cache_clear']
         print "self.params.keys()", self.params.keys()
-
         
         # print self.desc
         self.args = args
@@ -689,6 +718,9 @@ class Experiment(object):
         print "    Graph: %s" % (self.top.nxgraph.nodes(), )
         print "      Bus: %s" % (self.top.bus.keys(),)
         print " numsteps: {0}/{1}".format(self.params['numsteps'], self.top.numsteps)
+
+        # logging
+        logger.debug("logger handlers = %s", logger.handlers)
 
         # TODO: try run
         #       except go interactive
