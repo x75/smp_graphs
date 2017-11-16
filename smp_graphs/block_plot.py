@@ -207,6 +207,20 @@ class BaseplotBlock2(AnalysisBlock2):
         self.defaults = defaults
         # super init
         AnalysisBlock2.__init__(self, conf = conf, paren = paren, top = top)
+
+    def prepare_saveplot(self):
+        """if saveplot set, compute filename and register top.outputs of type fig
+        """
+        if self.saveplot:
+            self.filename = '%s_%s.%s' % (self.top.datafile_expr, self.id, self.savetype)
+            self.top.outputs['%s' % (self.id, )] = {
+                'type': 'fig',
+                'filename': self.filename,
+                'label': self.top.id,
+                'id': self.id,
+                'desc': self.desc,
+                'width': 1.0,
+            }
     
 class FigPlotBlock2(BaseplotBlock2):
     """FigPlotBlock2 class
@@ -239,18 +253,8 @@ class FigPlotBlock2(BaseplotBlock2):
         # self.fig.tight_layout(pad = 1.0)
         # self.debug_print("fig.axes = %s", (self.fig.axes, ))
 
-        # register outputs if saveplot
-        if self.saveplot:
-            self.filename = '%s_%s.%s' % (self.top.datafile_expr, self.id, self.savetype)
-            self.top.outputs['%s' % (self.id, )] = {
-                'type': 'fig',
-                'filename': self.filename,
-                'label': self.top.id,
-                'id': self.id,
-                'desc': self.desc,
-                'width': 1.0,
-            }
-
+        self.prepare_saveplot()
+        
         # FIXME: too special
         self.isprimitive = False
         
@@ -917,8 +921,9 @@ class SnsMatrixPlotBlock2(BaseplotBlock2):
         # self.saveplot = False
         # self.savetype = 'jpg'
         BaseplotBlock2.__init__(self, conf = conf, paren = paren, top = top)
-        
 
+        self.prepare_saveplot()
+        
     @decStep()
     def step(self, x = None):
         # print "%s.step inputs: %s"  % (self.cname, self.inputs.keys())
@@ -940,7 +945,9 @@ class SnsMatrixPlotBlock2(BaseplotBlock2):
         # ivecs = tuple(self.inputs[ink]['val'].T for k, ink in enumerate(subplotconf['input']))
         
         def unwrap_ndslice(self, subplotconf, k, ink):
+            # default x-axis slice
             xslice = slice(None)
+            # apply ndslice
             if subplotconf.has_key('ndslice'):
                 # plotdata[ink_] = myt(self.inputs[ink_]['val'])[-1,subplotconf['ndslice'][0],subplotconf['ndslice'][1],:] # .reshape((21, -1))
                 print "      ndslice %s: %s, numslice = %d" % (ink, subplotconf['ndslice'][k], len(subplotconf['ndslice']))
@@ -951,15 +958,19 @@ class SnsMatrixPlotBlock2(BaseplotBlock2):
             else:
                 plotdata = myt(self.inputs[ink]['val'])[xslice] # .reshape((xslice.stop - xslice.start, -1))
             print "       ndslice plotdata", plotdata.shape
+            
             # apply shape
-            if type(subplotconf['shape']) is list:
-                plotdata_shape = subplotconf['shape'][k]
+            if subplotconf.has_key('shape'):
+                if type(subplotconf['shape']) is list:
+                    plotdata_shape = subplotconf['shape'][k]
+                else:
+                    plotdata_shape = subplotconf['shape']
+                print "       ndslice plotshape", plotdata_shape
             else:
-                plotdata_shape = subplotconf['shape']
-            print "       ndslice plotshape", plotdata_shape
+                plotdata_shape = plotdata.T.shape
 
             plotdata = myt(plotdata).reshape(plotdata_shape)
-            print "       ndslice plotdata", plotdata.shape
+            print "        shape plotdata", plotdata.shape
     
             return plotdata    
             

@@ -687,8 +687,11 @@ graph = OrderedDict([
             'subplots': [
                 [
                     # stack inputs into one vector (stack, combine, concat
-                    {'input': ['meshgrid', 's_proprio', 's_extero'], 'mode': 'stack',
-                         'plot': histogramnd},
+                    {
+                        'input': ['meshgrid', 's_proprio', 's_extero'],
+                        'mode': 'stack',
+                        'plot': histogramnd
+                    },
                 ],
             ],
         },
