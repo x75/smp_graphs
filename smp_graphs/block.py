@@ -1216,12 +1216,13 @@ class Block2(object):
             if hasattr(block, 'nocache') and block.nocache:
                 return
 
-            # print "block_store has blocks? is %s" % (hasattr(top.block_store, 'blocks'), )
+            print "block_store keys = %s" % (top.block_store.keys(), )
+            print "block_store has blocks? is %s" % (hasattr(top.block_store, 'blocks'), )
             # print "top.block_store['/blocks'] is top.block_store.blocks? is %s" % (top.block_store['/blocks'] is top.block_store.blocks, )
             
             # store exists
-            # if len(top.block_store.keys()) > 0:
-            if hasattr(top.block_store, 'blocks'):
+            # if hasattr(top.block_store, 'blocks'):
+            if len(top.block_store.keys()) > 0:
                 # blocks dataframe ref
                 blocks = top.block_store.blocks
                 # print "    blocks", blocks

@@ -836,6 +836,8 @@ graph = OrderedDict([
                                 'algo': algo,
                                 'idim': dim_s_proprio * laglen * 2,
                                 'odim': dim_s_proprio * laglen,
+                                'lag_past': lag_past,
+                                'lag_future': lag_future,
                                 'laglen': laglen,
                                 'eta': eta
                                 },
