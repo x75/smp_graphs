@@ -295,7 +295,7 @@ class Bus(MutableMapping):
             k_ = re.sub(r'([A-Za-z0-9]+)(_(ll)([0-9]+))+\/(.*)', r'\1/\5', k)
             # add if not there
             if not loop_compressor.has_key(k_):
-                print "new key", k_, k
+                # print "new key", k_, k
                 loop_compressor[k_] = {
                     'v': self.store[k],
                     'cnt': 1,

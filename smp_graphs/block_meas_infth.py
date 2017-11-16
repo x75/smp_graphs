@@ -9,6 +9,7 @@ and conditional transfer entropy
 
 import sys
 import numpy as np
+import matplotlib.pyplot as plt
 
 from smp_base.measures_infth import measMI, measH, compute_mutual_information, infth_mi_multivariate, compute_information_distance, compute_transfer_entropy, compute_conditional_transfer_entropy, compute_mi_multivariate, compute_transfer_entropy_multivariate, compute_entropy_multivariate
 
@@ -159,7 +160,14 @@ class InfoDistBlock2(InfthPrimBlock2):
         src = self.inputs['x']['val'].T
         dst = self.inputs['y']['val'].T
         
-        print "%s.step[%d]-%s src.shape = %s, dst.shape = %s" % (self.cname, self.cnt, self.id, src.shape, dst.shape,),
+        print "%s%s-%s.step[%d] src.shape = %s, dst.shape = %s" % (
+            self.nesting_indent, self.cname, self.id, self.cnt, src.shape, dst.shape,),
+
+        # print "%s src = %s, dst = %s" % (self.nesting_indent, src, dst)
+
+        # plt.plot(src)
+        # plt.plot(dst)
+        # plt.show()
         
         # compute norm factor
         jh = self.normalize(src, dst)

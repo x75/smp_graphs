@@ -166,7 +166,7 @@ graph = OrderedDict([
                         'models': {
                             'infodistgen': {
                                 'type': 'random_lookup',
-                                'd': 0.9,
+                                'd': 1.0,
                             }
                         },
                         'inputs': {
@@ -182,8 +182,8 @@ graph = OrderedDict([
                 ('infodist', {
                     'block': InfoDistBlock2,
                     'params': {
-                        'blocksize': numsteps,
-                        'shift': (0, 1),
+                        'blocksize': numsteps/10,
+                        'shift': (-1, 0),
                         'inputs': {
                             'x': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
                             # 'y': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 100)},
@@ -237,7 +237,7 @@ graph = OrderedDict([
                 'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
                 'pre_l2': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, numsteps)},
                 'credit_l1': {'bus': 'budget/credit', 'shape': (1, numsteps)},
-                'infodist': {'bus': 'infodist/infodist', 'shape': (dim_s_proprio, 1, 1)},
+                'infodist': {'bus': 'infodist/infodist', 'shape': (dim_s_proprio, 1, numsteps/10)},
             },
             'desc': 'Single episode pm1d baseline',
             'subplots': [
@@ -283,7 +283,7 @@ graph = OrderedDict([
                     {
                         'input': ['infodist'],
                         'ndslice': (slice(None), 0, slice(None)),
-                        'shape': (dim_s_proprio, 1),
+                        'shape': (dim_s_proprio, numsteps/10),
                         'plot': [
                             partial(timeseries, linewidth = 1.0, alpha = 1.0, marker = 'o', xlabel = None),
                         ],
@@ -292,7 +292,7 @@ graph = OrderedDict([
                     {
                         'input': ['infodist'],
                         'ndslice': (slice(None), 0, slice(None)),
-                        'shape': (dim_s_proprio, 1),
+                        'shape': (dim_s_proprio, numsteps/10),
                         'plot': [partial(
                             histogram, orientation = 'horizontal', histtype = 'stepfilled',
                             yticks = False, xticks = False, alpha = 1.0, normed = False) for _ in range(1)],

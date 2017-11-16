@@ -185,7 +185,7 @@ def step_polyexp(ref):
 # model func: lookup table expansion with parametric map randomness
 def do_random_lookup(ref):
     ref.x_idx = np.searchsorted(ref.h_lin, ref.x, side = 'left')
-    print "ref.x_idx", ref.x_idx, ref.h.shape
+    # print "ref.x_idx", ref.x_idx, ref.h.shape
     ref.y = ref.h[ref.x_idx - 1]
 
 def init_random_lookup(ref, conf, mconf):
@@ -199,12 +199,20 @@ def init_random_lookup(ref, conf, mconf):
     params['numelem'] = 1001
     inshape = params['inputs']['x']['shape']    
     ref.h_lin = np.linspace(-1, 1, params['numelem']) # .reshape(1, params['numelem'])
+    var = 3.0**2
     # noise: additive
-    ref.h_noise = np.random.uniform(-1, 1, (params['numelem'], )) # .reshape(1, params['numelem'])
+    # ref.h_noise = np.random.uniform(-1, 1, (params['numelem'], )) # .reshape(1, params['numelem'])
+    # ref.h_noise = np.exp(-0.5 * (0.0 - ref.h_noise)**2)
+    ref.h_noise = np.cumsum(np.exp(-0.5 * (0.0 - ref.h_lin)**2/var))
+    ref.h_noise -= np.mean(ref.h_noise)
+    print "ref.h_noise", ref.h_noise
+    ref.h_noise /= np.max(np.abs(ref.h_noise))
     # noise: color (1/f)
     # ref.
     d = mconf['d']
-    ref.h = (1 - d) * ref.h_lin + d * ref.h_noise
+    # ref.h = (1 - d) * ref.h_lin + d * ref.h_noise
+    # ref.h *= 0.5
+    ref.h = ref.h_noise
     ref.x = np.zeros((inshape))
     print "    model init_random_lookup ref.x = %s, ref.h = %s" % (ref.x.shape, ref.h.shape)
     do_random_lookup(ref)
