@@ -2,7 +2,7 @@
 
 baseline behaviour - open-loop uniform random search in finite isotropic space
 
-id:thesis_smpx0001
+id:thesis_smp_expr0050
 
 Oswald Berthold 2017
 
@@ -13,7 +13,7 @@ from smp_graphs.block import FuncBlock2
 from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2
 from smp_graphs.block_models import ModelBlock2
 from smp_graphs.block_meas import MomentBlock2
-from smp_graphs.block_meas_infth import InfoDistBlock2
+from smp_graphs.block_meas_infth import MIBlock2, InfoDistBlock2
 
 from smp_graphs.funcs import f_sin, f_motivation, f_motivation_bin
 
@@ -108,7 +108,8 @@ graph = OrderedDict([
                         'goalsize': 0.1, # np.power(0.01, 1.0/dim_s_proprio), # area of goal
                         'inputs': {
                             # 'credit': {'bus': 'budget/credit', 'shape': (1,1)},
-                            's0': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 1)},
+                            # 's0': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 1)},
+                            's0': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, 1)},
                             's0_ref': {'bus': 'pre_l1/pre', 'shape': (dim_s_proprio, 1)},
                             },
                         'outputs': {
@@ -120,6 +121,29 @@ graph = OrderedDict([
                         'rate': 1,
                     },
                 }),
+
+                # new modality m2 with distance parameter
+                ('pre_l2', {
+                    'block': ModelBlock2,
+                    'params': {
+                        'models': {
+                            'infodistgen': {
+                                'type': 'random_lookup',
+                                'd': 0.5,
+                                's_a': 0.5,
+                                's_f': 1.0,
+                                'e': 0.1,
+                            }
+                        },
+                        'inputs': {
+                            'x': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 1)},
+                        },
+                        'outputs': {
+                            'y': {'shape': (dim_s_proprio, 1)},
+                        },
+                    }
+                }),
+
                 # uniformly dist. random goals, triggered when error < goalsize
                 ('pre_l1', {
                     'block': ModelBlock2,
@@ -133,7 +157,8 @@ graph = OrderedDict([
                             'credit': {'bus': 'budget/credit'},
                             'lo': {'val': -lim, 'shape': (dim_s_proprio, 1)},
                             'hi': {'val': lim, 'shape': (dim_s_proprio, 1)},
-                            'mdltr': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 1)},
+                            # 'mdltr': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 1)},
+                            'mdltr': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, 1)},
                             },
                         'outputs': {
                             'pre': {'shape': (dim_s_proprio, 1)},
@@ -159,34 +184,31 @@ graph = OrderedDict([
                     },
                 }),
                 
-                # new modality m2 with distance parameter
-                ('pre_l2', {
-                    'block': ModelBlock2,
+                # measure mutual information I(m1;m2)
+                ('mi', {
+                    'block': MIBlock2,
                     'params': {
-                        'models': {
-                            'infodistgen': {
-                                'type': 'random_lookup',
-                                'd': 0.1,
-                            }
-                        },
+                        'blocksize': numsteps,
+                        'shift': (0, 1),
                         'inputs': {
-                            'x': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 1)},
+                            'x': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
+                            # 'y': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
+                            'y': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, numsteps)},
                         },
                         'outputs': {
-                            'y': {'shape': (dim_s_proprio, 1)},
-                        },
+                            'infodist': {'shape': (1, 1, 1)},
+                        }
                     }
                 }),
-                    
                 # measure information distance d(m1, m2)
                 ('infodist', {
                     'block': InfoDistBlock2,
                     'params': {
-                        'blocksize': numsteps/10,
-                        'shift': (-1, 0),
+                        'blocksize': numsteps,
+                        'shift': (0, 1),
                         'inputs': {
                             'x': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
-                            # 'y': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 100)},
+                            # 'y': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
                             'y': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, numsteps)},
                         },
                         'outputs': {
@@ -230,7 +252,7 @@ graph = OrderedDict([
             'savetype': 'pdf',
             'wspace': 0.15,
             'hspace': 0.15,
-            'xlim_share': False,
+            'xlim_share': True,
             'inputs': {
                 's_p': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
                 's_e': {'bus': 'robot1/s_extero', 'shape': (dim_s_extero, numsteps)},
@@ -240,11 +262,12 @@ graph = OrderedDict([
                 'credit_l1': {'bus': 'budget/credit', 'shape': (1, numsteps)},
                 'infodist': {
                     'bus': 'infodist/infodist',
-                    'shape': (dim_s_proprio, 1, numsteps/100)
+                    'shape': (dim_s_proprio, 1, 1)
                 },
             },
             'desc': 'Single episode pm1d baseline',
             'subplots': [
+                # row 1: pre, s
                 [
                     {
                         'input': ['pre_l0', 's_p', 'pre_l1'],
@@ -264,20 +287,22 @@ graph = OrderedDict([
                         # 'mode': 'stack'
                     },
                 ],
+                # row 2: pre_l2, s
                 [
                     {
                         'input': ['pre_l2', 's_p'],
                         'plot': [
-                            partial(timeseries, linewidth = 1.0, alpha = 1.0, xlabel = None),
                             partial(timeseries, alpha = 1.0, xlabel = None),
+                            partial(timeseries, alpha = 0.5, xlabel = None),
                         ],
                         'title': 'proprio and f(proprio)',
                     },
                     {
                         'input': ['pre_l2', 's_p'],
-                        'plot': [partial(
-                            histogram, orientation = 'horizontal', histtype = 'stepfilled',
-                            yticks = False, xticks = False, alpha = 1.0, normed = False) for _ in range(2)],
+                        'plot': [
+                            partial(
+                                histogram, orientation = 'horizontal', histtype = 'stepfilled',
+                                yticks = False, xticks = False, alpha = 0.5, normed = False) for _ in range(2)],
                         'title': 'proprio and f(proprio) (histogram)',
                         'desc': 'Single episode pm1d baseline \autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
                         # 'mode': 'stack'
@@ -296,28 +321,28 @@ graph = OrderedDict([
                         'desc': 'Single episode pm1d baseline \autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
                     },
                 ],
-                [
-                    {
-                        'input': ['infodist'],
-                        'ndslice': (slice(None), 0, slice(None)),
-                        'shape': (dim_s_proprio, numsteps/100),
-                        'plot': [
-                            partial(timeseries, linewidth = 1.0, alpha = 1.0, marker = 'o', xlabel = None),
-                        ],
-                        'title': 'd(proprio, f(proprio))',
-                    },
-                    {
-                        'input': ['infodist'],
-                        'ndslice': (slice(None), 0, slice(None)),
-                        'shape': (dim_s_proprio, numsteps/100),
-                        'plot': [partial(
-                            histogram, orientation = 'horizontal', histtype = 'stepfilled',
-                            yticks = False, xticks = False, alpha = 1.0, normed = False) for _ in range(1)],
-                        'title': 'd(proprio, f(proprio)) (histogram)',
-                        'desc': 'infodist \autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
-                        # 'mode': 'stack'
-                    },
-                ],
+                # [
+                #     {
+                #         'input': ['infodist'],
+                #         'ndslice': (slice(None), 0, slice(None)),
+                #         'shape': (dim_s_proprio, 1),
+                #         'plot': [
+                #             partial(timeseries, linewidth = 1.0, alpha = 1.0, marker = 'o', xlabel = None),
+                #         ],
+                #         'title': 'd(proprio, f(proprio))',
+                #     },
+                #     {
+                #         'input': ['infodist'],
+                #         'ndslice': (slice(None), 0, slice(None)),
+                #         'shape': (dim_s_proprio, 1),
+                #         'plot': [partial(
+                #             histogram, orientation = 'horizontal', histtype = 'stepfilled',
+                #             yticks = False, xticks = False, alpha = 1.0, normed = False) for _ in range(1)],
+                #         'title': 'd(proprio, f(proprio)) (histogram)',
+                #         'desc': 'infodist \autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
+                #         # 'mode': 'stack'
+                #     },
+                # ],
             ],
         },
     })

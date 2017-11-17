@@ -1,9 +1,12 @@
 
 import numpy as np
 
+from smp_base.common import get_module_logger
 
 from smp_graphs.block import decInit, decStep, Block2, PrimBlock2
 
+from logging import DEBUG as LOGLEVEL
+logger = get_module_logger(modulename = 'block_meas', loglevel = LOGLEVEL)
 
 def compute_xcor_matrix_src_dst(data, dst, src, shift = (-10, 11)):
     """compute_xcor_matrix_src_dst
@@ -208,5 +211,10 @@ class MomentBlock2(PrimBlock2):
                 setattr(self, k_var, np.var(v['val'], axis = axis, keepdims = True))
                 setattr(self, k_min, np.min(v['val'], axis = axis, keepdims = True))
                 setattr(self, k_max, np.max(v['val'], axis = axis, keepdims = True))
-            print "%s%s-%s[%d/%d]\n%s    %s mu = %s, var = %s, min = %s, max = %s" % (
-                self.nesting_indent, self.cname, self.id, self.cnt, self.top.blocksize_min, self.nesting_indent, k, getattr(self, k_mu), getattr(self, k_var), getattr(self, k_min), getattr(self, k_max))
+            logstr = "%s%s-%s[%d/%d]\n%s    %s mu = %s, var = %s, min = %s, max = %s" % (
+                self.nesting_indent, self.cname, self.id, self.cnt, self.top.blocksize_min,
+                self.nesting_indent, k,
+                getattr(self, k_mu), getattr(self, k_var), getattr(self, k_min), getattr(self, k_max)
+            )
+            logger.debug(logstr)
+            

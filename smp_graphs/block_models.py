@@ -21,7 +21,8 @@ from mdp.nodes import PolynomialExpansionNode
 
 # import sklearn
 from sklearn import linear_model, kernel_ridge
-            
+
+from smp_base.common import get_module_logger
 # reservoir lib from smp_base
 from smp_base.reservoirs import res_input_matrix_random_sparse, res_input_matrix_disjunct_proj
 from smp_base.reservoirs import Reservoir, LearningRules
@@ -43,6 +44,8 @@ except ImportError, e:
     print "couldn't import online GP models", e
     HAVE_SOESGP = False
 
+from logging import DEBUG as LOGLEVEL
+logger = get_module_logger(modulename = 'block_models', loglevel = LOGLEVEL)
 
 def array_fix(a = None, col = True):
     """smp_graphs.common.array_fix
@@ -184,8 +187,9 @@ def step_polyexp(ref):
 
 # model func: lookup table expansion with parametric map randomness
 def do_random_lookup(ref):
-    ref.x_idx = np.searchsorted(ref.h_lin, ref.x, side = 'left')
-    # print "ref.x_idx", ref.x_idx, ref.h.shape
+    ref.x_idx = np.searchsorted(ref.h_lin, ref.x, side = 'right')
+    # logger.log(ref.loglevel, "%sdo_random_lookup[%s] ref.x_idx = %s", '    ', ref.cnt, ref.x_idx) # , ref.h.shape
+    # logger.debug("%sdo_random_lookup[%s] ref.x_idx = %s", '    ', ref.cnt, ref.x_idx)
     ref.y = ref.h[ref.x_idx - 1]
 
 def init_random_lookup(ref, conf, mconf):
@@ -194,32 +198,54 @@ def init_random_lookup(ref, conf, mconf):
     Arguments:
      - dist(float): dist in [0, 1]
     """
-    
+    # setup
     params = conf['params']
     params['numelem'] = 1001
-    inshape = params['inputs']['x']['shape']    
-    ref.h_lin = np.linspace(-1, 1, params['numelem']) # .reshape(1, params['numelem'])
-    var = 3.0**2
-    # noise: additive
+    inshape = params['inputs']['x']['shape']
+    
+    # linear ramp
+    ref.h_lin = np.linspace(-1.0, 1.0, params['numelem']) # .reshape(1, params['numelem'])
+
+    # three factors controlling information distance
+    #  1. contraction / expansion: transfer function y = h(x)
+    #  2. smoothness: noisy transfer function y = h(x + noise(f, amp))
+    #  3. external entropy: y = h(x) + E
+    
+    # information distance parameters
+    d = mconf['d']
+    s_a = mconf['s_a']
+    s_f = mconf['s_f']
+    e = mconf['e']
+
+    # contraction / expansion: transforming uniform to gaussian, d to var
+    # var = 0.25**2
+    var = d**2
+    ref.h_gauss = np.exp(-0.5 * (0.0 - ref.h_lin)**2/var)
+    ref.h_gauss_inv = np.max(ref.h_gauss) - ref.h_gauss
+    ref.h_gauss_inv_int = np.cumsum(ref.h_gauss_inv)
+    # ref.h_gauss_inv_int = np.exp(-0.5 * (0.0 - ref.h_lin)**2/var)
+    # print "ref.h_gauss_inv_int", ref.h_gauss_inv_int.shape, ref.h_gauss_inv_int
+    ref.h_gauss_inv_int -= np.mean(ref.h_gauss_inv_int)
+    ref.h_gauss_inv_int /= np.max(np.abs(ref.h_gauss_inv_int))
+    print "ref.h_gauss_inv_int", ref.h_gauss_inv_int
+
+    # additive noise on base h
     # ref.h_noise = np.random.uniform(-1, 1, (params['numelem'], )) # .reshape(1, params['numelem'])
     # ref.h_noise = np.exp(-0.5 * (0.0 - ref.h_noise)**2)
-    ref.h_noise = np.cumsum(np.exp(-0.5 * (0.0 - ref.h_lin)**2/var))
-    ref.h_noise -= np.mean(ref.h_noise)
-    print "ref.h_noise", ref.h_noise
-    ref.h_noise /= np.max(np.abs(ref.h_noise))
+    
     # noise: color (1/f)
     # ref.
-    d = mconf['d']
     # ref.h = (1 - d) * ref.h_lin + d * ref.h_noise
     # ref.h *= 0.5
-    ref.h = ref.h_noise
+    ref.h = ref.h_gauss_inv_int
     ref.x = np.zeros((inshape))
-    print "    model init_random_lookup ref.x = %s, ref.h = %s" % (ref.x.shape, ref.h.shape)
-    do_random_lookup(ref)
+    ref.y = np.zeros_like(ref.x)
+    logger.debug("    model init_random_lookup ref.x = %s, ref.h = %s, ref.y = %s" % (ref.x.shape, ref.h.shape, ref.y.shape))
+    # do_random_lookup(ref)
     
 def step_random_lookup(ref):
     # setattr(ref, 'polyexp', ref.polyexpnode.execute(ref.inputs['x']['val'].T).T)
-    ref.x = ref.inputs['x']['val']
+    ref.x = np.clip(ref.inputs['x']['val'], -1, 1)
     do_random_lookup(ref)
     # ref.y = np.searchsorted(ref.h, ref.x)
     
@@ -1853,6 +1879,8 @@ class ModelBlock2(PrimBlock2):
 
         conf['params'].update(params)
         # conf.update(params)
+
+        self.conf = conf
         
         self.top = top
         # self.lag = 1
@@ -1898,13 +1926,17 @@ class TopDummy(object):
         
         self.blocksize_min = np.inf
         self.bus = Bus()
+        self.cnt = 0
         self.docache = False
+        self.inputs = {}
         self.numsteps = 100
         self.saveplot = False
         self.topblock = True
 
 if __name__ == '__main__':
-
+    import matplotlib.pyplot as plt
+    from matplotlib.gridspec import GridSpec
+    
     top = TopDummy()
     # setattr(top, 'numsteps', 100)
     
@@ -1944,3 +1976,51 @@ if __name__ == '__main__':
     #     block.inputs['x']['val'] = top.bus['robot1/s_proprio']
     #     block.step()
         
+    # params = conf['params']
+    # params['numelem'] = 1001
+    # inshape = params['inputs']['x']['shape']    
+    # ref.h_lin = np.linspace(-1, 1, params['numelem']) # .reshape(1, params['numelem'])
+    # mconf['d']
+
+    conf = {
+        'params': {
+            'inputs': {
+                'x': {'shape': (1, 1)},
+            },
+            'nesting_indent': 4,
+        },
+        'd': 0.9,
+    }
+
+    top.inputs['x'] = conf['params']['inputs']['x']
+    top.inputs['x']['val'] = np.random.uniform(-1, 1, (1,1))
+    
+    init_random_lookup(top, conf, conf)
+
+    xs = np.zeros((dim_s_proprio, 101))
+    ys = np.zeros((dim_s_proprio, 101))
+    
+    for i,x in enumerate(np.linspace(-1, 1, 101)):
+        # top.inputs['x']['val'] = np.random.uniform(-1, 1, (dim_s_proprio, 1))
+        top.inputs['x']['val'] = np.ones((1,1)) * x
+        top.cnt += 1
+        step_random_lookup(top)
+        # print "y", top.x, top.y
+        xs[...,[i]] = top.x
+        ys[...,[i]] = top.y
+
+    print "xs", xs
+    print "ys", ys
+    fig = plt.figure()
+    gs = GridSpec(2,1)
+    ax1 = fig.add_subplot(gs[0])
+    ax1.set_title('transfer functions')
+    ax1.plot(top.h_lin, 'ko', alpha = 0.3, label = 'lin')
+    ax1.plot(top.h_noise, 'ro', alpha = 0.3, label = 'gaussian')
+    ax1.legend()
+    ax2 = fig.add_subplot(gs[1])
+    ax2.set_title('y over x as y = h(binidx(x))')
+    ax2.plot(xs.T, ys.T, 'ko', label = 'y = h(x)')
+    ax2.legend()
+    fig.show()
+    plt.show()

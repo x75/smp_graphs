@@ -61,8 +61,8 @@ calls each node's step function. Blocks schedule themselves for
 execution with the :data:`blocksize` and :data:`blockphase`
 attributes. The current :data:`cnt` is taken modulo the blocksize and
 step is actually executed if the result is in the blockphase list of
-integers. The default configuration is `'blocksize': 1, 'blockphase':
-[0]` resulting in single time step execution.
+integers. The default configuration is `'blocksize': 1, 'blockphase': [0]`
+resulting in single time step execution.
 
 The top block also has a :data:`bus` member which is a dictionary
 whose keys are 'buskeys' and whose values are np.ndarrays and which is
@@ -147,6 +147,7 @@ from smp_graphs.graph import nxgraph_from_smp_graph, nxgraph_to_smp_graph
 from smp_graphs.graph import nxgraph_node_by_id, nxgraph_node_by_id_recursive
 from smp_graphs.graph import nxgraph_nodes_iter
 
+from logging import INFO as logging_INFO
 from logging import DEBUG as logging_DEBUG
 # import logging
 logger = get_module_logger(modulename = 'block', loglevel = logging_DEBUG)
@@ -846,6 +847,7 @@ class Block2(object):
         'blockphase': [0], # list of positions of comp calls along the counter in time steps
         'inputs': {}, # internal port, scalar / vector/ bus key, [slice]
         'outputs': {}, # name, dim
+        'loglevel': 0,
         'logging': True, # normal logging
         'rate': 1, # execution rate rel. to cnt
         'ros': False, # no ROS yet
@@ -1721,7 +1723,13 @@ class Block2(object):
         v['init'] = True
 
     def init_logging(self):
-        # initialize block logging
+        # initialize block exec logging
+        if self.debug:
+            self.loglevel = logging_DEBUG
+        else:
+            self.loglevel = logging_INFO
+        
+        # initialize block data logging
         if not self.logging: return
 
         # assume output's initialized        
@@ -2016,7 +2024,7 @@ class Block2(object):
             # print "topblock step cnt = %d" % (self.cnt, )
             # store log incrementally
             if (self.cnt) % 500 == 0 or self.cnt == (self.numsteps - 1) or self.cnt == (self.numsteps - self.blocksize_min):
-                print "storing log @iter % 4d/%d" % (self.cnt, self.numsteps)
+                logger.info("storing log @iter % 4d/%d" % (self.cnt, self.numsteps))
                 log.log_pd_store()
 
             # store log finally: on final step, also copy data attributes to log attributes
@@ -2201,7 +2209,7 @@ class Block2(object):
                     node.save()
             
     def log_close(self):
-        print "storing log @final iter %04d" % (self.cnt, )
+        logger.info("storing log @final iter %04d" % (self.cnt, ))
         # store
         log.log_pd_store()
         # recursively copy the attributes
@@ -2285,8 +2293,6 @@ class Block2(object):
         """get_input
 
         preprocess input tensor using input specification
-
-        FIXME: 
         """
         if self.inputs[k].has_key('embedding'):
             emblen = self.inputs[k]['embedding']

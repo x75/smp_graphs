@@ -12,6 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from smp_base.measures_infth import measMI, measH, compute_mutual_information, infth_mi_multivariate, compute_information_distance, compute_transfer_entropy, compute_conditional_transfer_entropy, compute_mi_multivariate, compute_transfer_entropy_multivariate, compute_entropy_multivariate
+from smp_base.common import get_module_logger
 
 from smp_graphs.block import decInit, decStep, Block2, PrimBlock2
 from smp_graphs.utils import myt
@@ -79,7 +80,8 @@ class InfthPrimBlock2(PrimBlock2):
         return jhinv
 
 class JHBlock2(InfthPrimBlock2):
-    """!@brief Compute scalar joint entropy of multivariate data"""
+    """Compute the global scalar joint entropy of multivariate data
+    """
     @decInitInfthPrim()
     def __init__(self, conf = {}, paren = None, top = None):
         InfthPrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
@@ -111,7 +113,8 @@ class JHBlock2(InfthPrimBlock2):
         return meas
         
 class MIBlock2(InfthPrimBlock2):
-    """!@brief Compute elementwise mutual information among all variables in dataset"""
+    """Compute the elementwise elementwise mutual information among all variables in the data
+    """
     @decInitInfthPrim()
     def __init__(self, conf = {}, paren = None, top = None):
         InfthPrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
@@ -126,10 +129,10 @@ class MIBlock2(InfthPrimBlock2):
         # compute norm factor
         jh = self.normalize(src, dst)
         
-        print "%s.step[%d]-%s src.shape = %s, dst.shape = %s" % (self.cname, self.cnt, self.id, src.shape, dst.shape,)
+        logger.debug("%s.step[%d]-%s src.shape = %s, dst.shape = %s" % (self.cname, self.cnt, self.id, src.shape, dst.shape,))
         
         for i in range(self.shift[0], self.shift[1]):
-            print "%d" % (i, ),
+            logger.debug("%d" % (i, ),)
             sys.stdout.flush()
 
             # # self-rolled time shift with np.roll
@@ -145,6 +148,7 @@ class MIBlock2(InfthPrimBlock2):
         print ""
         meas = np.array(meas)
         self.mi = meas.T.copy() * jh
+        logger.debug("%s-%s.mi = %s\n    mi/jh = %s/%s", self.cname, self.id, self.mi.shape, self.mi, jh) # , mi.shape
 
 class InfoDistBlock2(InfthPrimBlock2):
     """Compute the information distance between to variables
@@ -166,23 +170,19 @@ class InfoDistBlock2(InfthPrimBlock2):
     def step(self, x = None):
         # print "%s meas = %s" % (self.cname, self.meas)
         mis = []
-        src = self.inputs['x']['val'].T
-        dst = self.inputs['y']['val'].T
+        # src = self.inputs['x']['val'].T
+        # dst = self.inputs['y']['val'].T
+        src = self.get_input('x').T
+        dst = self.get_input('y').T
         
-        print "%s%s-%s.step[%d] src.shape = %s, dst.shape = %s" % (
-            self.nesting_indent, self.cname, self.id, self.cnt, src.shape, dst.shape,),
+        logger.debug("%s%s-%s.step[%d] src.shape = %s, dst.shape = %s" % (
+            self.nesting_indent, self.cname, self.id, self.cnt, src.shape, dst.shape,),)
 
-        # print "%s src = %s, dst = %s" % (self.nesting_indent, src, dst)
-
-        # plt.plot(src)
-        # plt.plot(dst)
-        # plt.show()
-        
         # compute norm factor
         jh = self.normalize(src, dst)
         
         for i in range(self.shift[0], self.shift[1]):
-            print "%d" % (i, ),
+            logger.debug("%d" % (i, ),)
             sys.stdout.flush()
 
             # # self-rolled time shift
@@ -199,16 +199,17 @@ class InfoDistBlock2(InfthPrimBlock2):
             
         # print ""            
         mis = np.array(mis)
+        # print "mis", mis
         # print "%s-%s.step infodist.shape = %s / %s" % (self.cname, self.id, mis.shape, mis.T.shape)
         # print "%s.%s infodist = %s" % (self.cname, self.id, mi)
 
         # why transpose?
-        # self.infodist = myt(mis, direction = -1).copy()
-        self.infodist = np.clip(myt(mis, direction = -1), 0, 1) # implicit copy?
+        self.infodist = myt(mis, direction = -1).copy()
+        # self.infodist = np.clip(myt(mis, direction = -1), -1, 2) # implicit copy?
         self.infodist_pos = np.clip(myt(mis, direction = -1), 1, np.inf)
         self.infodist_neg = np.clip(myt(mis, direction = -1), -np.inf, 0)
         # self.infodist = mis.copy()
-        print "infodist block", self.infodist.shape, self.infodist # , mi.shape
+        logger.debug("infodist block = %s/\n    id/jh = %s/%s", self.infodist.shape, self.infodist, jh) # , mi.shape
         
 class TEBlock2(InfthPrimBlock2):
     """!@brief Compute elementwise transfer entropy from src to dst variables in dataset"""

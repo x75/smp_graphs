@@ -36,6 +36,14 @@ smp\_graphs\.block\_meas module
     :undoc-members:
     :show-inheritance:
 
+smp\_graphs\.block\_meas\_essentia module
+-----------------------------------------
+
+.. automodule:: smp_graphs.block_meas_essentia
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 smp\_graphs\.block\_meas\_infth module
 --------------------------------------
 
@@ -100,10 +108,10 @@ smp\_graphs\.graph module
     :undoc-members:
     :show-inheritance:
 
-smp\_graphs\.logging module
+smp\_graphs\.tapping module
 ---------------------------
 
-.. automodule:: smp_graphs.logging
+.. automodule:: smp_graphs.tapping
     :members:
     :undoc-members:
     :show-inheritance:
@@ -112,6 +120,22 @@ smp\_graphs\.utils module
 -------------------------
 
 .. automodule:: smp_graphs.utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+smp\_graphs\.utils\_conf module
+-------------------------------
+
+.. automodule:: smp_graphs.utils_conf
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+smp\_graphs\.utils\_logging module
+----------------------------------
+
+.. automodule:: smp_graphs.utils_logging
     :members:
     :undoc-members:
     :show-inheritance:
