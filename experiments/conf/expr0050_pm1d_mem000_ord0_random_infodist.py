@@ -166,7 +166,7 @@ graph = OrderedDict([
                         'models': {
                             'infodistgen': {
                                 'type': 'random_lookup',
-                                'd': 1.0,
+                                'd': 0.1,
                             }
                         },
                         'inputs': {
@@ -230,6 +230,7 @@ graph = OrderedDict([
             'savetype': 'pdf',
             'wspace': 0.15,
             'hspace': 0.15,
+            'xlim_share': False,
             'inputs': {
                 's_p': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
                 's_e': {'bus': 'robot1/s_extero', 'shape': (dim_s_extero, numsteps)},
@@ -237,7 +238,10 @@ graph = OrderedDict([
                 'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
                 'pre_l2': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, numsteps)},
                 'credit_l1': {'bus': 'budget/credit', 'shape': (1, numsteps)},
-                'infodist': {'bus': 'infodist/infodist', 'shape': (dim_s_proprio, 1, numsteps/10)},
+                'infodist': {
+                    'bus': 'infodist/infodist',
+                    'shape': (dim_s_proprio, 1, numsteps/100)
+                },
             },
             'desc': 'Single episode pm1d baseline',
             'subplots': [
@@ -280,28 +284,6 @@ graph = OrderedDict([
                     },
                 ],
                 [
-                    {
-                        'input': ['infodist'],
-                        'ndslice': (slice(None), 0, slice(None)),
-                        'shape': (dim_s_proprio, numsteps/10),
-                        'plot': [
-                            partial(timeseries, linewidth = 1.0, alpha = 1.0, marker = 'o', xlabel = None),
-                        ],
-                        'title': 'd(proprio, f(proprio))',
-                    },
-                    {
-                        'input': ['infodist'],
-                        'ndslice': (slice(None), 0, slice(None)),
-                        'shape': (dim_s_proprio, numsteps/10),
-                        'plot': [partial(
-                            histogram, orientation = 'horizontal', histtype = 'stepfilled',
-                            yticks = False, xticks = False, alpha = 1.0, normed = False) for _ in range(1)],
-                        'title': 'd(proprio, f(proprio)) (histogram)',
-                        'desc': 'infodist \autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
-                        # 'mode': 'stack'
-                    },
-                ],
-                [
                     {'input': 'credit_l1', 'plot': partial(timeseries, ylim = (0, 1000), alpha = 1.0),
                          'title': 'agent budget (timeseries)',
                         'desc': 'Single episode pm1d baseline \autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
@@ -313,7 +295,29 @@ graph = OrderedDict([
                         'xlabel': 'count [n]',
                         'desc': 'Single episode pm1d baseline \autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
                     },
-                ]
+                ],
+                [
+                    {
+                        'input': ['infodist'],
+                        'ndslice': (slice(None), 0, slice(None)),
+                        'shape': (dim_s_proprio, numsteps/100),
+                        'plot': [
+                            partial(timeseries, linewidth = 1.0, alpha = 1.0, marker = 'o', xlabel = None),
+                        ],
+                        'title': 'd(proprio, f(proprio))',
+                    },
+                    {
+                        'input': ['infodist'],
+                        'ndslice': (slice(None), 0, slice(None)),
+                        'shape': (dim_s_proprio, numsteps/100),
+                        'plot': [partial(
+                            histogram, orientation = 'horizontal', histtype = 'stepfilled',
+                            yticks = False, xticks = False, alpha = 1.0, normed = False) for _ in range(1)],
+                        'title': 'd(proprio, f(proprio)) (histogram)',
+                        'desc': 'infodist \autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
+                        # 'mode': 'stack'
+                    },
+                ],
             ],
         },
     })

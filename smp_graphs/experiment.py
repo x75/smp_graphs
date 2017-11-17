@@ -266,13 +266,13 @@ class Experiment(object):
         #     else:
         #         print "    BANG params/vars mismatch on %s" % (pk,)
 
-        print "experiment.Experiment init with conf = %s" % (self.conf.keys(), )
+        logger.info("experiment.Experiment init with conf = %s" % (self.conf.keys(), ))
         
         # topblock outputs: new types in addition to np.ndarray signals: 'text', 'plot', ...
         for paramkey in ['outputs', 'desc']:
             if self.conf_vars.has_key(paramkey):
                 self.conf['params'][paramkey] = self.conf_vars[paramkey]
-                print "    vars -> params found %s, %s" % (paramkey, self.conf['params'][paramkey], )
+                logger.info("    vars -> params found %s, %s" % (paramkey, self.conf['params'][paramkey], ))
         
         # fill in missing defaults
         self.conf = set_config_defaults(self.conf)
@@ -298,7 +298,7 @@ class Experiment(object):
             #     print "        self.%s = %s\n" % (k, selfattr)
 
         self.conf['params']['cache_clear'] = self.params['cache_clear']
-        print "self.params.keys()", self.params.keys()
+        logger.debug("self.params.keys() = %s", self.params.keys())
         
         # print self.desc
         self.args = args
@@ -401,7 +401,7 @@ class Experiment(object):
             #     dict([(ik, iv) for ik, iv in v.items() if ik not in ['type', 'fig', 'label']]) for k, v in self.plotgraph_figures.items()]
             
             plotgraph_figures = dict([(k, [fv[k] for fk, fv in self.plotgraph_figures.items()]) for k in ['filename', 'id', 'desc', 'width']])
-            print "plotgraph_figures", plotgraph_figures
+            logger.debug("plotgraph_figures = %s", plotgraph_figures)
             # copy to outputs for latex figures
             self.top.outputs['graph-bus'] = {
                 'type': 'fig', 'fig': None,
@@ -681,7 +681,7 @@ class Experiment(object):
                 fig_ = plotv['fig']
                 filename = plotv['filename'] # self.plotgraph_filename
                 try:
-                    print "Saving experiment graph plot of type = %s to %s" % (type(fig_), filename, )
+                    logger.info("Saving experiment graph plot of type = %s to %s" % (type(fig_), filename, ))
                     if type(fig_) is Figure:
                         fig_.savefig(filename, dpi=300, bbox_inches="tight")
                     elif type(fig_) is PIL.Image.Image:
@@ -689,7 +689,7 @@ class Experiment(object):
                     else:
                         print "            watn scheis\n\n\n\n"
                 except Exception, e:
-                    print "Saving experiment graph plot to %s failed with %s" % (filename, e,)
+                    logger.error("Saving experiment graph plot to %s failed with %s" % (filename, e,))
 
     def printgraph_recursive(self, G, lvl = 0):
         indent = " " * 4 * lvl
@@ -725,14 +725,14 @@ class Experiment(object):
 
         Run the experiment by running the graph.
         """
-        print '#' * 80
-        print "Init done, running %s" % (self.top.nxgraph.name, )
-        print "    Graph: %s" % (self.top.nxgraph.nodes(), )
-        print "      Bus: %s" % (self.top.bus.keys(),)
-        print " numsteps: {0}/{1}".format(self.params['numsteps'], self.top.numsteps)
+        logger.info('#' * 80)
+        logger.info("Init done, running %s" % (self.top.nxgraph.name, ))
+        logger.info("    Graph: %s" % (self.top.nxgraph.nodes(), ))
+        logger.info("      Bus: %s" % (self.top.bus.keys(),))
+        logger.info(" numsteps: {0}/{1}".format(self.params['numsteps'], self.top.numsteps))
 
-        # logging
-        logger.debug("logger handlers = %s", logger.handlers)
+        # # logging
+        # logger.debug("logger handlers = %s", logger.handlers)
 
         # TODO: try run
         #       except go interactive
@@ -753,7 +753,7 @@ class Experiment(object):
 
         # initial run, no cached data: store the graph
         if self.conf['params']['docache'] and not self.cache_loaded:
-            print "experiment cache: storing final top level nxgraph", self.top.nxgraph
+            logger.info("experiment cache: storing final top level nxgraph = %s", self.top.nxgraph)
             # store the full dynamically expanded state of the toplevel nxgraph
             nxgraph_store(conf = self.conf['params'], G = self.top.nxgraph)
             self.top.bus.store_pickle(conf = self.conf['params'])
@@ -775,7 +775,7 @@ class Experiment(object):
             from smp_graphs.block import Bus
             # G = self.cache['topblock_nxgraph']
             # Gbus = self.cache['topblock_bus']
-            print "experiment cache: loading cached top level nxgraph"
+            logger.info("experiment cache: loading cached top level nxgraph")
             G = nxgraph_load(conf = self.conf['params'])
             Gbus = Bus.load_pickle(conf = self.conf['params'])
             # print "G", G, G.number_of_nodes()

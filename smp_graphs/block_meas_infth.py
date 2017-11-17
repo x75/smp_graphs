@@ -18,6 +18,10 @@ from smp_graphs.utils import myt
 
 # block wrappers for smp_base/measures_infth.py, similar to the general smp_base/measures.py pattern
 
+from logging import DEBUG as logging_DEBUG
+# import logging
+logger = get_module_logger(modulename = 'block_meas_infth', loglevel = logging_DEBUG)
+
 ################################################################################
 # Block decorator init
 class decInitInfthPrim():
@@ -143,9 +147,14 @@ class MIBlock2(InfthPrimBlock2):
         self.mi = meas.T.copy() * jh
 
 class InfoDistBlock2(InfthPrimBlock2):
-    """!@brief Compute elementwise information distance among all variables in dataset. This is
-    obtained via the MI by interpreting the MI as proximity and inverting it. It's normalized by
-    the joint entropy."""
+    """Compute the information distance between to variables
+
+    Compute elementwise information distance among all variables in
+    dataset. This is obtained via the MI by interpreting the MI as
+    proximity and inverting it. It's normalized by the joint entropy.
+
+    FIXME: default conf
+    """
     defaults = {
         'shift': [0, 1],
     }

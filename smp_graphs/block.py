@@ -277,9 +277,9 @@ class Bus(MutableMapping):
                 loop_compressor[k_]['cnt'] += 1
 
         storekeys = loop_compressor.keys()
-        print "storekeys", storekeys
+        # print "storekeys", storekeys
         storekeys.sort()
-        print "storekeys", storekeys
+        # print "storekeys", storekeys
 
         # for k, v in loop_compressor.items():
         for k in storekeys:

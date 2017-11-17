@@ -23,6 +23,7 @@ from smp_base.plot_utils import put_legend_out_right, put_legend_out_top
 from smp_base.dimstack   import dimensional_stacking, digitize_pointcloud
 from smp_base.plot       import makefig, timeseries, histogram, plot_img, plotfuncs, uniform_divergence
 from smp_base.plot       import get_colorcycler, kwargs_plot_clean
+from smp_base.common     import get_module_logger
 
 ################################################################################
 # Plotting blocks
@@ -62,6 +63,10 @@ rcParams['ytick.labelsize'] = 8.0
 # f = open("rcparams.txt", "w")
 # f.write("rcParams = %s" % (rcParams, ))
 # f.close()
+
+from logging import DEBUG as logging_DEBUG
+# import logging
+logger = get_module_logger(modulename = 'block_plot', loglevel = logging_DEBUG)
 
 def subplot_input_fix(input_spec):
     # assert input an array 
@@ -282,12 +287,12 @@ class FigPlotBlock2(BaseplotBlock2):
                 min(plotinst.fig_cols * 2.5 * savescale, 24),
                 min(plotinst.fig_rows * 1.0 * savescale, 12))
             
-        print "savesize w/h = %f/%f, fig_cols/fig_rows = %s/%s" % (plotinst.savesize[0], plotinst.savesize[1], plotinst.fig_cols, plotinst.fig_rows)
+        logger.debug("savesize w/h = %f/%f, fig_cols/fig_rows = %s/%s" % (plotinst.savesize[0], plotinst.savesize[1], plotinst.fig_cols, plotinst.fig_rows))
         plotinst.fig.set_size_inches(plotinst.savesize)
 
         # write the figure to file
         try:
-            print "%s-%s.save saving plot %s to filename = %s" % (plotinst.cname, plotinst.id, plotinst.title, filename)
+            logger.info("%s-%s.save saving plot %s to filename = %s" % (plotinst.cname, plotinst.id, plotinst.title, filename))
             plotinst.fig.savefig(filename, dpi=300, bbox_inches="tight")
             # if plotinst.top.
             plotinst.top.outputs['latex']['figures'][plotinst.id] = {
@@ -297,7 +302,7 @@ class FigPlotBlock2(BaseplotBlock2):
                 'desc': plotinst.desc}
             # plotinst.fig.savefig(filename, dpi=300)
         except Exception, e:
-            print "%s.save saving failed with %s" % ('FigPlotBlock2', e)
+            logger.error("%s.save saving failed with %s" % ('FigPlotBlock2', e))
             
     @decStep()
     def step(self, x = None):
