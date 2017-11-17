@@ -1890,3 +1890,57 @@ class ModelBlock2(PrimBlock2):
 
         # if rospy.is_shutdown():
         #     sys.exit()
+
+
+class TopDummy(object):
+    def __init__(self):
+        from smp_graphs.block import Bus
+        
+        self.blocksize_min = np.inf
+        self.bus = Bus()
+        self.docache = False
+        self.numsteps = 100
+        self.saveplot = False
+        self.topblock = True
+
+if __name__ == '__main__':
+
+    top = TopDummy()
+    # setattr(top, 'numsteps', 100)
+    
+    # test model: random_lookup
+    dim_s_proprio = 1
+    default_conf = {
+        'block': ModelBlock2,
+        'params': {
+            'id': 'bla',
+            'debug': True,
+            'logging': False,
+            'models': {
+                'infodistgen': {
+                    'type': 'random_lookup',
+                    'd': 0.9,
+                }
+            },
+            'inputs': {
+                'x': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 1)},
+            },
+            'outputs': {
+                'y': {'shape': (dim_s_proprio, 1)},
+            },
+        }
+    }
+
+    top.bus['robot1/s_proprio'] = np.random.uniform(-1, 1, (dim_s_proprio, 1))
+
+    block = ModelBlock2(conf = default_conf, paren = top, top = top)
+
+    print "bus\n", top.bus.astable()
+
+    print "block", block.id
+
+    # for i in range(10):
+    #     top.bus['robot1/s_proprio'] = np.random.uniform(-1, 1, (dim_s_proprio, 1))
+    #     block.inputs['x']['val'] = top.bus['robot1/s_proprio']
+    #     block.step()
+        
