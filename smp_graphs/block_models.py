@@ -34,7 +34,7 @@ from smp_base.measures import meas as measf
 
 # from smp_graphs.common import array_fix
 from smp_graphs.graph import nxgraph_node_by_id_recursive
-from smp_graphs.block import decInit, decStep, PrimBlock2
+from smp_graphs.block import decInit, decStep, Block2, PrimBlock2
 from smp_graphs.tapping import tap_tupoff, tap, tap_flat, tap_unflat
 
 try:
@@ -187,10 +187,11 @@ def step_polyexp(ref):
 
 # model func: lookup table expansion with parametric map randomness
 def do_random_lookup(ref):
-    ref.x_idx = np.searchsorted(ref.h_lin, ref.x, side = 'right')
-    # logger.log(ref.loglevel, "%sdo_random_lookup[%s] ref.x_idx = %s", '    ', ref.cnt, ref.x_idx) # , ref.h.shape
-    # logger.debug("%sdo_random_lookup[%s] ref.x_idx = %s", '    ', ref.cnt, ref.x_idx)
-    ref.y = ref.h[ref.x_idx - 1]
+    # logger.debug("%sdo_random_lookup[%s] ref.x = %s, ref.h_lin = %s" % ('    ', ref.cnt, ref.x.shape, ref.h_lin.shape)) # , ref.h.shape
+    ref.x_idx = np.searchsorted(ref.h_lin[0], ref.x, side = 'right')[0]
+    # logger.debug("%sdo_random_lookup[%s] ref.x_idx = %s", '    ', ref.cnt, ref.x_idx) # , ref.h.shape
+    ref.y = ref.h[...,ref.x_idx - 1]
+    # logger.debug("%sdo_random_lookup[%s] ref.y = %s" % ('    ', ref.cnt, ref.y))
     ref.y = ref.y * (1 - ref.e) + np.random.normal(0, 1.0, ref.y.shape) * ref.e
 
 def init_random_lookup(ref, conf, mconf):
@@ -201,11 +202,12 @@ def init_random_lookup(ref, conf, mconf):
     """
     # setup
     params = conf['params']
-    params['numelem'] = 1001
+    if not mconf.has_key('numelem'):
+        mconf['numelem'] = 1001
     inshape = params['inputs']['x']['shape']
     
     # linear ramp
-    ref.h_lin = np.linspace(-1.0, 1.0, params['numelem']) # .reshape(1, params['numelem'])
+    ref.h_lin = np.linspace(-1.0, 1.0, mconf['numelem']).reshape(1, mconf['numelem'])
 
     # three factors controlling information distance
     #  1. contraction / expansion: transfer function y = h(x)
@@ -223,19 +225,20 @@ def init_random_lookup(ref, conf, mconf):
     var = ref.d**2
     ref.h_gauss = np.exp(-0.5 * (0.0 - ref.h_lin)**2/var)
     ref.h_gauss_inv = np.max(ref.h_gauss) - ref.h_gauss
-    ref.h_gauss_inv_int = np.cumsum(ref.h_gauss_inv)
+    ref.h_gauss_inv_int = np.cumsum(ref.h_gauss_inv).reshape(ref.h_lin.shape)
     # ref.h_gauss_inv_int = np.exp(-0.5 * (0.0 - ref.h_lin)**2/var)
     # print "ref.h_gauss_inv_int", ref.h_gauss_inv_int.shape, ref.h_gauss_inv_int
     ref.h_gauss_inv_int -= np.mean(ref.h_gauss_inv_int)
     ref.h_gauss_inv_int /= np.max(np.abs(ref.h_gauss_inv_int))
-    ref._debug("ref.h_gauss_inv_int = %s" % (ref.h_gauss_inv_int,))
+    # print("ref.h_gauss_inv_int = %s" % (ref.h_gauss_inv_int,))
+    # ref._debug("ref.h_gauss_inv_int = %s" % (ref.h_gauss_inv_int,))
 
     # additive noise on base h
-    # ref.h_noise = np.random.uniform(-1, 1, (params['numelem'], )) # .reshape(1, params['numelem'])
+    # ref.h_noise = np.random.uniform(-1, 1, (mconf['numelem'], )) # .reshape(1, mconf['numelem'])
     # ref.h_noise = np.exp(-0.5 * (0.0 - ref.h_noise)**2)
     from smp_base.gennoise import Noise
-    noise = Noise.oneoverfnoise(N = params['numelem'], beta = ref.s_f)
-    ref.h_noise = noise[1]
+    noise = Noise.oneoverfnoise(N = mconf['numelem'], beta = ref.s_f)
+    ref.h_noise = noise[1].reshape(ref.h_lin.shape)
     
     # noise: color (1/f)
     # ref.
@@ -245,7 +248,8 @@ def init_random_lookup(ref, conf, mconf):
     # ref.h /= np.max(np.abs(ref.h))
     ref.x = np.zeros((inshape))
     ref.y = np.zeros_like(ref.x)
-    ref._debug("    model init_random_lookup ref.x = %s, ref.h = %s, ref.y = %s" % (ref.x.shape, ref.h.shape, ref.y.shape))
+    logger.debug("    model init_random_lookup ref.x = %s, ref.y = %s, ref.h = %s, ref.h_lin = %s, ref.h_noise = %s" % (
+        ref.x.shape, ref.y.shape, ref.h.shape, ref.h_lin.shape, ref.h_noise.shape))
     # do_random_lookup(ref)
     
 def step_random_lookup(ref):
@@ -1880,7 +1884,8 @@ class ModelBlock2(PrimBlock2):
     def __init__(self, conf = {}, paren = None, top = None):
         """ModelBlock2 init"""
         params = {}
-        # params.update(PrimBlock2.defaults)
+        params.update(Block2.defaults)
+        params.update(PrimBlock2.defaults)
         params.update(self.defaults)
         params.update(conf['params'])
 
@@ -1889,6 +1894,8 @@ class ModelBlock2(PrimBlock2):
 
         self.conf = conf
         self.top = top
+        self.logger = logger
+        self.loglevel = params['loglevel']
         self.debug = params['debug']
         # self.lag = 1
 
@@ -1913,9 +1920,9 @@ class ModelBlock2(PrimBlock2):
     def step(self, x = None):
         """ModelBlock2 step"""
         # print "%s-%s.step %d" % (self.cname, self.id, self.cnt,)
-        self.debug_print("%s.step:\n\tx = %s,\n\tbus = %s,\n\tinputs = %s,\n\toutputs = %s",
-            (self.__class__.__name__, self.outputs.keys(), self.bus,
-                 self.inputs, self.outputs))
+        # self.debug_print("%s.step:\n\tx = %s,\n\tbus = %s,\n\tinputs = %s,\n\toutputs = %s",
+        #     (self.__class__.__name__, self.outputs.keys(), self.bus,
+        #          self.inputs, self.outputs))
 
         # FIXME: relation rate / blocksize, remember cnt from last step, check difference > rate etc
         

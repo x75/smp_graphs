@@ -197,6 +197,12 @@ block_groups = {
 def outputs_check_type(k, v, typematch = 'ndarray'):
     return v.has_key('type') and v['type'] != typematch
 
+def outputs_check_trigger(k, v, bus):
+    # return true if is 'trigger' but trigger bus inactive
+    if not v.has_key('trigger'): return False
+    istriggered = v.has_key('trigger') and bus.has_key(v['trigger']) and np.any(bus[v['trigger']] > 0)
+    return not istriggered
+
     
 ################################################################################
 # smp_graphs types: create some types for use in configurations like const, bus, generator, func, ...
@@ -693,12 +699,14 @@ class decStep():
                 if outputs_check_type(k, v):
                     # print "wrong type fail", k, v
                     continue
+                if outputs_check_trigger(k, v, xself.bus):
+                    # xself._debug("not triggered")
+                    continue
                 # else:
                 #     print "decstep process_output", k, v
 
                 # get buskey and sanity check
                 buskey = "%s/%s" % (xself.id, k)
-                
                 # if __debug__:
                 #     print "copy[%d] %s.outputs[%s] = %s / %s to bus[%s], bs = %d" % (
                 #         xself.cnt, xself.id, k, getattr(xself, k), getattr(xself, k).shape,
@@ -712,10 +720,13 @@ class decStep():
                 xself.bus[v['buskey']] = getattr(xself, k).copy()
                 # print "xself.bus[v['buskey'] = %s]" % (v['buskey'], ) , xself.bus[v['buskey']]
                 
+                # if v.has_key('trigger'):
+                #     xself._debug("    triggered: bus[%s] = %s, buskeys = %s" % (buskey, xself.bus[v['buskey']], xself.bus.keys()))
+                
                 # copy data into logging
                 if xself.logging:
-                    if xself.id == 'b4':
-                        print "logging %s-%s to tbl_name = %s, data = %s" % (xself.cname, xself.id, v['buskey'], xself.bus[v['buskey']])
+                    # if xself.id == 'b4':
+                    #     print "logging %s-%s to tbl_name = %s, data = %s" % (xself.cname, xself.id, v['buskey'], xself.bus[v['buskey']])
                     # try:
                     # if xself.cname == 'SeqLoopBlock2':
                     #     print "logging", v['buskey'], xself.bus[v['buskey']]
@@ -3263,6 +3274,60 @@ class CountBlock2(PrimBlock2):
         # print "getattr self.outk", self.outk, getattr(self, self.outk), self.cnt_
         setattr(self, self.outk, (self.cnt_ * self.scale) + self.offset)
 
+class TrigBlock2(PrimBlock2):
+    """TrigBlock2 class
+
+    Trig block, output is a triger value updated every blocksize
+    steps by incr
+    """
+    defaults = {
+        # 'cnt': np.ones((1,1)),
+        'debug': False,
+        'outputs': {
+            # 'x': {'shape': (1,1)}
+            },
+        'block_group': 'data',
+    }
+        
+    @decInit()
+    def __init__(self, conf = {}, paren = None, top = None):
+        # defaults
+        # self.scale  = 1
+        # self.offset = 0
+        PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
+        
+        # single output key
+        # self.outk = self.outputs.keys()[0]
+        # init cnt_ of blocksize
+        # self.cnt_ = np.zeros(self.outputs[self.outk]['shape'] + (self.blocksize,))
+        # self.cnt = None # ???
+        # self.cnt_ = np.zeros(self.outputs[self.outk]['shape'])
+        # print self.inputs
+        # FIXME: modulo / cout range with reset/overflow
+        # print "\n%s endofinit bus = %s\n" % (self.cname, self.bus.keys())
+        
+    @decStep()
+    def step(self, x = None):
+        """TrigBlock step: if blocksize is 1 just copy the triger, if bs > 1 set cnt_ to range"""
+        # outshape = self.outputs[self.outk]['shape']
+        # outshapenum = outshape[-1]
+        # # if self.blocksize > 1:
+        # if outshapenum > 1:
+        #     newcnt = np.tile(np.arange(self.cnt - outshapenum, self.cnt), outshape[:-1]).reshape(outshape)
+        #     # self.cnt_[...,-outshapenum:] = newcnt
+        #     self.cnt_ = newcnt
+        # else:
+        #     self.cnt_[...,0] = self.cnt
+        # FIXME: make that a for output items loop
+        # print "getattr self.outk", self.outk, getattr(self, self.outk), self.cnt_
+        for outk, outv in self.outputs.items():
+            if self.cnt in self.trig:
+                setattr(self, outk, np.ones(outv['shape']))
+                # self._debug("    triggered %s = %s" % (outk, getattr(self, outk),))
+            else:
+                setattr(self, outk, np.zeros(outv['shape']))
+                # self._debug("not triggered %s = %s" % (outk, getattr(self, outk),))
+        
 class UniformRandomBlock2(PrimBlock2):
     """UniformRandomBlock2 class
 

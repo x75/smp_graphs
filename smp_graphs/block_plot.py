@@ -467,7 +467,8 @@ class PlotBlock2(FigPlotBlock2):
                     # FIXME: array'ize this loop
                     # vars: input, ndslice, shape, xslice, ...
                     if not self.inputs.has_key(ink):
-                        self._warning('%s-%s plot_subplot[%d,%d] no buskey = %s' % (self.cname, self.id, i, j, ink))
+                        # self._debug("    triggered: bus[%s] = %s, buskeys = %s" % (buskey, xself.bus[v['buskey']], bus.keys()))
+                        self._warning('%s-%s plot_subplot[%d,%d] no input %s' % (self.cname, self.id, i, j, ink))
                         continue
                     input_ink = self.inputs[ink]
 
@@ -517,7 +518,11 @@ class PlotBlock2(FigPlotBlock2):
                     
                     # configure x axis, default implicit number of steps
                     if subplotconf.has_key('xaxis'):
-                        t = self.inputs[subplotconf['xaxis']]['val'].T[xslice]
+                        if type(subplotconf['xaxis']) is str and subplotconf['xaxis'] in self.inputs.keys():
+                            t = self.inputs[subplotconf['xaxis']]['val'].T[xslice] # []
+                        else:
+                            t = subplotconf['xaxis'] # self.inputs[ink]['val'].T[xslice] # []
+                            self._debug("setting t = %s from subplotconf['xaxis']" % (t, ))
                     else:
                         t = np.linspace(xslice.start, xslice.start+plotlen-1, plotlen)[xslice]
                     
@@ -565,7 +570,11 @@ class PlotBlock2(FigPlotBlock2):
 
                 # if type(subplotconf['input']) is list:
                 if subplotconf.has_key('xaxis'):
-                    inv = self.inputs[subplotconf['xaxis']]
+                    if type(subplotconf['xaxis']) is str and subplotconf['xaxis'] in self.inputs.keys():
+                        inv = self.inputs[subplotconf['xaxis']]
+                    else:
+                        inv = self.inputs[ink]
+                        
                     if inv.has_key('bus'):
                         plotvar += " over %s" % (inv['bus'], )
                     else:
@@ -680,9 +689,9 @@ class PlotBlock2(FigPlotBlock2):
                 ax = self.fig.axes[idx]
 
                 # consolidate axis limits
-                if self.xlim_share:
+                if self.xlim_share and not kwargs.has_key('xlim'):
                     ax.set_xlim(cols_xlim_max[j])
-                if self.ylim_share:
+                if self.ylim_share and not kwargs.has_key('ylim'):
                     ax.set_ylim(rows_ylim_max[i])
                 
                 # fix legends

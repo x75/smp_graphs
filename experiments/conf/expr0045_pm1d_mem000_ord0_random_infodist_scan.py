@@ -9,7 +9,7 @@ Oswald Berthold 2017
 special case of kinesis with coupling = 0 between measurement and action
 """
 
-from smp_graphs.block import FuncBlock2
+from smp_graphs.block import FuncBlock2, TrigBlock2
 from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2
 from smp_graphs.block_models import ModelBlock2
 from smp_graphs.block_meas import MomentBlock2
@@ -82,6 +82,17 @@ dim_s_goal    = dim_s_proprio
 
 # graph
 graph = OrderedDict([
+    # triggers
+    ('trig', {
+        'block': TrigBlock2,
+        'params': {
+            'trig': np.array([numsteps]),
+            'outputs': {
+                'pre_l2_t1': {'shape': (1, 1)},
+            }
+        },
+    }),
+
     # robot
     ('robot1', systemblock),
         
@@ -123,9 +134,11 @@ graph = OrderedDict([
                 ('pre_l2', {
                     'block': ModelBlock2,
                     'params': {
+                        'debug': True,
                         'models': {
                             'infodistgen': {
                                 'type': 'random_lookup',
+                                'numelem': 1001,
                                 'd': 0.5,
                                 's_a': 0.5,
                                 's_f': 1.0,
@@ -137,6 +150,7 @@ graph = OrderedDict([
                         },
                         'outputs': {
                             'y': {'shape': (dim_s_proprio, 1)},
+                            'h': {'shape': (dim_s_proprio, 1001), 'trigger': 'trig/pre_l2_t1'},
                         },
                     }
                 }),
@@ -253,13 +267,15 @@ graph = OrderedDict([
             'savetype': 'pdf',
             'wspace': 0.15,
             'hspace': 0.15,
-            'xlim_share': True,
+            'xlim_share': False,
+            'ylim_share': False,
             'inputs': {
                 's_p': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
                 's_e': {'bus': 'robot1/s_extero', 'shape': (dim_s_extero, numsteps)},
                 'pre_l0': {'bus': 'pre_l0/pre', 'shape': (dim_s_goal, numsteps)},
                 'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
                 'pre_l2': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, numsteps)},
+                'pre_l2_h': {'bus': 'pre_l2/h', 'shape': (dim_s_proprio, 1001)},
                 'credit_l1': {'bus': 'budget/credit', 'shape': (1, numsteps)},
                 'infodist': {
                     'bus': 'infodist/infodist',
@@ -270,7 +286,7 @@ graph = OrderedDict([
 
             # subplot
             'subplots': [[
-                {'input': ['pre_l2/h'], 'plot': timeseries},
+                {'input': ['pre_l2_h'], 'plot': timeseries, 'xaxis': np.linspace(-1, 1, 1001), 'xlim': (-1.1, 1.1), 'ylim': (-1.1, 1.1)},
                 ]
             ],
         },
