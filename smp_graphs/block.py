@@ -147,9 +147,11 @@ from smp_graphs.graph import nxgraph_from_smp_graph, nxgraph_to_smp_graph
 from smp_graphs.graph import nxgraph_node_by_id, nxgraph_node_by_id_recursive
 from smp_graphs.graph import nxgraph_nodes_iter
 
+from logging import WARNING as logging_WARNING
 from logging import INFO as logging_INFO
 from logging import DEBUG as logging_DEBUG
 # import logging
+loglevel_DEFAULT = logging_INFO
 logger = get_module_logger(modulename = 'block', loglevel = logging_DEBUG)
 
 # finally, ros
@@ -847,7 +849,7 @@ class Block2(object):
         'blockphase': [0], # list of positions of comp calls along the counter in time steps
         'inputs': {}, # internal port, scalar / vector/ bus key, [slice]
         'outputs': {}, # name, dim
-        'loglevel': 0,
+        'loglevel': loglevel_DEFAULT,
         'logging': True, # normal logging
         'rate': 1, # execution rate rel. to cnt
         'ros': False, # no ROS yet
@@ -902,6 +904,21 @@ class Block2(object):
         # if self.blocksize != 1:
         self.cnt = 0
         # self.cnt = self.blocksize
+
+        # configure logger
+        if self.debug: self.loglevel = logging_DEBUG
+            
+        id_ = self.id
+        if self.topblock:
+            id_ = 'top'
+        if len(id_) > 20:
+            id_ = self.id[:20]
+            
+        self.cname_full = '%s-%s' % (self.cname, id_)
+        self.modulename = self.__class__.__module__
+        # self.logger = get_module_logger(modulename = '{0: >20}.{1: <20}'.format(self.modulename, self.cname_full), loglevel = self.loglevel)
+        self.logger = get_module_logger(modulename = '{0}.{1}'.format(self.modulename, self.cname_full), loglevel = self.loglevel)
+        # print "cname_full = %s, modulename = %s, logger.name = %s" % (self.cname_full, self.modulename, self.logger.name)
             
         ################################################################################
         # 1 topblock: init bus, set top to self, init logging
@@ -909,7 +926,8 @@ class Block2(object):
         #   subgraphs
         if self.topblock:
             # print "Block2.init topblock conf.keys", self.conf['params'].keys()
-            print "topblock init with numsteps = %s" %(self.numsteps, )
+            self._info('#' * 80)
+            self._info("topblock init with numsteps = %s" %(self.numsteps, ))
             
             # fix the random seed
             # np.random.seed(self.randseed)
@@ -1024,7 +1042,7 @@ class Block2(object):
                nodeid
             """
 
-            print "%s%s-%s.init_block composite" % (self.nesting_indent, self.cname, self.id)
+            self._info("%s%s-%s.init_block composite" % (self.nesting_indent, self.cname, self.id))
             # print "%s   with attrs = %s" % (self.nesting_indent, self.__dict__.keys())
             # for k,v in self.__dict__.items():
             #     print "%s-%s k = %s, v = %s" % (self.cname, self.id, k, v)
@@ -1271,8 +1289,8 @@ class Block2(object):
             if hasattr(block, 'nocache') and block.nocache:
                 return
 
-            logger.debug("block_store keys = %s" % (top.block_store.keys(), ))
-            logger.debug("block_store has blocks? is %s" % (hasattr(top.block_store, 'blocks'), ))
+            self._debug("block_store keys = %s" % (top.block_store.keys(), ))
+            self._debug("block_store has blocks? is %s" % (hasattr(top.block_store, 'blocks'), ))
             # print "top.block_store['/blocks'] is top.block_store.blocks? is %s" % (top.block_store['/blocks'] is top.block_store.blocks, )
             
             # store exists
@@ -1318,7 +1336,7 @@ class Block2(object):
 
                 if top.cache_clear:
                     logstr = "%s    cache_clear set, deleting cache entry %s / %s" % (block.nesting_indent, block.md5, blocks.shape)
-                    logger.debug(logstr)
+                    self._debug(logstr)
                     
                     # hits = pd.Index(blocks.md5 == block.md5)
                     hits = blocks.md5 == block.md5
@@ -1570,7 +1588,7 @@ class Block2(object):
         # if we're coming from non topblock init
         # self.graph = self.conf['params']['graph']
 
-        print "{2}{0: <20}-{3}.init_graph_pass_1 graph.keys = {1}".format(self.cname[:20], self.nxgraph.nodes(), self.nesting_indent, self.id)
+        self._info("{2}{0: <20}-{3}.init_graph_pass_1 graph.keys = {1}".format(self.cname[:20], self.nxgraph.nodes(), self.nesting_indent, self.id))
         
         # if hasattr(self, 'graph'):
         #     print "    graph", self.graph, "\n"
@@ -1587,8 +1605,8 @@ class Block2(object):
             # self.debug_print("__init__: pass 1\nk = %s,\nv = %s", (k, print_dict(v)))
 
             # debug timing
-            print "{3}{0: <20}.init pass 1 k = {1: >5}, v = {2: >20}".format(
-                self.__class__.__name__[:20], k[:20], v['block'].__name__, self.nesting_indent)
+            self._info("{3}{0: <20}.init pass 1 k = {1: >5}, v = {2: >20}".format(
+                self.__class__.__name__[:20], k[:20], v['block'].__name__, self.nesting_indent))
             then = time.time()
 
             # print v['block_']
@@ -1601,8 +1619,15 @@ class Block2(object):
             # print "%s init self.top.graph = %s" % (self.cname, self.top.graph.keys())
             
             # complete time measurement
-            print "{3}{0: <20}.init pass 1 k = {1: >5}, v = {2: >20}".format(self.__class__.__name__[:20], k, v['block_'].cname, self.nesting_indent),
-            print "took %f s" % (time.time() - then)
+            # self._info("{3}{0: <20}.init pass 1 k = {1: >5}, v = {2: >20}, time = {4}".format(
+            #     self.__class__.__name__[:20], k, v['block_'].cname,
+            #     self.nesting_indent, then,
+            # ))
+            now = time.time()
+            self._info("{3}{0: <20}.init pass 1 k = {1: >5}, v = {2: >20}, took = {5}s".format(
+                self.__class__.__name__[:20], k, v['block_'].cname,
+                self.nesting_indent, now, now - then,
+            ))
             
             # print "%s self.graph[k]['block'] = %s" % (self.graph[k]['block'].__class__.__name__, self.graph[k]['block'].bus)
             if v['block_'].blocksize < self.blocksize_min:
@@ -1624,13 +1649,14 @@ class Block2(object):
             v = self.nxgraph.node[i]
             k = v['params']['id']
             
-            self.debug_print("__init__: pass 2\nk = %s,\nv = %s", (k, print_dict(v)))
+            # self.debug_print("__init__: pass 2\nk = %s,\nv = %s", (k, print_dict(v)))
             # print "%s.init pass 2 k = %s, v = %s" % (self.__class__.__name__, k, v['block'].cname)
-            print "{3}{0: <20}.init pass 2 k = {1: >5}, v = {2: >20}".format(self.__class__.__name__[:20], k, v['block_'].cname, self.nesting_indent),
+            self._info("{3}{0: <20}.init pass 2 k = {1: >5}, v = {2: >20}".format(self.__class__.__name__[:20], k, v['block_'].cname, self.nesting_indent))
             then = time.time()
             # self.graph[k]['block'].init_pass_2()
             v['block_'].init_pass_2()
-            print "took %f s" % (time.time() - then)
+            self._info("{3}{0: <20}.init pass 2 k = {1: >5}, v = {2: >20}, took = {4}s".format(
+                self.__class__.__name__[:20], k, v['block_'].cname, self.nesting_indent, time.time() - then))
 
         # for k, v in self.graph.items():
         #     v['block'].step()
@@ -2024,7 +2050,7 @@ class Block2(object):
             # print "topblock step cnt = %d" % (self.cnt, )
             # store log incrementally
             if (self.cnt) % 500 == 0 or self.cnt == (self.numsteps - 1) or self.cnt == (self.numsteps - self.blocksize_min):
-                logger.info("storing log @iter % 4d/%d" % (self.cnt, self.numsteps))
+                self._info("storing log @iter % 4d/%d" % (self.cnt, self.numsteps))
                 log.log_pd_store()
 
             # store log finally: on final step, also copy data attributes to log attributes
@@ -2193,6 +2219,11 @@ class Block2(object):
         f.close()
         
     def plot_close(self):
+        """plot_close saves all plot block figures configured for saving
+
+        Iterate the top graph, search for nodes that have 'saveplot'
+        attr set and call their `node.save()` function.
+        """
         # print "%s-%s\n    .plot_close closing %d nodes" % (self.cname, self.id, self.nxgraph.number_of_nodes())
         for n in nxgraph_nodes_iter(self.nxgraph, 'enable'):
             node = self.nxgraph.node[n]['block_']
@@ -2201,15 +2232,42 @@ class Block2(object):
                 node.plot_close()
 
             if hasattr(node, 'saveplot'):
-                # print "%s-%s\n    .plot_close examining node %s (%s)" % (self.cname, self.id, node.id, node.saveplot)
+                self._debug("%s-%s.plot_close examining node %s (%s)" % (self.cname, self.id, node.id, node.saveplot))
             
                 # if type(node) is Block2 and hasattr(node, 'saveplot') and node.saveplot:
                 if node.saveplot:
-                    # print "%s-%s\n    .plot_close closing node saving plot %s" % (self.cname, self.id, node.id,)
-                    node.save()
+                    self._debug("%s-%s.plot_close closing node, saving plot %s" % (self.cname, self.id, node.id,))
+                    try:
+                        node.save()
+                    except Exception, e:
+                        logger.error('%s-%s.plot_close node(%s-%s).save() failed with %s' % (self.cname, self.id, node.cname, node.id, e))
+
+    def _debug(self, s):
+        if self.debug and self.loglevel == logging_DEBUG: # <= logger.loglevel:
+            self._log(logging_DEBUG, s)
+                        
+    def _info(self, s):
+        self._log(logging_INFO, s)
             
+    def _warning(self, s):
+        self._log(logging_WARNING, s)
+            
+    def _log(self, loglevel = logging_INFO, s = ''):
+        """Block2._log wrapper
+
+        Logging facility for blocks. Calls the calling module's logger
+        `log` function taking care of the block's loglevel.
+
+        Arguments:
+         - s(str): log string
+
+        Returns:
+         - None
+        """
+        self.logger.log(loglevel, s)
+        
     def log_close(self):
-        logger.info("storing log @final iter %04d" % (self.cnt, ))
+        self._info("storing log @final iter %04d" % (self.cnt, ))
         # store
         log.log_pd_store()
         # recursively copy the attributes
@@ -2292,8 +2350,12 @@ class Block2(object):
     def get_input(self, k):
         """get_input
 
-        preprocess input tensor using input specification
+        failsafe preprocessing of input tensor using input specification
         """
+        if not self.inputs.has_key(k):
+            logger.error('%s-%s get_input failed, no key = %s in self.inputs.keys = %s' % (self.cname, self.id, self.inputs.keys()))
+            return np.zeros((1,1))
+        
         if self.inputs[k].has_key('embedding'):
             emblen = self.inputs[k]['embedding']
             embshp = self.inputs[k]['shape']

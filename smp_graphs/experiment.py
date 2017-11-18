@@ -42,9 +42,11 @@ from smp_graphs.graph import nxgraph_load, nxgraph_store
 import warnings
 warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning)
 
+from logging import INFO as logging_INFO
 from logging import DEBUG as logging_DEBUG
 # import logging
-logger = get_module_logger(modulename = 'experiment', loglevel = logging_DEBUG)
+loglevel_DEFAULT = logging_INFO
+logger = get_module_logger(modulename = 'experiment', loglevel = loglevel_DEFAULT)
 
 # # 'application' code
 # logger.debug('debug message')
@@ -266,6 +268,7 @@ class Experiment(object):
         #     else:
         #         print "    BANG params/vars mismatch on %s" % (pk,)
 
+        logger.info('#' * 80)
         logger.info("experiment.Experiment init with conf = %s" % (self.conf.keys(), ))
         
         # topblock outputs: new types in addition to np.ndarray signals: 'text', 'plot', ...

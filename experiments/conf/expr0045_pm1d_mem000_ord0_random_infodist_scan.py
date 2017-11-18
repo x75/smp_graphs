@@ -43,14 +43,11 @@ order = lconf['order']
 budget = lconf['budget'] # 510
 lim = lconf['lim'] # 1.0
 
-desc = """This experiment is based on expr0010. The modification
-consists of introducing another modality $s_\text{m_2}$ in the agent's
-sensorimotor space. In this artificial example, the new subspace is
-defined by a map $f: m1,d \rightarrow m2$ and implemented in
-'m1-m2'. The $d$ parameter is used to control the amount information
-distance between the elements of each space. This provides a simple
-and expressive model for intermodal maps and the amount of
-transformation they need to achieve."""
+desc = """The purpose of this experiment is to illustrate the effect
+of projection distortion and external entropy on the information
+distance between two sensory modalities. This is done using a
+parameterized model of these effects and a few examples of different
+configurations are shown in the plot."""
 
 outputs = {
     'latex': {'type': 'latex',},
@@ -241,7 +238,44 @@ graph = OrderedDict([
             },
         },
     }),
-    
+
+    # plotting random_lookup influence
+    # one configuration plot grid:
+    # | transfer func h | horizontal output | horziontal histogram |
+    # | vertical input  | information meas  | -                    |
+    # | vertical histo  | -                 | - (here the model)   |
+    ('plot_infodist', {
+        'block': PlotBlock2,
+        'params': {
+            'id': 'plot',
+            'blocksize': numsteps,
+            'saveplot': saveplot,
+            'savetype': 'pdf',
+            'wspace': 0.15,
+            'hspace': 0.15,
+            'xlim_share': True,
+            'inputs': {
+                's_p': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
+                's_e': {'bus': 'robot1/s_extero', 'shape': (dim_s_extero, numsteps)},
+                'pre_l0': {'bus': 'pre_l0/pre', 'shape': (dim_s_goal, numsteps)},
+                'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
+                'pre_l2': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, numsteps)},
+                'credit_l1': {'bus': 'budget/credit', 'shape': (1, numsteps)},
+                'infodist': {
+                    'bus': 'infodist/infodist',
+                    'shape': (dim_s_proprio, 1, 1)
+                },
+            },
+            'desc': 'Single infodist configuration',
+
+            # subplot
+            'subplots': [[
+                {'input': ['pre_l2/h'], 'plot': timeseries},
+                ]
+            ],
+        },
+    }),
+
     # plotting
     ('plot', {
         'block': PlotBlock2,
@@ -266,6 +300,7 @@ graph = OrderedDict([
                 },
             },
             'desc': 'Single episode pm1d baseline',
+            
             'subplots': [
                 # row 1: pre, s
                 [
@@ -287,6 +322,7 @@ graph = OrderedDict([
                         # 'mode': 'stack'
                     },
                 ],
+                
                 # row 2: pre_l2, s
                 [
                     {
@@ -308,6 +344,8 @@ graph = OrderedDict([
                         # 'mode': 'stack'
                     },
                 ],
+
+                # row 3: budget
                 [
                     {'input': 'credit_l1', 'plot': partial(timeseries, ylim = (0, 1000), alpha = 1.0),
                          'title': 'agent budget (timeseries)',
@@ -321,6 +359,7 @@ graph = OrderedDict([
                         'desc': 'Single episode pm1d baseline \autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
                     },
                 ],
+                
                 # [
                 #     {
                 #         'input': ['infodist'],

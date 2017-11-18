@@ -129,10 +129,10 @@ class MIBlock2(InfthPrimBlock2):
         # compute norm factor
         jh = self.normalize(src, dst)
         
-        logger.debug("%s.step[%d]-%s src.shape = %s, dst.shape = %s" % (self.cname, self.cnt, self.id, src.shape, dst.shape,))
+        self._debug("%s.step[%d]-%s src.shape = %s, dst.shape = %s" % (self.cname, self.cnt, self.id, src.shape, dst.shape,))
         
         for i in range(self.shift[0], self.shift[1]):
-            logger.debug("%d" % (i, ),)
+            self._debug("%d" % (i, ),)
             sys.stdout.flush()
 
             # # self-rolled time shift with np.roll
@@ -148,7 +148,7 @@ class MIBlock2(InfthPrimBlock2):
         print ""
         meas = np.array(meas)
         self.mi = meas.T.copy() * jh
-        logger.debug("%s-%s.mi = %s\n    mi/jh = %s/%s", self.cname, self.id, self.mi.shape, self.mi, jh) # , mi.shape
+        self._debug("%s-%s.mi = %s\n    mi/jh = %s/%s" % (self.cname, self.id, self.mi.shape, self.mi, jh)) # , mi.shape
 
 class InfoDistBlock2(InfthPrimBlock2):
     """Compute the information distance between to variables
@@ -175,14 +175,14 @@ class InfoDistBlock2(InfthPrimBlock2):
         src = self.get_input('x').T
         dst = self.get_input('y').T
         
-        logger.debug("%s%s-%s.step[%d] src.shape = %s, dst.shape = %s" % (
+        self._debug("%s%s-%s.step[%d] src.shape = %s, dst.shape = %s" % (
             self.nesting_indent, self.cname, self.id, self.cnt, src.shape, dst.shape,),)
 
         # compute norm factor
         jh = self.normalize(src, dst)
         
         for i in range(self.shift[0], self.shift[1]):
-            logger.debug("%d" % (i, ),)
+            self._debug("%d" % (i, ),)
             sys.stdout.flush()
 
             # # self-rolled time shift
@@ -209,7 +209,7 @@ class InfoDistBlock2(InfthPrimBlock2):
         self.infodist_pos = np.clip(myt(mis, direction = -1), 1, np.inf)
         self.infodist_neg = np.clip(myt(mis, direction = -1), -np.inf, 0)
         # self.infodist = mis.copy()
-        logger.debug("infodist block = %s/\n    id/jh = %s/%s", self.infodist.shape, self.infodist, jh) # , mi.shape
+        self._debug("infodist block = %s/\n    id/jh = %s/%s" % (self.infodist.shape, self.infodist, jh)) # , mi.shape
         
 class TEBlock2(InfthPrimBlock2):
     """!@brief Compute elementwise transfer entropy from src to dst variables in dataset"""

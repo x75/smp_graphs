@@ -216,5 +216,5 @@ class MomentBlock2(PrimBlock2):
                 self.nesting_indent, k,
                 getattr(self, k_mu), getattr(self, k_var), getattr(self, k_min), getattr(self, k_max)
             )
-            logger.debug(logstr)
+            self._debug(logstr)
             

@@ -14,7 +14,7 @@ import seaborn as sns
 # perceptually uniform colormaps
 import colorcet as cc
 
-from smp_graphs.block import decStep, decInit, block_cmaps
+from smp_graphs.block import decStep, decInit, block_cmaps, get_input
 from smp_graphs.block import PrimBlock2
 from smp_graphs.utils import myt, mytupleroll
 import smp_graphs.utils_logging as log
@@ -273,26 +273,31 @@ class FigPlotBlock2(BaseplotBlock2):
         Returns:
          - None
         """
-        subplotstr = "_".join(np.array([["r%d_c%d_%s" % (r, c, "_".join(subplot_input_fix(sbc['input'])),) for c,sbc in enumerate(sbr)] for r, sbr in enumerate(plotinst.subplots)]).flatten())
-        # filename = "data/%s_%s_%s_%s.%s" % (plotinst.top.id, plotinst.id, "_".join(plotinst.inputs.keys()), subplotstr, plotinst.savetype)
-        # filename = "data/%s_%s_%s.%s" % (plotinst.top.id, plotinst.id, "_".join(plotinst.inputs.keys()), plotinst.savetype)
-        # filename = "data/%s_%s.%s" % (plotinst.top.id, plotinst.id, plotinst.savetype)
-        # filename = '%s_%s.%s' % (plotinst.top.datafile_expr, plotinst.id, plotinst.savetype)
+        # subplotstr = ''
+        # if len(plotinst.subplots) > 0 and len(plotinst.subplots[0]) > 0 and plotinst.subplots[0][0].has_key('input'):
+        #     subplotstr = "_".join(np.array(
+        #         [[
+        #             "r%d_c%d_%s" % (r, c, "_".join(subplot_input_fix(sbc['input'])),) for c,sbc in enumerate(sbr)
+        #             ] for r, sbr in enumerate(plotinst.subplots)
+        #         ]).flatten())
+
+        # get filename from instance
         filename = plotinst.filename
-        # print "%s.save filename = %s, subplotstr = %s" % (plotinst.cname, filename, subplotstr)
-        # plotinst.fig.set_size_inches((min(plotinst.fig_cols * 2 * 2.5, 20), min(plotinst.fig_rows * 1.2 * 2.5, 12)))
+        
+        plotinst._debug("%s-%s.save filename = %s" % (plotinst.cname, plotinst.id, filename))
+
         if not hasattr(plotinst, 'savesize'):
             savescale = 3
             plotinst.savesize = (
                 min(plotinst.fig_cols * 2.5 * savescale, 24),
                 min(plotinst.fig_rows * 1.0 * savescale, 12))
-            
-        logger.debug("savesize w/h = %f/%f, fig_cols/fig_rows = %s/%s" % (plotinst.savesize[0], plotinst.savesize[1], plotinst.fig_cols, plotinst.fig_rows))
+
+        plotinst._debug("savesize w/h = %f/%f, fig_cols/fig_rows = %s/%s" % (plotinst.savesize[0], plotinst.savesize[1], plotinst.fig_cols, plotinst.fig_rows))
         plotinst.fig.set_size_inches(plotinst.savesize)
 
         # write the figure to file
         try:
-            logger.info("%s-%s.save saving plot %s to filename = %s" % (plotinst.cname, plotinst.id, plotinst.title, filename))
+            plotinst._info("%s-%s.save saving plot %s to filename = %s" % (plotinst.cname, plotinst.id, plotinst.title, filename))
             plotinst.fig.savefig(filename, dpi=300, bbox_inches="tight")
             # if plotinst.top.
             plotinst.top.outputs['latex']['figures'][plotinst.id] = {
@@ -371,7 +376,8 @@ class PlotBlock2(FigPlotBlock2):
         'blocksize': 1,
         'xlim_share': True,
         'ylim_share': True,
-        'subplots': [[{'input': ['x'], 'plot': timeseries}]],
+        # 'subplots': [[{'input': ['x'], 'plot': timeseries}]],
+        'subplots': [[{}]],
      }
     
     def __init__(self, conf = {}, paren = None, top = None):
@@ -415,10 +421,13 @@ class PlotBlock2(FigPlotBlock2):
         self.fig.set_size_inches((sb_cols * 6, sb_rows * 3))
         
         # subplots pass 1: the hard work, iterate over subplot config and build the plot
-        for i, subplot in enumerate(self.subplots):
-            for j, subplotconf in enumerate(subplot):
-                assert subplotconf.has_key('input'), "PlotBlock2 needs 'input' key in the plot spec = %s" % (subplotconf,)
+        for i, subplot in enumerate(self.subplots):   # rows are lists of dicts
+            for j, subplotconf in enumerate(subplot): # columns are dicts
+                # assert subplotconf.has_key('input'), "PlotBlock2 needs 'input' key in the plot spec = %s" % (subplotconf,)
                 # assert subplotconf.has_key('plot'), "PlotBlock2 needs 'plot' key in the plot spec = %s" % (subplotconf,)
+                # empty gridspec cell
+                if subplotconf is None or len(subplotconf) < 1:
+                    return
                 
                 # make it a list if it isn't
                 for input_spec_key in ['input', 'ndslice', 'shape']:
@@ -457,14 +466,21 @@ class PlotBlock2(FigPlotBlock2):
                 for k, ink in enumerate(subplotconf['input']):
                     # FIXME: array'ize this loop
                     # vars: input, ndslice, shape, xslice, ...
+                    if not self.inputs.has_key(ink):
+                        self._warning('%s-%s plot_subplot[%d,%d] no buskey = %s' % (self.cname, self.id, i, j, ink))
+                        continue
+                    input_ink = self.inputs[ink]
 
                     # get numsteps of data for the input
-                    plotlen = self.inputs[ink]['shape'][-1] # numsteps at shape[-1]
+                    if not input_ink.has_key('shape'):
+                        input_ink['shape'] = input_ink['val'].shape
+                    plotlen = input_ink['shape'][-1] # numsteps at shape[-1]
+                        
 
                     # set default slice
                     xslice = slice(0, plotlen)
                     # compute final shape of plot data, custom transpose from horiz time to row time
-                    plotshape = mytupleroll(self.inputs[ink]['shape'])
+                    plotshape = mytupleroll(input_ink['shape'])
                     
                     # print "%s.subplots defaults: plotlen = %d, xslice = %s, plotshape = %s" % (self.cname, plotlen, xslice, plotshape)
                 
@@ -506,13 +522,13 @@ class PlotBlock2(FigPlotBlock2):
                         t = np.linspace(xslice.start, xslice.start+plotlen-1, plotlen)[xslice]
                     
                     # print "%s.plot_subplots k = %s, ink = %s" % (self.cname, k, ink)
-                    # plotdata[ink] = self.inputs[ink]['val'].T[xslice]
+                    # plotdata[ink] = input_ink['val'].T[xslice]
                     # if ink == 'd0':
-                    #     print "plotblock2", self.inputs[ink]['val'].shape
-                    #     print "plotblock2", self.inputs[ink]['val'][0,...,:]
+                    #     print "plotblock2", input_ink['val'].shape
+                    #     print "plotblock2", input_ink['val'][0,...,:]
                     # ink_ = "%s_%d" % (ink, k)
                     ink_ = "%d_%s" % (k + 1, ink)
-                    # print "      input shape %s: %s" % (ink, self.inputs[ink]['val'].shape)
+                    # print "      input shape %s: %s" % (ink, input_ink['val'].shape)
 
                     # if explicit n-dimensional slice is given
                     if subplotconf.has_key('ndslice'):
@@ -520,20 +536,20 @@ class PlotBlock2(FigPlotBlock2):
                         # slice the data to spec, custom transpose from h to v time
                         ndslice = subplotconf['ndslice'][k]
                         # print "k", k, "ink", ink, "ndslice", ndslice
-                        plotdata[ink_] = myt(self.inputs[ink]['val'])[ndslice]
+                        plotdata[ink_] = myt(input_ink['val'])[ndslice]
                         # print "      ndslice %s: %s, numslice = %d" % (ink, subplotconf['ndslice'][k], len(subplotconf['ndslice']))
                     else:
-                        plotdata[ink_] = myt(self.inputs[ink]['val'])[xslice] # .reshape((xslice.stop - xslice.start, -1))
+                        plotdata[ink_] = myt(input_ink['val'])[xslice] # .reshape((xslice.stop - xslice.start, -1))
 
                     assert plotdata[ink_].shape != (0,), "no data to plot"
-                    # print "      input = %s" % self.inputs[ink]['val']
+                    # print "      input = %s" % input_ink['val']
                     # print "      id %s, ink = %s, plotdata = %s, plotshape = %s" % (self.id, ink_, plotdata[ink_], plotshape)
                     # plotdata[ink_] = plotdata[ink_].reshape((plotshape[1], plotshape[0])).T
                     plotdata[ink_] = plotdata[ink_].reshape(plotshape)
                     
                     # fix nans
                     plotdata[ink_][np.isnan(plotdata[ink_])] = -1.0
-                    plotvar += "%s, " % (self.inputs[ink]['bus'],)
+                    plotvar += "%s, " % (input_ink['bus'],)
                     
                 # # assign and trim title
                 # title += plotvar[:-2]
@@ -541,7 +557,7 @@ class PlotBlock2(FigPlotBlock2):
                 # combine inputs into one backend plot call to automate color cycling etc
                 if subplotconf.has_key('mode'):
                     """FIXME: fix dangling effects of stacking"""
-                    # ivecs = tuple(myt(self.inputs[ink]['val'])[xslice] for k, ink in enumerate(subplotconf['input']))
+                    # ivecs = tuple(myt(input_ink['val'])[xslice] for k, ink in enumerate(subplotconf['input']))
                     ivecs = [plotdatav for plotdatak, plotdatav in plotdata.items()]
                     # plotdata = {}
                     if subplotconf['mode'] in ['stack', 'combine', 'concat']:
@@ -796,7 +812,7 @@ class ImgPlotBlock2(FigPlotBlock2):
                         # dj = subplotconf['ndslice'][1]
                         # plotdata_cand = self.inputs[subplotconf['input'][0]]['val'][di, dj, :, -1]
                         ink = subplotconf['input'][0]
-                        plotdata_cand = myt(self.inputs[ink]['val'])[subplotconf['ndslice'][0]]
+                        plotdata_cand = myt(input_ink['val'])[subplotconf['ndslice'][0]]
                         # print "%s[%d]-%s.step plotdata_cand.shape = %s, ndslice = %s, shape = %s, xslice = %s, yslice = %s" % (self.cname, self.cnt, self.id, plotdata_cand.shape, subplotconf['ndslice'], subplotconf['shape'], xslice, yslice)
                         # print "plotdata_cand", plotdata_cand
                     else:
@@ -842,10 +858,10 @@ class ImgPlotBlock2(FigPlotBlock2):
                     title = "img plot"
                     if subplotconf.has_key('title'): title = subplotconf['title']
                     # for k, ink in enumerate(subplotconf['input']):
-                    #     plotdata[ink] = self.inputs[ink][0].T[xslice]
+                    #     plotdata[ink] = input_ink[0].T[xslice]
                     #     # fix nans
                     #     plotdata[ink][np.isnan(plotdata[ink])] = -1.0
-                    #     plotvar += "%s, " % (self.inputs[ink][2],)
+                    #     plotvar += "%s, " % (input_ink[2],)
                     # title += plotvar
 
                     # colormap

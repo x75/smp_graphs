@@ -191,6 +191,7 @@ def do_random_lookup(ref):
     # logger.log(ref.loglevel, "%sdo_random_lookup[%s] ref.x_idx = %s", '    ', ref.cnt, ref.x_idx) # , ref.h.shape
     # logger.debug("%sdo_random_lookup[%s] ref.x_idx = %s", '    ', ref.cnt, ref.x_idx)
     ref.y = ref.h[ref.x_idx - 1]
+    ref.y = ref.y * (1 - ref.e) + np.random.normal(0, 1.0, ref.y.shape) * ref.e
 
 def init_random_lookup(ref, conf, mconf):
     """init_random_lookup
@@ -212,14 +213,14 @@ def init_random_lookup(ref, conf, mconf):
     #  3. external entropy: y = h(x) + E
     
     # information distance parameters
-    d = mconf['d']
-    s_a = mconf['s_a']
-    s_f = mconf['s_f']
-    e = mconf['e']
+    ref.d = mconf['d']
+    ref.s_a = mconf['s_a']
+    ref.s_f = mconf['s_f']
+    ref.e = mconf['e']
 
     # contraction / expansion: transforming uniform to gaussian, d to var
     # var = 0.25**2
-    var = d**2
+    var = ref.d**2
     ref.h_gauss = np.exp(-0.5 * (0.0 - ref.h_lin)**2/var)
     ref.h_gauss_inv = np.max(ref.h_gauss) - ref.h_gauss
     ref.h_gauss_inv_int = np.cumsum(ref.h_gauss_inv)
@@ -227,20 +228,24 @@ def init_random_lookup(ref, conf, mconf):
     # print "ref.h_gauss_inv_int", ref.h_gauss_inv_int.shape, ref.h_gauss_inv_int
     ref.h_gauss_inv_int -= np.mean(ref.h_gauss_inv_int)
     ref.h_gauss_inv_int /= np.max(np.abs(ref.h_gauss_inv_int))
-    print "ref.h_gauss_inv_int", ref.h_gauss_inv_int
+    ref._debug("ref.h_gauss_inv_int = %s" % (ref.h_gauss_inv_int,))
 
     # additive noise on base h
     # ref.h_noise = np.random.uniform(-1, 1, (params['numelem'], )) # .reshape(1, params['numelem'])
     # ref.h_noise = np.exp(-0.5 * (0.0 - ref.h_noise)**2)
+    from smp_base.gennoise import Noise
+    noise = Noise.oneoverfnoise(N = params['numelem'], beta = ref.s_f)
+    ref.h_noise = noise[1]
     
     # noise: color (1/f)
     # ref.
-    # ref.h = (1 - d) * ref.h_lin + d * ref.h_noise
+    ref.h = (1 - ref.s_a) * ref.h_gauss_inv_int + ref.s_a * ref.h_noise
     # ref.h *= 0.5
     ref.h = ref.h_gauss_inv_int
+    # ref.h /= np.max(np.abs(ref.h))
     ref.x = np.zeros((inshape))
     ref.y = np.zeros_like(ref.x)
-    logger.debug("    model init_random_lookup ref.x = %s, ref.h = %s, ref.y = %s" % (ref.x.shape, ref.h.shape, ref.y.shape))
+    ref._debug("    model init_random_lookup ref.x = %s, ref.h = %s, ref.y = %s" % (ref.x.shape, ref.h.shape, ref.y.shape))
     # do_random_lookup(ref)
     
 def step_random_lookup(ref):
@@ -1856,6 +1861,7 @@ class ModelBlock2(PrimBlock2):
      - FIXME: not sure if this is a good final repr for models and their scope
     """
     defaults = {
+        'debug': False,
         'models': {
             'uniform': {
                 'type': 'random_uniform',
@@ -1874,6 +1880,7 @@ class ModelBlock2(PrimBlock2):
     def __init__(self, conf = {}, paren = None, top = None):
         """ModelBlock2 init"""
         params = {}
+        # params.update(PrimBlock2.defaults)
         params.update(self.defaults)
         params.update(conf['params'])
 
@@ -1881,8 +1888,8 @@ class ModelBlock2(PrimBlock2):
         # conf.update(params)
 
         self.conf = conf
-        
         self.top = top
+        self.debug = params['debug']
         # self.lag = 1
 
         # initialize model

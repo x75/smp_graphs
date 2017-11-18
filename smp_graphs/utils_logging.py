@@ -16,9 +16,11 @@ import numpy as np
 import tables as tb
 
 from logging import INFO as logging_INFO
+from logging import CRITICAL as logging_CRITICAL
 from smp_base.common import get_module_logger
 
-logger = get_module_logger(modulename = 'logging', loglevel = logging_INFO)
+loglevel_DEFAULT = logging_CRITICAL
+logger = get_module_logger(modulename = 'logging', loglevel = loglevel_DEFAULT)
 
 # declare global h5 file handle
 h5file = 0
