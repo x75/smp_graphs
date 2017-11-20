@@ -275,7 +275,7 @@ class Experiment(object):
         for paramkey in ['outputs', 'desc']:
             if self.conf_vars.has_key(paramkey):
                 self.conf['params'][paramkey] = self.conf_vars[paramkey]
-                logger.info("    vars -> params found %s, %s" % (paramkey, self.conf['params'][paramkey], ))
+                logger.debug("    vars -> params found %s, %s" % (paramkey, self.conf['params'][paramkey], ))
         
         # fill in missing defaults
         self.conf = set_config_defaults(self.conf)

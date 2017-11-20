@@ -43,7 +43,7 @@ from smp_base.plot       import ax_invert, ax_set_aspect
 # 
 rcParams['figure.titlesize'] = 11
 
-axes_spines = True
+axes_spines = False
 # smp_graphs style
 rcParams['axes.grid'] = False
 rcParams['axes.spines.bottom'] = axes_spines

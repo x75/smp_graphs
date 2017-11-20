@@ -239,17 +239,21 @@ def init_random_lookup(ref, conf, mconf):
     # ref.h_noise = np.random.uniform(-1, 1, (mconf['numelem'], )) # .reshape(1, mconf['numelem'])
     # ref.h_noise = np.exp(-0.5 * (0.0 - ref.h_noise)**2)
     from smp_base.gennoise import Noise
-    noise = Noise.oneoverfnoise(N = mconf['numelem'], beta = ref.s_f)
-    ref.h_noise = np.abs(noise[1]).reshape(ref.h_lin.shape)
-    # logger.debug("    model init_random_lookup ref.h_noise = %s/%s, %s" % (ref.h_noise.real, ref.h_noise.imag, ))
+    noise = Noise.oneoverfnoise(N = mconf['numelem'], beta = ref.s_f, normalize = True)
+    # is complex?
+    if hasattr(noise[1], 'real'):
+        ref.h_noise = noise[1].real.reshape(ref.h_lin.shape)
+    else:
+        ref.h_noise = noise[1].reshape(ref.h_lin.shape)
+    logger.debug("    model init_random_lookup ref.h_noise = %s/%s, %s" % (ref.h_noise.real, ref.h_noise.imag, ref.h_noise.shape))
     
     # noise: color (1/f)
     # ref.
-    ref.h = (1 - ref.s_a) * ref.h_gauss_inv_int + ref.s_a * ref.h_noise
+    # ref.h = (1 - ref.s_a) * ref.h_gauss_inv_int + ref.s_a * ref.h_noise
     # ref.h *= 0.5
     # ref.h = ref.h_gauss_inv_int
     ref.h = ref.l_a * ref.h_lin + ref.d_a * ref.h_gauss_inv_int + ref.s_a * ref.h_noise
-    ref.h /= np.max(np.abs(ref.h))
+    # ref.h /= np.max(np.abs(ref.h))
     ref.x = np.zeros((inshape))
     ref.y = np.zeros_like(ref.x)
     logger.debug("    model init_random_lookup ref.x = %s, ref.y = %s, ref.h = %s, ref.h_lin = %s, ref.h_noise = %s" % (

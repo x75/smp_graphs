@@ -1805,7 +1805,7 @@ class Block2(object):
             # old format: variable: [buffered const/array, shape, bus]
             # new format: variable: {'val': buffered const/array, 'shape': shape, 'src': bus|const|generator?}
             for k, v in self.inputs.items():
-                self._debug("__init__: pass 2     in_k = %s, in_v = %s" % (k, v))
+                self._debug("init_pass_2 ink = %s, inv = %s" % (k, v, ))
                 assert len(v) > 0
                 # FIXME: when is inv not a dict?
                 # assert type(v) is dict, "input value %s in block %s/%s must be a dict but it is a %s, probably old config" % (k, self.cname, self.id, type(v))
@@ -1889,7 +1889,7 @@ class Block2(object):
                     v['shape'] = v['val'].shape # self.bus[v['bus']].shape
                     
                     # print "\n%s init_pass_2 ink %s shape = %s / %s" % (self.id, k, v['val'].shape, v['shape'])
-                    self._debug("%s.init_pass_2: %s, bus[%s] = %s, input = %s" % (self.cname, self.id, v['bus'], self.bus[v['bus']].shape, v['val'].shape))
+                    self._debug("init_pass_2 id = %s, bus[%s] = %s, input = %s" % (self.id, v['bus'], self.bus[v['bus']].shape, v['val'].shape))
                 # elif type(v[0]) is str:
                 #     # it's a string but no valid buskey, init zeros(1,1)?
                 #     if v[0].endswith('.h5'):
@@ -1912,8 +1912,8 @@ class Block2(object):
                 # add input buffer
                 # stack??
                 # self.inputs[k][0] = np.hstack((np.zeros((self.inputs[k][1][0], self.ibuf-1)), self.inputs[k][0]))
-                self._debug("%s.init k = %s, v = %s" % (self.cname, k, v))
-                self._debug("init_pass_2 %s in_k.shape = %s / %s" % (self.id, v['val'].shape, v['shape']))
+                self._debug("init_pass_2 k = %s, v = %s" % (k, v, ))
+                self._debug("init_pass_2 id = %s inv['val'].shape/inv['shape'] = %s / %s" % (self.id, v['val'].shape, v['shape']))
             
     def set_attr_from_top_conf(self):
         """set self attributes copied from corresponding toplevel attributes
