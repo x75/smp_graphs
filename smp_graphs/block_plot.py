@@ -19,11 +19,12 @@ from smp_graphs.block import PrimBlock2
 from smp_graphs.utils import myt, mytupleroll
 import smp_graphs.utils_logging as log
 
-from smp_base.plot_utils import put_legend_out_right, put_legend_out_top
+from smp_base.common     import get_module_logger
+from smp_base.plot_utils import custom_legend, put_legend_out_right, put_legend_out_top
 from smp_base.dimstack   import dimensional_stacking, digitize_pointcloud
 from smp_base.plot       import makefig, timeseries, histogram, plot_img, plotfuncs, uniform_divergence
-from smp_base.plot       import get_colorcycler, kwargs_plot_clean
-from smp_base.common     import get_module_logger
+from smp_base.plot       import get_colorcycler, kwargs_plot_clean_plot
+from smp_base.plot       import ax_invert, ax_set_aspect
 
 ################################################################################
 # Plotting blocks
@@ -42,12 +43,13 @@ from smp_base.common     import get_module_logger
 # 
 rcParams['figure.titlesize'] = 11
 
+axes_spines = True
 # smp_graphs style
 rcParams['axes.grid'] = False
-rcParams['axes.spines.bottom'] = False
-rcParams['axes.spines.top'] = False
-rcParams['axes.spines.left'] = False
-rcParams['axes.spines.right'] = False
+rcParams['axes.spines.bottom'] = axes_spines
+rcParams['axes.spines.top'] = axes_spines
+rcParams['axes.spines.left'] = axes_spines
+rcParams['axes.spines.right'] = axes_spines
 rcParams['axes.facecolor'] = 'none'
 # rcParams['axes.labelcolor'] = .15
 # rcParams['axes.labelpad'] = 4.0
@@ -104,7 +106,7 @@ class AnalysisBlock2(PrimBlock2):
         if not hasattr(self, 'title'):
             # self.title = "%s - %s-%s" % (self.top.id, self.cname, self.id)
             # self.title = "%s of %s" % (self.cname, self.top.id[:20], )
-            self.title = "%s of %s, numsteps = %d" % (self.id, self.top.id, self.top.numsteps,)
+            self.title = "%s of %s\nnumsteps = %d, caching = %s" % (self.id, self.top.id, self.top.numsteps, self.top.docache)
         
     def save(self):
         """Save the analysis, redirect to corresponding class method, passing the instance
@@ -378,8 +380,17 @@ class PlotBlock2(FigPlotBlock2):
         'ylim_share': True,
         # 'subplots': [[{'input': ['x'], 'plot': timeseries}]],
         'subplots': [[{}]],
-     }
-    
+    }
+
+    defaults_subplotconf = {
+        'input': [],
+        'xlabel': None,
+        'ylabel': None,
+        'loc': 'left',
+        # 'xticks': False,
+        # 'yticks': False,
+    }
+        
     def __init__(self, conf = {}, paren = None, top = None):
         FigPlotBlock2.__init__(self, conf = conf, paren = paren, top = top)
          
@@ -407,8 +418,7 @@ class PlotBlock2(FigPlotBlock2):
         Returns:
          - None
         """
-        self.debug_print("%s plot_subplots self.inputs = %s",
-                             (self.cname, self.inputs))
+        # self._debug("%s plot_subplots self.inputs = %s", self.cname, self.inputs)
 
         # subplots pass 0: remember ax limits
         sb_rows = len(self.subplots)
@@ -422,13 +432,19 @@ class PlotBlock2(FigPlotBlock2):
         
         # subplots pass 1: the hard work, iterate over subplot config and build the plot
         for i, subplot in enumerate(self.subplots):   # rows are lists of dicts
-            for j, subplotconf in enumerate(subplot): # columns are dicts
+            for j, subplotconf_ in enumerate(subplot): # columns are dicts
+                if type(subplotconf_) is dict:
+                    subplotconf = {}
+                    subplotconf.update(self.defaults_subplotconf)
+                    subplotconf.update(subplotconf_)
+                    subplotconf_.update(subplotconf)
+                    
                 # assert subplotconf.has_key('input'), "PlotBlock2 needs 'input' key in the plot spec = %s" % (subplotconf,)
                 # assert subplotconf.has_key('plot'), "PlotBlock2 needs 'plot' key in the plot spec = %s" % (subplotconf,)
                 # empty gridspec cell
                 if subplotconf is None or len(subplotconf) < 1:
                     return
-                
+
                 # make it a list if it isn't
                 for input_spec_key in ['input', 'ndslice', 'shape']:
                     if subplotconf.has_key(input_spec_key):
@@ -532,7 +548,7 @@ class PlotBlock2(FigPlotBlock2):
                     #     print "plotblock2", input_ink['val'].shape
                     #     print "plotblock2", input_ink['val'][0,...,:]
                     # ink_ = "%s_%d" % (ink, k)
-                    ink_ = "%d_%s" % (k + 1, ink)
+                    ink_ = "%d-%s" % (k + 1, ink)
                     # print "      input shape %s: %s" % (ink, input_ink['val'].shape)
 
                     # if explicit n-dimensional slice is given
@@ -591,10 +607,16 @@ class PlotBlock2(FigPlotBlock2):
 
                 # plot the plotdata
                 # kwargs_ = {} # kwargs_plot_clean(**kwargs)
+
+                # transfer configuration keywords (kwargs)
                 kwargs = {}
-                for k in ['xlabel', 'ylabel']:
-                    if subplotconf.has_key(k):
-                        kwargs[k] = subplotconf[k]
+                for kw in [
+                        'aspect', 'orientation',
+                        'xlabel', 'xlim', 'xticks', 'xticklabels', 'xinvert',
+                        'ylabel', 'ylim', 'yticks', 'yticklabels', 'yinvert']:
+                    if subplotconf.has_key(kw):
+                        kwargs[kw] = subplotconf[kw]
+                self._debug("plot_subplots subplot[%s][%d,%d] kwargs = %s" % (ink, i, j, kwargs))
                         
                 labels = []
                 self.fig.axes[idx].clear()
@@ -648,7 +670,7 @@ class PlotBlock2(FigPlotBlock2):
                         
                     # ax.set_prop_cycle(get_colorcycler(cmap_str = tmp_cmaps_[inkc]))
                     for invd in range(inv.shape[1]):
-                        label_ = "%s-%d" % (ink, invd + 1)
+                        label_ = "%s[%d]" % (ink, invd + 1)
                         if len(label_) > 16:
                             label_ = label_[:16]
                         labels.append(label_)
@@ -680,27 +702,54 @@ class PlotBlock2(FigPlotBlock2):
         # subplots pass 2: clean up and compute globally shared dynamic vars
         # adjust xaxis
         for i, subplot in enumerate(self.subplots):
+            idx = (i*self.fig_cols)            
             for j, subplotconf in enumerate(subplot):
                 # subplot handle shortcut
                 sb = self.subplots[i][j]
+                
                 # subplot index from rows*cols
                 idx = (i*self.fig_cols)+j
+                    
                 # axis handle shortcut
                 ax = self.fig.axes[idx]
 
+                # check empty input
+                if len(subplotconf['input']) < 1:
+                    ax = self.fig.axes[idx]
+                    # ax = fig.gca()
+                    ax.set_xticks([])
+                    ax.set_xticklabels([])
+                    ax.set_yticks([])
+                    ax.set_yticklabels([])
+                    continue
+                    
                 # consolidate axis limits
                 if self.xlim_share and not kwargs.has_key('xlim'):
                     ax.set_xlim(cols_xlim_max[j])
                 if self.ylim_share and not kwargs.has_key('ylim'):
                     ax.set_ylim(rows_ylim_max[i])
+
+                # check axis inversion
+                ax_invert(ax, **subplotconf)
                 
                 # fix legends
                 # ax.legend(labels)
-                put_legend_out_right(
+                loc = 'left'
+                if sb.has_key('legend_loc'):
+                    loc = sb['legend_loc']
+                    
+                custom_legend(
                     labels = sb['p1_plotlabels'],
-                    ax = ax, resize_by = 0.9)
-                # put_legend_out_top(labels = labels, ax = ax, resize_by = 0.8)
+                    ax = ax, resize_by = 0.9,
+                    loc = loc)
 
+                # set aspect after placing legend
+                ax_set_aspect(ax, **subplotconf)
+                
+                # put_legend_out_top(labels = labels, ax = ax, resize_by = 0.8)
+                
+        self._debug("    len fig.axes = %d" % (len(self.fig.axes)))
+            
         plt.draw()
         plt.pause(1e-9)
 

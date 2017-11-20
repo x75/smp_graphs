@@ -1805,7 +1805,7 @@ class Block2(object):
             # old format: variable: [buffered const/array, shape, bus]
             # new format: variable: {'val': buffered const/array, 'shape': shape, 'src': bus|const|generator?}
             for k, v in self.inputs.items():
-                self.debug_print("__init__: pass 2\n    in_k = %s,\n    in_v = %s", (k, v))
+                self._debug("__init__: pass 2     in_k = %s, in_v = %s" % (k, v))
                 assert len(v) > 0
                 # FIXME: when is inv not a dict?
                 # assert type(v) is dict, "input value %s in block %s/%s must be a dict but it is a %s, probably old config" % (k, self.cname, self.id, type(v))
@@ -1889,7 +1889,7 @@ class Block2(object):
                     v['shape'] = v['val'].shape # self.bus[v['bus']].shape
                     
                     # print "\n%s init_pass_2 ink %s shape = %s / %s" % (self.id, k, v['val'].shape, v['shape'])
-                    self.debug_print("%s.init_pass_2: %s, bus[%s] = %s, input = %s", (self.cname, self.id, v['bus'], self.bus[v['bus']].shape, v['val'].shape))
+                    self._debug("%s.init_pass_2: %s, bus[%s] = %s, input = %s" % (self.cname, self.id, v['bus'], self.bus[v['bus']].shape, v['val'].shape))
                 # elif type(v[0]) is str:
                 #     # it's a string but no valid buskey, init zeros(1,1)?
                 #     if v[0].endswith('.h5'):
@@ -1912,8 +1912,8 @@ class Block2(object):
                 # add input buffer
                 # stack??
                 # self.inputs[k][0] = np.hstack((np.zeros((self.inputs[k][1][0], self.ibuf-1)), self.inputs[k][0]))
-                self.debug_print("%s.init k = %s, v = %s", (self.cname, k, v))
-                self.debug_print("init_pass_2 %s in_k.shape = %s / %s", (self.id, v['val'].shape, v['shape']))
+                self._debug("%s.init k = %s, v = %s" % (self.cname, k, v))
+                self._debug("init_pass_2 %s in_k.shape = %s / %s" % (self.id, v['val'].shape, v['shape']))
             
     def set_attr_from_top_conf(self):
         """set self attributes copied from corresponding toplevel attributes
@@ -2253,9 +2253,9 @@ class Block2(object):
                     except Exception, e:
                         logger.error('%s-%s.plot_close node(%s-%s).save() failed with %s' % (self.cname, self.id, node.cname, node.id, e))
 
-    def _debug(self, s):
+    def _debug(self, s, *args, **kwargs):
         if self.debug and self.loglevel == logging_DEBUG: # <= logger.loglevel:
-            self._log(logging_DEBUG, s)
+            self._log(logging_DEBUG, s, args, kwargs)
                         
     def _info(self, s):
         self._log(logging_INFO, s)
@@ -2263,7 +2263,7 @@ class Block2(object):
     def _warning(self, s):
         self._log(logging_WARNING, s)
             
-    def _log(self, loglevel = logging_INFO, s = ''):
+    def _log(self, loglevel = logging_INFO, s = '', *args, **kwargs):
         """Block2._log wrapper
 
         Logging facility for blocks. Calls the calling module's logger
@@ -2420,7 +2420,7 @@ class FuncBlock2(Block2):
         # self.inputs is a dict with values [array]
         # assert self.inputs.has_key('x'), "%s.inputs expected to have key 'x' with function input vector. Check config."
 
-        self.debug_print("step[%d]: x = %s", (self.cnt, self.inputs,))
+        self._debug("step[%d]: x = %s", (self.cnt, self.inputs,))
 
         # assumes func to be smp_graphs aware and map the input/output onto the inner function 
         f_val = self.func(self.inputs)
@@ -2432,7 +2432,7 @@ class FuncBlock2(Block2):
                 # print "k, v", outk, outv, f_val
                 setattr(self, outk, f_val)
             self.y = f_val
-            self.debug_print("step[%d]: y = %s", (self.cnt, self.y,))
+            self._debug("step[%d]: y = %s", (self.cnt, self.y,))
             
 class LoopBlock2(Block2):
     """LoopBlock2 class
@@ -2693,7 +2693,7 @@ class SeqLoopBlock2(Block2):
     # @decStep()
     def step_compute(self, x = None):
         """SeqLoopBlock2.step"""
-        # self.debug_print("%s.step:\n\tx = %s,\n\tbus = %s,\n\tinputs = %s,\n\toutputs = %s",
+        # self._debug("%s.step:\n\tx = %s,\n\tbus = %s,\n\tinputs = %s,\n\toutputs = %s",
         #                      (self.__class__.__name__,self.outputs.keys(),
         #                           self.bus, self.inputs, self.outputs))
 
@@ -2723,14 +2723,14 @@ class SeqLoopBlock2(Block2):
                 else:
                     loopblock_params[k] = v
 
-            self.debug_print(
+            self._debug(
                 "%s.step.f_obj:\n    loopblock_params = %s",
                 (self.cname, loopblock_params))
             
             # create dynamic conf, beware the copy (!!!)
             loopblock_conf = {'block': self.loopblock['block'], 'params': copy.deepcopy(loopblock_params)}
             
-            self.debug_print(
+            self._debug(
                 "%s.step.f_obj:\n    loopblock_conf = %s",
                 (self.cname, loopblock_conf))
             
@@ -2822,14 +2822,14 @@ class SeqLoopBlock2(Block2):
             # run the loop, if it's a func loop: need input function from config
             results = self.f_loop(i, f_obj_)
             # print "results", results
-            self.debug_print("SeqLoopBlock2 f_loop results[%d] = %s", (i, results))
+            self._debug("SeqLoopBlock2 f_loop results[%d] = %s", (i, results))
 
             # FIXME: WORKS for loop example hpo, model sweeps,
             #        BREAKS for real experiment with measure output
             # # copy dict to self attrs
             # if results is not None:
             #     for k, v in results.items():
-            #         self.debug_print("SeqLoopBlock2.step loop %d result k = %s, v = %s", (i, k, v))
+            #         self._debug("SeqLoopBlock2.step loop %d result k = %s, v = %s", (i, k, v))
             #         setattr(self, k, v)
                     
             # dynblock = results['dynblock']
@@ -2857,7 +2857,7 @@ class SeqLoopBlock2(Block2):
                 
                 # print "self.   block", self.outputs[outk]
                 # print "self.dynblock", self.dynblock.outputs[outk], getattr(self.dynblock, outk).shape #, self.dynblock.file
-                self.debug_print(
+                self._debug(
                     "%s.step self.%s = %s, outslice = %s",
                     (self.cname, outk, getattr(self, outk).shape, outslice, ))
                     
@@ -3357,7 +3357,7 @@ class UniformRandomBlock2(PrimBlock2):
         
     @decStep()
     def step(self, x = None):
-        self.debug_print("%s.step:\n\tx = %s,\n\tbus = %s,\n\tinputs = %s,\n\toutputs = %s",
+        self._debug("%s.step:\n\tx = %s,\n\tbus = %s,\n\tinputs = %s,\n\toutputs = %s",
                          (self.__class__.__name__,self.outputs.keys(), self.bus, self.inputs, self.outputs))
 
         # FIXME: relation rate / blocksize, remember cnt from last step, check difference > rate etc

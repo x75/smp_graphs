@@ -229,7 +229,7 @@ class TEBlock2(InfthPrimBlock2):
         jh = self.normalize(src, dst)
         
         for i in range(self.shift[0], self.shift[1]):
-            print "%d" % (i, ),
+            self._debug("%d" % (i, ),)
             sys.stdout.flush()
             
             # src = np.roll(self.inputs['x']['val'].T, shift = i, axis = 0)
@@ -240,7 +240,7 @@ class TEBlock2(InfthPrimBlock2):
             # te = compute_transfer_entropy(dst, src)
             te = compute_transfer_entropy(dst, src, delay = -i)
             tes.append(te.copy())
-        print ""
+        # print ""
 
         tes = np.array(tes)
         # print "%s-%s.step tes.shape = %s / %s" % (self.cname, self.id, tes.shape, tes.T.shape)

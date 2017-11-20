@@ -139,8 +139,14 @@ graph = OrderedDict([
                             'infodistgen': {
                                 'type': 'random_lookup',
                                 'numelem': 1001,
-                                'd': 0.5,
-                                's_a': 0.5,
+                                # 'd': 0.5,
+                                # 's_a': 0.5,
+                                # 's_f': 1.0,
+                                # 'e': 0.0,
+                                'l_a': 0.0,
+                                'd_a': 0.0,
+                                'd_s': 0.1,
+                                's_a': 0.0,
                                 's_f': 1.0,
                                 'e': 0.0,
                             }
@@ -262,13 +268,14 @@ graph = OrderedDict([
         'block': PlotBlock2,
         'params': {
             'id': 'plot',
+            'debug': False,
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'pdf',
             'wspace': 0.15,
-            'hspace': 0.15,
-            'xlim_share': False,
-            'ylim_share': False,
+            'hspace': 0.1,
+            'xlim_share': True,
+            'ylim_share': True,
             'inputs': {
                 's_p': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
                 's_e': {'bus': 'robot1/s_extero', 'shape': (dim_s_extero, numsteps)},
@@ -285,120 +292,180 @@ graph = OrderedDict([
             'desc': 'Single infodist configuration',
 
             # subplot
-            'subplots': [[
-                {'input': ['pre_l2_h'], 'plot': timeseries, 'xaxis': np.linspace(-1, 1, 1001), 'xlim': (-1.1, 1.1), 'ylim': (-1.1, 1.1)},
-                ]
+            'subplots': [
+                [
+                    {
+                        'input': ['pre_l2_h'], 'plot': timeseries,
+                        'title': 'transfer function $h$', 'aspect': 1.0, 
+                        'xaxis': np.linspace(-1, 1, 1001), # 'xlabel': 'input [x]',
+                        'xlim': (-1.1, 1.1), 'xticks': True, 'xticklabels': False,
+                        'ylabel': 'output $y = h(x)$',
+                        'ylim': (-1.1, 1.1), 'yticks': True,
+                        'legend_loc': 'right',
+                    },
+                    {
+                        'input': ['pre_l2'], 'plot': timeseries,
+                        'title': 'timeseries $y$', 'aspect': 'auto', # (1*numsteps)/(2*2.2),
+                        'xlim': None, # 'xticks': True, 'xticklabels': None,
+                        'xlabel': 'time step $k$',
+                        'ylim': (-1.1, 1.1),
+                        'yticks': True, 'yticklabels': False,
+                        'legend_loc': 'left',
+                    },
+                    {
+                        'input': ['pre_l2'], 'plot': histogram,
+                        'title': 'histogram $y$', 'aspect': 'auto', # (1*numsteps)/(2*2.2),
+                        'orientation': 'horizontal',
+                        'xlim': None, # 'xticks': False, 'xticklabels': None,
+                        'xlabel': 'count $c$',
+                        'ylim': (-1.1, 1.1),
+                        'yticks': True, 'yticklabels': False,
+                        'legend_loc': 'left',
+                    },
+                    
+                ],
+                [
+                    {
+                        'input': ['s_p'], 'plot': timeseries,
+                        'title': 'timeseries $x$', 'aspect': 2.2/numsteps,
+                        'orientation': 'vertical',
+                        'xlim': None, # 'xticks': False, # 'xticklabels': False,
+                        'xlabel': 'time step $k$',
+                        'yticks': False,
+                        'ylim': (-1.1, 1.1),
+                        'legend_loc': 'right',
+
+                    },
+                    {
+                        # 'xticks': False, 'yticks': False,
+                    },
+                    {},
+                ],
+                [
+                    {
+                        'input': ['s_p'], 'plot': histogram,
+                        'title': 'histogram $x$', 'aspect': 'shared', # (1*numsteps)/(2*2.2),
+                        'orientation': 'vertical',
+                        'xlim': (-1.1, 1.1), 'xinvert': False, # 'xticks': False, 'xticklabels': None, #
+                        'xlabel': 'input $x \in [-1, ..., 1]$', 
+                        'ylim': None, 'yinvert': True,  # 'yticks': None, 'yticklabels': None,
+                        'ylabel': 'count $c$',
+                        'legend_loc': 'right',
+                    },
+                    {},
+                    {},
+                ],
             ],
         },
     }),
 
-    # plotting
-    ('plot', {
-        'block': PlotBlock2,
-        'params': {
-            'id': 'plot',
-            'blocksize': numsteps,
-            'saveplot': saveplot,
-            'savetype': 'pdf',
-            'wspace': 0.15,
-            'hspace': 0.15,
-            'xlim_share': True,
-            'inputs': {
-                's_p': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
-                's_e': {'bus': 'robot1/s_extero', 'shape': (dim_s_extero, numsteps)},
-                'pre_l0': {'bus': 'pre_l0/pre', 'shape': (dim_s_goal, numsteps)},
-                'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
-                'pre_l2': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, numsteps)},
-                'credit_l1': {'bus': 'budget/credit', 'shape': (1, numsteps)},
-                'infodist': {
-                    'bus': 'infodist/infodist',
-                    'shape': (dim_s_proprio, 1, 1)
-                },
-            },
-            'desc': 'Single episode pm1d baseline',
+    # # plotting
+    # ('plot', {
+    #     'block': PlotBlock2,
+    #     'params': {
+    #         'id': 'plot',
+    #         'blocksize': numsteps,
+    #         'saveplot': saveplot,
+    #         'savetype': 'pdf',
+    #         'wspace': 0.15,
+    #         'hspace': 0.15,
+    #         'xlim_share': True,
+    #         'inputs': {
+    #             's_p': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
+    #             's_e': {'bus': 'robot1/s_extero', 'shape': (dim_s_extero, numsteps)},
+    #             'pre_l0': {'bus': 'pre_l0/pre', 'shape': (dim_s_goal, numsteps)},
+    #             'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
+    #             'pre_l2': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, numsteps)},
+    #             'credit_l1': {'bus': 'budget/credit', 'shape': (1, numsteps)},
+    #             'infodist': {
+    #                 'bus': 'infodist/infodist',
+    #                 'shape': (dim_s_proprio, 1, 1)
+    #             },
+    #         },
+    #         'desc': 'Single episode pm1d baseline',
             
-            'subplots': [
-                # row 1: pre, s
-                [
-                    {
-                        'input': ['pre_l0', 's_p', 'pre_l1'],
-                        'plot': [
-                            partial(timeseries, linewidth = 1.0, alpha = 1.0, xlabel = None),
-                            partial(timeseries, alpha = 1.0, xlabel = None),
-                            partial(timeseries, linewidth = 2.0, alpha = 1.0, xticks = False, xlabel = None)],
-                        'title': 'two-level prediction and measurement (timeseries)',
-                    },
-                    {
-                        'input': ['pre_l0', 's_p', 'pre_l1'],
-                        'plot': [partial(
-                            histogram, orientation = 'horizontal', histtype = 'stepfilled',
-                            yticks = False, xticks = False, alpha = 1.0, normed = False) for _ in range(3)],
-                        'title': 'two-level prediction and measurement (histogram)',
-                        'desc': 'Single episode pm1d baseline \autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
-                        # 'mode': 'stack'
-                    },
-                ],
+    #         'subplots': [
+    #             # row 1: pre, s
+    #             [
+    #                 {
+    #                     'input': ['pre_l0', 's_p', 'pre_l1'],
+    #                     'plot': [
+    #                         partial(timeseries, linewidth = 1.0, alpha = 1.0, xlabel = None),
+    #                         partial(timeseries, alpha = 1.0, xlabel = None),
+    #                         partial(timeseries, linewidth = 2.0, alpha = 1.0, xticks = False, xlabel = None)],
+    #                     'title': 'two-level prediction and measurement (timeseries)',
+    #                 },
+    #                 {
+    #                     'input': ['pre_l0', 's_p', 'pre_l1'],
+    #                     'plot': [partial(
+    #                         histogram, orientation = 'horizontal', histtype = 'stepfilled',
+    #                         yticks = False, xticks = False, alpha = 1.0, normed = False) for _ in range(3)],
+    #                     'title': 'two-level prediction and measurement (histogram)',
+    #                     'desc': 'Single episode pm1d baseline \autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
+    #                     # 'mode': 'stack'
+    #                 },
+    #             ],
                 
-                # row 2: pre_l2, s
-                [
-                    {
-                        'input': ['pre_l2', 's_p'],
-                        'plot': [
-                            partial(timeseries, alpha = 1.0, xlabel = None),
-                            partial(timeseries, alpha = 0.5, xlabel = None),
-                        ],
-                        'title': 'proprio and f(proprio)',
-                    },
-                    {
-                        'input': ['pre_l2', 's_p'],
-                        'plot': [
-                            partial(
-                                histogram, orientation = 'horizontal', histtype = 'stepfilled',
-                                yticks = False, xticks = False, alpha = 0.5, normed = False) for _ in range(2)],
-                        'title': 'proprio and f(proprio) (histogram)',
-                        'desc': 'Single episode pm1d baseline \autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
-                        # 'mode': 'stack'
-                    },
-                ],
+    #             # row 2: pre_l2, s
+    #             [
+    #                 {
+    #                     'input': ['pre_l2', 's_p'],
+    #                     'plot': [
+    #                         partial(timeseries, alpha = 1.0, xlabel = None),
+    #                         partial(timeseries, alpha = 0.5, xlabel = None),
+    #                     ],
+    #                     'title': 'proprio and f(proprio)',
+    #                 },
+    #                 {
+    #                     'input': ['pre_l2', 's_p'],
+    #                     'plot': [
+    #                         partial(
+    #                             histogram, orientation = 'horizontal', histtype = 'stepfilled',
+    #                             yticks = False, xticks = False, alpha = 0.5, normed = False) for _ in range(2)],
+    #                     'title': 'proprio and f(proprio) (histogram)',
+    #                     'desc': 'Single episode pm1d baseline \autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
+    #                     # 'mode': 'stack'
+    #                 },
+    #             ],
 
-                # row 3: budget
-                [
-                    {'input': 'credit_l1', 'plot': partial(timeseries, ylim = (0, 1000), alpha = 1.0),
-                         'title': 'agent budget (timeseries)',
-                        'desc': 'Single episode pm1d baseline \autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
-                    },
-                    {'input': 'credit_l1', 'plot': partial(
-                        histogram, orientation = 'horizontal', histtype = 'stepfilled',
-                        yticks = False, ylim = (0, 1000), alpha = 1.0, normed = False),
-                        'title': 'agent budget (histogram)',
-                        'xlabel': 'count [n]',
-                        'desc': 'Single episode pm1d baseline \autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
-                    },
-                ],
+    #             # row 3: budget
+    #             [
+    #                 {'input': 'credit_l1', 'plot': partial(timeseries, ylim = (0, 1000), alpha = 1.0),
+    #                      'title': 'agent budget (timeseries)',
+    #                     'desc': 'Single episode pm1d baseline \autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
+    #                 },
+    #                 {'input': 'credit_l1', 'plot': partial(
+    #                     histogram, orientation = 'horizontal', histtype = 'stepfilled',
+    #                     yticks = False, ylim = (0, 1000), alpha = 1.0, normed = False),
+    #                     'title': 'agent budget (histogram)',
+    #                     'xlabel': 'count [n]',
+    #                     'desc': 'Single episode pm1d baseline \autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
+    #                 },
+    #             ],
                 
-                # [
-                #     {
-                #         'input': ['infodist'],
-                #         'ndslice': (slice(None), 0, slice(None)),
-                #         'shape': (dim_s_proprio, 1),
-                #         'plot': [
-                #             partial(timeseries, linewidth = 1.0, alpha = 1.0, marker = 'o', xlabel = None),
-                #         ],
-                #         'title': 'd(proprio, f(proprio))',
-                #     },
-                #     {
-                #         'input': ['infodist'],
-                #         'ndslice': (slice(None), 0, slice(None)),
-                #         'shape': (dim_s_proprio, 1),
-                #         'plot': [partial(
-                #             histogram, orientation = 'horizontal', histtype = 'stepfilled',
-                #             yticks = False, xticks = False, alpha = 1.0, normed = False) for _ in range(1)],
-                #         'title': 'd(proprio, f(proprio)) (histogram)',
-                #         'desc': 'infodist \autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
-                #         # 'mode': 'stack'
-                #     },
-                # ],
-            ],
-        },
-    })
+    #             # [
+    #             #     {
+    #             #         'input': ['infodist'],
+    #             #         'ndslice': (slice(None), 0, slice(None)),
+    #             #         'shape': (dim_s_proprio, 1),
+    #             #         'plot': [
+    #             #             partial(timeseries, linewidth = 1.0, alpha = 1.0, marker = 'o', xlabel = None),
+    #             #         ],
+    #             #         'title': 'd(proprio, f(proprio))',
+    #             #     },
+    #             #     {
+    #             #         'input': ['infodist'],
+    #             #         'ndslice': (slice(None), 0, slice(None)),
+    #             #         'shape': (dim_s_proprio, 1),
+    #             #         'plot': [partial(
+    #             #             histogram, orientation = 'horizontal', histtype = 'stepfilled',
+    #             #             yticks = False, xticks = False, alpha = 1.0, normed = False) for _ in range(1)],
+    #             #         'title': 'd(proprio, f(proprio)) (histogram)',
+    #             #         'desc': 'infodist \autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
+    #             #         # 'mode': 'stack'
+    #             #     },
+    #             # ],
+    #         ],
+    #     },
+    # })
 ])

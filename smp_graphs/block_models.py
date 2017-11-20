@@ -215,14 +215,16 @@ def init_random_lookup(ref, conf, mconf):
     #  3. external entropy: y = h(x) + E
     
     # information distance parameters
-    ref.d = mconf['d']
-    ref.s_a = mconf['s_a']
-    ref.s_f = mconf['s_f']
+    ref.l_a = mconf['l_a'] # coef linear
+    ref.d_a = mconf['d_a'] # coef  gaussian
+    ref.d_s = mconf['d_s'] # sigma gaussian
+    ref.s_a = mconf['s_a'] # coef noise
+    ref.s_f = mconf['s_f'] # beta noise
     ref.e = mconf['e']
 
     # contraction / expansion: transforming uniform to gaussian, d to var
     # var = 0.25**2
-    var = ref.d**2
+    var = ref.d_s**2
     ref.h_gauss = np.exp(-0.5 * (0.0 - ref.h_lin)**2/var)
     ref.h_gauss_inv = np.max(ref.h_gauss) - ref.h_gauss
     ref.h_gauss_inv_int = np.cumsum(ref.h_gauss_inv).reshape(ref.h_lin.shape)
@@ -238,18 +240,20 @@ def init_random_lookup(ref, conf, mconf):
     # ref.h_noise = np.exp(-0.5 * (0.0 - ref.h_noise)**2)
     from smp_base.gennoise import Noise
     noise = Noise.oneoverfnoise(N = mconf['numelem'], beta = ref.s_f)
-    ref.h_noise = noise[1].reshape(ref.h_lin.shape)
+    ref.h_noise = np.abs(noise[1]).reshape(ref.h_lin.shape)
+    # logger.debug("    model init_random_lookup ref.h_noise = %s/%s, %s" % (ref.h_noise.real, ref.h_noise.imag, ))
     
     # noise: color (1/f)
     # ref.
     ref.h = (1 - ref.s_a) * ref.h_gauss_inv_int + ref.s_a * ref.h_noise
     # ref.h *= 0.5
-    ref.h = ref.h_gauss_inv_int
-    # ref.h /= np.max(np.abs(ref.h))
+    # ref.h = ref.h_gauss_inv_int
+    ref.h = ref.l_a * ref.h_lin + ref.d_a * ref.h_gauss_inv_int + ref.s_a * ref.h_noise
+    ref.h /= np.max(np.abs(ref.h))
     ref.x = np.zeros((inshape))
     ref.y = np.zeros_like(ref.x)
     logger.debug("    model init_random_lookup ref.x = %s, ref.y = %s, ref.h = %s, ref.h_lin = %s, ref.h_noise = %s" % (
-        ref.x.shape, ref.y.shape, ref.h.shape, ref.h_lin.shape, ref.h_noise.shape))
+        ref.x.shape, ref.y.shape, ref.h.shape, ref.h_lin.shape, ref.h_noise.dtype))
     # do_random_lookup(ref)
     
 def step_random_lookup(ref):
