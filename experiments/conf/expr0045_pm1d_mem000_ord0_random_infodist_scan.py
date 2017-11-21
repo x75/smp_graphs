@@ -21,7 +21,7 @@ from smp_graphs.utils_conf import get_systemblock
 
 # global parameters can be overwritten from the commandline
 ros = False
-numsteps = 10000/10
+numsteps = 10000/5
 recurrent = True
 debug = False
 showplot = True
@@ -143,11 +143,11 @@ graph = OrderedDict([
                                 # 's_a': 0.5,
                                 # 's_f': 1.0,
                                 # 'e': 0.0,
-                                'l_a': 0.0,
-                                'd_a': 0.0,
-                                'd_s': 0.1,
-                                's_a': 1.0,
-                                's_f': 2.0,
+                                'l_a': 1.0,
+                                'd_a': 1.0,
+                                'd_s': 1.0,
+                                's_a': 0.25,
+                                's_f': 3.0,
                                 'e': 0.0,
                             }
                         },

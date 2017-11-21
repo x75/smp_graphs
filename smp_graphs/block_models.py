@@ -253,7 +253,7 @@ def init_random_lookup(ref, conf, mconf):
     # ref.h *= 0.5
     # ref.h = ref.h_gauss_inv_int
     ref.h = ref.l_a * ref.h_lin + ref.d_a * ref.h_gauss_inv_int + ref.s_a * ref.h_noise
-    # ref.h /= np.max(np.abs(ref.h))
+    ref.h /= np.max(np.abs(ref.h))
     ref.x = np.zeros((inshape))
     ref.y = np.zeros_like(ref.x)
     logger.debug("    model init_random_lookup ref.x = %s, ref.y = %s, ref.h = %s, ref.h_lin = %s, ref.h_noise = %s" % (
