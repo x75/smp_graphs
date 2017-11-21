@@ -36,314 +36,180 @@ lconf = {
     'lim': 1.0,
     'order': 0,
     'd_i': 0.0,
+    'numloop': 2,
 }
     
 dim = lconf['dim']
 order = lconf['order']
 budget = lconf['budget'] # 510
 lim = lconf['lim'] # 1.0
+numloop = lconf['numloop'] # 1.0
 
-desc = """This experiment is based on expr0010. The modification
-consists of introducing another modality $s_\text{m_2}$ in the agent's
-sensorimotor space. In this artificial example, the new subspace is
-defined by a map $f: m1,d \rightarrow m2$ and implemented in
-'m1-m2'. The $d$ parameter is used to control the amount information
-distance between the elements of each space. This provides a simple
-and expressive model for intermodal maps and the amount of
-transformation they need to achieve."""
+desc = """This experiment is looping expr0045 over the parameters that control the information distance between to spaces."""
 
 outputs = {
     'latex': {'type': 'latex',},
 }
 
-# configure system block 
-systemblock   = get_systemblock['pm'](
-    dim_s_proprio = dim, dim_s_extero = dim, lag = 1, order = order)
-# systemblock   = get_systemblock['sa'](
-#     dim_s_proprio = dim, dim_s_extero = dim, lag = 1)
-systemblock['params']['sysnoise'] = 0.0
-systemblock['params']['anoise_std'] = 0.0
-dim_s_proprio = systemblock['params']['dim_s_proprio']
-dim_s_extero  = systemblock['params']['dim_s_extero']
-# dim_s_goal   = dim_s_extero
-dim_s_goal    = dim_s_proprio
 
-# print "sysblock", systemblock['params']['dim_s_proprio']
+# for stats
+l_as = [1.0, 0.0]
+d_as = [1.0, 1.0]
+d_ss = [1.0, 0.25]
 
-# TODO
-# 1. loop over randseed
-# 2. loop over budget vs. density (space limits, distance threshold), hyperopt
-# 3. loop over randseed with fixed optimized parameters
-# 4. loop over kinesis variants [bin, cont] and system variants ord [0, 1, 2, 3?] and ndim = [1,2,3,4,8,16,...,ndim_max]
+loop = [('lconf', {
+    'dim': 1,
+    'dt': 0.1,
+    'lag': 1,
+    'budget': 1000/1,
+    'lim': 1.0,
+    'order': 0,
+    'd_i': 0.0,
+    'infodistgen': {
+        'type': 'random_lookup',
+        'numelem': 1001,
+        'l_a': l_as[i],
+        'd_a': d_as[i],
+        'd_s': d_ss[i],
+        's_a': 0.02,
+        's_f': 3.0,
+        'e': 0.0,
+    },
+}) for i in range(numloop)]
 
-# TODO low-level
-# block groups
-# experiment sig, make hash, store config and logfile with that hash
-# compute experiment hash: if exists, use logfile, else compute
-# compute experiment/model_i hash: if exists, use pickled model i, else train
-# pimp smp_graphs graph visualisation
-
-# graph
-graph = OrderedDict([
-    # robot
-    ('robot1', systemblock),
-        
-    # brain
-    ('brain', {
-        # FIXME: idea: this guy needs to pass down its input/output configuration
-        #        to save typing / errors on the individual modules
-        'block': Block2,
-        'params': {
-            'numsteps': 1, # numsteps,
-            'id': 'brain',
-            'nocache': True,
-            'graph': OrderedDict([
-                # every brain has a budget
-                ('budget', {
-                    'block': ModelBlock2,
-                    'params': {
-                        'blocksize': 1,
-                        'blockphase': [0],
-                        'credit': np.ones((1, 1)) * budget,
-                        'goalsize': 0.1, # np.power(0.01, 1.0/dim_s_proprio), # area of goal
-                        'inputs': {
-                            # 'credit': {'bus': 'budget/credit', 'shape': (1,1)},
-                            # 's0': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 1)},
-                            's0': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, 1)},
-                            's0_ref': {'bus': 'pre_l1/pre', 'shape': (dim_s_proprio, 1)},
-                            },
-                        'outputs': {
-                            'credit': {'shape': (1,1)},
-                        },
-                        'models': {
-                            'budget': {'type': 'budget_linear'},
-                        },
-                        'rate': 1,
-                    },
-                }),
-
-                # new modality m2 with distance parameter
-                ('pre_l2', {
-                    'block': ModelBlock2,
-                    'params': {
-                        'models': {
-                            'infodistgen': {
-                                'type': 'random_lookup',
-                                'd': 0.5,
-                                's_a': 0.5,
-                                's_f': 1.0,
-                                'e': 0.0,
-                            }
-                        },
-                        'inputs': {
-                            'x': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 1)},
-                        },
-                        'outputs': {
-                            'y': {'shape': (dim_s_proprio, 1)},
-                        },
-                    }
-                }),
-
-                # uniformly dist. random goals, triggered when error < goalsize
-                ('pre_l1', {
-                    'block': ModelBlock2,
-                    'params': {
-                        'blocksize': 1,
-                        'blockphase': [0],
-                        'rate': 1,
-                        # 'ros': ros,
-                        'goalsize': 0.1, # np.power(0.01, 1.0/dim_s_proprio), # area of goal
-                        'inputs': {
-                            'credit': {'bus': 'budget/credit'},
-                            'lo': {'val': -lim, 'shape': (dim_s_proprio, 1)},
-                            'hi': {'val': lim, 'shape': (dim_s_proprio, 1)},
-                            # 'mdltr': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 1)},
-                            'mdltr': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, 1)},
-                            },
-                        'outputs': {
-                            'pre': {'shape': (dim_s_proprio, 1)},
-                        },
-                        'models': {
-                            'goal': {'type': 'random_uniform_modulated'}
-                            },
-                        },
-                    }),
-                    
-                # uniformly distributed random action, no modulation
-                ('pre_l0', {
-                    'block': UniformRandomBlock2,
-                    'params': {
-                        'id': 'search',
-                        'inputs': {
-                            'credit': {'bus': 'budget/credit'},
-                            'lo': {'val': -lim},
-                            'hi': {'val': lim}},
-                        'outputs': {
-                            'pre': {'shape': (dim_s_proprio, 1)},
-                        }
-                    },
-                }),
-                
-                # measure mutual information I(m1;m2)
-                ('mi', {
-                    'block': MIBlock2,
-                    'params': {
-                        'blocksize': numsteps,
-                        'shift': (0, 1),
-                        'inputs': {
-                            'x': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
-                            # 'y': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
-                            'y': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, numsteps)},
-                        },
-                        'outputs': {
-                            'infodist': {'shape': (1, 1, 1)},
-                        }
-                    }
-                }),
-                # measure information distance d(m1, m2)
-                ('infodist', {
-                    'block': InfoDistBlock2,
-                    'params': {
-                        'blocksize': numsteps,
-                        'shift': (0, 1),
-                        'inputs': {
-                            'x': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
-                            # 'y': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
-                            'y': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, numsteps)},
-                        },
-                        'outputs': {
-                            'infodist': {'shape': (1, 1, 1)},
-                        }
-                    }
-                }),
-            ]),
+loopblock = {
+    'block': Block2,
+    'params': {
+        'id': 'bhier',
+        'debug': False,
+        'logging': True,
+        'topblock': False,
+        'numsteps': numsteps,
+        'randseed': 1,
+        # subcomponent?
+        # 'robot1/dim': 2,
+        'lconf': {},
+        # contains the subgraph specified in this config file
+        'subgraph': 'conf/expr0045_pm1d_mem000_ord0_random_infodist_scan.py',
+        'subgraph_rewrite_id': True,
+        'subgraph_ignore_nodes': [], # ['plot'],
+        'subgraphconf': {
+            # 'plot/active': False
+            # 'robot1/sysdim': 1,
+            },
+        # 'graph': graph1,
+        'outputs': {
+            # 'credit_min': {'shape': (1, 1), 'buscopy': 'measure/bcredit_min'},
+            # 'credit_max': {'shape': (1, 1), 'buscopy': 'measure/bcredit_max'},
+            # 'credit_mu': {'shape': (1, 1), 'buscopy': 'measure/bcredit_mu'},
         }
-    }),
-    
-    # # robot
-    # ('robot1', systemblock),
+    },
+}
+# loop = [('randseed', 1000 + i) for i in range(0, numloop)]
+# loop = [('randseed', 1000 + i) for i in range(0, numloop)]
 
-    # measures
-    ('measure', {
-        'block': MomentBlock2,
+graph = OrderedDict([
+    # # concurrent loop
+    # ('b3', {
+    #     'block': LoopBlock2,
+    #     'params': {
+    #         'id': 'b3',
+    #         'logging': False,
+    #         'loop': [('randseed', 1000 + i) for i in range(1, 4)],
+    #         'loopmode': 'parallel',
+    #         'numsteps': numsteps,
+    #         # graph dictionary: (id-key, {config dict})
+    #         'loopblock': loopblock,
+    #         'outputs': {'credit_min': {'shape': (1, numloop)}},
+    #     },
+    # }),
+
+    # sequential loop
+    ("b4", {
+        'block': SeqLoopBlock2,
         'params': {
-            'id': 'measure',
-            'blocksize': numsteps,
-            'inputs': {
-                # 'credit': {'bus': 'pre_l1/credit', 'shape': (1, numsteps)},
-                'bcredit': {'bus': 'budget/credit', 'shape': (1, numsteps)},
-            },
+            'id': 'b4',
+            # 'debug': True,
+            # loop specification, check hierarchical block to completely
+            # pass on the contained in/out space?
+            'blocksize': numsteps, # same as loop length
+            'numsteps':  numsteps,
+            'loopblocksize': numsteps/numloop, # loopblocksize,
+            # can't do this dynamically yet without changing init passes
             'outputs': {
-                'bcredit_mu': {'shape': (1, 1)},
-                'bcredit_var': {'shape': (1, 1)},
-                'bcredit_min': {'shape': (1, 1)},
-                'bcredit_max': {'shape': (1, 1)},
+                # 'credit_min': {'shape': (1, numloop)},
+                # 'credit_max': {'shape': (1, numloop)},
+                # 'credit_mu': {'shape': (1, numloop)},
+                # 'x': {'shape': (3, numsteps)},
+                # 'y': {'shape': (1, numsteps)}
             },
+
+            # single dim config statistics
+            'loop': loop,
+            
+            # # loop over dims
+            # 'loop': [
+            #     ('lconf', {
+            #         'dim': (i + 1),
+            #         'dt': 0.1,
+            #         'lag': 1,
+            #         'budget': 1000,
+            #         'lim': 1.0,
+            #         }) for i in range(0, numloop)],
+
+            # # failed attempt looping subgraphconf
+            # 'loop': [
+            #     ('subgraphconf', {
+            #         'robot1/sysdim': i + 2,
+            #         'robot1/statedim': (i + 2) * 3,
+            #         'robot1/dim_s_proprio': (i + 2),
+            #         'robot1/dim_s_extero': (i + 2),
+            #         'robot1/outputs': {
+            #             's_proprio': {'shape': ((i + 2), 1)},
+            #             's_extero': {'shape': ((i + 2), 1)},
+            #             }
+            #         }) for i in range(0, numloop)],
+
+            'loopmode': 'sequential',
+            'loopblock': loopblock,
         },
     }),
+
+    # # plotting
+    # ('plot', {
+    #     'block': PlotBlock2,
+    #     'params': {
+    #         'id': 'plot',
+    #         'blocksize': numsteps,
+    #         'saveplot': saveplot,
+    #         'savetype': 'pdf',
+    #         'hspace': 0.2,
+    #         'wspace': 0.2,
+    #         'inputs': {
+    #             'mins_s': {'bus': 'b4/credit_min', 'shape': (1, numloop)},
+    #             'maxs_s': {'bus': 'b4/credit_max', 'shape': (1, numloop)},
+    #             'mus_s': {'bus': 'b4/credit_mu', 'shape': (1, numloop)},
+    #             # 'mins_p': {'bus': 'b3/credit_min', 'shape': (1, numloop)},
+    #             },
+    #         'subplots': [
+    #             [
+    #                 {
+    #                 'input': ['mins_s', 'maxs_s', 'mus_s'],
+    #                 'plot': partial(
+    #                     timeseries,
+    #                     ylim = (-30, 1030),
+    #                     yscale = 'linear',
+    #                     linestyle = 'none',
+    #                     marker = 'o')},
+    #                 {'input': ['mins_s', 'maxs_s', 'mus_s'], 'plot': partial(
+    #                     histogram,
+    #                     title = 'mean/min budget hist',
+    #                     ylim = (-30, 1030),
+    #                     yscale = 'linear',
+    #                     orientation = 'horizontal')}
+    #             ],
+    #         ],
+    #     },
+    # })
     
-    # plotting
-    ('plot', {
-        'block': PlotBlock2,
-        'params': {
-            'id': 'plot',
-            'blocksize': numsteps,
-            'saveplot': saveplot,
-            'savetype': 'pdf',
-            'wspace': 0.15,
-            'hspace': 0.15,
-            'xlim_share': True,
-            'inputs': {
-                's_p': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
-                's_e': {'bus': 'robot1/s_extero', 'shape': (dim_s_extero, numsteps)},
-                'pre_l0': {'bus': 'pre_l0/pre', 'shape': (dim_s_goal, numsteps)},
-                'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
-                'pre_l2': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, numsteps)},
-                'credit_l1': {'bus': 'budget/credit', 'shape': (1, numsteps)},
-                'infodist': {
-                    'bus': 'infodist/infodist',
-                    'shape': (dim_s_proprio, 1, 1)
-                },
-            },
-            'desc': 'Single episode pm1d baseline',
-            'subplots': [
-                # row 1: pre, s
-                [
-                    {
-                        'input': ['pre_l0', 's_p', 'pre_l1'],
-                        'plot': [
-                            partial(timeseries, linewidth = 1.0, alpha = 1.0, xlabel = None),
-                            partial(timeseries, alpha = 1.0, xlabel = None),
-                            partial(timeseries, linewidth = 2.0, alpha = 1.0, xticks = False, xlabel = None)],
-                        'title': 'two-level prediction and measurement (timeseries)',
-                    },
-                    {
-                        'input': ['pre_l0', 's_p', 'pre_l1'],
-                        'plot': [partial(
-                            histogram, orientation = 'horizontal', histtype = 'stepfilled',
-                            yticks = False, xticks = False, alpha = 1.0, normed = False) for _ in range(3)],
-                        'title': 'two-level prediction and measurement (histogram)',
-                        'desc': 'Single episode pm1d baseline \autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
-                        # 'mode': 'stack'
-                    },
-                ],
-                # row 2: pre_l2, s
-                [
-                    {
-                        'input': ['pre_l2', 's_p'],
-                        'plot': [
-                            partial(timeseries, alpha = 1.0, xlabel = None),
-                            partial(timeseries, alpha = 0.5, xlabel = None),
-                        ],
-                        'title': 'proprio and f(proprio)',
-                    },
-                    {
-                        'input': ['pre_l2', 's_p'],
-                        'plot': [
-                            partial(
-                                histogram, orientation = 'horizontal', histtype = 'stepfilled',
-                                yticks = False, xticks = False, alpha = 0.5, normed = False) for _ in range(2)],
-                        'title': 'proprio and f(proprio) (histogram)',
-                        'desc': 'Single episode pm1d baseline \autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
-                        # 'mode': 'stack'
-                    },
-                ],
-                [
-                    {'input': 'credit_l1', 'plot': partial(timeseries, ylim = (0, 1000), alpha = 1.0),
-                         'title': 'agent budget (timeseries)',
-                        'desc': 'Single episode pm1d baseline \autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
-                    },
-                    {'input': 'credit_l1', 'plot': partial(
-                        histogram, orientation = 'horizontal', histtype = 'stepfilled',
-                        yticks = False, ylim = (0, 1000), alpha = 1.0, normed = False),
-                        'title': 'agent budget (histogram)',
-                        'xlabel': 'count [n]',
-                        'desc': 'Single episode pm1d baseline \autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
-                    },
-                ],
-                # [
-                #     {
-                #         'input': ['infodist'],
-                #         'ndslice': (slice(None), 0, slice(None)),
-                #         'shape': (dim_s_proprio, 1),
-                #         'plot': [
-                #             partial(timeseries, linewidth = 1.0, alpha = 1.0, marker = 'o', xlabel = None),
-                #         ],
-                #         'title': 'd(proprio, f(proprio))',
-                #     },
-                #     {
-                #         'input': ['infodist'],
-                #         'ndslice': (slice(None), 0, slice(None)),
-                #         'shape': (dim_s_proprio, 1),
-                #         'plot': [partial(
-                #             histogram, orientation = 'horizontal', histtype = 'stepfilled',
-                #             yticks = False, xticks = False, alpha = 1.0, normed = False) for _ in range(1)],
-                #         'title': 'd(proprio, f(proprio)) (histogram)',
-                #         'desc': 'infodist \autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
-                #         # 'mode': 'stack'
-                #     },
-                # ],
-            ],
-        },
-    })
 ])

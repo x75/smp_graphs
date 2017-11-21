@@ -37,6 +37,16 @@ lconf = {
     'lim': 1.0,
     'order': 0,
     'd_i': 0.0,
+    'infodist': {
+        'type': 'random_lookup',
+        'numelem': 1001,
+        'l_a': 1.0,
+        'd_a': 1.0,
+        'd_s': 1.0,
+        's_a': 0.1,
+        's_f': 3.0,
+        'e': 0.0,
+    },
 }
     
 dim = lconf['dim']
@@ -65,6 +75,9 @@ dim_s_proprio = systemblock['params']['dim_s_proprio']
 dim_s_extero  = systemblock['params']['dim_s_extero']
 # dim_s_goal   = dim_s_extero
 dim_s_goal    = dim_s_proprio
+
+
+infodistgen = lconf['infodistgen']
 
 # print "sysblock", systemblock['params']['dim_s_proprio']
 
@@ -137,20 +150,21 @@ graph = OrderedDict([
                     'params': {
                         'debug': True,
                         'models': {
-                            'infodistgen': {
-                                'type': 'random_lookup',
-                                'numelem': 1001,
-                                # 'd': 0.5,
-                                # 's_a': 0.5,
-                                # 's_f': 1.0,
-                                # 'e': 0.0,
-                                'l_a': 1.0,
-                                'd_a': 1.0,
-                                'd_s': 1.0,
-                                's_a': 0.1,
-                                's_f': 3.0,
-                                'e': 0.0,
-                            }
+                            # 'infodistgen': {
+                            #     'type': 'random_lookup',
+                            #     'numelem': 1001,
+                            #     # 'd': 0.5,
+                            #     # 's_a': 0.5,
+                            #     # 's_f': 1.0,
+                            #     # 'e': 0.0,
+                            #     'l_a': 1.0,
+                            #     'd_a': 1.0,
+                            #     'd_s': 1.0,
+                            #     's_a': 0.1,
+                            #     's_f': 3.0,
+                            #     'e': 0.0,
+                            # },
+                            'infodistgen': infodistgen,
                         },
                         'inputs': {
                             'x': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 1)},
