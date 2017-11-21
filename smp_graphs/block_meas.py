@@ -1,3 +1,40 @@
+"""**smp_graphs** measure blocks
+
+.. moduleauthor:: Oswald Berthold
+
+.. warning:: Work in progress
+
+Measures are quantitative expressions of some quality and its amount
+of presence in the input data. A measure operator can be unary like
+mean() and var(), binary like a distance measure d(x1, x2), or n-ary
+like an area spanned by vertices.
+
+.. note::
+
+    Unary measures can also be seen as a special case of a binary
+    operator applied to the same object in both arguments. Doing this
+    a binary measure becomes an 'auto' version of the original measure
+    like cross-correlation corr(x1, x2) can become auto-correlation
+    with corr(x1, x1)
+
+.. note::
+
+    Opposite of distance is similarity (closeness, proximity, difference, ...)
+
+Currently the measure stack consists of:
+ - the xcorr scan measurements defined here, TODO move to smp_base
+ - the infth scan measurements defined in block_meas_infth.py and smp_base/measures_infth.py
+ - direct: MSEBlock2, MomentBlock2
+ - TFBlock2 approach: measure as basis transforms, DFT style
+ - indirect: FuncBlock2, ModelBlock2
+ - legacy and external stuff in: evoplast, smp, ...
+ - check [Diss_Draft, thesis_smp, ...] for measure notes
+
+Plan:
+ - consolidate the stack
+ - make general matrix scan pattern to fill with primitive measure callback
+
+"""
 
 import numpy as np
 
@@ -152,7 +189,9 @@ class TFBlock2(PrimBlock2):
 
 ################################################################################
 # good old plain measures: MSE, \int MSE, statistical moments, ...
-from smp_base.measures import meas_mse
+from smp_base.measures import meas_mse, meas_hist, div_kl, div_chisquare
+# from smp_base.measures import meas_sub
+
 # MSE
 class MSEBlock2(PrimBlock2):
     """MSEBlock2 class
@@ -217,4 +256,108 @@ class MomentBlock2(PrimBlock2):
                 getattr(self, k_mu), getattr(self, k_var), getattr(self, k_min), getattr(self, k_max)
             )
             self._debug(logstr)
+
+class MeasBlock2(PrimBlock2):
+    """MeasBlock2 - measure block
+
+    MeasBlock2 is a generic container for measures, see the module
+    description in :file:`smp_base/block_meas.py`.
+
+    The idea is that the meas block operation is governed by the `mode`, `scope` and `meas` attributes.
+
+    Modes are: primitive, scan, basis transform, ...
+
+    Scopes are local (component-wise) and global (summed over all
+    axes). Using parametric embedding / convolution / summation-rules,
+    local-to-global can be made into a continuous spectrum.
+
+    Measures are: all common distance metrics (error, manhattan,
+    euclid, l1, l2, linf, min, max, cosine, ...), histo and
+    probabilistic distance metrics (KLD, chi-square, mahalanobis,
+    ...), information theoretic (entropic) measures, basis transforms,
+    ...
+    """
+    modes = {
+        'basic': {},
+        'hist': {},
+    }
+    measures = {
+        'sub': {'func': np.subtract},
+        'mse': {'func': meas_mse},
+        'hist': {'func': meas_hist}, # compute histogram
+        'kld':  {'func': div_kl},
+        'chisq':  {'func': div_chisquare},
+    }
+    
+    defaults = {
+        'inputs': {
+            'x1': {'shape': (1, 1)},
+            'x2': {'shape': (1, 1)},
+        },
+        'outputs': {
+            'y': {'shape': (1, 1)}
+        },
+        'mode': 'basic',
+        'meas': 'mse',
+        'bins': 21, # 'auto',
+    }
+
+    @decInit()
+    def __init__(self, conf = {}, paren = None, top = None):
+        PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
+
+        # default step is basic
+        self._step = self.step_basic
+
+        # mode specific step if mode is not basic
+        if self.mode == 'hist':
+            self._step = self.step_hist
+            # fix outputs
+            # self.outputs
+        
+        # FIXME: mangle conf for input/output dimension inference
+        
+    @decStep()
+    def step(self, x = None):
+        self._step(x)
+        
+    def step_basic(self, x = None):
+        
+        # # print "MeasBlock2"
+        # for k, v in self.inputs.items():
+        #     logstr = 'k = {0}, v = {1}'.format(k, v)
+        #     self._debug(logstr)
+
+        x1 = self.get_input('x1')
+        x2 = self.get_input('x2')
+        self._debug('self.measures     is type = %s, length = %s' % (type(self.measures), len(self.measures)))
+        self._debug('self.measures[%s] is type = %s, length = %s' % (self.meas, type(self.measures[self.meas]), len(self.measures[self.meas])))
+        self._debug('calling %s on (x1 = %s, x2 = %s)' % (self.measures[self.meas]['func'], x1.shape, x2.shape))
+        setattr(self, 'y', self.measures[self.meas]['func'](x1, x2))
+        
+        self._debug('y = measures[%s](x1, x2) = %s' % (self.meas, str(self.y)[:100]))
+
+    def step_hist(self, x = None):
+        """step for histogram
+
+        Inputs:
+         - x(ndarray): data
+
+        Params:
+         - bins(None, str, int, array-like): None, 'auto', number of bins or precomputed bin array
+        """
+        self._debug('self.measures     is type = %s, length = %s' % (type(self.measures), len(self.measures)))
+        self._debug('self.measures[%s] is type = %s, length = %s' % (self.meas, type(self.measures[self.meas]), len(self.measures[self.meas])))
+        for ink, inv in self.inputs.items():
+            x = self.get_input(ink)
+            self._debug('    calling %s on (x = %s, bins = %s)' % (self.measures[self.meas]['func'], x.shape, self.bins))
+            h_ = self.measures[self.meas]['func'](x, bins = self.bins)
+            setattr(self, 'h_%s' % (ink, ), h_[0])
+            self._debug('    h_%s = measures[%s](x, bins) = %s' % (ink, self.meas, str(getattr(self, 'h_%s' % (ink, )))[:100]))
             
+        # x1 = self.get_input('x1')
+        # x2 = self.get_input('x2')
+        
+        # setattr(self, 'y', self.measures[self.meas]['func'](x1, x2))
+        
+        

@@ -608,7 +608,7 @@ class PlotBlock2(FigPlotBlock2):
                 # plot the plotdata
                 # kwargs_ = {} # kwargs_plot_clean(**kwargs)
 
-                # transfer configuration keywords (kwargs)
+                # transfer plot_subplot configuration keywords subplotconf to plot kwargs
                 kwargs = {}
                 for kw in [
                         'aspect', 'orientation',
@@ -724,9 +724,15 @@ class PlotBlock2(FigPlotBlock2):
                     continue
                     
                 # consolidate axis limits
-                if self.xlim_share and not kwargs.has_key('xlim'):
+                if self.xlim_share and not subplotconf.has_key('xlim'):
+                    # self._debug("subplots pass 2 consolidate ax[%d,%d] = %s" % (i, j, ax, cols_xlim_max[j]))
+                    # self._debug("subplots pass 2             xlim = %s" % (cols_xlim_max[j]))
+                    # self._debug("subplots pass 2             subplotconf.keys = %s" % (subplotconf.keys()))
                     ax.set_xlim(cols_xlim_max[j])
-                if self.ylim_share and not kwargs.has_key('ylim'):
+                if self.ylim_share and not subplotconf.has_key('ylim'):
+                    # self._debug("subplots pass 2 consolidate ax[%d,%d] = %s" % (i, j, ax, rows_ylim_max[j]))
+                    # self._debug("subplots pass 2             ylim = %s" % (rows_ylim_max[j]))
+                    # self._debug("subplots pass 2             subplotconf.keys = %s" % (subplotconf.keys()))
                     ax.set_ylim(rows_ylim_max[i])
 
                 # check axis inversion

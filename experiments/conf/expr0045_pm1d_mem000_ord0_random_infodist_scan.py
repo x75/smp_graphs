@@ -12,7 +12,7 @@ special case of kinesis with coupling = 0 between measurement and action
 from smp_graphs.block import FuncBlock2, TrigBlock2
 from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2
 from smp_graphs.block_models import ModelBlock2
-from smp_graphs.block_meas import MomentBlock2
+from smp_graphs.block_meas import MeasBlock2, MomentBlock2
 from smp_graphs.block_meas_infth import MIBlock2, InfoDistBlock2
 
 from smp_graphs.funcs import f_sin, f_motivation, f_motivation_bin
@@ -21,7 +21,8 @@ from smp_graphs.utils_conf import get_systemblock
 
 # global parameters can be overwritten from the commandline
 ros = False
-numsteps = 10000/5
+numsteps = 10000/10
+numbins = 21
 recurrent = True
 debug = False
 showplot = True
@@ -146,7 +147,7 @@ graph = OrderedDict([
                                 'l_a': 1.0,
                                 'd_a': 1.0,
                                 'd_s': 1.0,
-                                's_a': 0.25,
+                                's_a': 0.1,
                                 's_f': 3.0,
                                 'e': 0.0,
                             }
@@ -259,6 +260,72 @@ graph = OrderedDict([
         },
     }),
 
+    # measures
+    ('meas_sub', {
+        'block': MeasBlock2,
+        'params': {
+            'id': 'meas_sub',
+            'blocksize': numsteps,
+            'debug': True,
+            'mode': 'basic',
+            'scope': 'local',
+            'meas': 'sub',
+            'inputs': {
+                'x1': {'bus': 'robot1/s_proprio', 'shape': (1, numsteps)},
+                'x2': {'bus': 'pre_l2/y', 'shape': (1, numsteps)},
+            },
+            'outputs': {
+                'y': {'shape': (1, numsteps)},
+            },
+        },
+    }),
+    
+    # measures
+    ('meas_hist', {
+        'block': MeasBlock2,
+        'params': {
+            'id': 'meas_hist',
+            'blocksize': numsteps,
+            'debug': True,
+            'mode': 'hist',
+            'scope': 'local',
+            'meas': 'hist',
+            # direct histo input?
+            # or signal input
+            'inputs': {
+                'x1': {'bus': 'robot1/s_proprio', 'shape': (1, numsteps)},
+                'x2': {'bus': 'pre_l2/y', 'shape': (1, numsteps)},
+            },
+            'bins': np.linspace(0, 1, 21),
+            'outputs': {
+                'h_x1': {'shape': (1, numbins)},
+                'h_x2': {'shape': (1, numbins)},
+            },
+        },
+    }),
+    
+    # measures
+    ('meas_kld', {
+        'block': MeasBlock2,
+        'params': {
+            'id': 'meas_kld',
+            'blocksize': numsteps,
+            'debug': True,
+            'mode': 'basic',
+            'scope': 'local',
+            'meas': 'chisq', # 'kld'
+            # direct histo input?
+            # or signal input
+            'inputs': {
+                'x1': {'bus': 'meas_hist/h_x1', 'shape': (1, numbins)},
+                'x2': {'bus': 'meas_hist/h_x2', 'shape': (1, numbins)},
+            },
+            'outputs': {
+                'y': {'shape': (1, numbins)},
+            },
+        },
+    }),
+    
     # plotting random_lookup influence
     # one configuration plot grid:
     # | transfer func h | horizontal output | horziontal histogram |
@@ -288,6 +355,8 @@ graph = OrderedDict([
                     'bus': 'infodist/infodist',
                     'shape': (dim_s_proprio, 1, 1)
                 },
+                'meas_sub': {'bus': 'meas_sub/y', 'shape': (1, numsteps)},
+                'meas_kld': {'bus': 'meas_kld/y', 'shape': (1, numbins)},
             },
             'desc': 'Single infodist configuration',
 
@@ -307,7 +376,7 @@ graph = OrderedDict([
                         'input': ['pre_l2'], 'plot': timeseries,
                         'title': 'timeseries $y$', 'aspect': 'auto', # (1*numsteps)/(2*2.2),
                         'xlim': None, # 'xticks': True, 'xticklabels': None,
-                        'xlabel': 'time step $k$',
+                        # 'xlabel': 'time step $k$',
                         'ylim': (-1.1, 1.1),
                         'yticks': True, 'yticklabels': False,
                         'legend_loc': 'left',
@@ -329,15 +398,23 @@ graph = OrderedDict([
                         'input': ['s_p'], 'plot': timeseries,
                         'title': 'timeseries $x$', 'aspect': 2.2/numsteps,
                         'orientation': 'vertical',
-                        'xlim': None, # 'xticks': False, # 'xticklabels': False,
-                        'xlabel': 'time step $k$',
+                        'xlim': None, 'xticks': False, # 'xticklabels': False,
+                        # 'xlabel': 'time step $k$',
                         'yticks': False,
                         'ylim': (-1.1, 1.1),
                         'legend_loc': 'right',
-
                     },
                     {
-                        # 'xticks': False, 'yticks': False,
+                        'input': ['meas_sub'], 'plot': timeseries,
+                        'title': 'timeseries $x - y$',
+                        # 'aspect': 'auto',
+                        # 'orientation': 'horizontal',
+                        'xlim': None, # 'xticks': False, # 'xticklabels': False,
+                        'xlabel': 'time step $k$',
+                        # 'yticks': False,
+                        # normalize to original range
+                        'ylim': (-1.1, 1.1), # None,
+                        # 'legend_loc': 'right',
                     },
                     {},
                 ],
@@ -353,7 +430,18 @@ graph = OrderedDict([
                         'legend_loc': 'right',
                     },
                     {},
-                    {},
+                    {
+                        'input': ['meas_kld'], 'plot': partial(timeseries, linestyle = 'none', marker = 'o'),
+                        'title': 'kld $h1 - h2$',
+                        # 'aspect': 'auto',
+                        # 'orientation': 'horizontal',
+                        'xlim': None, # 'xticks': False, # 'xticklabels': False,
+                        'xlabel': 'bins $k$',
+                        # 'yticks': False,
+                        # normalize to original range
+                        'ylim': None,
+                        # 'legend_loc': 'right',
+                    },
                 ],
             ],
         },

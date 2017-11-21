@@ -43,6 +43,7 @@ Common block attributes and, by correspondence, configuration items are shown be
         }
     )
 
+
 An experiment consists of a top block which is composite and contains
 the top-level nxgraph which is constructed from the configuration file
 provided on the command line. The config file is a plain python
@@ -1912,7 +1913,7 @@ class Block2(object):
                 # add input buffer
                 # stack??
                 # self.inputs[k][0] = np.hstack((np.zeros((self.inputs[k][1][0], self.ibuf-1)), self.inputs[k][0]))
-                self._debug("init_pass_2 k = %s, v = %s" % (k, v, ))
+                self._debug("init_pass_2 k = %s, v = %s" % (k, str(v)[:60], ))
                 self._debug("init_pass_2 id = %s inv['val'].shape/inv['shape'] = %s / %s" % (self.id, v['val'].shape, v['shape']))
             
     def set_attr_from_top_conf(self):
