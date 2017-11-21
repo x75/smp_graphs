@@ -37,13 +37,13 @@ lconf = {
     'lim': 1.0,
     'order': 0,
     'd_i': 0.0,
-    'infodist': {
+    'infodistgen': {
         'type': 'random_lookup',
         'numelem': 1001,
-        'l_a': 1.0,
+        'l_a': 0.0,
         'd_a': 1.0,
-        'd_s': 1.0,
-        's_a': 0.1,
+        'd_s': 0.2,
+        's_a': 0.0,
         's_f': 3.0,
         'e': 0.0,
     },

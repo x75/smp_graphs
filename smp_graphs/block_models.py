@@ -200,6 +200,7 @@ def init_random_lookup(ref, conf, mconf):
     Arguments:
      - dist(float): dist in [0, 1]
     """
+    from scipy.stats import norm
     # setup
     params = conf['params']
     if not mconf.has_key('numelem'):
@@ -226,14 +227,22 @@ def init_random_lookup(ref, conf, mconf):
     # var = 0.25**2
     var = ref.d_s**2
     ref.h_gauss = np.exp(-0.5 * (0.0 - ref.h_lin)**2/var)
+    # invert the density for lookup
+    # ref.h_gauss_inv = ref.h_gauss
     ref.h_gauss_inv = np.max(ref.h_gauss) - ref.h_gauss
     ref.h_gauss_inv_int = np.cumsum(ref.h_gauss_inv).reshape(ref.h_lin.shape)
+    # ref.h_gauss_inv_int = np.cumsum(ref.h_gauss_inv).reshape(ref.h_lin.shape)
     # ref.h_gauss_inv_int = np.exp(-0.5 * (0.0 - ref.h_lin)**2/var)
     # print "ref.h_gauss_inv_int", ref.h_gauss_inv_int.shape, ref.h_gauss_inv_int
+    ref.h_gauss_inv_int = np.clip(norm.ppf((ref.h_lin + 1.0)/2.0, loc = 0.0, scale = ref.d_s), -1 * 1, 1 * 1)
+
+    # print("ref.h_gauss_inv_int = %s" % (ref.h_gauss_inv_int,))
+    logger.debug("ref.h_gauss_inv_int = %s" % (ref.h_gauss_inv_int.shape,))
+    logger.debug("ref.h_gauss_inv_int = %s" % (ref.h_gauss_inv_int,))
+
     ref.h_gauss_inv_int -= np.mean(ref.h_gauss_inv_int)
     ref.h_gauss_inv_int /= np.max(np.abs(ref.h_gauss_inv_int))
-    # print("ref.h_gauss_inv_int = %s" % (ref.h_gauss_inv_int,))
-    # ref._debug("ref.h_gauss_inv_int = %s" % (ref.h_gauss_inv_int,))
+
 
     # additive noise on base h
     # ref.h_noise = np.random.uniform(-1, 1, (mconf['numelem'], )) # .reshape(1, mconf['numelem'])
