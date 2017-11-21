@@ -234,7 +234,9 @@ def init_random_lookup(ref, conf, mconf):
     # ref.h_gauss_inv_int = np.cumsum(ref.h_gauss_inv).reshape(ref.h_lin.shape)
     # ref.h_gauss_inv_int = np.exp(-0.5 * (0.0 - ref.h_lin)**2/var)
     # print "ref.h_gauss_inv_int", ref.h_gauss_inv_int.shape, ref.h_gauss_inv_int
-    ref.h_gauss_inv_int = np.clip(norm.ppf((ref.h_lin + 1.0)/2.0, loc = 0.0, scale = ref.d_s), -1 * 1, 1 * 1)
+    # ref.h_lin_gauss_inv = ref.h_lin + 1.0)/2.0
+    ref.h_lin_gauss_inv = np.linspace(norm.cdf(-1.0, loc = 0, scale = ref.d_s), norm.cdf(1.0, loc = 0, scale = ref.d_s), mconf['numelem'])
+    ref.h_gauss_inv_int = np.clip(norm.ppf(ref.h_lin_gauss_inv, loc = 0.0, scale = ref.d_s), -1 * 1, 1 * 1)
 
     # print("ref.h_gauss_inv_int = %s" % (ref.h_gauss_inv_int,))
     logger.debug("ref.h_gauss_inv_int = %s" % (ref.h_gauss_inv_int.shape,))
@@ -242,7 +244,7 @@ def init_random_lookup(ref, conf, mconf):
 
     ref.h_gauss_inv_int -= np.mean(ref.h_gauss_inv_int)
     ref.h_gauss_inv_int /= np.max(np.abs(ref.h_gauss_inv_int))
-
+    ref.h_gauss_inv_int *= min(1.0, ref.d_s)
 
     # additive noise on base h
     # ref.h_noise = np.random.uniform(-1, 1, (mconf['numelem'], )) # .reshape(1, mconf['numelem'])
@@ -261,8 +263,9 @@ def init_random_lookup(ref, conf, mconf):
     # ref.h = (1 - ref.s_a) * ref.h_gauss_inv_int + ref.s_a * ref.h_noise
     # ref.h *= 0.5
     # ref.h = ref.h_gauss_inv_int
+    # components are all normalized to [-1, 1]
     ref.h = ref.l_a * ref.h_lin + ref.d_a * ref.h_gauss_inv_int + ref.s_a * ref.h_noise
-    ref.h /= np.max(np.abs(ref.h))
+    # ref.h /= np.max(np.abs(ref.h))
     ref.x = np.zeros((inshape))
     ref.y = np.zeros_like(ref.x)
     logger.debug("    model init_random_lookup ref.x = %s, ref.y = %s, ref.h = %s, ref.h_lin = %s, ref.h_noise = %s" % (
