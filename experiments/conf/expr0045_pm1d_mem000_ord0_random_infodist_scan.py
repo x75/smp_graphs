@@ -332,7 +332,7 @@ graph = OrderedDict([
             'debug': True,
             'mode': 'basic',
             'scope': 'local',
-            'meas': 'chisq', # 'kld'
+            'meas': 'chisq', # ['chisq', 'kld'],
             # direct histo input?
             # or signal input
             'inputs': {
@@ -394,7 +394,7 @@ graph = OrderedDict([
                     {
                         'input': ['pre_l2'], 'plot': timeseries,
                         'title': 'timeseries $y$', 'aspect': 'auto', # (1*numsteps)/(2*2.2),
-                        'xlim': None, # 'xticks': True, 'xticklabels': None,
+                        'xlim': None, 'xticks': False, 'xticklabels': False,
                         # 'xlabel': 'time step $k$',
                         'ylim': (-1.1, 1.1),
                         'yticks': True, 'yticklabels': False,
@@ -451,14 +451,14 @@ graph = OrderedDict([
                     {},
                     {
                         'input': ['meas_kld'], 'plot': partial(timeseries, linestyle = 'none', marker = 'o'),
-                        'title': 'kld $h1 - h2$',
+                        'title': 'histogram divergence $h1 - h2$',
                         # 'aspect': 'auto',
                         # 'orientation': 'horizontal',
                         'xlim': None, # 'xticks': False, # 'xticklabels': False,
                         'xaxis': meas_hist_bincenters, 'xlabel': 'bins $k$',
                         # 'yticks': False,
                         # normalize to original range
-                        'ylim': None,
+                        'ylim': None, 'ylabel': 'divergence'
                         # 'legend_loc': 'right',
                     },
                 ],

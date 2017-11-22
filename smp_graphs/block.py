@@ -2130,7 +2130,7 @@ class Block2(object):
         texbuf = ''
         # for k, v in self.latex_conf.items():
         id_ = re.sub('_', '-', self.id)
-        texbuf = '\\section{%s}\n\\label{expr:%s}\n\n' % (id_, id_, )
+        texbuf = '\\section{%s}\n\\label{sec:%s}\n\n' % (id_, id_, )
 
         # copy expr description from conf
         texbuf += '%s\n' % (self.desc, )
@@ -2221,10 +2221,11 @@ class Block2(object):
                     descs.append(figdesc_)
 
                 c_ = ', '.join(["%s \\autoref{fig:%s}" % (desc, ref) for (desc, ref) in zip(descs, refs)])
-                caption = "  \\caption{\\label{fig:%s}%s}\n\\end{figure}\n\n\n" % (figlabel_, c_)
+                caption = "  \\caption{\\label{fig:%s-%s}%s}\n\\end{figure}\n\n\n" % (figlabel_, figk, c_)
                 figbuf += caption
                 
                 texbuf += figbuf
+                # texbuf += '\\newpage\n'
 
         f.write(texbuf)
         f.flush()

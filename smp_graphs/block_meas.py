@@ -309,8 +309,13 @@ class MeasBlock2(PrimBlock2):
         # default step is basic
         self._step = self.step_basic
 
-        # mode specific step if mode is not basic
-        if self.mode == 'hist':
+        # mode specific setup
+        if self.mode == 'basis':
+            if type(self.meas) is list:
+                for meas in self.meas:
+                    # create outputs for measures
+                    pass
+        elif self.mode == 'hist':
             self._step = self.step_hist
             # fix outputs
             # self.outputs
