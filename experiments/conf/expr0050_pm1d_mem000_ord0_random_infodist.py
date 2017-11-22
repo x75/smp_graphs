@@ -53,13 +53,15 @@ outputs = {
 
 
 # for stats
-l_as = [1.0, 0.0, 0.0, 0.0]
+l_as = [1.0, 0.0, 0.0, 1.0]
 d_as = [0.0, 1.0, 0.0, 0.0]
-d_ss = [1.0, 0.25, 1.0, 1.0]
-s_a  = [0.0, 0.0, 1.0, 0.0]
-s_f  = [0.0, 0.0, 1.0, 0.0]
+d_ss = [1.0, 0.3, 1.0, 1.0]
+s_as = [0.0, 0.0, 1.0, 0.0]
+s_fs = [0.0, 0.0, 1.0, 0.0]
 es   = [0.0, 0.0, 0.0, 1.0]
 
+
+# final: random sampling in d space
 loop = [('lconf', {
     'dim': 1,
     'dt': 0.1,
@@ -74,9 +76,9 @@ loop = [('lconf', {
         'l_a': l_as[i],
         'd_a': d_as[i],
         'd_s': d_ss[i],
-        's_a': 0.02,
-        's_f': 3.0,
-        'e': 0.0,
+        's_a': s_as[i],
+        's_f': s_fs[i],
+        'e': es[i],
     },
 }) for i in range(numloop)]
 

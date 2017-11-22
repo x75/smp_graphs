@@ -42,7 +42,7 @@ lconf = {
         'numelem': 1001,
         'l_a': 0.0,
         'd_a': 1.0,
-        'd_s': 0.5,
+        'd_s': 1.0,
         's_a': 0.0,
         's_f': 3.0,
         'e': 0.0,
@@ -327,7 +327,7 @@ graph = OrderedDict([
             'debug': True,
             'mode': 'basic',
             'scope': 'local',
-            'meas': 'kld', # 'chisq'
+            'meas': 'chisq', # 'kld'
             # direct histo input?
             # or signal input
             'inputs': {
