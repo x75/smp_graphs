@@ -187,6 +187,11 @@ def step_polyexp(ref):
 
 # model func: lookup table expansion with parametric map randomness
 def do_random_lookup(ref):
+    """random_lookup: perform the lookup
+
+    Compute bin index $i$ of input $x$ in linear range and output $y$
+    as the transfer function's value at $i$.
+    """
     # logger.debug("%sdo_random_lookup[%s] ref.x = %s, ref.h_lin = %s" % ('    ', ref.cnt, ref.x.shape, ref.h_lin.shape)) # , ref.h.shape
     ref.x_idx = np.searchsorted(ref.h_lin[0], ref.x, side = 'right')[0]
     # logger.debug("%sdo_random_lookup[%s] ref.x_idx = %s", '    ', ref.cnt, ref.x_idx) # , ref.h.shape
@@ -195,10 +200,24 @@ def do_random_lookup(ref):
     ref.y = ref.y * (1 - ref.e) + np.random.normal(0, 1.0, ref.y.shape) * ref.e
 
 def init_random_lookup(ref, conf, mconf):
-    """init_random_lookup
-    
+    """random_lookup: init and setup
+
+    Random lookup is a model based on a transfer function.
+
+    .. note:: 
+
+        Only tested on 1-d data. Correspondence / hysteresis style transfer not implemented.
+
     Arguments:
-     - dist(float): dist in [0, 1]
+     - ref(Block2): ModelBlock2 reference
+     - conf(dict): ModelBlock2's configuration dict
+     - mconf(dict): this model's configuration dict with items
+      - l_a(float, [0, 1]): linear comp amplitude 
+      - d_a(float, [0, 1]): gaussian comp amplitude 
+      - d_s(float, [0, 1]): gaussian comp sigma
+      - s_a(float, [0, 1]): noise comp amplitude
+      - s_f(float, [0, 1]): noise comp color (beta in 1/f noise)
+      - e(float, [0, 1]): external entropy / independent noise amplitude
     """
     from scipy.stats import norm
     # setup

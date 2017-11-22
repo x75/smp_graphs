@@ -236,6 +236,21 @@ def f_random_uniform(args):
     
     return {'meshgrid': meshgrid}
 
+def f_meansquare(args):
+    fu_check_required_args(args, ['x'], 'f_meansquare')
+    # lambda x: {'y': np.sum(np.square(x['x']['val']))}
+    x = get_input(args, 'x')
+    y = np.atleast_2d(np.mean(np.square(x)))
+    # print "    f_meansquare x = %s, y = %s" % (x, y)
+    return {'y': y}
+
+def f_sum(args):
+    fu_check_required_args(args, ['x'], 'f_sum')
+    # lambda x: {'y': np.sum(np.square(x['x']['val']))}
+    x = get_input(args, 'x')
+    y = np.atleast_2d(np.sum(x))
+    # print "    f_meansquare x = %s, y = %s" % (x, y)
+    return {'y': y}
 
 ################################################################################
 # model functions

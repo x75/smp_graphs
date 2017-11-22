@@ -472,6 +472,7 @@ def get_blocksize_input(G, buskey):
     .. warning:: Move this to :class:`Bus`?
     """
     # print "G", G.nodes(), "buskey", buskey
+    assert '/' in buskey, "Malformed buskey %s without '/'" % (buskey, )
     (srcid, srcvar) = buskey.split("/") # [-1]
     # print "G.nodes()", G.nodes()
     n = nxgraph_node_by_id(G, srcid)
@@ -2422,7 +2423,7 @@ class FuncBlock2(Block2):
         # self.inputs is a dict with values [array]
         # assert self.inputs.has_key('x'), "%s.inputs expected to have key 'x' with function input vector. Check config."
 
-        self._debug("step[%d]: x = %s", (self.cnt, self.inputs,))
+        self._debug("step[%d]: x = %s" % (self.cnt, self.inputs,))
 
         # assumes func to be smp_graphs aware and map the input/output onto the inner function 
         f_val = self.func(self.inputs)

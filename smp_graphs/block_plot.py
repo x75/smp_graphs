@@ -60,14 +60,21 @@ rcParams['legend.framealpha'] = 0.3
 rcParams['legend.fontsize'] = 9.0
 rcParams['legend.labelspacing'] = 0.5
 rcParams['xtick.labelsize'] = 8.0
+rcParams['xtick.direction'] = 'in'
 rcParams['ytick.labelsize'] = 8.0
+rcParams['ytick.direction'] = 'out'
+# subplots
+rcParams['figure.subplot.bottom'] = 0.15 # 0.11
+rcParams['figure.subplot.left'] = 0.1 # 0.125
+rcParams['figure.subplot.right'] = 0.9
+rcParams['figure.subplot.top'] = 0.95 # 0.88
 
 # f = open("rcparams.txt", "w")
 # f.write("rcParams = %s" % (rcParams, ))
 # f.close()
 
 from logging import DEBUG as logging_DEBUG
-# import logging
+import logging
 logger = get_module_logger(modulename = 'block_plot', loglevel = logging_DEBUG)
 
 def subplot_input_fix(input_spec):
@@ -478,6 +485,12 @@ class PlotBlock2(FigPlotBlock2):
                 if title == '':
                     title += self.get_title_from_plot_type(plotfunc_conf)
 
+                # generate labels all at once
+                # l = [['%s[%d]' % (ink, invd) for invd in range(inv.shape[1])] for ink, inv in plotdata.items()]
+                # self._debug("pre labels l = %s, items = %s" % (l, plotdata.items(), ))
+                # labels = reduce(lambda x, y: x + y, l)
+                labels = []
+
                 # loop over inputs
                 for k, ink in enumerate(subplotconf['input']):
                     # FIXME: array'ize this loop
@@ -571,7 +584,9 @@ class PlotBlock2(FigPlotBlock2):
                     # fix nans
                     plotdata[ink_][np.isnan(plotdata[ink_])] = -1.0
                     plotvar += "%s, " % (input_ink['bus'],)
-                    
+                    l = reduce(lambda x, y: x+y, ['%s[%d]' % (ink, invd) for invd in range(plotdata[ink_].shape[1])])
+                    labels.append(l)
+                subplotconf['labels'] = labels
                 # # assign and trim title
                 # title += plotvar[:-2]
                     
@@ -607,21 +622,22 @@ class PlotBlock2(FigPlotBlock2):
 
                 # plot the plotdata
                 # kwargs_ = {} # kwargs_plot_clean(**kwargs)
-
+                        
                 # transfer plot_subplot configuration keywords subplotconf to plot kwargs
                 kwargs = {}
                 for kw in [
-                        'aspect', 'orientation',
+                        'aspect', 'orientation', 'labels',
                         'xlabel', 'xlim', 'xticks', 'xticklabels', 'xinvert',
                         'ylabel', 'ylim', 'yticks', 'yticklabels', 'yinvert']:
                     if subplotconf.has_key(kw):
                         kwargs[kw] = subplotconf[kw]
                 self._debug("plot_subplots subplot[%s][%d,%d] kwargs = %s" % (ink, i, j, kwargs))
-                        
-                labels = []
+                
+                # prep figure
                 self.fig.axes[idx].clear()
                 inkc = 0
 
+                # colors
                 num_cgroups = 5
                 num_cgroup_color = 5
                 num_cgroup_dist = 255/num_cgroups
@@ -659,6 +675,13 @@ class PlotBlock2(FigPlotBlock2):
                     # select single element at first slot or increment index with plotdata items
                     plotfunc_idx = inkc % len(plotfunc_conf)
                     
+                    # # ax.set_prop_cycle(get_colorcycler(cmap_str = tmp_cmaps_[inkc]))
+                    # for invd in range(inv.shape[1]):
+                    #     label_ = "%s[%d]" % (ink, invd + 1)
+                    #     if len(label_) > 16:
+                    #         label_ = label_[:16]
+                    #     labels.append(label_)
+                        
                     # this is the plot function array from the config
                     if not plotdata.has_key('_stacked'):
                         # print "    plot_subplots plotfunc", plotfunc_conf[plotfunc_idx]
@@ -668,12 +691,6 @@ class PlotBlock2(FigPlotBlock2):
                     # label = "%s" % ink, title = title
                     # tmp_cmaps_ = [k for k in cc.cm.keys() if 'cyclic' in k and not 'grey' in k]
                         
-                    # ax.set_prop_cycle(get_colorcycler(cmap_str = tmp_cmaps_[inkc]))
-                    for invd in range(inv.shape[1]):
-                        label_ = "%s[%d]" % (ink, invd + 1)
-                        if len(label_) > 16:
-                            label_ = label_[:16]
-                        labels.append(label_)
                     # metadata
                     inkc += 1
                     
@@ -706,6 +723,8 @@ class PlotBlock2(FigPlotBlock2):
             for j, subplotconf in enumerate(subplot):
                 # subplot handle shortcut
                 sb = self.subplots[i][j]
+                
+                self._debug("    0 subplotconf.keys = %s" % (subplotconf.keys(), ))
                 
                 # subplot index from rows*cols
                 idx = (i*self.fig_cols)+j
@@ -750,6 +769,7 @@ class PlotBlock2(FigPlotBlock2):
                     loc = loc)
 
                 # set aspect after placing legend
+                self._debug("    1 subplotconf.keys = %s" % (subplotconf.keys(), ))
                 ax_set_aspect(ax, **subplotconf)
                 
                 # put_legend_out_top(labels = labels, ax = ax, resize_by = 0.8)
