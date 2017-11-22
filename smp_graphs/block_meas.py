@@ -314,6 +314,8 @@ class MeasBlock2(PrimBlock2):
             self._step = self.step_hist
             # fix outputs
             # self.outputs
+            if type(self.bins) is int:
+                self.bins = np.linspace(-1.1, 1.1, self.bins + 1)
         
         # FIXME: mangle conf for input/output dimension inference
         
@@ -328,14 +330,16 @@ class MeasBlock2(PrimBlock2):
         #     logstr = 'k = {0}, v = {1}'.format(k, v)
         #     self._debug(logstr)
 
-        x1 = self.get_input('x1')
-        x2 = self.get_input('x2')
+        x1 = self.get_input('x1').astype(np.float)
+        x2 = self.get_input('x2').astype(np.float)
         self._debug('self.measures     is type = %s, length = %s' % (type(self.measures), len(self.measures)))
         self._debug('self.measures[%s] is type = %s, length = %s' % (self.meas, type(self.measures[self.meas]), len(self.measures[self.meas])))
         self._debug('calling %s on (x1 = %s, x2 = %s)' % (self.measures[self.meas]['func'], x1.shape, x2.shape))
+        self._debug('               x1 = %s' % (x1, ))
+        self._debug('               x2 = %s' % (x2, ))
         setattr(self, 'y', self.measures[self.meas]['func'](x1, x2))
         
-        self._debug('y = measures[%s](x1, x2) = %s' % (self.meas, str(self.y)[:100]))
+        self._debug('y = measures[%s](x1, x2) = %s' % (self.meas, str(self.y)[:300]))
 
     def step_hist(self, x = None):
         """step for histogram

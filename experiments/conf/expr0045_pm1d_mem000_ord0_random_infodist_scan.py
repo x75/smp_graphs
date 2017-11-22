@@ -29,6 +29,13 @@ showplot = True
 saveplot = True
 randseed = 126
 
+desc = """The purpose of this experiment is to illustrate the effect
+of projection distortion and external entropy on the information
+distance between two sensory modalities. This is done using a
+parameterized model of these effects and a few examples of different
+configurations are shown in the plot."""
+
+# local conf dict for looping
 lconf = {
     'dim': 1,
     'dt': 0.1,
@@ -40,25 +47,23 @@ lconf = {
     'infodistgen': {
         'type': 'random_lookup',
         'numelem': 1001,
-        'l_a': 0.0,
-        'd_a': 1.0,
+        'l_a': 1.0,
+        'd_a': 0.0,
         'd_s': 1.0,
         's_a': 0.0,
         's_f': 3.0,
         'e': 0.0,
     },
 }
-    
+
+meas_hist_bins       = np.linspace(-1.1, 1.1, numbins + 1)
+meas_hist_bincenters = meas_hist_bins[:-1] + np.mean(np.abs(np.diff(meas_hist_bins)))/2.0
+
+# local variable shorthands
 dim = lconf['dim']
 order = lconf['order']
 budget = lconf['budget'] # 510
 lim = lconf['lim'] # 1.0
-
-desc = """The purpose of this experiment is to illustrate the effect
-of projection distortion and external entropy on the information
-distance between two sensory modalities. This is done using a
-parameterized model of these effects and a few examples of different
-configurations are shown in the plot."""
 
 outputs = {
     'latex': {'type': 'latex',},
@@ -310,7 +315,7 @@ graph = OrderedDict([
                 'x1': {'bus': 'robot1/s_proprio', 'shape': (1, numsteps)},
                 'x2': {'bus': 'pre_l2/y', 'shape': (1, numsteps)},
             },
-            'bins': np.linspace(0, 1, 21),
+            'bins': meas_hist_bins,
             'outputs': {
                 'h_x1': {'shape': (1, numbins)},
                 'h_x2': {'shape': (1, numbins)},
@@ -450,7 +455,7 @@ graph = OrderedDict([
                         # 'aspect': 'auto',
                         # 'orientation': 'horizontal',
                         'xlim': None, # 'xticks': False, # 'xticklabels': False,
-                        'xlabel': 'bins $k$',
+                        'xaxis': meas_hist_bincenters, 'xlabel': 'bins $k$',
                         # 'yticks': False,
                         # normalize to original range
                         'ylim': None,
