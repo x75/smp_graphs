@@ -258,8 +258,8 @@ def init_random_lookup(ref, conf, mconf):
     ref.h_gauss_inv_int = np.clip(norm.ppf(ref.h_lin_gauss_inv, loc = 0.0, scale = ref.d_s), -1 * 1, 1 * 1)
 
     # print("ref.h_gauss_inv_int = %s" % (ref.h_gauss_inv_int,))
-    logger.debug("ref.h_gauss_inv_int = %s" % (ref.h_gauss_inv_int.shape,))
-    logger.debug("ref.h_gauss_inv_int = %s" % (ref.h_gauss_inv_int,))
+    # logger.debug("ref.h_gauss_inv_int = %s" % (ref.h_gauss_inv_int.shape,))
+    # logger.debug("ref.h_gauss_inv_int = %s" % (ref.h_gauss_inv_int,))
 
     ref.h_gauss_inv_int -= np.mean(ref.h_gauss_inv_int)
     ref.h_gauss_inv_int /= np.max(np.abs(ref.h_gauss_inv_int))
@@ -275,7 +275,7 @@ def init_random_lookup(ref, conf, mconf):
         ref.h_noise = noise[1].real.reshape(ref.h_lin.shape)
     else:
         ref.h_noise = noise[1].reshape(ref.h_lin.shape)
-    logger.debug("    model init_random_lookup ref.h_noise = %s/%s, %s" % (ref.h_noise.real, ref.h_noise.imag, ref.h_noise.shape))
+    # logger.debug("    model init_random_lookup ref.h_noise = %s/%s, %s" % (ref.h_noise.real, ref.h_noise.imag, ref.h_noise.shape))
     
     # noise: color (1/f)
     # ref.
@@ -290,8 +290,8 @@ def init_random_lookup(ref, conf, mconf):
     # ref.h /= np.max(np.abs(ref.h))
     ref.x = np.zeros((inshape))
     ref.y = np.zeros_like(ref.x)
-    logger.debug("    model init_random_lookup ref.x = %s, ref.y = %s, ref.h = %s, ref.h_lin = %s, ref.h_noise = %s" % (
-        ref.x.shape, ref.y.shape, ref.h.shape, ref.h_lin.shape, ref.h_noise.dtype))
+    # logger.debug("    model init_random_lookup ref.x = %s, ref.y = %s, ref.h = %s, ref.h_lin = %s, ref.h_noise = %s" % (
+    #     ref.x.shape, ref.y.shape, ref.h.shape, ref.h_lin.shape, ref.h_noise.dtype))
     # do_random_lookup(ref)
     
 def step_random_lookup(ref):

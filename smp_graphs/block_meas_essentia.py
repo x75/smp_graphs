@@ -6,6 +6,7 @@ this is an ad-hoc sketch for a particular processing pipeline, wip
 import numpy as np
 
 from smp_graphs.block import decInit, decStep, Block2, PrimBlock2
+from smp_graphs.block_ols import FileBlock2
 
 import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
@@ -15,9 +16,52 @@ HAVE_ESSENTIA = False
 try:
     import essentia as e
     import essentia.standard as estd
+    # import essentia.streaming as estd
 except ImportError, e:
     print "Failed to import essentia and essentia.standard", e
 
+class eFileBlock2(FileBlock2):
+    def __init__(self, conf = {}, paren = None, top = None):
+        FileBlock2.__init__(self, conf = conf, paren = paren, top = top)
+
+    def init_load_file(self, filetype, lfile, conf):
+        if filetype == 'mp3':
+            # # try import essentia
+            # try:
+            #     import essentia as e
+            #     import essentia.standard as estd
+            #     HAVE_ESSENTIA = True
+            # # except load it with pydub, librosa, ...
+            # except ImportError, e:
+            #     print "Failed to import essentia", e
+
+            # default samplerate
+            if not conf['params']['file'].has_key('samplerate'):
+                conf['params']['file']['samplerate'] = 44100
+
+            # load data
+            loader = estd.MonoLoader(filename = lfile, sampleRate = conf['params']['file']['samplerate'])
+            data = loader.compute()
+
+            # if not length is given, create random slice of 60 sec minimal length if file length allows
+            if not conf['params']['file'].has_key('length') or conf['params']['file']['length'] is None or conf['params']['file']['length'] == 0:
+                conf['params']['file']['length'] = min(
+                    data.shape[0],
+                    np.random.randint(
+                        conf['params']['file']['samplerate'] * 60,
+                        data.shape[0] - conf['params']['file']['offset']))
+
+            # compute slice
+            sl = slice(conf['params']['file']['offset'], conf['params']['file']['offset'] + conf['params']['file']['length'])
+            print "%sFileBlock2-%s fileypte mp3 sl = %s" % (self.nesting_indent, self.id, sl, )
+            # select data
+            self.data = {'x': data[sl]} # , 'y': data[sl]}
+            print "%sFileBlock2-%s data = %s, self.data['x'] = %s" % (self.nesting_indent, self.id, data.shape, self.data['x'].shape)
+            # set step callback
+            self.step = self.step_wav
+            
+    
+    
 class EssentiaBlock2(PrimBlock2):
     """EssentiaBlock2 class
 

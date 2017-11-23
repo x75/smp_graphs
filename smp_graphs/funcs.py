@@ -244,6 +244,15 @@ def f_meansquare(args):
     # print "    f_meansquare x = %s, y = %s" % (x, y)
     return {'y': y}
 
+def f_rootmeansquare(args):
+    fu_check_required_args(args, ['x'], 'f_meansquare')
+    # lambda x: {'y': np.sum(np.square(x['x']['val']))}
+    # x = get_input(args, 'x')
+    r = f_meansquare(args)
+    r['y'] = np.sqrt(r['y'])
+    # print "    f_meansquare x = %s, y = %s" % (x, y)
+    return r
+
 def f_sum(args):
     fu_check_required_args(args, ['x'], 'f_sum')
     # lambda x: {'y': np.sum(np.square(x['x']['val']))}

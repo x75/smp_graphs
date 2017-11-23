@@ -74,15 +74,15 @@ budget = lconf['budget'] # 510
 lim = lconf['lim'] # 1.0
 # numloop = lconf['numloop'] # 1.0
 
-# meas_inputs = OrderedDict([('meas_sum_div', {'xtwin': False,}), ('mi', {'xtwin': True}), ('infodist', {'xtwin': True})])
-# meas_inputs = OrderedDict([('meas_sum_div', {'xtwin': False,}), ('infodist', {'xtwin': True})])
-# meas_inputs = OrderedDict([('infodist', {'xtwin': False})])
-meas_inputs = OrderedDict(
+# m_inputs = OrderedDict([('m_sum_div', {'xtwin': False,}), ('m_mi', {'xtwin': True}), ('m_di', {'xtwin': True})])
+# m_inputs = OrderedDict([('m_sum_div', {'xtwin': False,}), ('m_di', {'xtwin': True})])
+# m_inputs = OrderedDict([('m_di', {'xtwin': False})])
+m_inputs = OrderedDict(
     [
-        ('meas_sum_div', {'xtwin': False,}),
-        ('meas_budget_mu', {'xtwin': False,}),
-        ('meas_mse', {'xtwin': True,}),
-        ('infodist', {'xtwin': True}),
+        ('m_sum_div', {'xtwin': False,}),
+        ('m_budget_mu', {'xtwin': False,}),
+        ('m_rmse', {'xtwin': True,}),
+        ('m_di', {'xtwin': True}),
     ]
 )
 
@@ -136,11 +136,11 @@ loopblock = {
             },
         # 'graph': graph1,
         'outputs': {
-            'gmi': {'shape': (1, 1, 1), 'buscopy': 'mi/mi'},
-            'ginfodist': {'shape': (1, 1, 1), 'buscopy': 'infodist/infodist'},
-            'gmeas_sum_div': {'shape': (1, 1), 'buscopy': 'meas_sum_div/y'},
-            'gmeas_mse': {'shape': (1, 1), 'buscopy': 'meas_mse/y'},
-            'gmeas_budget_mu': {'shape': (1, 1), 'buscopy': 'meas_budget/y_mu'},
+            'gm_mi': {'shape': (1, 1, 1), 'buscopy': 'm_mi/mi'},
+            'gm_di': {'shape': (1, 1, 1), 'buscopy': 'm_di/infodist'},
+            'gm_sum_div': {'shape': (1, 1), 'buscopy': 'm_sum_div/y'},
+            'gm_rmse': {'shape': (1, 1), 'buscopy': 'm_rmse/y'},
+            'gm_budget_mu': {'shape': (1, 1), 'buscopy': 'm_budget/y_mu'},
             'pre_l2_h': {'shape': (dim_s_proprio, lconf['loop_pre_l2_numelem']), 'buscopy': 'pre_l2/h'},
             # 'credit_min': {'shape': (1, 1), 'buscopy': 'measure/bcredit_min'},
             # 'credit_max': {'shape': (1, 1), 'buscopy': 'measure/bcredit_max'},
@@ -181,11 +181,11 @@ graph = OrderedDict([
             'loopblocksize': numsteps/numloop, # loopblocksize,
             # can't do this dynamically yet without changing init passes
             'outputs': {
-                'gmi': {'shape': (1, 1, numloop)},
-                'ginfodist': {'shape': (1, 1, numloop)},
-                'gmeas_sum_div': {'shape': (1, numloop)},
-                'gmeas_mse': {'shape': (1, numloop)},
-                'gmeas_budget_mu': {'shape': (1, numloop)},
+                'gm_mi': {'shape': (1, 1, numloop)},
+                'gm_di': {'shape': (1, 1, numloop)},
+                'gm_sum_div': {'shape': (1, numloop)},
+                'gm_rmse': {'shape': (1, numloop)},
+                'gm_budget_mu': {'shape': (1, numloop)},
                 'pre_l2_h': {'shape': (dim_s_proprio, lconf['loop_pre_l2_numelem'] * numloop)},
                 # 'credit_min': {'shape': (1, numloop)},
                 # 'credit_max': {'shape': (1, numloop)},
@@ -238,11 +238,11 @@ graph = OrderedDict([
             'hspace': 0.2,
             'wspace': 0.2,
             'inputs': {
-                'mi': {'bus': 'b4/gmi', 'shape': (1, 1, numloop)},
-                'infodist': {'bus': 'b4/ginfodist', 'shape': (1, 1, numloop)},
-                'meas_sum_div': {'bus': 'b4/gmeas_sum_div', 'shape': (1, numloop)},
-                'meas_mse': {'bus': 'b4/gmeas_mse', 'shape': (1, numloop)},
-                'meas_budget_mu': {'bus': 'b4/gmeas_budget_mu', 'shape': (1, numloop)},
+                'm_mi': {'bus': 'b4/gm_mi', 'shape': (1, 1, numloop)},
+                'm_di': {'bus': 'b4/gm_di', 'shape': (1, 1, numloop)},
+                'm_sum_div': {'bus': 'b4/gm_sum_div', 'shape': (1, numloop)},
+                'm_rmse': {'bus': 'b4/gm_rmse', 'shape': (1, numloop)},
+                'm_budget_mu': {'bus': 'b4/gm_budget_mu', 'shape': (1, numloop)},
                 'pre_l2_h': {'bus': 'b4/pre_l2_h', 'shape': (dim_s_proprio, lconf['loop_pre_l2_numelem'] * numloop)},
                 # 'mins_s': {'bus': 'b4/credit_min', 'shape': (1, numloop)},
                 # 'maxs_s': {'bus': 'b4/credit_max', 'shape': (1, numloop)},
@@ -269,7 +269,7 @@ graph = OrderedDict([
                     },
 
                     {
-                        'input': meas_inputs.keys(),
+                        'input': m_inputs.keys(),
                         'ndslice': [
                             (slice(j * numloop_param, (j + 1) * numloop_param), slice(None)),
                             (slice(j * numloop_param, (j + 1) * numloop_param), slice(None)),
@@ -285,12 +285,12 @@ graph = OrderedDict([
                                 timeseries,
                                 yscale = 'linear',
                                 linestyle = 'none', marker = 'o'
-                            ) for k, v in meas_inputs.items()],
-                        'xtwin': [v['xtwin'] for k, v in meas_inputs.items()],
+                            ) for k, v in m_inputs.items()],
+                        'xtwin': [v['xtwin'] for k, v in m_inputs.items()],
                     },
                     
                     # {
-                    #     'input': meas_inputs.keys(),
+                    #     'input': m_inputs.keys(),
                     #     'ndslice': [
                     #         (slice(j * numloop_param, (j + 1) * numloop_param), slice(None)),
                     #         (slice(j * numloop_param, (j + 1) * numloop_param), slice(None), 0),
@@ -309,7 +309,7 @@ graph = OrderedDict([
                     #         yscale = 'linear',
                     #         orientation = 'horizontal',
                     #     ),
-                    #     'xtwin': [v['xtwin'] for k, v in meas_inputs.items()],
+                    #     'xtwin': [v['xtwin'] for k, v in m_inputs.items()],
                     # }
                     
                 ] for j in range(numloop_types)

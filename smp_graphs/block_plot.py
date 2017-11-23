@@ -608,14 +608,7 @@ class PlotBlock2(FigPlotBlock2):
                                 if not axs.has_key('xtwin'):
                                     axs['xtwin'] = {'ax': axs['main']['ax'].twinx(), 'labels': []}
                                 axd = axs['xtwin'] # ['ax']
-                                
-                    # generate labels
-                    l = reduce(lambda x, y: x+y, ['%s[%d]' % (ink, invd) for invd in range(plotdata[ink_].shape[1])])
-                    labels.append(l)
-                    
-                    axd['labels'].append(l)
-                    ax_ = axd['ax']
-                                
+
                     assert plotdata[ink_].shape != (0,), "no data to plot"
                     # print "      input = %s" % input_ink['val']
                     # print "      id %s, ink = %s, plotdata = %s, plotshape = %s" % (self.id, ink_, plotdata[ink_], plotshape)
@@ -626,6 +619,17 @@ class PlotBlock2(FigPlotBlock2):
                     plotdata[ink_][np.isnan(plotdata[ink_])] = -1.0
                     plotvar += "%s, " % (input_ink['bus'],)
 
+                    # generate labels
+                    # FIXME: range(?) when len(shape) != 2
+                    numlabels = plotdata[ink_].shape[0]
+                    if len(plotdata[ink_].shape) > 1:
+                        numlabels = plotdata[ink_].shape[-1]
+                    l = reduce(lambda x, y: x+y, ['%s[%d]' % (ink, invd) for invd in range(numlabels)])
+                    labels.append(l)
+                    
+                    axd['labels'] += l # .append(l)
+                    ax_ = axd['ax']
+                    
                     # store ax, labels for legend
                     plotdatad[ink_] = {'data': plotdata[ink_], 'ax': ax_, 'labels': l}
 
@@ -644,6 +648,7 @@ class PlotBlock2(FigPlotBlock2):
                     # plotdata = {}
                     if subplotconf['mode'] in ['stack', 'combine', 'concat']:
                         plotdata['_stacked'] = np.hstack(ivecs)
+                        plotdatad['_stacked'] = {'data': plotdata['_stacked'], 'ax': plotdatad[plotdata.keys()[0]]['ax'], 'labels': labels}
 
                 # if type(subplotconf['input']) is list:
                 if subplotconf.has_key('xaxis'):
@@ -734,7 +739,7 @@ class PlotBlock2(FigPlotBlock2):
                         # print "                      args", ax, inv, t, title, kwargs
                         plotfunc_conf[plotfunc_idx](ax = ax, data = inv, ordinate = t, title = title_, **kwargs)
                         # avoid setting title multiple times
-                        title_ = None
+                        # title_ = None
 
                     # label = "%s" % ink, title = title
                     # tmp_cmaps_ = [k for k in cc.cm.keys() if 'cyclic' in k and not 'grey' in k]

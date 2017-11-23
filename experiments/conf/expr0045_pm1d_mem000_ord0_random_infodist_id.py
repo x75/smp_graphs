@@ -17,7 +17,7 @@ from smp_graphs.block_models import ModelBlock2
 from smp_graphs.block_meas import MeasBlock2, MomentBlock2
 from smp_graphs.block_meas_infth import MIBlock2, InfoDistBlock2
 
-from smp_graphs.funcs import f_sin, f_motivation, f_motivation_bin, f_meansquare, f_sum
+from smp_graphs.funcs import f_sin, f_motivation, f_motivation_bin, f_meansquare, f_sum, f_rootmeansquare
 
 from smp_graphs.utils_conf import get_systemblock
 
@@ -61,8 +61,8 @@ lconf = {
 
 div_meas = lconf['div_meas']
 
-meas_hist_bins       = np.linspace(-1.1, 1.1, numbins + 1)
-meas_hist_bincenters = meas_hist_bins[:-1] + np.mean(np.abs(np.diff(meas_hist_bins)))/2.0
+m_hist_bins       = np.linspace(-1.1, 1.1, numbins + 1)
+m_hist_bincenters = m_hist_bins[:-1] + np.mean(np.abs(np.diff(m_hist_bins)))/2.0
 
 # local variable shorthands
 dim = lconf['dim']
@@ -154,26 +154,13 @@ graph = OrderedDict([
                     },
                 }),
 
-                # new modality m2 with distance parameter
+                # new artifical modality m2 with distortion parameters
                 ('pre_l2', {
                     'block': ModelBlock2,
                     'params': {
                         'debug': False,
                         'models': {
-                            # 'infodistgen': {
-                            #     'type': 'random_lookup',
-                            #     'numelem': 1001,
-                            #     # 'd': 0.5,
-                            #     # 's_a': 0.5,
-                            #     # 's_f': 1.0,
-                            #     # 'e': 0.0,
-                            #     'l_a': 1.0,
-                            #     'd_a': 1.0,
-                            #     'd_s': 1.0,
-                            #     's_a': 0.1,
-                            #     's_f': 3.0,
-                            #     'e': 0.0,
-                            # },
+                            # from top config
                             'infodistgen': infodistgen,
                         },
                         'inputs': {
@@ -226,38 +213,6 @@ graph = OrderedDict([
                     },
                 }),
                 
-                # measure mutual information I(m1;m2)
-                ('mi', {
-                    'block': MIBlock2,
-                    'params': {
-                        'blocksize': numsteps,
-                        'shift': (0, 1),
-                        'inputs': {
-                            'x': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
-                            # 'y': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
-                            'y': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, numsteps)},
-                        },
-                        'outputs': {
-                            'mi': {'shape': (1, 1, 1)},
-                        }
-                    }
-                }),
-                # measure information distance d(m1, m2)
-                ('infodist', {
-                    'block': InfoDistBlock2,
-                    'params': {
-                        'blocksize': numsteps,
-                        'shift': (0, 1),
-                        'inputs': {
-                            'x': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
-                            # 'y': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
-                            'y': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, numsteps)},
-                        },
-                        'outputs': {
-                            'infodist': {'shape': (1, 1, 1)},
-                        }
-                    }
-                }),
             ]),
         }
     }),
@@ -266,10 +221,44 @@ graph = OrderedDict([
     # ('robot1', systemblock),
 
     # measures
-    ('meas_budget', {
+    # m: mutual information I(m1;m2)
+    ('m_mi', {
+        'block': MIBlock2,
+        'params': {
+            'blocksize': numsteps,
+            'shift': (0, 1),
+            'inputs': {
+                'x': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
+                # 'y': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
+                'y': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, numsteps)},
+            },
+            'outputs': {
+                'mi': {'shape': (1, 1, 1)},
+            }
+        }
+    }),
+    # m: information distance d(m1, m2) = 1 - (I(m1; m2)/H(m1,m2))
+    ('m_di', {
+        'block': InfoDistBlock2,
+        'params': {
+            'blocksize': numsteps,
+            'shift': (0, 1),
+            'inputs': {
+                'x': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
+                # 'y': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
+                'y': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, numsteps)},
+            },
+            'outputs': {
+                'infodist': {'shape': (1, 1, 1)},
+            }
+        }
+    }),
+
+    # m: budget moments
+    ('m_budget', {
         'block': MomentBlock2,
         'params': {
-            'id': 'meas_budget',
+            'id': 'm_budget',
             # 'debug': True,
             'blocksize': numsteps,
             'inputs': {
@@ -285,11 +274,11 @@ graph = OrderedDict([
         },
     }),
 
-    # measures
-    ('meas_err', {
+    # m: error
+    ('m_err', {
         'block': MeasBlock2,
         'params': {
-            'id': 'meas_err',
+            'id': 'm_err',
             'blocksize': numsteps,
             'debug': False,
             'mode': 'basic',
@@ -305,16 +294,16 @@ graph = OrderedDict([
         },
     }),
     
-    # measures
-    ('meas_mse', {
+    # m: (root) mean squared error
+    ('m_rmse', {
         'block': FuncBlock2,
         'params': {
-            # 'id': 'meas_mse',
+            # 'id': 'm_rmse',
             'blocksize': numsteps,
             'debug': False,
-            'func': f_meansquare,
+            'func': f_rootmeansquare,
             'inputs': {
-                'x': {'bus': 'meas_err/y', 'shape': (1, numsteps)},
+                'x': {'bus': 'm_err/y', 'shape': (1, numsteps)},
             },
             'outputs': {
                 'y': {'shape': (1, 1)},
@@ -322,11 +311,11 @@ graph = OrderedDict([
         },
     }),
     
-    # measures
-    ('meas_hist', {
+    # m: histogram
+    ('m_hist', {
         'block': MeasBlock2,
         'params': {
-            'id': 'meas_hist',
+            'id': 'm_hist',
             'blocksize': numsteps,
             'debug': False,
             'mode': 'hist',
@@ -338,7 +327,7 @@ graph = OrderedDict([
                 'x1': {'bus': 'robot1/s_proprio', 'shape': (1, numsteps)},
                 'x2': {'bus': 'pre_l2/y', 'shape': (1, numsteps)},
             },
-            'bins': meas_hist_bins,
+            'bins': m_hist_bins,
             'outputs': {
                 'h_x1': {'shape': (1, numbins)},
                 'h_x2': {'shape': (1, numbins)},
@@ -346,11 +335,11 @@ graph = OrderedDict([
         },
     }),
     
-    # measures
-    ('meas_div', {
+    # m: divergence histos
+    ('m_div', {
         'block': MeasBlock2,
         'params': {
-            'id': 'meas_div',
+            'id': 'm_div',
             'blocksize': numsteps,
             'debug': False,
             'mode': 'basic',
@@ -359,8 +348,8 @@ graph = OrderedDict([
             # direct histo input?
             # or signal input
             'inputs': {
-                'x1': {'bus': 'meas_hist/h_x1', 'shape': (1, numbins)},
-                'x2': {'bus': 'meas_hist/h_x2', 'shape': (1, numbins)},
+                'x1': {'bus': 'm_hist/h_x1', 'shape': (1, numbins)},
+                'x2': {'bus': 'm_hist/h_x2', 'shape': (1, numbins)},
             },
             'outputs': {
                 'y': {'shape': (1, numbins)},
@@ -368,15 +357,15 @@ graph = OrderedDict([
         },
     }),
     
-    # measures
-    ('meas_sum_div', {
+    # m: sum divergence
+    ('m_sum_div', {
         'block': FuncBlock2,
         'params': {
             'blocksize': numsteps,
             'debug': False,
             'func': f_sum,
             'inputs': {
-                'x': {'bus': 'meas_div/y', 'shape': (1, numbins)},
+                'x': {'bus': 'm_div/y', 'shape': (1, numbins)},
             },
             'outputs': {
                 'y': {'shape': (1, 1)},
@@ -408,22 +397,22 @@ graph = OrderedDict([
                 'pre_l2': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, numsteps)},
                 'pre_l2_h': {'bus': 'pre_l2/h', 'shape': (dim_s_proprio, 1001)},
                 'credit_l1': {'bus': 'budget/credit', 'shape': (1, numsteps)},
-                'budget_mu': {'bus': 'meas_budget/y_mu', 'shape': (1, 1)},
-                'budget_var': {'bus': 'meas_budget/y_var', 'shape': (1, 1)},
-                'budget_min': {'bus': 'meas_budget/y_min', 'shape': (1, 1)},
-                'budget_max': {'bus': 'meas_budget/y_max', 'shape': (1, 1)},
-                'infodist': {
-                    'bus': 'infodist/infodist',
+                'budget_mu': {'bus': 'm_budget/y_mu', 'shape': (1, 1)},
+                'budget_var': {'bus': 'm_budget/y_var', 'shape': (1, 1)},
+                'budget_min': {'bus': 'm_budget/y_min', 'shape': (1, 1)},
+                'budget_max': {'bus': 'm_budget/y_max', 'shape': (1, 1)},
+                'm_di': {
+                    'bus': 'm_di/infodist',
                     'shape': (dim_s_proprio, 1, 1)
                 },
-                'mi': {
-                    'bus': 'mi/mi',
+                'm_mi': {
+                    'bus': 'm_mi/mi',
                     'shape': (dim_s_proprio, 1, 1)
                 },
-                'meas_err': {'bus': 'meas_err/y', 'shape': (1, numsteps)},
-                'meas_mse': {'bus': 'meas_mse/y', 'shape': (1, 1)},
-                'meas_div': {'bus': 'meas_div/y', 'shape': (1, numbins)},
-                'meas_sum_div': {'bus': 'meas_sum_div/y', 'shape': (1, 1)},
+                'm_err': {'bus': 'm_err/y', 'shape': (1, numsteps)},
+                'm_rmse': {'bus': 'm_rmse/y', 'shape': (1, 1)},
+                'm_div': {'bus': 'm_div/y', 'shape': (1, numbins)},
+                'm_sum_div': {'bus': 'm_sum_div/y', 'shape': (1, 1)},
             },
             'desc': 'Single infodist configuration',
 
@@ -475,7 +464,7 @@ graph = OrderedDict([
                         'legend_loc': 'right',
                     },
                     {
-                        'input': ['meas_err'], 'plot': timeseries,
+                        'input': ['m_err'], 'plot': timeseries,
                         'title': 'error $x - y$',
                         # 'aspect': 'auto',
                         # 'orientation': 'horizontal',
@@ -502,19 +491,20 @@ graph = OrderedDict([
                         'legend_loc': 'right',
                     },
                     {
-                        'input': ['budget_%s' % (outk,) for outk in ['mu', 'var', 'min', 'max']] + ['mi', 'infodist', 'meas_mse', 'meas_sum_div'], # , 'meas_mkld']
-                        'shape': [(1, 1) for outk in ['mu', 'var', 'min', 'max', 'mi', 'infodist', 'meas_mse', 'meas_sum_div']], # , 'meas_mse', 'meas_mkld']
+                        'input': ['budget_%s' % (outk,) for outk in ['mu', 'var', 'min', 'max']] + ['m_mi', 'm_di', 'm_rmse', 'm_sum_div'],
+                        'shape': [(1, 1) for outk in ['mu', 'var', 'min', 'max', 'm_mi', 'm_di', 'm_rmse', 'm_sum_div']],
                         'mode': 'stack',
                         'title': 'measures', 'title_pos': 'bottom',
                         'plot': table,
                     },
                     {
-                        'input': ['meas_div'], 'plot': partial(timeseries, linestyle = 'none', marker = 'o'),
+                        'input': ['m_div'], 'plot': partial(timeseries, linestyle = 'none', marker = 'o'),
                         'title': 'histogram divergence %s $h1 - h2$' % (div_meas, ),
+                        'shape': (1, numbins),
                         # 'aspect': 'auto',
                         # 'orientation': 'horizontal',
                         'xlim': None, # 'xticks': False, # 'xticklabels': False,
-                        'xaxis': meas_hist_bincenters, 'xlabel': 'bins $k$',
+                        'xaxis': m_hist_bincenters, 'xlabel': 'bins $k$',
                         # 'yticks': False,
                         # normalize to original range
                         'ylim': None, 'ylabel': 'divergence'
@@ -544,8 +534,8 @@ graph = OrderedDict([
     #             'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
     #             'pre_l2': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, numsteps)},
     #             'credit_l1': {'bus': 'budget/credit', 'shape': (1, numsteps)},
-    #             'infodist': {
-    #                 'bus': 'infodist/infodist',
+    #             'm_di': {
+    #                 'bus': 'm_di/infodist',
     #                 'shape': (dim_s_proprio, 1, 1)
     #             },
     #         },
@@ -612,7 +602,7 @@ graph = OrderedDict([
                 
     #             # [
     #             #     {
-    #             #         'input': ['infodist'],
+    #             #         'input': ['m_di'],
     #             #         'ndslice': (slice(None), 0, slice(None)),
     #             #         'shape': (dim_s_proprio, 1),
     #             #         'plot': [
@@ -621,7 +611,7 @@ graph = OrderedDict([
     #             #         'title': 'd(proprio, f(proprio))',
     #             #     },
     #             #     {
-    #             #         'input': ['infodist'],
+    #             #         'input': ['m_di'],
     #             #         'ndslice': (slice(None), 0, slice(None)),
     #             #         'shape': (dim_s_proprio, 1),
     #             #         'plot': [partial(

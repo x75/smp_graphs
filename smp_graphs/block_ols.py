@@ -5,13 +5,6 @@ import numpy as np
 import pandas as pd
 
 HAVE_ESSENTIA = False
-try:
-    import essentia as e
-    import essentia.standard as estd
-    HAVE_ESSENTIA = True
-except ImportError, e:
-    print "Failed to import essentia", e
-
 
 from smp_graphs.common import read_puppy_hk_pickles
 from smp_graphs.block  import Block2, decInit, decStep
@@ -50,7 +43,33 @@ class FileBlock2(Block2):
         else:
             filetype = conf['params']['type']
         print "%s%s.init Loading %s-type data from %s" % (self.nesting_indent, self.__class__.__name__, filetype, lfile)
+
+
+        self.init_load_file(filetype, lfile, conf)
+        # FIXME: perform quick check of data
         
+            
+        # init states
+        for k, v in conf['params']['outputs'].items(): # ['x', 'y']:
+            # print "key", self.data[k]
+            # setattr(self, k, np.zeros((self.data[k].shape[1], 1)))
+            # print "v", v
+            assert type(v) is dict, "FileBlock2 outputs need a configuration dictionary, not %s" % (type(v),)
+            assert v.has_key('shape'), "FileBlock2 outputs need a 'shape' key"
+            if v['shape'] is None:
+                # self.outputs[k][0] = (self.data[k].shape[1], 1)
+                # print "data", self.data[k].shape[1]
+                # print "out dim", conf['params']['outputs'][k]
+                conf['params']['outputs'][k]['shape'] = (self.data[k].shape[1], conf['params']['blocksize'])
+                print "out dim", conf['params']['outputs'][k]
+            # self.x = np.zeros((self.odim, 1))
+        
+        Block2.__init__(self, conf = conf, paren = paren, top = top)
+        
+        # set odim from file
+        # self.odim = self.x.shape[1] # None # self.data.shape[1]
+
+    def init_load_file(self, filetype, lfile, conf):
         if filetype == 'puppy':
             offset = 0
             if conf['params']['outputs'].has_key('log'):
@@ -184,54 +203,6 @@ class FileBlock2(Block2):
             self.data = {'x': data[sl]}
             print "data", data.shape, self.data['x'].shape
             self.step = self.step_wav
-
-        elif filetype == 'mp3':
-            # default samplerate
-            if not conf['params']['file'].has_key('samplerate'):
-                conf['params']['file']['samplerate'] = 44100
-
-            # load data
-            loader = estd.MonoLoader(filename = lfile, sampleRate = conf['params']['file']['samplerate'])
-            data = loader.compute()
-
-            # if not length is given, create random slice of 60 sec minimal length if file length allows
-            if not conf['params']['file'].has_key('length') or conf['params']['file']['length'] is None or conf['params']['file']['length'] == 0:
-                conf['params']['file']['length'] = min(
-                    data.shape[0],
-                    np.random.randint(
-                        conf['params']['file']['samplerate'] * 60,
-                        data.shape[0] - conf['params']['file']['offset']))
-
-            # compute slice
-            sl = slice(conf['params']['file']['offset'], conf['params']['file']['offset'] + conf['params']['file']['length'])
-            print "%sFileBlock2-%s fileypte mp3 sl = %s" % (self.nesting_indent, self.id, sl, )
-            # select data
-            self.data = {'x': data[sl]} # , 'y': data[sl]}
-            print "%sFileBlock2-%s data = %s, self.data['x'] = %s" % (self.nesting_indent, self.id, data.shape, self.data['x'].shape)
-            # set step callback
-            self.step = self.step_wav
-        # FIXME: perform quick check of data
-        
-            
-        # init states
-        for k, v in conf['params']['outputs'].items(): # ['x', 'y']:
-            # print "key", self.data[k]
-            # setattr(self, k, np.zeros((self.data[k].shape[1], 1)))
-            # print "v", v
-            assert type(v) is dict, "FileBlock2 outputs need a configuration dictionary, not %s" % (type(v),)
-            assert v.has_key('shape'), "FileBlock2 outputs need a 'shape' key"
-            if v['shape'] is None:
-                # self.outputs[k][0] = (self.data[k].shape[1], 1)
-                # print "data", self.data[k].shape[1]
-                # print "out dim", conf['params']['outputs'][k]
-                conf['params']['outputs'][k]['shape'] = (self.data[k].shape[1], conf['params']['blocksize'])
-                print "out dim", conf['params']['outputs'][k]
-            # self.x = np.zeros((self.odim, 1))
-        
-        Block2.__init__(self, conf = conf, paren = paren, top = top)
-        
-        # set odim from file
-        # self.odim = self.x.shape[1] # None # self.data.shape[1]
 
     @decStep()
     def step(self, x = None):

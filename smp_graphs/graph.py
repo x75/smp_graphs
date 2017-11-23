@@ -12,6 +12,7 @@ import re, copy, random, six
 from collections import OrderedDict
 
 from numpy import array
+from numpy import random
 
 from matplotlib import colors
 
@@ -457,6 +458,7 @@ def nxgraph_add_edges(G):
             # if not v.has_key('bus') and not v.has_key('trigger'): continue
 
             # get node id and output variable of current input source
+            k_from_str = ''
             if v.has_key('bus'):
                 k_from_str, v_from_str = v['bus'].split('/')
                 etype = 'data'
@@ -583,6 +585,7 @@ def nxgraph_plot(G, ax = None, pos = None, layout_type = "spring", node_color = 
                 edgetype = "data"
             
             # print "edge type = %s, %s" % (edgetype, edge)
+    # logger.debug('nxgraph_plot: typededges = %s' % (typededges, ))
 
     nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = typededges['hier'], edge_color = "b", width = 0.8, alpha = 0.2)
     nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = typededges['loop'], edge_color = "g", width = 1.0, alpha = 0.2)
@@ -593,7 +596,7 @@ def nxgraph_plot(G, ax = None, pos = None, layout_type = "spring", node_color = 
     # title = re.sub(r'_[0-9]+_[0-9]+', r'', G.name.split("-")[0])
     title = ''
     ax.set_title(title + 'nxgraph G, |G| = %d' % (G.number_of_nodes(), ), fontsize = 8)
-    ax.title.set_position((0.4, 0.9))
+    ax.title.set_position((0.05, 0.9))
     ax.title.set_alpha(0.65)
 
     ax.set_xticks([])
@@ -673,14 +676,14 @@ def recursive_hierarchical(G, lvlx = 0, lvly = 0):
 
     G_ = nx.MultiDiGraph()
 
-    xincr = 0.2/float(G.number_of_nodes() + 1)
+    xincr = 0.4/float(G.number_of_nodes() + 1)
     
     # for i, node in enumerate(G.nodes()):
     for i, node in enumerate(nxgraph_nodes_iter(G, 'enable')):
         G.node[node]['layout'] = {}
         G.node[node]['layout']['level'] = lvlx
-        G.node[node]['layout']['x'] = lvlx + (i * xincr)
-        G.node[node]['layout']['y'] = lvly
+        G.node[node]['layout']['x'] = lvlx + (i * xincr) # + (random.normal() * 0.1)
+        G.node[node]['layout']['y'] = lvly # + (random.normal() * 0.1)
         # G_.add_node('l%d_%s_%s' % (lvl, node, G.node[node]['block_'].id), G.node[node])
         nodeid_ = 'l%d_%s' % (lvlx, G.node[node]['block_'].id)
         # print "node", nodeid_, G.node[node] # ['block_'].id # .keys()
