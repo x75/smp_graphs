@@ -284,6 +284,9 @@ def init_random_lookup(ref, conf, mconf):
     # ref.h = ref.h_gauss_inv_int
     # components are all normalized to [-1, 1]
     ref.h = ref.l_a * ref.h_lin + ref.d_a * ref.h_gauss_inv_int + ref.s_a * ref.h_noise
+    if ref.e > 0.0:
+        ref.h += np.random.normal(0, 1.0, ref.h.shape) * ref.e
+    
     # ref.h /= np.max(np.abs(ref.h))
     ref.x = np.zeros((inshape))
     ref.y = np.zeros_like(ref.x)

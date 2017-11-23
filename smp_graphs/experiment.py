@@ -576,8 +576,8 @@ class Experiment(object):
             G_cols = nxgraph_get_node_colors(G_)
             
         # print "G_cols", G_cols
-        # nxgraph_plot(G_, ax = fig_nxgr.axes[axi], layout_type = "linear_hierarchical", node_color = G_cols, node_size = 300)
-        nxgraph_plot(G_, ax = fig_nxgr.axes[axi], layout_type = "spring", node_color = G_cols, node_size = 300)
+        nxgraph_plot(G_, ax = fig_nxgr.axes[axi], layout_type = "linear_hierarchical", node_color = G_cols, node_size = 300)
+        # nxgraph_plot(G_, ax = fig_nxgr.axes[axi], layout_type = "spring", node_color = G_cols, node_size = 300)
         # fig_nxgr.axes[axi].set_aspect(1)
         axi += 1
         # plotgraph_figures.append(fig_nxgr)

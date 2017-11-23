@@ -64,10 +64,10 @@ rcParams['xtick.direction'] = 'in'
 rcParams['ytick.labelsize'] = 8.0
 rcParams['ytick.direction'] = 'out'
 # subplots
-rcParams['figure.subplot.bottom'] = 0.15 # 0.11
+rcParams['figure.subplot.bottom'] = 0.12 # 0.11
 rcParams['figure.subplot.left'] = 0.1 # 0.125
 rcParams['figure.subplot.right'] = 0.9
-rcParams['figure.subplot.top'] = 0.95 # 0.88
+rcParams['figure.subplot.top'] = 0.88 # 0.88
 
 # f = open("rcparams.txt", "w")
 # f.write("rcParams = %s" % (rcParams, ))
@@ -438,7 +438,7 @@ class PlotBlock2(FigPlotBlock2):
         default_plot_scale = 3
         default_plot_size = (sb_cols * 2.5 * default_plot_scale, sb_rows * 1 * default_plot_scale)
         self.fig.set_size_inches(default_plot_size)
-        
+
         # subplots pass 1: the hard work, iterate over subplot config and build the plot
         for i, subplot in enumerate(self.subplots):   # rows are lists of dicts
             for j, subplotconf_ in enumerate(subplot): # columns are dicts
@@ -463,6 +463,14 @@ class PlotBlock2(FigPlotBlock2):
                 # subplot index from rows*cols
                 idx = (i*self.fig_cols)+j
                     
+                # axis handle shortcut
+                axs = {
+                    'main': {
+                        'ax': self.fig.axes[idx],
+                        'labels': []
+                    }
+                }
+        
                 # self.debug_print("[%s]step idx = %d, conf = %s, data = %s/%s", (
                 #     self.id, idx,
                 #     subplotconf, subplotconf['input'], self.inputs[subplotconf['input']]))
@@ -475,6 +483,7 @@ class PlotBlock2(FigPlotBlock2):
                 # plotdata = self.inputs[subplotconf['input'][1]][0].T
                 # plotdata = {}
                 plotdata = OrderedDict()
+                plotdatad = OrderedDict()
                 plotvar = " "
                 title = ""
                 if subplotconf.has_key('title'): title += subplotconf['title']
@@ -493,7 +502,8 @@ class PlotBlock2(FigPlotBlock2):
                 # labels = reduce(lambda x, y: x + y, l)
                 labels = []
 
-                # loop over inputs
+                ################################################################################
+                # loop over subplot 'input'
                 for k, ink in enumerate(subplotconf['input']):
                     # FIXME: array'ize this loop
                     # vars: input, ndslice, shape, xslice, ...
@@ -507,7 +517,6 @@ class PlotBlock2(FigPlotBlock2):
                     if not input_ink.has_key('shape'):
                         input_ink['shape'] = input_ink['val'].shape
                     plotlen = input_ink['shape'][-1] # numsteps at shape[-1]
-                        
 
                     # set default slice
                     xslice = slice(0, plotlen)
@@ -530,9 +539,11 @@ class PlotBlock2(FigPlotBlock2):
                         # and plot shape
                         plotshape = (plotlen, ) + tuple((b for b in plotshape[1:]))
                     
-                    # print "%s.subplots post-xslice: plotlen = %d, xslice = %s, plotshape = %s" % (self.cname, plotlen, xslice, plotshape)
+                    self._debug("subplot[%d,%d] input %d/%s post-xslice: plotlen = %d, xslice = %s, plotshape = %s" % (
+                        i, j, k, ink, plotlen, xslice, plotshape))
 
                     # explicit shape key
+                    # FIXME: shape overrides xslice
                     if subplotconf.has_key('shape'):
                         if len(subplotconf['shape']) > 1:
                             subplotconf_shape = subplotconf['shape'][k]
@@ -545,7 +556,8 @@ class PlotBlock2(FigPlotBlock2):
                         # and xsclice
                         xslice = slice(0, plotlen)
 
-                    self._debug("%s.subplots post-shape: plotlen = %d, xslice = %s, plotshape = %s" % (self.cname, plotlen, xslice, plotshape))
+                    self._debug("subplot[%d,%d] input %d/%s post-shape: plotlen = %d, xslice = %s, plotshape = %s" % (
+                        i, j, k, ink, plotlen, xslice, plotshape))
                     
                     # configure x axis, default implicit number of steps
                     if subplotconf.has_key('xaxis'):
@@ -574,12 +586,36 @@ class PlotBlock2(FigPlotBlock2):
                         # plotdata[ink_] = myt(self.inputs[ink_]['val'])[-1,subplotconf['ndslice'][0],subplotconf['ndslice'][1],:] # .reshape((21, -1))
                         # slice the data to spec, custom transpose from h to v time
                         ndslice = subplotconf['ndslice'][k]
-                        # print "k", k, "ink", ink, "ndslice", ndslice
+                        self._debug("    ndslice: k = %s, ink = %s, ndslice = %s" % (k, ink, ndslice))
                         plotdata[ink_] = myt(input_ink['val'])[ndslice]
-                        # print "      ndslice %s: %s, numslice = %d" % (ink, subplotconf['ndslice'][k], len(subplotconf['ndslice']))
+                        self._debug("    ndslice: k = %s, ink = %s, ndslice = %s, numslice = %d" % (k, ink, subplotconf['ndslice'][k], len(subplotconf['ndslice'])))
+                        self._debug("    ndslice: plotdata[ink_] = %s, input = %s" % (plotdata[ink_], input_ink['val'], ))
                     else:
                         plotdata[ink_] = myt(input_ink['val'])[xslice] # .reshape((xslice.stop - xslice.start, -1))
-
+                        
+                    # dual plotdata record
+                    axd = axs['main']
+                    # ax_ = axs['main']['ax']
+                    if subplotconf.has_key('xtwin'):
+                        if type(subplotconf['xtwin']) is list:
+                            if subplotconf['xtwin'][k]:
+                                if not axs.has_key('xtwin'):
+                                    axs['xtwin'] = {'ax': axs['main']['ax'].twinx(), 'labels': []}
+                                axd = axs['xtwin'] # ['ax']
+                                
+                        else:
+                            if subplotconf['xtwin']:
+                                if not axs.has_key('xtwin'):
+                                    axs['xtwin'] = {'ax': axs['main']['ax'].twinx(), 'labels': []}
+                                axd = axs['xtwin'] # ['ax']
+                                
+                    # generate labels
+                    l = reduce(lambda x, y: x+y, ['%s[%d]' % (ink, invd) for invd in range(plotdata[ink_].shape[1])])
+                    labels.append(l)
+                    
+                    axd['labels'].append(l)
+                    ax_ = axd['ax']
+                                
                     assert plotdata[ink_].shape != (0,), "no data to plot"
                     # print "      input = %s" % input_ink['val']
                     # print "      id %s, ink = %s, plotdata = %s, plotshape = %s" % (self.id, ink_, plotdata[ink_], plotshape)
@@ -589,12 +625,17 @@ class PlotBlock2(FigPlotBlock2):
                     # fix nans
                     plotdata[ink_][np.isnan(plotdata[ink_])] = -1.0
                     plotvar += "%s, " % (input_ink['bus'],)
-                    l = reduce(lambda x, y: x+y, ['%s[%d]' % (ink, invd) for invd in range(plotdata[ink_].shape[1])])
-                    labels.append(l)
+
+                    # store ax, labels for legend
+                    plotdatad[ink_] = {'data': plotdata[ink_], 'ax': ax_, 'labels': l}
+
+                self._debug("labels after subplotconf.input = %s" % (labels, ))
                 subplotconf['labels'] = labels
-                # # assign and trim title
-                # title += plotvar[:-2]
-                    
+                # end loop over subplot 'input'
+                ################################################################################
+
+                
+                ################################################################################
                 # combine inputs into one backend plot call to automate color cycling etc
                 if subplotconf.has_key('mode'):
                     """FIXME: fix dangling effects of stacking"""
@@ -630,16 +671,18 @@ class PlotBlock2(FigPlotBlock2):
                 for kw in [
                         'aspect', 'orientation', 'labels',
                         'title_pos',
-                        'xlabel', 'xlim', 'xticks', 'xticklabels', 'xinvert',
-                        'ylabel', 'ylim', 'yticks', 'yticklabels', 'yinvert']:
+                        'xlabel', 'xlim', 'xticks', 'xticklabels', 'xinvert', 'xtwin',
+                        'ylabel', 'ylim', 'yticks', 'yticklabels', 'yinvert', 'ytwin', ]:
                     if subplotconf.has_key(kw):
                         kwargs[kw] = subplotconf[kw]
                 self._debug("plot_subplots subplot[%s][%d,%d] kwargs = %s" % (ink, i, j, kwargs))
                 
-                # prep figure
-                self.fig.axes[idx].clear()
+                # prep axis
+                ax = axs['main']['ax']
+                # self.fig.axes[idx].clear()
+                ax.clear()
                 inkc = 0
-
+                
                 # colors
                 num_cgroups = 5
                 num_cgroup_color = 5
@@ -647,23 +690,23 @@ class PlotBlock2(FigPlotBlock2):
                 # cmap_str = 'cyclic_mrybm_35_75_c68'
                 # cmap_str = 'colorwheel'
                 cmap_str = 'rainbow'
-                
-                # axis handle shortcut
-                ax = self.fig.axes[idx]
+
                 ax.set_prop_cycle(
                     get_colorcycler(
                         cmap_str = cmap_str, cmap_idx = None,
                         c_s = inkc * num_cgroup_dist, c_e = (inkc + 1) * num_cgroup_dist, c_n = num_cgroup_color
                     )
                 )
-
+                
                 # stacked data?
                 if plotdata.has_key('_stacked'):
-                    print "block_plot.py plotting stacked"
+                    self._debug("plot_subplots subplot[] plotting stacked")
                     plotfunc_conf[0](ax, data = plotdata['_stacked'], ordinate = t, title = title, **kwargs)
                 
                 # iterate over plotdata items
+                title_ = title
                 for ink, inv in plotdata.items():
+                    ax = plotdatad[ink]['ax']
                     self._debug("%s.plot_subplots: ink = %s, plotvar = %s, inv.sh = %s, t.sh = %s" % (self.cname, ink, plotvar, inv.shape, t.shape))
 
                     # if multiple input groups, increment color group
@@ -689,31 +732,38 @@ class PlotBlock2(FigPlotBlock2):
                     if not plotdata.has_key('_stacked'):
                         # print "    plot_subplots plotfunc", plotfunc_conf[plotfunc_idx]
                         # print "                      args", ax, inv, t, title, kwargs
-                        plotfunc_conf[plotfunc_idx](ax = ax, data = inv, ordinate = t, title = title, **kwargs)
+                        plotfunc_conf[plotfunc_idx](ax = ax, data = inv, ordinate = t, title = title_, **kwargs)
+                        # avoid setting title multiple times
+                        title_ = None
 
                     # label = "%s" % ink, title = title
                     # tmp_cmaps_ = [k for k in cc.cm.keys() if 'cyclic' in k and not 'grey' in k]
                         
                     # metadata
                     inkc += 1
-                    
+
+                # reset to main axis
+                ax = axs['main']['ax']
                 # store the final plot data
                 # print "sbdict", self.subplots[i][j]
-                self.subplots[i][j]['p1_plottitle'] = title
-                self.subplots[i][j]['p1_plotdata'] = plotdata
-                self.subplots[i][j]['p1_plotvar'] = plotvar
-                self.subplots[i][j]['p1_plotlabels'] = labels
-                self.subplots[i][j]['p1_plotxlim'] = ax.get_xlim()
-                self.subplots[i][j]['p1_plotylim'] = ax.get_ylim()
-                    
+                sb = self.subplots[i][j]
+                sb['p1_plottitle'] = title
+                sb['p1_plotdata'] = plotdata
+                sb['p1_plotvar'] = plotvar
+                sb['p1_plotlabels'] = labels
+                sb['p1_plotxlim'] = ax.get_xlim()
+                sb['p1_plotylim'] = ax.get_ylim()
+                sb['p1_axs'] = axs
+                sb['p1_plotdatad'] = plotdatad
+
                 # save axis limits
                 # print "xlim", ax.get_xlim()
-                sb = self.subplots[i][j]
                 if sb['p1_plotxlim'][0] < cols_xlim_max[j][0]: cols_xlim_max[j] = (sb['p1_plotxlim'][0], cols_xlim_max[j][1])
                 if sb['p1_plotxlim'][1] > cols_xlim_max[j][1]: cols_xlim_max[j] = (cols_xlim_max[j][0], sb['p1_plotxlim'][1])
                 if sb['p1_plotylim'][0] < rows_ylim_max[i][0]: rows_ylim_max[i] = (sb['p1_plotylim'][0], rows_ylim_max[i][1])
                 if sb['p1_plotylim'][1] > rows_ylim_max[i][1]: rows_ylim_max[i] = (rows_ylim_max[i][0], sb['p1_plotylim'][1])
- 
+
+                    
                 # self.fig.axes[idx].set_title("%s of %s" % (plottype, plotvar, ), fontsize=8)
                 # [subplotconf['slice'][0]:subplotconf['slice'][1]].T)
         # subplots pass 1: done
@@ -737,7 +787,7 @@ class PlotBlock2(FigPlotBlock2):
 
                 # check empty input
                 if len(subplotconf['input']) < 1:
-                    ax = self.fig.axes[idx]
+                    # ax = self.fig.axes[idx]
                     # ax = fig.gca()
                     ax.set_xticks([])
                     ax.set_xticklabels([])
@@ -765,19 +815,44 @@ class PlotBlock2(FigPlotBlock2):
                 loc = 'left'
                 if sb.has_key('legend_loc'):
                     loc = sb['legend_loc']
-                    
-                custom_legend(
-                    labels = sb['p1_plotlabels'],
-                    ax = ax, resize_by = 0.9,
-                    loc = loc)
 
-                # set aspect after placing legend
-                self._debug("    1 subplotconf.keys = %s" % (subplotconf.keys(), ))
-                ax_set_aspect(ax, **subplotconf)
+                if len(sb['p1_axs']) == 1:
+                    custom_legend(
+                        labels = sb['p1_plotlabels'],
+                        ax = ax, resize_by = 0.9,
+                        loc = loc)
+                    ax_set_aspect(ax, **subplotconf)
+                else:
+                    lg_ = None
+                    # for axk, ax in sb['p1_axs'].items():
+                    # for pdk, pdv in sb['plotdatad'].items():
+                    #    ax = pdv['ax']
+                    for k, axk in enumerate(sb['p1_axs']):
+                        ax = sb['p1_axs'][axk]['ax']
+                        labels = sb['p1_axs'][axk]['labels']
+                        # if axk == 'main' and sb['p1_axs'].has_key('xtwin'): loc_ = 'right'
+                        # else: loc_ = loc
+                        # if lg_ is not None:
+                        #     print "lg_.loc", lg_
+                        # if loc == 'left': locx = 1.05
+                        # elif loc == 'right': locx = -0.15
+                        # else: locx = 0.0
+                        # loc_ = (locx, (k * 0.45))
+                        loc_ = loc
+                        custom_legend(
+                            labels = labels, # sb['p1_plotlabels'],
+                            ax = ax, resize_by = 0.9,
+                            loc = loc_, lg = lg_)
+                        lg_ = ax.get_legend()
+
+                        # set aspect after placing legend
+                        # self._debug("    1 subplotconf.keys = %s" % (subplotconf.keys(), ))
+                        ax_set_aspect(ax, **subplotconf)
+                
                 
                 # put_legend_out_top(labels = labels, ax = ax, resize_by = 0.8)
                 
-        self._debug("    len fig.axes = %d" % (len(self.fig.axes)))
+        self._debug("plot_subplots len fig.axes = %d" % (len(self.fig.axes)))
             
         plt.draw()
         plt.pause(1e-9)

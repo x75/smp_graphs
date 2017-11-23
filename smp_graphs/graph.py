@@ -593,7 +593,7 @@ def nxgraph_plot(G, ax = None, pos = None, layout_type = "spring", node_color = 
     # title = re.sub(r'_[0-9]+_[0-9]+', r'', G.name.split("-")[0])
     title = ''
     ax.set_title(title + 'nxgraph G, |G| = %d' % (G.number_of_nodes(), ), fontsize = 8)
-    ax.title.set_position((0.2, 0.9))
+    ax.title.set_position((0.4, 0.9))
     ax.title.set_alpha(0.65)
 
     ax.set_xticks([])

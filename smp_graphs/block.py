@@ -2092,7 +2092,7 @@ class Block2(object):
             #     # , getattr(self, k), self.bus[buskey], self.bus.keys()
             #     print "buscopy[%d]: from buskey = %s to bus %s/%s" % (self.cnt, buskey, self.id, k)
             #     print "         data = %s" % (self.bus[buskey], )
-            # print "    buscopy outputs[%s] from bus[%s] = %s" % (k, buskey, self.bus[buskey])
+            self._debug("    buscopy outputs[%s] from bus[%s] = %s" % (k, buskey, self.bus[buskey]))
             setattr(self, k, self.bus[buskey])
             
         # for k, v in self.outputs.items():
@@ -2745,15 +2745,13 @@ class SeqLoopBlock2(Block2):
                     loopblock_params[k] = v
 
             self._debug(
-                "%s.step.f_obj:\n    loopblock_params = %s",
-                (self.cname, loopblock_params))
+                "step.f_obj: loopblock_params = %s" % (loopblock_params, ))
             
             # create dynamic conf, beware the copy (!!!)
             loopblock_conf = {'block': self.loopblock['block'], 'params': copy.deepcopy(loopblock_params)}
             
             self._debug(
-                "%s.step.f_obj:\n    loopblock_conf = %s",
-                (self.cname, loopblock_conf))
+                "step.f_obj: loopblock_conf = %s" % (loopblock_conf, ))
             
             # instantiate block loopblock
             self.dynblock = self.loopblock['block'](
@@ -2890,7 +2888,7 @@ class SeqLoopBlock2(Block2):
                 )
                     
                 # set the attribute
-                outvar[:,outslice] = getattr(self.dynblock, outk).copy()
+                outvar[...,outslice] = getattr(self.dynblock, outk).copy()
                 
                 # print "dynblock-%s outslice = %s, outvar = %s/%s%s, dynblock.out[%s] = %s" %(self.dynblock.id, outslice, outvar.shape, outvar[...,:].shape, outvar[...,outslice].shape, outk, getattr(self.dynblock, outk).shape)
                 

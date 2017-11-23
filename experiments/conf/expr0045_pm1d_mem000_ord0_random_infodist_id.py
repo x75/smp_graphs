@@ -181,7 +181,7 @@ graph = OrderedDict([
                         },
                         'outputs': {
                             'y': {'shape': (dim_s_proprio, 1)},
-                            'h': {'shape': (dim_s_proprio, 1001), 'trigger': 'trig/pre_l2_t1'},
+                            'h': {'shape': (dim_s_proprio, lconf['infodistgen']['numelem']), 'trigger': 'trig/pre_l2_t1'},
                         },
                     }
                 }),
