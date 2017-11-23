@@ -45,7 +45,7 @@ except ImportError, e:
     HAVE_SOESGP = False
 
 from logging import DEBUG as LOGLEVEL
-logger = get_module_logger(modulename = 'block_models', loglevel = LOGLEVEL)
+logger = get_module_logger(modulename = 'block_models', loglevel = LOGLEVEL - 1)
 
 def array_fix(a = None, col = True):
     """smp_graphs.common.array_fix

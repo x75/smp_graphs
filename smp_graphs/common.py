@@ -11,7 +11,10 @@ import logging
 
 import smp_graphs
 from smp_base.common import set_attr_from_dict
+from smp_base.common import get_module_logger
 from smp_graphs.utils import print_dict
+
+logger = get_module_logger(modulename = 'common', loglevel = logging.DEBUG)
 
 ################################################################################
 # static config templates
@@ -502,7 +505,7 @@ def dict_replace_nodekeys_loop(d = {}, nodekeys = set(), loopiter = 0):
                 k_ = "%s%s%s%s" % (k, loopiter_[0], loop_delim, loopiter)
             else:
                 k_ = re.sub(r'%s' % (k, ), r'%s%s%s' % (k, loop_delim, loopiter), k)
-            print "old k", k, "new k", k_
+            logger.debug("old k = %s, new k = %s" % (k, k_, ))
             # overwrite old key with replacement
             d[k_] = d.pop(k)
         else:

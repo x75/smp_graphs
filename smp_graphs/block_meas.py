@@ -232,7 +232,8 @@ class MomentBlock2(PrimBlock2):
     def step(self, x = None):
         # print "MomentBlock2"
         for k, v in self.inputs.items():
-            # print "%s.step[%d] k = %s, v = %s/%s, bus = %s" % (self.cname, self.cnt, k, v['val'].shape, v['shape'], self.bus[v['bus']].shape)
+            logstr = "%s.step[%d] k = %s, v = %s/%s, bus = %s" % (self.cname, self.cnt, k, v['val'].shape, v['shape'], self.bus[v['bus']].shape)
+            self._debug(logstr)
             data = v['val']
             axis = -1
             # print "data", data.shape

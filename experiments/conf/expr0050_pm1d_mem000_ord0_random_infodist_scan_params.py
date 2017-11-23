@@ -36,7 +36,7 @@ lconf = {
     'lim': 1.0,
     'order': 0,
     'd_i': 0.0,
-    'numloop': 4,
+    'numloop': 3,
 }
     
 dim = lconf['dim']
@@ -53,13 +53,19 @@ outputs = {
 
 
 # for stats
-l_as = [1.0, 0.0, 0.0, 1.0]
-d_as = [0.0, 1.0, 0.0, 0.0]
-d_ss = [1.0, 0.3, 1.0, 1.0]
-s_as = [0.0, 0.0, 1.0, 0.0]
-s_fs = [0.0, 0.0, 1.0, 0.0]
-es   = [0.0, 0.0, 0.0, 1.0]
+# l_as = [1.0, 0.5, 0.2, 0.1, 0.0, 0.0, 1.0, 0.8, 0.6, 0.4, 0.2, 0.0, 1.0, 0.8, 0.6, 0.4, 0.2, 0.0, ]
+# d_as = [0.0, 0.5, 0.8, 0.9, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, ]
+# d_ss = [1.0, 1.0, 0.9, 0.6, 0.3, 0.1, 1.0, 1.0, 0.9, 0.6, 0.3, 0.1, 0.1, 1.0, 1.0, 0.9, 0.6, 0.3, ]
+# s_as = [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, ]
+# s_fs = [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 3.0, 2.5, 2.0, 1.0, 0.5, 0.0, 0.0, 3.0, 2.5, 2.0, 1.0, ]
+# es   = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, ]
 
+l_as = [1.0, 0.5, 0.2,  ]
+d_as = [0.0, 0.5, 0.8,  ]
+d_ss = [1.0, 1.0, 0.9,  ]
+s_as = [0.0, 0.0, 0.0,  ]
+s_fs = [0.0, 0.0, 0.0,  ]
+es   = [0.0, 0.0, 0.0,  ]
 
 # final: random sampling in d space
 loop = [('lconf', {
@@ -80,6 +86,7 @@ loop = [('lconf', {
         's_f': s_fs[i],
         'e': es[i],
     },
+    'div_meas': 'chisq',
 }) for i in range(numloop)]
 
 loopblock = {
@@ -95,15 +102,18 @@ loopblock = {
         # 'robot1/dim': 2,
         'lconf': {},
         # contains the subgraph specified in this config file
-        'subgraph': 'conf/expr0045_pm1d_mem000_ord0_random_infodist_scan.py',
+        'subgraph': 'conf/expr0045_pm1d_mem000_ord0_random_infodist_id.py',
         'subgraph_rewrite_id': True,
-        'subgraph_ignore_nodes': [], # ['plot'],
+        'subgraph_ignore_nodes': ['plot_infodist'],
         'subgraphconf': {
             # 'plot/active': False
             # 'robot1/sysdim': 1,
             },
         # 'graph': graph1,
         'outputs': {
+            # 'infodist': {'shape': (1, 1, 1), 'buscopy': 'infodist/infodist'}
+            'gmeas_sum_div': {'shape': (1, 1), 'buscopy': 'meas_sum_div/y'}
+            
             # 'credit_min': {'shape': (1, 1), 'buscopy': 'measure/bcredit_min'},
             # 'credit_max': {'shape': (1, 1), 'buscopy': 'measure/bcredit_max'},
             # 'credit_mu': {'shape': (1, 1), 'buscopy': 'measure/bcredit_mu'},
@@ -132,9 +142,10 @@ graph = OrderedDict([
     # sequential loop
     ("b4", {
         'block': SeqLoopBlock2,
+        # 'block': LoopBlock2,
         'params': {
             'id': 'b4',
-            # 'debug': True,
+            'debug': True,
             # loop specification, check hierarchical block to completely
             # pass on the contained in/out space?
             'blocksize': numsteps, # same as loop length
@@ -142,10 +153,13 @@ graph = OrderedDict([
             'loopblocksize': numsteps/numloop, # loopblocksize,
             # can't do this dynamically yet without changing init passes
             'outputs': {
+                # 'infodist': {'shape': (1, 1, numloop)}, # , 'buscopy': 'b4_ll0/infodist'}
+                'gmeas_sum_div': {'shape': (1, numloop)}, # , 'buscopy': 'b4_ll0/infodist'}
                 # 'credit_min': {'shape': (1, numloop)},
                 # 'credit_max': {'shape': (1, numloop)},
                 # 'credit_mu': {'shape': (1, numloop)},
                 # 'x': {'shape': (3, numsteps)},
+                # 'y': {'shape': (1, numsteps)}
                 # 'y': {'shape': (1, numsteps)}
             },
 
@@ -180,41 +194,53 @@ graph = OrderedDict([
         },
     }),
 
-    # # plotting
-    # ('plot', {
-    #     'block': PlotBlock2,
-    #     'params': {
-    #         'id': 'plot',
-    #         'blocksize': numsteps,
-    #         'saveplot': saveplot,
-    #         'savetype': 'pdf',
-    #         'hspace': 0.2,
-    #         'wspace': 0.2,
-    #         'inputs': {
-    #             'mins_s': {'bus': 'b4/credit_min', 'shape': (1, numloop)},
-    #             'maxs_s': {'bus': 'b4/credit_max', 'shape': (1, numloop)},
-    #             'mus_s': {'bus': 'b4/credit_mu', 'shape': (1, numloop)},
-    #             # 'mins_p': {'bus': 'b3/credit_min', 'shape': (1, numloop)},
-    #             },
-    #         'subplots': [
-    #             [
-    #                 {
-    #                 'input': ['mins_s', 'maxs_s', 'mus_s'],
-    #                 'plot': partial(
-    #                     timeseries,
-    #                     ylim = (-30, 1030),
-    #                     yscale = 'linear',
-    #                     linestyle = 'none',
-    #                     marker = 'o')},
-    #                 {'input': ['mins_s', 'maxs_s', 'mus_s'], 'plot': partial(
-    #                     histogram,
-    #                     title = 'mean/min budget hist',
-    #                     ylim = (-30, 1030),
-    #                     yscale = 'linear',
-    #                     orientation = 'horizontal')}
-    #             ],
-    #         ],
-    #     },
-    # })
+    # plotting
+    ('plot', {
+        'block': PlotBlock2,
+        'params': {
+            'id': 'plot',
+            'blocksize': numsteps,
+            'saveplot': saveplot,
+            'savetype': 'pdf',
+            'hspace': 0.2,
+            'wspace': 0.2,
+            'inputs': {
+                # 'infodist': {'bus': 'b4/infodist', 'shape': (1, 1, numloop)},
+                'meas_sum_div': {'bus': 'b4/gmeas_sum_div', 'shape': (1, numloop)},
+                # 'mins_s': {'bus': 'b4/credit_min', 'shape': (1, numloop)},
+                # 'maxs_s': {'bus': 'b4/credit_max', 'shape': (1, numloop)},
+                # 'mus_s': {'bus': 'b4/credit_mu', 'shape': (1, numloop)},
+                # 'mins_p': {'bus': 'b3/credit_min', 'shape': (1, numloop)},
+                },
+            'subplots': [
+                [
+                    {
+                        # 'input': ['mins_s', 'maxs_s', 'mus_s'],
+                        'input': ['meas_sum_div'],
+                        'shape': (1, numloop),
+                        'plot': partial(
+                            timeseries,
+                            ylim = (-30, 1030),
+                            yscale = 'linear',
+                            linestyle = 'none',
+                            marker = 'o'
+                        ),
+                    },
+                    {
+                        # 'input': ['mins_s', 'maxs_s', 'mus_s'],
+                        'input': ['meas_sum_div'],
+                        'shape': (1, numloop),
+                        'plot': partial(
+                            histogram,
+                            title = 'mean/min budget hist',
+                            ylim = (-30, 1030),
+                            yscale = 'linear',
+                            orientation = 'horizontal',
+                        ),
+                    }
+                ],
+            ],
+        },
+    })
     
 ])

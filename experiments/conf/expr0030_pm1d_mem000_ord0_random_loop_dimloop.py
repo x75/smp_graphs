@@ -357,6 +357,7 @@ graph = OrderedDict([
         'block': PlotBlock2,
         'params': {
             'id': 'plot',
+            'debug': True,
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'pdf',
@@ -374,20 +375,22 @@ graph = OrderedDict([
                         'input': ['mins_s', 'maxs_s', 'mus_s'],
                         'xslice': (i * numloop_inner, (i+1) * numloop_inner),
                         'plot': partial(
-                                timeseries,
-                        ylim = (-30, 1030),
-                        yscale = 'linear',
-                        linestyle = 'none',
-                        marker = 'o')},
+                            timeseries,
+                            ylim = (-30, 1030),
+                            yscale = 'linear',
+                            linestyle = 'none',
+                            marker = 'o')
+                    },
                     {
                         'input': ['mins_s', 'maxs_s', 'mus_s'],
                         'xslice': (i * numloop_inner, (i+1) * numloop_inner),
                         'plot': partial(
-                        histogram,
-                        title = 'mean/min budget hist',
-                        ylim = (-30, 1030),
-                        yscale = 'linear',
-                        orientation = 'horizontal')},]
+                            histogram,
+                            title = 'mean/min budget hist',
+                            ylim = (-30, 1030),
+                            yscale = 'linear',
+                            orientation = 'horizontal')
+                    },]
                 for i in range(numloop)
         ],
         },

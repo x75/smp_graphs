@@ -266,20 +266,21 @@ graph = OrderedDict([
     # ('robot1', systemblock),
 
     # measures
-    ('measure', {
+    ('meas_budget', {
         'block': MomentBlock2,
         'params': {
-            'id': 'measure',
+            'id': 'meas_budget',
+            # 'debug': True,
             'blocksize': numsteps,
             'inputs': {
                 # 'credit': {'bus': 'pre_l1/credit', 'shape': (1, numsteps)},
-                'bcredit': {'bus': 'budget/credit', 'shape': (1, numsteps)},
+                'y': {'bus': 'budget/credit', 'shape': (1, numsteps)},
             },
             'outputs': {
-                'bcredit_mu': {'shape': (1, 1)},
-                'bcredit_var': {'shape': (1, 1)},
-                'bcredit_min': {'shape': (1, 1)},
-                'bcredit_max': {'shape': (1, 1)},
+                'y_mu': {'shape': (1, 1)},
+                'y_var': {'shape': (1, 1)},
+                'y_min': {'shape': (1, 1)},
+                'y_max': {'shape': (1, 1)},
             },
         },
     }),
@@ -391,7 +392,6 @@ graph = OrderedDict([
     ('plot_infodist', {
         'block': PlotBlock2,
         'params': {
-            'id': 'plot',
             'debug': False,
             'blocksize': numsteps,
             'saveplot': saveplot,
@@ -408,10 +408,10 @@ graph = OrderedDict([
                 'pre_l2': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, numsteps)},
                 'pre_l2_h': {'bus': 'pre_l2/h', 'shape': (dim_s_proprio, 1001)},
                 'credit_l1': {'bus': 'budget/credit', 'shape': (1, numsteps)},
-                'budget_mu': {'bus': 'measure/bcredit_mu', 'shape': (1, 1)},
-                'budget_var': {'bus': 'measure/bcredit_var', 'shape': (1, 1)},
-                'budget_min': {'bus': 'measure/bcredit_min', 'shape': (1, 1)},
-                'budget_max': {'bus': 'measure/bcredit_max', 'shape': (1, 1)},
+                'budget_mu': {'bus': 'meas_budget/y_mu', 'shape': (1, 1)},
+                'budget_var': {'bus': 'meas_budget/y_var', 'shape': (1, 1)},
+                'budget_min': {'bus': 'meas_budget/y_min', 'shape': (1, 1)},
+                'budget_max': {'bus': 'meas_budget/y_max', 'shape': (1, 1)},
                 'infodist': {
                     'bus': 'infodist/infodist',
                     'shape': (dim_s_proprio, 1, 1)

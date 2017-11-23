@@ -65,7 +65,7 @@ step is actually executed if the result is in the blockphase list of
 integers. The default configuration is `'blocksize': 1, 'blockphase': [0]`
 resulting in single time step execution.
 
-The top block also has a :data:`bus` member which is a dictionary
+The top block also has a `bus` member which is a dictionary
 whose keys are 'buskeys' and whose values are np.ndarrays and which is
 globally available to all blocks. By convention, the block's
 instantaneous outputs are computed by simply looping over the outputs
@@ -1544,7 +1544,7 @@ class Block2(object):
         if hasattr(self, 'subgraph_rewrite_id') and self.subgraph_rewrite_id:
             # self.outputs_copy = copy.deepcopy(self.conf['params']['outputs'])
             nks_0 = dict_get_nodekeys_recursive(self.conf['params']['graph'])
-            print "nodekeys", nks_0
+            self._debug("    nodekeys = %s" % (nks_0, ))
             # xid = self.conf['params']['id'][-1:]
             # v['bus'] = re.sub(id_orig, clone['params']['id'], v['bus'])
             # p = re.compile('(.*)(_ll[0-9]+)$')
@@ -1561,7 +1561,7 @@ class Block2(object):
 
             # id string rewriting
             xid_ = self.conf['params']['id'].split('_')
-            print "    xid_", self.conf['params']['id'], xid_
+            self._debug("    conf['params']['id'] = %s, xid_ = %s" % (self.conf['params']['id'], xid_, ))
             if len(xid_) == 1:
                 xid = '0'
             elif xid_[-1].isdigit():
@@ -2038,7 +2038,7 @@ class Block2(object):
             # buscopy: copy outputs from subblocks as configured in enclosing block outputs spec
             self.bus_copy()
             
-    # undecorated step, need to count ourselves
+    # Block2.step
     @decStep()
     def step(self, x = None):
         """Block2.step
@@ -2083,6 +2083,8 @@ class Block2(object):
         # self.cnt += 1
 
     def bus_copy(self):
+        """Compute block output by copying data from the bus argument
+        """
         for k, v in [(k_, v_) for k_, v_ in self.outputs.items() if v_.has_key('buscopy')]:
             buskey = v['buscopy']
             assert self.bus.has_key(buskey), "Assuming in %s-%s that bus has key %s but %s" % (self.cname, self.id, buskey, self.bus.keys())
@@ -2638,12 +2640,16 @@ class LoopBlock2(Block2):
         self.cnt += self.blocksize_min
 
 class SeqLoopBlock2(Block2):
-    """SeqLoopBlock2 class
+    """SeqLoopBlock2 is a *sequential* loop block.
 
-    A sequential loop block: dynamic instantiation of Blocks within loop iterations
+    Sequential means dynamic instantiation of 'loopblock' within each
+    loop iterations during graph execution. The instantiated block is
+    grafted onto the existing top.nxgraph on-the-go.
 
-    FIXME: clean up primitive / decstep issues, in/out rewriting, etc
-    FIXME: work with nxgraph
+    Outputs: SeqLoopBlock2's outputs are computed by searching for a
+    matching output key in the 'loopblock' and copying its contents if
+    it exists. Otherwise a warning is issued and the output is left at
+    its previous value.
     """
     def __init__(self, conf = {}, paren = None, top = None):
         self.defaults['loop'] = [1]
@@ -2685,6 +2691,9 @@ class SeqLoopBlock2(Block2):
 
     # @decStep()
     def step_cache(self, x = None):
+        """Compute step from cached data
+        """
+
         print "%s-%s[%d] this should never print but be caught by step decorator :)" % (self.cname, self.id, self.cnt)
         print "%s-%s[%d] is cached at %s\n    cache = %s" % (self.cname, self.id, self.cnt, self.md5, self.cache)
         if isinstance(self, SeqLoopBlock2): # hasattr(self, 'cache_data') and 
@@ -2695,14 +2704,23 @@ class SeqLoopBlock2(Block2):
     
     # @decStep()
     def step_compute(self, x = None):
-        """SeqLoopBlock2.step"""
+        """Compute step
+
+        SeqLoopBlock2's step works like this:
+         - if scheduled, iterate i over loop length
+         - depending wether 'loop' is a list or a func, the
+           corresponding subordinate private function is called for
+           each iteration, which instantiates the loopblock in the 'dynblock' variable.
+         - outputs are copied from dynblock's outputs if one exists with the same name
+        """
         # self._debug("%s.step:\n\tx = %s,\n\tbus = %s,\n\tinputs = %s,\n\toutputs = %s",
         #                      (self.__class__.__name__,self.outputs.keys(),
         #                           self.bus, self.inputs, self.outputs))
 
-        print "SeqLoopBlock2 cnt = %d" % (self.cnt, )
+        self._debug("step_compute[%d]" % (self.cnt, ))
         def f_obj(lparams):
-            """instantiate the loopblock and run it"""
+            """instantiate the loopblock and run it
+            """
             # print "f_obj lparams", lparams
             # copy params
             loopblock_params = {
@@ -2825,7 +2843,7 @@ class SeqLoopBlock2(Block2):
             # run the loop, if it's a func loop: need input function from config
             results = self.f_loop(i, f_obj_)
             # print "results", results
-            self._debug("SeqLoopBlock2 f_loop results[%d] = %s", (i, results))
+            self._debug("f_loop results[%d] = %s" % (i, results, ))
 
             # FIXME: WORKS for loop example hpo, model sweeps,
             #        BREAKS for real experiment with measure output
@@ -2842,6 +2860,7 @@ class SeqLoopBlock2(Block2):
             # for k,v in dynblock.outputs.items():
             #     print "dynout", getattr(dynblock, k)
 
+            # setting SeqLoopBlock2's outputs
             for outk in self.outputs.keys():
                 # print "SeqLoopBlock2.step[%d] loop iter %d, outk = %s, dynblock outk = %s" % (self.cnt, i, outk, self.dynblock.outputs.keys(), )
                 outvar = getattr(self, outk)
@@ -2855,19 +2874,27 @@ class SeqLoopBlock2(Block2):
                 # outslice = slice(i*self.dynblock.blocksize, (i+1)*self.dynblock.blocksize)
 
                 # FIXME: which breaks more?
-                assert self.dynblock.outputs.has_key(outk), "Assuming %s-%s.outputs has key %s, but %s" % (self.dynblock.cname, self.dynblock.id, outk, self.dynblock.outputs.keys())
+                # assert self.dynblock.outputs.has_key(outk), "Assuming %s-%s.outputs has key %s, but %s" % (self.dynblock.cname, self.dynblock.id, outk, self.dynblock.outputs.keys())
+                if not self.dynblock.outputs.has_key(outk):
+                    self._warning("Output %s not found in %s-%s's outputs %s" % (outk, self.dynblock.cname, self.dynblock.id, self.dynblock.outputs.keys()))
+                    continue
+
+                # compute slice
                 outslice = slice(i*self.dynblock.outputs[outk]['shape'][-1], (i+1)*self.dynblock.outputs[outk]['shape'][-1])
-                
-                # print "self.   block", self.outputs[outk]
-                # print "self.dynblock", self.dynblock.outputs[outk], getattr(self.dynblock, outk).shape #, self.dynblock.file
+
+                # debug
                 self._debug(
-                    "%s.step self.%s = %s, outslice = %s",
-                    (self.cname, outk, getattr(self, outk).shape, outslice, ))
+                    "step[%d] setting output %s = %s, outslice = %s" % (
+                        self.cnt, outk, getattr(self, outk).shape, outslice,
+                    )
+                )
                     
-                # print "    dynblock = %s.%s" % (self.dynblock.cname)
+                # set the attribute
                 outvar[:,outslice] = getattr(self.dynblock, outk).copy()
+                
                 # print "dynblock-%s outslice = %s, outvar = %s/%s%s, dynblock.out[%s] = %s" %(self.dynblock.id, outslice, outvar.shape, outvar[...,:].shape, outvar[...,outslice].shape, outk, getattr(self.dynblock, outk).shape)
-        sys.stdout.write('\n')
+                
+        # sys.stdout.write('\n')
 
         confgraph_full = {'block': Block2, 'params': {'id': self.id, 'graph': self.confgraph}}
 
@@ -2875,7 +2902,9 @@ class SeqLoopBlock2(Block2):
         self.nxgraph = nxgraph_from_smp_graph(confgraph_full)
 
         for outk in self.outputs.keys():
-            print "%s-%s[%d/%d] output %s = %s" % (self.cname, self.id, self.top.cnt, self.cnt, outk, getattr(self, outk))
+            logstr = "step[%d/%d] output %s = %s" % (self.top.cnt, self.cnt, outk, getattr(self, outk))
+            self._debug(logstr)
+            
         # # hack for checking hpo minimum
         # if hasattr(self, 'hp_bests'):
         #     print "%s.step: bests = %s, %s" % (self.cname, self.hp_bests[-1], f_obj_hpo(tuple([self.hp_bests[-1][k] for k in sorted(self.hp_bests[-1])])))

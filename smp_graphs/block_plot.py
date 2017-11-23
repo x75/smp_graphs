@@ -435,7 +435,9 @@ class PlotBlock2(FigPlotBlock2):
         cols_xlim_max = [(1e9, -1e9) for _ in range(sb_cols)]
 
         # default plot size
-        self.fig.set_size_inches((sb_cols * 6, sb_rows * 3))
+        default_plot_scale = 3
+        default_plot_size = (sb_cols * 2.5 * default_plot_scale, sb_rows * 1 * default_plot_scale)
+        self.fig.set_size_inches(default_plot_size)
         
         # subplots pass 1: the hard work, iterate over subplot config and build the plot
         for i, subplot in enumerate(self.subplots):   # rows are lists of dicts
@@ -543,7 +545,7 @@ class PlotBlock2(FigPlotBlock2):
                         # and xsclice
                         xslice = slice(0, plotlen)
 
-                    # print "%s.subplots post-shape: plotlen = %d, xslice = %s, plotshape = %s" % (self.cname, plotlen, xslice, plotshape)
+                    self._debug("%s.subplots post-shape: plotlen = %d, xslice = %s, plotshape = %s" % (self.cname, plotlen, xslice, plotshape))
                     
                     # configure x axis, default implicit number of steps
                     if subplotconf.has_key('xaxis'):
@@ -553,7 +555,10 @@ class PlotBlock2(FigPlotBlock2):
                             t = subplotconf['xaxis'] # self.inputs[ink]['val'].T[xslice] # []
                             self._debug("setting t = %s from subplotconf['xaxis']" % (t, ))
                     else:
-                        t = np.linspace(xslice.start, xslice.start+plotlen-1, plotlen)[xslice]
+                        if xslice.stop > plotlen:
+                            t = np.linspace(0, plotlen - 1, plotlen)
+                        else:
+                            t = np.linspace(xslice.start, xslice.start+plotlen-1, plotlen)[xslice]
                     
                     # print "%s.plot_subplots k = %s, ink = %s" % (self.cname, k, ink)
                     # plotdata[ink] = input_ink['val'].T[xslice]
@@ -661,7 +666,7 @@ class PlotBlock2(FigPlotBlock2):
                 
                 # iterate over plotdata items
                 for ink, inv in plotdata.items():
-                    # print "%s.plot_subplots: ink = %s, plotvar = %s, inv.sh = %s, t.sh = %s" % (self.cname, ink, plotvar, inv.shape, t.shape)
+                    self._debug("%s.plot_subplots: ink = %s, plotvar = %s, inv.sh = %s, t.sh = %s" % (self.cname, ink, plotvar, inv.shape, t.shape))
 
                     # if multiple input groups, increment color group
                     if inkc > 0:
