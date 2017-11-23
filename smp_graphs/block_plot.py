@@ -23,7 +23,7 @@ from smp_base.common     import get_module_logger
 from smp_base.plot_utils import custom_legend, put_legend_out_right, put_legend_out_top
 from smp_base.dimstack   import dimensional_stacking, digitize_pointcloud
 from smp_base.plot       import makefig, timeseries, histogram, plot_img, plotfuncs, uniform_divergence
-from smp_base.plot       import get_colorcycler, kwargs_plot_clean_plot
+from smp_base.plot       import get_colorcycler
 from smp_base.plot       import ax_invert, ax_set_aspect
 
 ################################################################################
@@ -625,13 +625,11 @@ class PlotBlock2(FigPlotBlock2):
                 # else:
                 # plotvar = self.inputs[subplotconf['input'][0]][2]
 
-                # plot the plotdata
-                # kwargs_ = {} # kwargs_plot_clean(**kwargs)
-                        
                 # transfer plot_subplot configuration keywords subplotconf to plot kwargs
                 kwargs = {}
                 for kw in [
                         'aspect', 'orientation', 'labels',
+                        'title_pos',
                         'xlabel', 'xlim', 'xticks', 'xticklabels', 'xinvert',
                         'ylabel', 'ylim', 'yticks', 'yticklabels', 'yinvert']:
                     if subplotconf.has_key(kw):

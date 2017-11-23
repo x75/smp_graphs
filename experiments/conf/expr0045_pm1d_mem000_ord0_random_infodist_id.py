@@ -505,7 +505,7 @@ graph = OrderedDict([
                         'input': ['budget_%s' % (outk,) for outk in ['mu', 'var', 'min', 'max']] + ['mi', 'infodist', 'meas_mse', 'meas_sum_div'], # , 'meas_mkld']
                         'shape': [(1, 1) for outk in ['mu', 'var', 'min', 'max', 'mi', 'infodist', 'meas_mse', 'meas_sum_div']], # , 'meas_mse', 'meas_mkld']
                         'mode': 'stack',
-                        'title': 'measures',
+                        'title': 'measures', 'title_pos': 'bottom',
                         'plot': table,
                     },
                     {

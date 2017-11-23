@@ -576,7 +576,8 @@ class Experiment(object):
             G_cols = nxgraph_get_node_colors(G_)
             
         # print "G_cols", G_cols
-        nxgraph_plot(G_, ax = fig_nxgr.axes[axi], layout_type = "linear_hierarchical", node_color = G_cols, node_size = 300)
+        # nxgraph_plot(G_, ax = fig_nxgr.axes[axi], layout_type = "linear_hierarchical", node_color = G_cols, node_size = 300)
+        nxgraph_plot(G_, ax = fig_nxgr.axes[axi], layout_type = "spring", node_color = G_cols, node_size = 300)
         # fig_nxgr.axes[axi].set_aspect(1)
         axi += 1
         # plotgraph_figures.append(fig_nxgr)
@@ -879,12 +880,17 @@ class Graphviz(object):
             for inputkey, inputval in v['params']['inputs'].items():
                 print "ink", inputkey
                 print "inv", inputval
-                if not inputval.has_key('bus'): continue
-                # get the buskey for that input
-                if inputval['bus'] not in ['None']:
-                    k_from, v_to = inputval['bus'].split('/')
-                    G.add_edge(k_from, k)
-
+                # if not inputval.has_key('bus'): continue
+                if inputval.has_key('bus'):
+                    # get the buskey for that input
+                    if inputval['bus'] not in ['None']:
+                        k_from, v_to = inputval['bus'].split('/')
+                        G.add_edge(k_from, k)
+                if inputval.has_key('trigger'):
+                    if inputval['trigger'] not in ['None']:
+                        k_from, v_to = inputval['trigger'].split('/')
+                        G.add_edge(k_from, k)
+                    
         # FIXME: add _loop_ and _containment_ edges with different color
         # print print_dict(pdict = self.conf[7:])
 

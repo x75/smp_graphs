@@ -23,6 +23,13 @@ colors_ = list(six.iteritems(colors.cnames))
 
 from smp_base.plot import plot_colors
 
+import logging
+from smp_base.common import get_module_logger
+
+# loglevel_DEFAULT = logging.CRITICAL
+loglevel_DEFAULT = logging.DEBUG
+logger = get_module_logger(modulename = 'graph', loglevel = loglevel_DEFAULT)
+
 # colors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)
 # colors = dict(mcolors.BASE_COLORS)
 
@@ -377,7 +384,8 @@ def nxgraph_to_smp_graph(G, level = 0, asdict = False):
     return gstr
 
 def nxgraph_node_by_id(G, nid):
-    """get a node key from an nx.graph by searching for an smp_graphs id"""
+    """get a node key from an nx.graph by searching for an smp_graphs id
+    """
     if nid is None: return
     gen = (n for n in G if G.node[n]['params']['id'] == nid)
     tmp = list(gen)
@@ -446,29 +454,53 @@ def nxgraph_add_edges(G):
         # get child nodes of the current nodes by matching input bus ids indicating signal-based interaction
         for k, v in cnode.inputs.items():
             # ignore constant inputs
-            if not v.has_key('bus'): continue
+            # if not v.has_key('bus') and not v.has_key('trigger'): continue
 
             # get node id and output variable of current input source
-            k_from_str, v_from_str = v['bus'].split('/')
+            if v.has_key('bus'):
+                k_from_str, v_from_str = v['bus'].split('/')
+                etype = 'data'
+                
+            # elif v.has_key('trigger'):
+            #     k_from_str, v_from_str = v['trigger'].split('/')
+            #     etype = 'trig'
+                
             # print "nxgraph_add_edges: cnode = %s, input = %s, bus edge %s -> %s" % (cnode.id, k, k_from_str, cnode.id)
             # print nx.get_node_attributes(self.top.nxgraph, 'params')
 
-            # check from nodes exist
+            # check that from-nodes exist
             # k_from = (n for n in G if G.node[n]['params']['id'] == k_from_str)
             k_from = (n for n in G if G.node[n].has_key('block_') and G.node[n]['block_'].id == k_from_str)
             k_from_l = list(k_from)
-            # check to nodes exist
+            
+            # check that to-nodes exist
             k_to   = (n for n in G if G.node[n]['params']['id'] == cnode.id)
             k_to_l = list(k_to)
 
             # print "   k_from_l = %s\n     k_to_l = %s\n" % (k_from_l, k_to_l)
+            
+            # check from nodes for trigger
+            for n in k_from_l:
+                if G.node[n]['block_'].outputs.has_key(v_from_str) and G.node[n]['block_'].outputs[v_from_str].has_key('trigger'):
+                    k_from_trig, v_from_trig = G.node[n]['block_'].outputs[v_from_str]['trigger'].split('/')
+                    m_l = nxgraph_node_by_id_recursive(G, k_from_trig)
+                    # m_l = nxgraph_node_by_id(G, k_from_trig)
+                    if len(m_l) < 1: continue
+                    m = m_l[0][0]
+                    # etype = 'trig'
+                    k_to_trig = G.node[n]['block_'].id
+                    logger.debug('nxgraph_add_edges: trig edge from %s[%s] to %s[%s]' % (k_from_trig, m, k_to_trig, n))
+                    edges.append((m, n))
+                    # edges.append((k_from_l[0], k_to_l[0], {'type': 'data'}))
+                    
+                    G.add_edge(m, n, type = 'trig')
             
             # append edge if both exist
             if len(k_from_l) > 0 and len(k_to_l) > 0:
                 # print "fish from", k_from_l[0], "to", k_to_l[0]
                 edges.append((k_from_l[0], k_to_l[0]))
                 # edges.append((k_from_l[0], k_to_l[0], {'type': 'data'}))
-                G.add_edge(k_from_l[0], k_to_l[0], type = 'data')
+                G.add_edge(k_from_l[0], k_to_l[0], type = etype)
 
     # update the graph with edges
     # G.add_edges_from(edges)
@@ -519,7 +551,7 @@ def nxgraph_plot(G, ax = None, pos = None, layout_type = "spring", node_color = 
     nx.draw_networkx_labels(G, ax = ax, pos = layout, labels = labels, font_color = 'k', font_size = 8, fontsize = 6, alpha = 0.75)
     
     # edges
-    typededges = {'data': [], 'loop': [], 'hier': []}
+    typededges = {'data': [], 'loop': [], 'hier': [], 'trig': []}
     # e1 = [] # bus edges
     # e2 = [] # loop edges
 
@@ -552,14 +584,17 @@ def nxgraph_plot(G, ax = None, pos = None, layout_type = "spring", node_color = 
             
             # print "edge type = %s, %s" % (edgetype, edge)
 
+    nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = typededges['hier'], edge_color = "b", width = 0.8, alpha = 0.2)
     nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = typededges['loop'], edge_color = "g", width = 1.0, alpha = 0.2)
     nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = typededges['data'], edge_color = "k", width = 1.0, alpha = 0.2)
-    nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = typededges['hier'], edge_color = "b", width = 0.8, alpha = 0.2)
+    nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = typededges['trig'], edge_color = "r", width = 1.0, alpha = 0.2)
 
     # set title to config filename removing timestamp and hash
     # title = re.sub(r'_[0-9]+_[0-9]+', r'', G.name.split("-")[0])
     title = ''
     ax.set_title(title + 'nxgraph G, |G| = %d' % (G.number_of_nodes(), ), fontsize = 8)
+    ax.title.set_position((0.2, 0.9))
+    ax.title.set_alpha(0.65)
 
     ax.set_xticks([])
     ax.set_xticklabels([])
