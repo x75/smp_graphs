@@ -47,7 +47,7 @@ graph = OrderedDict([
         'params': {
             'id': 'plot',
             'blocksize': numsteps,
-            'debug': False,
+            'debug': True,
             'saveplot': False,
             'savetype': 'pdf',
             'wspace': 0.2, 'hspace': 0.2,

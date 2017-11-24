@@ -32,7 +32,7 @@ from smp_base.plot import set_interactive, makefig
 from smp_graphs.block import Block2
 from smp_graphs.utils import print_dict
 from smp_graphs.common import conf_header, conf_footer, conf_strip_variables
-from smp_graphs.common import md5, get_config_raw, check_datadir
+from smp_graphs.common import md5, get_config_raw, check_datadir, code_compile_and_run
 from smp_graphs.graph import nxgraph_plot, recursive_draw, recursive_hierarchical
 from smp_graphs.graph import nxgraph_flatten, nxgraph_add_edges, nxgraph_get_node_colors
 from smp_graphs.graph import nxgraph_nodes_iter, nxgraph_to_smp_graph
@@ -215,6 +215,8 @@ def set_random_seed(args):
         exec(code, gv, lv)
         randseed = lv['randseed']
         # print "args.conf randseed match %s" % (randseed, )
+        # randseed = code_compile_and_run(m.group(0), return_keys = ['randseed', 'bla'])['randseed']
+        randseed = code_compile_and_run(m.group(0), return_keys = ['randseed'])
 
     if hasattr(args, 'randseed') and args.randseed is not None:
         randseed = args.randseed

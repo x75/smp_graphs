@@ -2123,7 +2123,7 @@ class Block2(object):
         # check if latex output is configured
         output_latex = [(k, v) for k, v in self.outputs.items() if v.has_key('type') and v['type'] == 'latex']
         if len(output_latex) < 1:
-            print "Block2.latex_close: not latex output configured", output_latex
+            self._info("latex_close: no latex output configured, output_latex = %s" % (output_latex, ))
             return
 
         # write latex fragment for experiment

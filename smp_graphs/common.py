@@ -70,6 +70,28 @@ conf = {
 # loop_delim = '|'
 loop_delim = '_ll'
 
+def code_compile_and_run(code = '', gv = {}, lv = {}, return_keys = []):
+    """Compile and run the code given in the str 'code',
+    optionally including the global and local environments given
+    by 'gv', and 'lv'.
+
+    FIXME: check if 'rkey' is in str code and convert to '%s = %s' % (rkey, code) if it is not
+
+    Returns:
+    - r(dict): lv if |return_keys| = 0, lv[return_keys] otherwise
+    """
+    code_ = compile(code, "<string>", "exec")
+    exec(code, gv, lv)
+    # no keys given, return entire local variables dict
+    if len(return_keys) < 1:
+        return lv
+    # single key given, return just the value of this entry
+    elif len(return_keys) == 1:
+        if lv.has_key(return_keys[0]):
+            return lv[return_keys[0]]
+    # several keys given, filter local variables dict by these keys and return
+    else:
+        return dict([(k, lv[k]) for k in return_keys if lv.has_key(k)])
 
 # AST rewriting
 class RewriteDict(ast.NodeTransformer):

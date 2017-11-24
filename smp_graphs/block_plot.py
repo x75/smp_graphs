@@ -14,17 +14,18 @@ import seaborn as sns
 # perceptually uniform colormaps
 import colorcet as cc
 
-from smp_graphs.block import decStep, decInit, block_cmaps, get_input
-from smp_graphs.block import PrimBlock2
-from smp_graphs.utils import myt, mytupleroll
-import smp_graphs.utils_logging as log
-
 from smp_base.common     import get_module_logger
 from smp_base.plot_utils import custom_legend, put_legend_out_right, put_legend_out_top
 from smp_base.dimstack   import dimensional_stacking, digitize_pointcloud
 from smp_base.plot       import makefig, timeseries, histogram, plot_img, plotfuncs, uniform_divergence
 from smp_base.plot       import get_colorcycler
 from smp_base.plot       import ax_invert, ax_set_aspect
+
+from smp_graphs.common import code_compile_and_run
+from smp_graphs.block import decStep, decInit, block_cmaps, get_input
+from smp_graphs.block import PrimBlock2
+from smp_graphs.utils import myt, mytupleroll
+import smp_graphs.utils_logging as log
 
 ################################################################################
 # Plotting blocks
@@ -78,6 +79,10 @@ import logging
 logger = get_module_logger(modulename = 'block_plot', loglevel = logging_DEBUG)
 
 def subplot_input_fix(input_spec):
+    """subplot configuration convenience function
+    
+    Convert subplot configuration items into a list if they are singular types like numbers, strs and tuples
+    """
     # assert input an array 
     if type(input_spec) is str or type(input_spec) is tuple:
         return [input_spec]
@@ -122,21 +127,27 @@ class AnalysisBlock2(PrimBlock2):
             FigPlotBlock2.savefig(self)
 
     def check_plot_type(self, conf, defaults = {}):
-        """Get 'plot' configuration item and make sure it is a list of function pointers
+        """subplot plotfunc configuration type fix function part 1: raw conf
+
+        Get subplot configuration item 'plot' and make sure it is a list of function pointers
 
         Returns:
-         - list of plotfunction pointers
+         - list of plotfunc pointers
         """
+        # merge defaults with conf
         defaults.update(conf)
         conf = defaults
-        # print "conf", conf        
+
+        # check 'plot' type
         if type(conf['plot']) is list:
-            # check str or func for each element
+            # check if str or func for each single element
             conf_plot = [self.check_plot_type_single(f) for f in conf['plot']]
             # conf_plot = conf['plot'] # [j]
             # assert conf_plot is not type(str), "FIXME: plot callbacks is array of strings, eval strings"
         elif type(conf['plot']) is str:
-            conf_plot = self.eval_conf_str(conf['plot'])
+            # conf_plot = self.eval_conf_str(conf['plot'])
+            rkey = 'fp'
+            conf_plot = code_compile_and_run(code = '%s = %s' % (rkey, conf['plot']), gv = plotfuncs, lv = {}, return_keys = [rkey])
             if type(conf_plot) is list:
                 conf_plot = self.check_plot_type(conf, defaults)
             else:
@@ -144,37 +155,24 @@ class AnalysisBlock2(PrimBlock2):
         else:
             conf_plot = [conf['plot']]
         return conf_plot
-        
-    def eval_conf_str(self, confstr):
-        gv = plotfuncs # {'timeseries': timeseries, 'histogram': histogram}
-        gv['partial'] = partial
-        lv = {}
-        code = compile("f_ = %s" % (confstr, ), "<string>", "exec")
-        # print "code", code
-        # conf_plot = eval(code)
-        exec(code, gv, lv)
-        # conf['plot'] = lv['f_']
-        conf_plot = lv['f_']
-        # conf_plot = eval(conf['plot'])
-        # print "conf_plot", conf_plot
-        # conf_plot = eval(conf['plot'])
-        return conf_plot
-        
+
     def check_plot_type_single(self, f):
-        """Get and if necessary type-fix the 'plot' subplot configuration param, translating from string to func.
+        """subplot plotfunc configuration type fix function part 2: single list item
+
+        Get subplot configuration item 'plot' and, if necessary, type-fix the value by translating strings to functions.
 
         Returns:
          - single function pointer
         """
-        # default plot type
-        # if not conf.has_key('plot'): conf['plot'] = timeseries
-        # print "defaults", defaults
-        # defaults.update(conf)
-        # conf = defaults
-        # print "conf", conf
-
+        # convert a str to a func by compiling it
         if type(f) is str:
-            return self.eval_conf_str(f)
+            # return self.eval_conf_str(f)
+            rkey = 'fp'
+            return code_compile_and_run(
+                code = '%s = %s' % (rkey, f),
+                gv = plotfuncs,
+                lv = {},
+                return_keys = [rkey]) # [rkey]
         else:
             return f
 
@@ -434,7 +432,7 @@ class PlotBlock2(FigPlotBlock2):
         rows_ylim_max = [(1e9, -1e9) for _ in range(sb_rows)]
         cols_xlim_max = [(1e9, -1e9) for _ in range(sb_cols)]
 
-        # default plot size
+        # set default plot size when we know the subplot geometry
         default_plot_scale = 3
         default_plot_size = (sb_cols * 2.5 * default_plot_scale, sb_rows * 1 * default_plot_scale)
         self.fig.set_size_inches(default_plot_size)
@@ -452,39 +450,33 @@ class PlotBlock2(FigPlotBlock2):
                 # assert subplotconf.has_key('plot'), "PlotBlock2 needs 'plot' key in the plot spec = %s" % (subplotconf,)
                 # empty gridspec cell
                 if subplotconf is None or len(subplotconf) < 1:
+                    self._warning('plot_subplots pass 1 subplot[%d,%d] no plot configured, subplotconf = %s' % (i, j, subplotconf))
                     return
 
-                # make it a list if it isn't
+                # convert conf items into list if they aren't (convenience)
                 for input_spec_key in ['input', 'ndslice', 'shape']:
                     if subplotconf.has_key(input_spec_key):
                         subplotconf[input_spec_key] = subplot_input_fix(subplotconf[input_spec_key])
                         # print "    id: %s, subplotconf[%s] = %s" % (self.id, input_spec_key, subplotconf[input_spec_key])
 
-                # subplot index from rows*cols
+                # linear axes index from subplot row_i * col_j
                 idx = (i*self.fig_cols)+j
                     
-                # axis handle shortcut
+                # remember axes and their labels created during pass 1 e.g. by twin[xy]()
                 axs = {
                     'main': {
                         'ax': self.fig.axes[idx],
                         'labels': []
                     }
                 }
-        
-                # self.debug_print("[%s]step idx = %d, conf = %s, data = %s/%s", (
-                #     self.id, idx,
-                #     subplotconf, subplotconf['input'], self.inputs[subplotconf['input']]))
-                # self.inputs[subplotconf['input']][0]))
 
-                # hier
-                
-                # plotdata = self.inputs[subplotconf['input']][0].T
-                # elif type(subplotconf['input']) is list:
-                # plotdata = self.inputs[subplotconf['input'][1]][0].T
-                # plotdata = {}
+                # remember input data processed for plot input in plotdata
                 plotdata = OrderedDict()
+                # remember input data processed for plot input in plotdatad, dict storing more info on the plot
                 plotdatad = OrderedDict()
+                # remember distinct input variables
                 plotvar = " "
+                # create a plot title
                 title = ""
                 if subplotconf.has_key('title'): title += subplotconf['title']
 
