@@ -475,9 +475,9 @@ class PlotBlock2(FigPlotBlock2):
                 # remember input data processed for plot input in plotdatad, dict storing more info on the plot
                 plotdatad = OrderedDict()
                 # remember distinct input variables
-                plotvar = " "
+                plotvar = ' '
                 # create a plot title
-                title = ""
+                title = ''
                 if subplotconf.has_key('title'): title += subplotconf['title']
 
                 # get this subplot's plotfunc configuration and make sure its a list
@@ -485,6 +485,7 @@ class PlotBlock2(FigPlotBlock2):
                 # print "%s-%s plotfunc_conf = %s" % (self.cname, self.id, plotfunc_conf)
                 assert type(plotfunc_conf) is list, "plotfunc_conf must be a list, not %s" % (type(plotfunc_conf), )
 
+                # add plotfunc type to default title
                 if title == '':
                     title += self.get_title_from_plot_type(plotfunc_conf)
 
@@ -501,7 +502,8 @@ class PlotBlock2(FigPlotBlock2):
                     # vars: input, ndslice, shape, xslice, ...
                     if not self.inputs.has_key(ink):
                         # self._debug("    triggered: bus[%s] = %s, buskeys = %s" % (buskey, xself.bus[v['buskey']], bus.keys()))
-                        self._warning('%s-%s plot_subplot[%d,%d] no input %s' % (self.cname, self.id, i, j, ink))
+                        self._warning('plot_subplot pass 1 subplotconf[%d,%d] input[%d] = %s doesn\'t exist in self.inputs %s' % (
+                            i, j, k, ink, self.inputs.keys()))
                         continue
                     input_ink = self.inputs[ink]
 
@@ -531,8 +533,8 @@ class PlotBlock2(FigPlotBlock2):
                         # and plot shape
                         plotshape = (plotlen, ) + tuple((b for b in plotshape[1:]))
                     
-                    self._debug("subplot[%d,%d] input %d/%s post-xslice: plotlen = %d, xslice = %s, plotshape = %s" % (
-                        i, j, k, ink, plotlen, xslice, plotshape))
+                    self._debug("plot_subplots pass 1 subplot[%d,%d] input[%d] = %s xslice xslice = %s, plotlen = %d, plotshape = %s" % (
+                        i, j, k, ink, xslice, plotlen, plotshape))
 
                     # explicit shape key
                     # FIXME: shape overrides xslice
@@ -548,8 +550,8 @@ class PlotBlock2(FigPlotBlock2):
                         # and xsclice
                         xslice = slice(0, plotlen)
 
-                    self._debug("subplot[%d,%d] input %d/%s post-shape: plotlen = %d, xslice = %s, plotshape = %s" % (
-                        i, j, k, ink, plotlen, xslice, plotshape))
+                    self._debug("plot_subplots pass 1 subplot[%d,%d] input[%d] = %s shape xslice = %s, plotlen = %d, plotshape = %s" % (
+                        i, j, k, ink, xslice, plotlen, plotshape))
                     
                     # configure x axis, default implicit number of steps
                     if subplotconf.has_key('xaxis'):
@@ -557,7 +559,8 @@ class PlotBlock2(FigPlotBlock2):
                             t = self.inputs[subplotconf['xaxis']]['val'].T[xslice] # []
                         else:
                             t = subplotconf['xaxis'] # self.inputs[ink]['val'].T[xslice] # []
-                            self._debug("setting t = %s from subplotconf['xaxis']" % (t, ))
+                            self._debug("plot_subplots pass 1 subplot[%d,%d] input[%d] = %s xaxis setting t = %s from subplotconf['xaxis']" % (
+                                i, j, k, ink, t, ))
                     else:
                         if xslice.stop > plotlen:
                             t = np.linspace(0, plotlen - 1, plotlen)
@@ -578,10 +581,13 @@ class PlotBlock2(FigPlotBlock2):
                         # plotdata[ink_] = myt(self.inputs[ink_]['val'])[-1,subplotconf['ndslice'][0],subplotconf['ndslice'][1],:] # .reshape((21, -1))
                         # slice the data to spec, custom transpose from h to v time
                         ndslice = subplotconf['ndslice'][k]
-                        self._debug("    ndslice: k = %s, ink = %s, ndslice = %s" % (k, ink, ndslice))
+                        self._debug("plot_subplots pass 1 subplot[%d,%d] input[%d] = %s ndslice ndslice = %s" % (
+                            i, j, k, ink, ndslice))
                         plotdata[ink_] = myt(input_ink['val'])[ndslice]
-                        self._debug("    ndslice: k = %s, ink = %s, ndslice = %s, numslice = %d" % (k, ink, subplotconf['ndslice'][k], len(subplotconf['ndslice'])))
-                        self._debug("    ndslice: plotdata[ink_] = %s, input = %s" % (plotdata[ink_], input_ink['val'], ))
+                        self._debug("plot_subplots pass 1 subplot[%d,%d] input[%d] = %s ndslice sb['ndslice'] = %s, numslice = %d" % (
+                            i, j, k, ink, subplotconf['ndslice'][k], len(subplotconf['ndslice'])))
+                        self._debug("plot_subplots pass 1 subplot[%d,%d] input[%d] = %s ndslice plotdata[ink_] = %s, input = %s" % (
+                            i, j, k, ink, plotdata[ink_].shape, input_ink['val'].shape, ))
                     else:
                         plotdata[ink_] = myt(input_ink['val'])[xslice] # .reshape((xslice.stop - xslice.start, -1))
                         
@@ -616,7 +622,12 @@ class PlotBlock2(FigPlotBlock2):
                     numlabels = plotdata[ink_].shape[0]
                     if len(plotdata[ink_].shape) > 1:
                         numlabels = plotdata[ink_].shape[-1]
-                    l = reduce(lambda x, y: x+y, ['%s[%d]' % (ink, invd) for invd in range(numlabels)])
+                    l1  = ['%s[%d]' % (ink, invd) for invd in range(numlabels)]
+                    l2 = reduce(lambda x, y: x+y, l1)
+                    
+                    self._debug("plot_subplots pass 1 subplot[%d,%d] input[%d] = %s labels numlabels = %s, l1 = %s, l2 = %s" % (
+                        i, j, k, ink, numlabels, l1, l2, ))
+                    l = l1
                     labels.append(l)
                     
                     axd['labels'] += l # .append(l)
@@ -625,7 +636,10 @@ class PlotBlock2(FigPlotBlock2):
                     # store ax, labels for legend
                     plotdatad[ink_] = {'data': plotdata[ink_], 'ax': ax_, 'labels': l}
 
-                self._debug("labels after subplotconf.input = %s" % (labels, ))
+                l3 = reduce(lambda x, y: x+y, labels)
+                labels = l3
+                self._debug("plot_subplots pass 1 subplot[%d,%d] labels after subplotconf.input = %s" % (
+                    i, j, labels, ))
                 subplotconf['labels'] = labels
                 # end loop over subplot 'input'
                 ################################################################################
@@ -672,7 +686,7 @@ class PlotBlock2(FigPlotBlock2):
                         'ylabel', 'ylim', 'yticks', 'yticklabels', 'yinvert', 'ytwin', ]:
                     if subplotconf.has_key(kw):
                         kwargs[kw] = subplotconf[kw]
-                self._debug("plot_subplots subplot[%s][%d,%d] kwargs = %s" % (ink, i, j, kwargs))
+                self._debug("plot_subplots pass 1 subplot[%d,%d] kwargs = %s" % (i, j, kwargs))
                 
                 # prep axis
                 ax = axs['main']['ax']
@@ -697,14 +711,15 @@ class PlotBlock2(FigPlotBlock2):
                 
                 # stacked data?
                 if plotdata.has_key('_stacked'):
-                    self._debug("plot_subplots subplot[] plotting stacked")
+                    self._debug("plot_subplots pass 1 subplot[%d,%d] plotting stacked" % (i, j, ))
                     plotfunc_conf[0](ax, data = plotdata['_stacked'], ordinate = t, title = title, **kwargs)
                 
                 # iterate over plotdata items
                 title_ = title
                 for ink, inv in plotdata.items():
                     ax = plotdatad[ink]['ax']
-                    self._debug("%s.plot_subplots: ink = %s, plotvar = %s, inv.sh = %s, t.sh = %s" % (self.cname, ink, plotvar, inv.shape, t.shape))
+                    self._debug("plot_subplots pass 1 subplot[%d,%d] plotdata[%s] = inv.sh = %s, plotvar = %s, t.sh = %s" % (
+                        i, j, ink, inv.shape, plotvar, t.shape))
 
                     # if multiple input groups, increment color group
                     if inkc > 0:

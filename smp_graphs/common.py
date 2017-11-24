@@ -4,6 +4,7 @@ import os, sys, pickle, re, ast
 
 from collections import OrderedDict
 
+# import functools
 from functools import partial
 from types import FunctionType
 
@@ -70,6 +71,8 @@ conf = {
 # loop_delim = '|'
 loop_delim = '_ll'
 
+################################################################################
+# dynamic code and function mangling
 def code_compile_and_run(code = '', gv = {}, lv = {}, return_keys = []):
     """Compile and run the code given in the str 'code',
     optionally including the global and local environments given
@@ -92,6 +95,24 @@ def code_compile_and_run(code = '', gv = {}, lv = {}, return_keys = []):
     # several keys given, filter local variables dict by these keys and return
     else:
         return dict([(k, lv[k]) for k in return_keys if lv.has_key(k)])
+
+# function composition
+# https://mathieularose.com/function-composition-in-python/
+def compose2(f, g):
+    """Compose two functions 'f' and 'g'
+
+    Returns:
+     - f(g(x): f return type (object)
+    """
+    return lambda x: f(g(x))
+
+# def compose(*functions):
+#     # def compose2(f, g):
+#     #     return lambda x: f(g(x))
+#     return reduce(compose2, functions, lambda x: x)
+
+def compose(*functions):
+    return reduce(lambda f, g: lambda x: f(g(x)), functions, lambda x: x)
 
 # AST rewriting
 class RewriteDict(ast.NodeTransformer):
@@ -685,3 +706,26 @@ def check_datadir(conf = {}):
     # print "r datadir_expr", r
 
     return r
+
+if __name__ == '__main__':
+
+    print "testing function composition"
+
+    def double(x):
+        return x * 2
+
+    def inc(x):
+        return x + 1
+
+    def dec(x):
+        return x - 1
+
+    inc_and_double = compose2(double, inc)
+    print "double(inc(10)) = %s" % (inc_and_double(10), )
+    
+    inc_double_and_dec = compose2(compose2(dec, double), inc)
+    inc_double_and_dec(10)
+    print "dec(double(inc(10))) = %s" % (inc_double_and_dec(10), )
+    
+    inc_double_and_dec = compose(dec, double, inc )
+    print "dec(double(inc(10))) = %s with compose(*functions)" % (inc_double_and_dec(10), )

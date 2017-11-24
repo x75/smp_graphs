@@ -11,12 +11,14 @@ special case of kinesis with coupling = 0 between measurement and action
 
 from smp_base.plot import table
 
+from smp_graphs.common import compose
 from smp_graphs.block import FuncBlock2, TrigBlock2
 from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2
 from smp_graphs.block_models import ModelBlock2
 from smp_graphs.block_meas import MeasBlock2, MomentBlock2
 from smp_graphs.block_meas_infth import MIBlock2, InfoDistBlock2
 
+from numpy import sqrt, mean, square
 from smp_graphs.funcs import f_sin, f_motivation, f_motivation_bin, f_meansquare, f_sum, f_rootmeansquare
 
 from smp_graphs.utils_conf import get_systemblock
@@ -310,6 +312,24 @@ graph = OrderedDict([
             },
         },
     }),
+
+    # testing function composition
+    # # m: (root) mean squared error
+    # ('m_rmse', {
+    #     'block': FuncBlock2,
+    #     'params': {
+    #         # 'id': 'm_rmse',
+    #         'blocksize': numsteps,
+    #         'debug': False,
+    #         'func': compose(sqrt, mean, square),
+    #         'inputs': {
+    #             'x': {'bus': 'm_err/y', 'shape': (1, numsteps)},
+    #         },
+    #         'outputs': {
+    #             'y': {'shape': (1, 1)},
+    #         },
+    #     },
+    # }),
     
     # m: histogram
     ('m_hist', {
