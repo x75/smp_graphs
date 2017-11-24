@@ -105,6 +105,8 @@ def get_args():
     parser.add_argument("-sp",  "--saveplot",     dest="saveplot",  action="store_true", default = None, help = "Enable saving the plots of this experiment [None]")
     parser.add_argument("-nsp", "--no-saveplot",  dest="saveplot",  action="store_false", default = None, help = "Disable saving the plots of this experiment [None]")
     parser.add_argument("-cc", "--cache-clear",  dest='cache_clear', action='store_true', help="Clear the cache entry for cache hits of this experiment [False].", default = False)
+    parser.add_argument("-dle", "--do-lib-essentia",  dest='do_lib_essentia', action='store_true', help="Enable experiment and block caching mechanisms [False].", default = False)
+    parser.add_argument("-nle", "--no-lib-essentia",  dest='do_lib_essentia', action='store_false', help="Enable experiment and block caching mechanisms [True].")
 
     # parse arguments
     args = parser.parse_args()

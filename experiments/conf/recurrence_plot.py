@@ -3,11 +3,12 @@
 
 import random
 
+from smp_graphs.block_meas_essentia import eFileBlock2, EssentiaBlock2, AdhocMixBlock2
+
 from smp_base.plot import rp_timeseries_embedding
 
 from smp_graphs.block import StackBlock2
 from smp_graphs.block_meas import MomentBlock2
-from smp_graphs.block_meas_essentia import eFileBlock2, EssentiaBlock2, AdhocMixBlock2
 
 # reuse
 numsteps = 44100 * 120 # 65535 # 8192

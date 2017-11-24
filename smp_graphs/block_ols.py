@@ -4,8 +4,6 @@ import os
 import numpy as np
 import pandas as pd
 
-HAVE_ESSENTIA = False
-
 from smp_graphs.common import read_puppy_hk_pickles
 from smp_graphs.block  import Block2, decInit, decStep
 from smp_graphs.block  import PrimBlock2
@@ -203,6 +201,35 @@ class FileBlock2(Block2):
             self.data = {'x': data[sl]}
             print "data", data.shape, self.data['x'].shape
             self.step = self.step_wav
+            
+        elif filetype == 'mp3':
+            # FIXME:
+            self.top._warning("Implement loading mp3 files without essentia")
+            
+            # # default samplerate
+            # if not conf['params']['file'].has_key('samplerate'):
+            #     conf['params']['file']['samplerate'] = 44100
+
+            # # load data
+            # loader = estd.MonoLoader(filename = lfile, sampleRate = conf['params']['file']['samplerate'])
+            # data = loader.compute()
+
+            # # if not length is given, create random slice of 60 sec minimal length if file length allows
+            # if not conf['params']['file'].has_key('length') or conf['params']['file']['length'] is None or conf['params']['file']['length'] == 0:
+            #     conf['params']['file']['length'] = min(
+            #         data.shape[0],
+            #         np.random.randint(
+            #             conf['params']['file']['samplerate'] * 60,
+            #             data.shape[0] - conf['params']['file']['offset']))
+
+            # # compute slice
+            # sl = slice(conf['params']['file']['offset'], conf['params']['file']['offset'] + conf['params']['file']['length'])
+            # print "%sFileBlock2-%s fileypte mp3 sl = %s" % (self.nesting_indent, self.id, sl, )
+            # # select data
+            # self.data = {'x': data[sl]} # , 'y': data[sl]}
+            # print "%sFileBlock2-%s data = %s, self.data['x'] = %s" % (self.nesting_indent, self.id, data.shape, self.data['x'].shape)
+            # # set step callback
+            # self.step = self.step_wav
 
     @decStep()
     def step(self, x = None):

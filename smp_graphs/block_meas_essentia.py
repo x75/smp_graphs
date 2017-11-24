@@ -3,22 +3,27 @@
 this is an ad-hoc sketch for a particular processing pipeline, wip
 """
 
-import numpy as np
+import os
 
-from smp_graphs.block import decInit, decStep, Block2, PrimBlock2
-from smp_graphs.block_ols import FileBlock2
+import numpy as np
+import pandas as pd
 
 import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
 
 # essentia
+# FIXME: try selective imports of only those modules needed
 HAVE_ESSENTIA = False
 try:
     import essentia as e
     import essentia.standard as estd
     # import essentia.streaming as estd
+    HAVE_ESSENTIA = True
 except ImportError, e:
     print "Failed to import essentia and essentia.standard", e
+
+from smp_graphs.block import decInit, decStep, Block2, PrimBlock2
+from smp_graphs.block_ols import FileBlock2
 
 class eFileBlock2(FileBlock2):
     def __init__(self, conf = {}, paren = None, top = None):
@@ -26,14 +31,6 @@ class eFileBlock2(FileBlock2):
 
     def init_load_file(self, filetype, lfile, conf):
         if filetype == 'mp3':
-            # # try import essentia
-            # try:
-            #     import essentia as e
-            #     import essentia.standard as estd
-            #     HAVE_ESSENTIA = True
-            # # except load it with pydub, librosa, ...
-            # except ImportError, e:
-            #     print "Failed to import essentia", e
 
             # default samplerate
             if not conf['params']['file'].has_key('samplerate'):
@@ -59,8 +56,6 @@ class eFileBlock2(FileBlock2):
             print "%sFileBlock2-%s data = %s, self.data['x'] = %s" % (self.nesting_indent, self.id, data.shape, self.data['x'].shape)
             # set step callback
             self.step = self.step_wav
-            
-    
     
 class EssentiaBlock2(PrimBlock2):
     """EssentiaBlock2 class
