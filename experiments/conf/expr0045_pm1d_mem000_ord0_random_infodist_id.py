@@ -401,7 +401,7 @@ graph = OrderedDict([
     ('plot_infodist', {
         'block': PlotBlock2,
         'params': {
-            'debug': False,
+            # 'debug': True,
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'pdf',
