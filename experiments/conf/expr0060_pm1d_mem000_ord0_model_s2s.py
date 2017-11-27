@@ -1,9 +1,10 @@
-"""smp_graphs configuration
+"""smp_graphs smp_expr0060
 
 .. moduleauthor:: Oswald Berthold, 2017
 
-smp_expr0045 transfer function for making uniform random strategy
-fail, base version
+ - put transfer func back into system and recreate 0045
+ - introduce distortion, time delay, noise
+ - learn the first model
 """
 
 from smp_base.plot import table

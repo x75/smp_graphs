@@ -526,6 +526,16 @@ def nxgraph_plot(G, ax = None, pos = None, layout_type = "spring", node_color = 
     else:
         layout = pos
 
+    # get pos limits
+    x_max = 0
+    y_max = 0
+    for l in layout:
+        # print "l", l, layout[l]
+        if layout[l][0] > x_max:
+            x_max = layout[l][0]
+        if layout[l][1] > y_max:
+            y_max = layout[l][1]
+
     # set node color default
     if node_color is None:
         node_color = random.choice(colors_)
@@ -544,7 +554,7 @@ def nxgraph_plot(G, ax = None, pos = None, layout_type = "spring", node_color = 
     # print "labels = %s" % labels
 
     # draw the nodes of 'G' into axis 'ax' using positions 'layout' etc
-    nx.draw_networkx_nodes(G, ax = ax, pos = layout, node_color = node_color, node_shape = node_shape, node_size = node_size, alpha = 0.5)
+    nx.draw_networkx_nodes(G, ax = ax, pos = layout, node_color = node_color, node_shape = node_shape, node_size = node_size / x_max, alpha = 0.5)
 
     # # global shift?
     # shift(layout, (0, -2 * node_size))
@@ -599,10 +609,12 @@ def nxgraph_plot(G, ax = None, pos = None, layout_type = "spring", node_color = 
     ax.title.set_position((0.05, 0.9))
     ax.title.set_alpha(0.65)
 
-    ax.set_xticks([])
-    ax.set_xticklabels([])
-    ax.set_yticks([])
-    ax.set_yticklabels([]) 
+    ax.set_axis_off()
+    
+    # ax.set_xticks([])
+    # ax.set_xticklabels([])
+    # ax.set_yticks([])
+    # ax.set_yticklabels([]) 
 
 def scale(pos = {}, sf = 1):
     for k, v in pos.items():

@@ -636,9 +636,12 @@ class PlotBlock2(FigPlotBlock2):
                     # store ax, labels for legend
                     plotdatad[ink_] = {'data': plotdata[ink_], 'ax': ax_, 'labels': l}
 
-                if len(labels) > 1:
+                if len(labels) == 1:
+                    labels = labels[0]
+                elif len(labels) > 1:
                     l3 = reduce(lambda x, y: x+y, labels)
                     labels = l3
+                    
                 self._debug("plot_subplots pass 1 subplot[%d,%d] labels after subplotconf.input = %s" % (
                     i, j, labels, ))
                 subplotconf['labels'] = labels

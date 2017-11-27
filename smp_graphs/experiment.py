@@ -383,7 +383,7 @@ class Experiment(object):
                 'id': 'graph',
                 'desc': 'Graph (nxgraph)',
                 # 'width': '378.52pt',
-                'width': 0.59,
+                'width': 0.69, # 0.59,
             }
 
             # bus plot
@@ -400,7 +400,7 @@ class Experiment(object):
                 'id': 'bus',
                 'desc': 'Bus',
                 # 'width': '320pt',
-                'width': 0.39,
+                'width': 0.3, # 0.39
             }
 
 
@@ -549,9 +549,10 @@ class Experiment(object):
         figtitle = self.top.id.split('-')[0]
         # FIXME: uses makefig directly from smp_base.plot instead of FigPlotBlock2
         fig_nxgr = makefig(
-            rows = 1, cols = 1, wspace = 0.1, hspace = 0.1,
+            rows = 1, cols = 2, wspace = 0.1, hspace = 0.1,
             axesspec = axesspec, title = "%s"  % (figtitle, )) # "nxgraph")
         axi = 0
+        
         # nxgraph_plot(self.top.nxgraph, ax = fig_nxgr.axes[0])
 
         # # flatten for drawing, quick hack
@@ -595,6 +596,25 @@ class Experiment(object):
         #     currentscalefactor = 1.0,
         #     shrink = 0.8)
 
+        # plot parameters
+        ax = fig_nxgr.axes[axi]
+        params_table = {
+            'numsteps': [self.top.numsteps],
+            'caching': [self.conf['params']['docache']],
+            # 'lconf': self.conf
+        }
+
+        ax.title.set_text('params')
+        ax.set_axis_off()
+
+        bbox = ax.get_position()
+        bbox.x0 *= 1.2
+        bbox.y0 *= 0.7
+        ax.set_position(bbox)
+        
+        ax.table(cellText = params_table.values(), rowLabels = params_table.keys(), loc = 'center')
+        axi += 1
+        
         assert Gbus is not None
         # if Gbus is None:
         #     Gbus = self.top.bus
