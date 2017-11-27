@@ -532,7 +532,10 @@ class decStep():
         def wrap(xself, *args, **kwargs):
             # return pointer to wrap_l0
             # print "__debug__", __debug__
-            return self.wrap_l0(xself, f, args, kwargs)
+            if xself.top.do_pdb:
+                return self.wrap_l0_pdb(xself, f, args, kwargs)
+            else:
+                return self.wrap_l0(xself, f, args, kwargs)
             
         # # manual attribute copy
         # if f.__doc__ is not None:
@@ -548,19 +551,24 @@ class decStep():
     def wrap_l0(self, xself, f, *args, **kwargs):
         """Block2.step decorator (decStep) wrapper level 0
 
+        Bypass of wrap_l0_pdb
+        """
+        return self.wrap_l1(xself, f, args, kwargs)
+    
+    def wrap_l0_pdb(self, xself, f, *args, **kwargs):
+        """Block2.step decorator (decStep) wrapper level 0 with pdb fallback
+
         Wrap the function 'f' inside a try/except and enter pdb shell on exception
 
         FIXME: make dump environment configurable: pdb, InteractiveConsole, ...
         FIXME: make try/except depend on __debug__, xself.top.debug, xself.debug
         """
-        # try:
-        #     return self.wrap_l1(xself, f, args, kwargs)
-        # except Exception, e:
-        #     pdb.set_trace()
-        #     return None
+        try:
+            return self.wrap_l1(xself, f, args, kwargs)
+        except Exception, e:
+            pdb.set_trace()
+            return None
 
-        return self.wrap_l1(xself, f, args, kwargs)
-    
     def wrap_l1(self, xself, f, *args, **kwargs):
         """Block2.step decorator (decStep) wrapper level 1
 
@@ -944,7 +952,10 @@ class Block2(object):
             
             # fix the random seed
             # np.random.seed(self.randseed)
-                
+
+            # use debugger?
+            # self.do_pdb
+            
             self.top = self
             self.bus = Bus()
             # self.lsh_colors = lshash.LSHash(hash_size = 3, input_dim = 1000)

@@ -4,9 +4,14 @@ import os
 import numpy as np
 import pandas as pd
 
+from smp_base.common import get_module_logger
+
 from smp_graphs.common import read_puppy_hk_pickles
 from smp_graphs.block  import Block2, decInit, decStep
 from smp_graphs.block  import PrimBlock2
+
+import logging
+logger = get_module_logger(modulename = 'block_ols', loglevel = logging.DEBUG)
 
 class FileBlock2(Block2):
     """!@brief File block: read some log or data file and output blocksize lines each step"""
@@ -40,8 +45,7 @@ class FileBlock2(Block2):
             filetype = conf['params']['file']['filetype']
         else:
             filetype = conf['params']['type']
-        print "%s%s.init Loading %s-type data from %s" % (self.nesting_indent, self.__class__.__name__, filetype, lfile)
-
+        logger.info("loading %s-type data from %s" % (filetype, lfile))
 
         self.init_load_file(filetype, lfile, conf)
         # FIXME: perform quick check of data
@@ -73,12 +77,19 @@ class FileBlock2(Block2):
             if conf['params']['outputs'].has_key('log'):
                 del conf['params']['outputs']['log']
             (self.data, self.rate, self.offset, length) = read_puppy_hk_pickles(lfile)
+
+            logger.info("init_load_file loaded puppy data, outputs = %s" % (conf['params']['outputs']))
+            logger.debug("init_load_file loaded puppy data = %s" % (self.data['x'], ))
+            
+            logger.debug("init_load_file loaded puppy data, data['x'] = %s" % (self.data['x'].shape, ))
+            logger.debug("init_load_file loaded puppy data, data['y'] = %s" % (self.data['y'].shape, ))
+             
             # check offset
             if conf['params']['file'].has_key('offset'):
                 offset = conf['params']['file']['offset']
                 
             # check length
-            length = 0
+            length = None # 0
             if conf['params']['file'].has_key('length'):
                 length = conf['params']['file']['length']
 
@@ -90,15 +101,15 @@ class FileBlock2(Block2):
             # for k in ['x', 'y']:
             #     self.data[k] = self.data[k][sl]
                 
-            print "%sFileBlock2 loading puppy, outputs = %s" % (self.nesting_indent, conf['params']['outputs'])
+            logger.debug("init_load_file slicing data with %s from offset = %s, length = %s" % (sl, offset, length))
                     
             for k in ['x', 'y']:
                 self.data[k] = self.data[k][sl]
                 # setattr(self, 'x', self.data['x'])
-                print "    self.data = %s %s/%s" % (
+                logger.debug("    self.data = %s %s/%s" % (
                     self.data[k].shape,
                     np.mean(self.data[k], axis = 0),
-                    np.var(self.data[k], axis = 0))
+                    np.var(self.data[k], axis = 0)))
                 # for k,v in self.data.items():
                 #     if type(v) is np.ndarray:
                 #         print "puppylog", k, lfile, v.shape, np.mean(v), np.var(v), v

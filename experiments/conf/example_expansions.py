@@ -233,7 +233,7 @@ graph = OrderedDict([
             'id': 'plot_infth',
             'logging': False,
             'saveplot': saveplot,
-            'debug': False,
+            'debug': True,
             'wspace': 0.5,
             'hspace': 0.5,
             'blocksize': 100, # numsteps,

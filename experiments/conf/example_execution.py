@@ -70,6 +70,7 @@ graph = OrderedDict([
             'id': 'plot',
             'blocksize': numsteps,
             'debug': False,
+            'ylim_share': False,
             'inputs': {'d0': {'bus': 'cnt1/x', 'shape': (5, 2, 3, numsteps)},
                        'd1': {'bus': 'src1/x', 'shape': (5, 2, 3, numsteps)},
                        'd2': {'bus': 'src2/x', 'shape': (5, 2, 3, numsteps)}},

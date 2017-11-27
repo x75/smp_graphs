@@ -126,6 +126,15 @@ class AnalysisBlock2(PrimBlock2):
         if isinstance(self, FigPlotBlock2) or isinstance(self, SnsMatrixPlotBlock2):
             FigPlotBlock2.savefig(self)
 
+    def check_plot_input(self, ink, args):
+        i, j, k = args[:3]
+        if not self.inputs.has_key(ink):
+            # self._debug("    triggered: bus[%s] = %s, buskeys = %s" % (buskey, xself.bus[v['buskey']], bus.keys()))
+            self._warning('plot_subplot pass 1 subplotconf[%d,%d] input[%d] = %s doesn\'t exist in self.inputs %s' % (
+                i, j, k, ink, self.inputs.keys()))
+            return False
+        return self.inputs[ink]
+
     def check_plot_type(self, conf, defaults = {}):
         """subplot plotfunc configuration type fix function part 1: raw conf
 
@@ -398,7 +407,7 @@ class PlotBlock2(FigPlotBlock2):
         
     def __init__(self, conf = {}, paren = None, top = None):
         FigPlotBlock2.__init__(self, conf = conf, paren = paren, top = top)
-         
+
     def plot_subplots(self):
         """loop over configured subplots and plot the data according to the configuration
 
@@ -498,15 +507,12 @@ class PlotBlock2(FigPlotBlock2):
                 ################################################################################
                 # loop over subplot 'input'
                 for k, ink in enumerate(subplotconf['input']):
+                    
                     # FIXME: array'ize this loop
                     # vars: input, ndslice, shape, xslice, ...
-                    if not self.inputs.has_key(ink):
-                        # self._debug("    triggered: bus[%s] = %s, buskeys = %s" % (buskey, xself.bus[v['buskey']], bus.keys()))
-                        self._warning('plot_subplot pass 1 subplotconf[%d,%d] input[%d] = %s doesn\'t exist in self.inputs %s' % (
-                            i, j, k, ink, self.inputs.keys()))
-                        continue
-                    input_ink = self.inputs[ink]
-
+                    input_ink = self.check_plot_input(ink, [i, j, k])
+                    if not input_ink: continue
+                    
                     # get numsteps of data for the input
                     if not input_ink.has_key('shape'):
                         input_ink['shape'] = input_ink['val'].shape
@@ -879,8 +885,7 @@ class ImgPlotBlock2(FigPlotBlock2):
         FigPlotBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
     def plot_subplots(self):
-        self.debug_print("%s plot_subplots self.inputs = %s", (self.cname, self.inputs))
-        # print "%s.plot_subplots(): all = %s" % (self.cname, self.inputs['all']['val'].shape)
+        self._debug("plot_subplots self.inputs = %s", (self.inputs, ))
         numrows = len(self.subplots)
         numcols = len(self.subplots[0])
 
@@ -935,6 +940,8 @@ class ImgPlotBlock2(FigPlotBlock2):
         colmins = np.min(extrema[0], axis = 1) 
         colmaxs = np.max(extrema[1], axis = 1)
         
+        self._debug("plot_subplots rowmins = %s, rowmaxs = %s, colmins = %s, colmaxs = %s", (rowmins, rowmaxs, colmins, colmaxs))
+        
         if True:
             for i, subplot in enumerate(self.subplots): # rows
                 for j, subplotconf in enumerate(subplot): # cols
@@ -984,18 +991,23 @@ class ImgPlotBlock2(FigPlotBlock2):
                     # old version
                     # plotdata_cand = self.inputs[subplotconf['input'][0]]['val'][yslice,xslice]
 
+                    ink = subplotconf['input'][0]
+                    input_ink = self.check_plot_input(ink, [i, j, 0])
+                    if not input_ink: continue
+                        
                     # FIXME completeness if input is ndim, currently only first dim is handled
                     if subplotconf.has_key('ndslice'):
                         # di = subplotconf['ndslice'][0]
                         # dj = subplotconf['ndslice'][1]
                         # plotdata_cand = self.inputs[subplotconf['input'][0]]['val'][di, dj, :, -1]
-                        ink = subplotconf['input'][0]
+                        # ink = subplotconf['input'][0]
                         plotdata_cand = myt(input_ink['val'])[subplotconf['ndslice'][0]]
                         # print "%s[%d]-%s.step plotdata_cand.shape = %s, ndslice = %s, shape = %s, xslice = %s, yslice = %s" % (self.cname, self.cnt, self.id, plotdata_cand.shape, subplotconf['ndslice'], subplotconf['shape'], xslice, yslice)
                         # print "plotdata_cand", plotdata_cand
                     else:
                         try:
-                            plotdata_cand = myt(self.inputs[subplotconf['input'][0]]['val'])[xslice,yslice]
+                            # plotdata_cand = myt(self.inputs[subplotconf['input'][0]]['val'])[xslice,yslice]
+                            plotdata_cand = myt(input_ink['val'])[xslice,yslice]
                         except Exception, e:
                             print self.cname, self.id, self.cnt, self.inputs, subplotconf['input']
                             # print "%s[%d]-%s.step, inputs = %s, %s " % (self.cname, self.cnt, self.id, self.inputs[subplotconf['input']][0].shape)

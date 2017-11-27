@@ -107,6 +107,8 @@ def get_args():
     parser.add_argument("-cc", "--cache-clear",  dest='cache_clear', action='store_true', help="Clear the cache entry for cache hits of this experiment [False].", default = False)
     parser.add_argument("-dle", "--do-lib-essentia",  dest='do_lib_essentia', action='store_true', help="Enable experiment and block caching mechanisms [False].", default = False)
     parser.add_argument("-nle", "--no-lib-essentia",  dest='do_lib_essentia', action='store_false', help="Enable experiment and block caching mechanisms [True].")
+    parser.add_argument("--do-pdb",  dest='do_pdb', action='store_true', help="Enable fallback to pdb when step fails [False].", default = False)
+    # parser.add_argument("-nle", "--no-lib-essentia",  dest='do_lib_essentia', action='store_false', help="Enable experiment and block caching mechanisms [True].")
 
     # parse arguments
     args = parser.parse_args()
@@ -136,7 +138,7 @@ def set_config_commandline_args(conf, args):
     """
     # for commandline_arg in conf['params'].has_key("numsteps"):
     #     conf['params']['numsteps'] = 100
-    gparams = ['numsteps', 'randseed', 'ros', 'docache', 'saveplot', 'showplot', 'cache_clear']
+    gparams = ['numsteps', 'randseed', 'ros', 'docache', 'saveplot', 'showplot', 'cache_clear', 'do_pdb']
     for clarg in gparams:
         if getattr(args, clarg) is not None:
             conf['params'][clarg] = getattr(args, clarg)
