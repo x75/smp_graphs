@@ -603,6 +603,7 @@ class Experiment(object):
         params_table = {
             'numsteps': [self.top.numsteps],
             'caching': [self.conf['params']['docache']],
+            # 'system': [self.conf],
             # 'lconf': self.conf
         }
 

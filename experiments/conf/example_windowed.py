@@ -1,4 +1,4 @@
-"""smp_graphs conf windowed analysis"""
+"""smp_graphs example: windowed analysis of a timeseries (STFT)"""
 
 from smp_graphs.block_meas import WindowedBlock2
 from smp_graphs.block_plot import ImgPlotBlock2

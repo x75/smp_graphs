@@ -32,7 +32,7 @@ from smp_base.models_selforg import HK
 from smp_base.learners import smpSHL, learnerReward, Eligibility
 from smp_base.measures import meas as measf
 
-# from smp_graphs.common import array_fix
+from smp_graphs.common import code_compile_and_run
 from smp_graphs.graph import nxgraph_node_by_id_recursive
 from smp_graphs.block import decInit, decStep, Block2, PrimBlock2
 from smp_graphs.tapping import tap_tupoff, tap, tap_flat, tap_unflat
@@ -1116,6 +1116,28 @@ def step_homeokinesis(ref):
     #     's_extero': pre_l0.copy()}
 
 ################################################################################
+# sklearn based model
+def init_sklearn(ref, conf, mconf):
+    # check mconf
+    skmodel = mconf['skmodel']
+    skmodel_params = mconf['skmodel_params']
+    skmodel_comps = skmodel.split('.')
+    code = 'from sklearn.{0} import {1}\nmdl = {1}(**skmodel_params)'.format(skmodel_comps[0], skmodel_comps[1])
+    gv = {'skmodel_params': skmodel_params}
+    r = code_compile_and_run(code, gv)
+    print "r", r
+    ref.mdl = r['mdl']
+    print "ref.mdl", ref.mdl
+
+def step_sklearn(ref):
+    # pass
+    x_in = ref.inputs['x_in']['val']    
+    x_tg = ref.inputs['x_tg']['val']
+    ref.mdl.fit(x_in, x_tg)
+    x_tg_ = ref.mdl.predict(x_in)
+    print "x_tg_", x_tg_
+    
+################################################################################
 # extero-to-proprio map learning (e2p)
 def init_e2p(ref, conf, mconf):
     ref.mdl = init_model(ref, conf, mconf)
@@ -1865,6 +1887,7 @@ class model(object):
         'actinf_m2': {'init': init_actinf, 'step': step_actinf},
         'actinf_m3': {'init': init_actinf, 'step': step_actinf},
         'e2p':       {'init': init_e2p,    'step': step_e2p},
+        'sklearn':   {'init': init_sklearn,    'step': step_sklearn},
         # direct forward/inverse model pair learning
         'imol': {'init': init_imol, 'step': step_imol},
         # reward based learning

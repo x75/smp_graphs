@@ -44,8 +44,10 @@ def get_systemblock_pm(
             'x0': np.random.uniform(-0.3, 0.3, (dim_s_proprio * 3, 1)),
             'inputs': {'u': {'bus': 'pre_l0/pre'}},
             'outputs': {
-                's_proprio': {'shape': (dim_s_proprio, 1), 'remap': 's0'},
-                's_extero':  {'shape': (dim_s_extero, 1), 'remap': 's1'}
+                # 's_proprio': {'shape': (dim_s_proprio, 1), 'remap': 's0'},
+                's_extero':  {'shape': (dim_s_extero, 1), 'remap': 's1'},
+                's0':  {'shape': (dim_s_proprio, 1)},
+                's1':  {'shape': (dim_s_extero, 1)},
                 }, # , 's_all': [(9, 1)]},
             'statedim': dim_s_proprio * 3,
             'dt': dt,

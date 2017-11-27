@@ -2,9 +2,30 @@
 
 .. moduleauthor:: Oswald Berthold, 2017
 
- - put transfer func back into system and recreate 0045
- - introduce distortion, time delay, noise
- - learn the first model
+the plan 20171127
+
+adaptive internal models
+0060
+ - x keep pre_l2, configure for mild infodist
+ - introduce pre_l2_pre_2_robot1_s0 map as batch learning internal model: sklearn model block
+
+0061
+ - 0060 add online learning
+
+self-exploration
+0062
+ - put transfer func back into system and recreate 0062
+ - configure mild distortion and noise, time delay = 1
+ - run 0062 and see it fail
+ - explain fail, motivate prerequisites: delay by tapping; introspection by error statistics; adaptation to slow components by mu-coding or sfa; limits by learning progress; modulation, spawn, and kill by introspection
+
+0064
+ - add pre/meas pairs
+ - add meas stack statistics or expand meas stack resp.
+ - move meas stack into brain
+ - spawn block / kill block
+ - run expr and show how error statistics can drive model learning
+ - learn the first model (finally)
 """
 
 from smp_base.plot import table
@@ -52,17 +73,24 @@ lconf = {
     'infodistgen': {
         'type': 'random_lookup',
         'numelem': 1001,
-        'l_a': 1.0,
-        'd_a': 0.0,
-        'd_s': 1.0,
-        's_a': 0.0,
-        's_f': 3.0,
+        'l_a': 0.0,
+        'd_a': 0.98,
+        'd_s': 0.8,
+        's_a': 0.02,
+        's_f': 2.0,
         'e': 0.0,
     },
     'div_meas': 'chisq', # 'kld'
 }
 
 div_meas = lconf['div_meas']
+
+#predicted variables
+# p_vars = ['pre_l0/pre']
+p_vars = ['robot1/s0']
+# measured variables
+# m_vars = ['robot1/s0']
+m_vars = ['pre_l2/y']
 
 m_hist_bins       = np.linspace(-1.1, 1.1, numbins + 1)
 m_hist_bincenters = m_hist_bins[:-1] + np.mean(np.abs(np.diff(m_hist_bins)))/2.0
@@ -81,13 +109,13 @@ outputs = {
 systemblock   = get_systemblock['pm'](
     dim_s_proprio = dim, dim_s_extero = dim, lag = 1, order = order)
 # systemblock   = get_systemblock['sa'](
-#     dim_s_proprio = dim, dim_s_extero = dim, lag = 1)
+#     dim_s0 = dim, dim_s_extero = dim, lag = 1)
 systemblock['params']['sysnoise'] = 0.0
 systemblock['params']['anoise_std'] = 0.0
-dim_s_proprio = systemblock['params']['dim_s_proprio']
+dim_s0 = systemblock['params']['dim_s_proprio']
 dim_s_extero  = systemblock['params']['dim_s_extero']
 # dim_s_goal   = dim_s_extero
-dim_s_goal    = dim_s_proprio
+dim_s_goal    = dim_s0
 
 
 infodistgen = lconf['infodistgen']
@@ -140,12 +168,12 @@ graph = OrderedDict([
                         'blocksize': 1,
                         'blockphase': [0],
                         'credit': np.ones((1, 1)) * budget,
-                        'goalsize': 0.1, # np.power(0.01, 1.0/dim_s_proprio), # area of goal
+                        'goalsize': 0.1, # np.power(0.01, 1.0/dim_s0), # area of goal
                         'inputs': {
                             # 'credit': {'bus': 'budget/credit', 'shape': (1,1)},
-                            # 's0': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 1)},
-                            's0': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, 1)},
-                            's0_ref': {'bus': 'pre_l1/pre', 'shape': (dim_s_proprio, 1)},
+                            's0': {'bus': 'robot1/s0', 'shape': (dim_s0, 1)},
+                            # 's0': {'bus': m_vars[0], 'shape': (dim_s0, 1)},
+                            's0_ref': {'bus': 'pre_l1/pre', 'shape': (dim_s0, 1)},
                             },
                         'outputs': {
                             'credit': {'shape': (1,1)},
@@ -167,15 +195,42 @@ graph = OrderedDict([
                             'infodistgen': infodistgen,
                         },
                         'inputs': {
-                            'x': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 1)},
+                            'x': {'bus': 'robot1/s0', 'shape': (dim_s0, 1)},
                         },
                         'outputs': {
-                            'y': {'shape': (dim_s_proprio, 1)},
-                            'h': {'shape': (dim_s_proprio, lconf['infodistgen']['numelem']), 'trigger': 'trig/pre_l2_t1'},
+                            'y': {'shape': (dim_s0, 1)},
+                            'h': {'shape': (dim_s0, lconf['infodistgen']['numelem']), 'trigger': 'trig/pre_l2_t1'},
                         },
                     }
                 }),
 
+                # new artifical modality m2 with distortion parameters
+                ('mdl1', {
+                    'block': ModelBlock2,
+                    'params': {
+                        'debug': False,
+                        'blocksize': numsteps,
+                        'models': {
+                            # from top config
+                            # 'pre_l2_2_robot1_s0': shln,
+                            'pre_l2_2_robot1_s0': {
+                                'type': 'sklearn',
+                                'skmodel': 'linear_model.LinearRegression',
+                                'skmodel_params': {},
+                            },
+                        },
+                        'inputs': {
+                            # input
+                            'x_in': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
+                            # target
+                            'x_tg': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
+                        },
+                        'outputs': {
+                            'y': {'shape': (dim_s0, 1)},
+                        },
+                    }
+                }),
+                
                 # uniformly dist. random goals, triggered when error < goalsize
                 ('pre_l1', {
                     'block': ModelBlock2,
@@ -184,16 +239,16 @@ graph = OrderedDict([
                         'blockphase': [0],
                         'rate': 1,
                         # 'ros': ros,
-                        'goalsize': 0.1, # np.power(0.01, 1.0/dim_s_proprio), # area of goal
+                        'goalsize': 0.1, # np.power(0.01, 1.0/dim_s0), # area of goal
                         'inputs': {
                             'credit': {'bus': 'budget/credit'},
-                            'lo': {'val': -lim, 'shape': (dim_s_proprio, 1)},
-                            'hi': {'val': lim, 'shape': (dim_s_proprio, 1)},
-                            # 'mdltr': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 1)},
-                            'mdltr': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, 1)},
+                            'lo': {'val': -lim, 'shape': (dim_s0, 1)},
+                            'hi': {'val': lim, 'shape': (dim_s0, 1)},
+                            # 'mdltr': {'bus': 'robot1/s0', 'shape': (dim_s0, 1)},
+                            'mdltr': {'bus': m_vars[0], 'shape': (dim_s0, 1)},
                             },
                         'outputs': {
-                            'pre': {'shape': (dim_s_proprio, 1)},
+                            'pre': {'shape': (dim_s0, 1)},
                         },
                         'models': {
                             'goal': {'type': 'random_uniform_modulated'}
@@ -211,7 +266,7 @@ graph = OrderedDict([
                             'lo': {'val': -lim},
                             'hi': {'val': lim}},
                         'outputs': {
-                            'pre': {'shape': (dim_s_proprio, 1)},
+                            'pre': {'shape': (dim_s0, 1)},
                         }
                     },
                 }),
@@ -228,9 +283,9 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'shift': (0, 1),
             'inputs': {
-                'x': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
-                # 'y': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
-                'y': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, numsteps)},
+                'x': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
+                # 'y': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
+                'y': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
             },
             'outputs': {
                 'mi': {'shape': (1, 1, 1)},
@@ -244,9 +299,9 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'shift': (0, 1),
             'inputs': {
-                'x': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
-                # 'y': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
-                'y': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, numsteps)},
+                'x': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
+                # 'y': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
+                'y': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
             },
             'outputs': {
                 'infodist': {'shape': (1, 1, 1)},
@@ -285,8 +340,8 @@ graph = OrderedDict([
             'scope': 'local',
             'meas': 'sub',
             'inputs': {
-                'x1': {'bus': 'robot1/s_proprio', 'shape': (1, numsteps)},
-                'x2': {'bus': 'pre_l2/y', 'shape': (1, numsteps)},
+                'x1': {'bus': p_vars[0], 'shape': (1, numsteps)},
+                'x2': {'bus': m_vars[0], 'shape': (1, numsteps)},
             },
             'outputs': {
                 'y': {'shape': (1, numsteps)},
@@ -342,8 +397,8 @@ graph = OrderedDict([
             # direct histo input?
             # or signal input
             'inputs': {
-                'x1': {'bus': 'robot1/s_proprio', 'shape': (1, numsteps)},
-                'x2': {'bus': 'pre_l2/y', 'shape': (1, numsteps)},
+                'x1': {'bus': p_vars[0], 'shape': (1, numsteps)},
+                'x2': {'bus': m_vars[0], 'shape': (1, numsteps)},
             },
             'bins': m_hist_bins,
             'outputs': {
@@ -408,12 +463,12 @@ graph = OrderedDict([
             'xlim_share': True,
             'ylim_share': True,
             'inputs': {
-                's_p': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
+                's_p': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
                 's_e': {'bus': 'robot1/s_extero', 'shape': (dim_s_extero, numsteps)},
                 'pre_l0': {'bus': 'pre_l0/pre', 'shape': (dim_s_goal, numsteps)},
                 'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
-                'pre_l2': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, numsteps)},
-                'pre_l2_h': {'bus': 'pre_l2/h', 'shape': (dim_s_proprio, 1001)},
+                'pre_l2': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
+                'pre_l2_h': {'bus': 'pre_l2/h', 'shape': (dim_s0, 1001)},
                 'credit_l1': {'bus': 'budget/credit', 'shape': (1, numsteps)},
                 'budget_mu': {'bus': 'm_budget/y_mu', 'shape': (1, 1)},
                 'budget_var': {'bus': 'm_budget/y_var', 'shape': (1, 1)},
@@ -421,11 +476,11 @@ graph = OrderedDict([
                 'budget_max': {'bus': 'm_budget/y_max', 'shape': (1, 1)},
                 'm_di': {
                     'bus': 'm_di/infodist',
-                    'shape': (dim_s_proprio, 1, 1)
+                    'shape': (dim_s0, 1, 1)
                 },
                 'm_mi': {
                     'bus': 'm_mi/mi',
-                    'shape': (dim_s_proprio, 1, 1)
+                    'shape': (dim_s0, 1, 1)
                 },
                 'm_err': {'bus': 'm_err/y', 'shape': (1, numsteps)},
                 'm_rmse': {'bus': 'm_rmse/y', 'shape': (1, 1)},
@@ -546,15 +601,15 @@ graph = OrderedDict([
     #         'hspace': 0.15,
     #         'xlim_share': True,
     #         'inputs': {
-    #             's_p': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
+    #             's_p': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
     #             's_e': {'bus': 'robot1/s_extero', 'shape': (dim_s_extero, numsteps)},
     #             'pre_l0': {'bus': 'pre_l0/pre', 'shape': (dim_s_goal, numsteps)},
     #             'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
-    #             'pre_l2': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, numsteps)},
+    #             'pre_l2': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
     #             'credit_l1': {'bus': 'budget/credit', 'shape': (1, numsteps)},
     #             'm_di': {
     #                 'bus': 'm_di/infodist',
-    #                 'shape': (dim_s_proprio, 1, 1)
+    #                 'shape': (dim_s0, 1, 1)
     #             },
     #         },
     #         'desc': 'Single episode pm1d baseline',
@@ -622,7 +677,7 @@ graph = OrderedDict([
     #             #     {
     #             #         'input': ['m_di'],
     #             #         'ndslice': (slice(None), 0, slice(None)),
-    #             #         'shape': (dim_s_proprio, 1),
+    #             #         'shape': (dim_s0, 1),
     #             #         'plot': [
     #             #             partial(timeseries, linewidth = 1.0, alpha = 1.0, marker = 'o', xlabel = None),
     #             #         ],
@@ -631,7 +686,7 @@ graph = OrderedDict([
     #             #     {
     #             #         'input': ['m_di'],
     #             #         'ndslice': (slice(None), 0, slice(None)),
-    #             #         'shape': (dim_s_proprio, 1),
+    #             #         'shape': (dim_s0, 1),
     #             #         'plot': [partial(
     #             #             histogram, orientation = 'horizontal', histtype = 'stepfilled',
     #             #             yticks = False, xticks = False, alpha = 1.0, normed = False) for _ in range(1)],
