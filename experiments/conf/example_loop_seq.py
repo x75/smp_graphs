@@ -15,7 +15,7 @@ from functools import partial
 
 # reused variables
 loopblocksize = 1
-loopsteps = 100
+loopsteps = 200
 numsteps = loopsteps * loopblocksize
 # showplot = False
 
@@ -95,6 +95,7 @@ graph = OrderedDict([
         'block': SeqLoopBlock2,
         'params': {
             'id': 'hpo',
+            'debug': True,
             # loop specification, check hierarchical block to completely
             # pass on the contained in/out space?
             'blocksize': numsteps, # same as loop length
@@ -120,6 +121,8 @@ graph = OrderedDict([
             'id': 'bplot',
             'blocksize': numsteps,
             'debug': False,
+            'xlim_share': False,
+            'ylim_share': False,
             'inputs': {
                 'd1': {'bus': 'b1/x'},
                 'd2': {'bus': 'f1/y'},

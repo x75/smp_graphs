@@ -43,6 +43,8 @@ graph = OrderedDict([
         'params': {
             'blocksize': numsteps,
             'debug': False,
+            'xlim_share': False,
+            'ylim_share': False,
             'inputs': {'d1': {'bus': 'wav/x', 'shape': (2, numsteps)},
                        'd2': {'bus': 'xgram/x', 'shape': (2, num_win * bs_win_2)}},
             'subplots': [

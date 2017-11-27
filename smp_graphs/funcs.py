@@ -307,6 +307,8 @@ def f_obj_inverse(params, result):
     pass
 
 def f_loop_hpo_space_f3(pdim = 1):
+    """Return pdim-dimensional uniform hyperopt search space
+    """
     return [hp.uniform("m%d" % i, np.pi/2, 3*np.pi/2) for i in range(pdim)]
 
 def f_loop_hpo(ref, i, obj, space = None):
@@ -332,16 +334,17 @@ def f_loop_hpo(ref, i, obj, space = None):
 
     suggest = tpe.suggest
 
-    print "obj", obj
-    print "space", ref.hp_space
-    print "algo", suggest
-    print "max_evals", i+1
-    print "lrstate", lrstate
-    print "trials", len(trials.trials) # , trials.trials[-1]
-    print "results", trials.results
-    print "losses", trials.losses()
+    # print "obj", obj
+    # print "space", space # ref.hp_space
+    # print "algo", suggest
+    # print "max_evals", i+1
+    # print "lrstate", lrstate
+    # print "trials", len(trials.trials) # , trials.trials[-1]
+    # print "results", trials.results
+    # print "losses", trials.losses()
     
     best = fmin(obj, space, algo = suggest, max_evals=i+1, rstate=lrstate, trials=trials, verbose = 1)
+    # best = fmin(obj, space, algo = suggest, max_evals = 10)
     bests.append(best)
         
         

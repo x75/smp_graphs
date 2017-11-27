@@ -15,7 +15,8 @@ experiments/data*/smp_expr[0-9]*
 
 experiments/data/smp_dm_actinf_m1_goal_error_ND_embedding/
 experiments/data/smp_dm_actinf_m1_goal_error_e2p/
-experiments/data/smp_example_default2/
+experiments/data/smp_example_*/
+experiments/data/smp_generate_sin*/
 experiments/data/smp_recurrence_plot/
 experiments/data_?
 experiments/utils/smp_tweet_cred.py

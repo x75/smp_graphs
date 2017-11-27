@@ -2697,6 +2697,8 @@ class SeqLoopBlock2(Block2):
 
     # loop function for self.loop = func
     def f_loop_func(self, i, f_obj):
+        self._debug("f_loop_func i = %d, f_obj = %s" % (i, f_obj))
+        # self.loop is the function configured in block config
         results = self.loop(self, i, f_obj)
         return results
 
@@ -2729,6 +2731,7 @@ class SeqLoopBlock2(Block2):
         #                           self.bus, self.inputs, self.outputs))
 
         self._debug("step_compute[%d]" % (self.cnt, ))
+        
         def f_obj(lparams):
             """instantiate the loopblock and run it
             """
@@ -2805,7 +2808,8 @@ class SeqLoopBlock2(Block2):
             x = np.array([params]).T
             # XXX
             lparams = ('inputs', {'x': {'val': x}}) # , x.shape, self.outputs['x']
-            # print "%s.step.f_obj_hpo lparams = {%s}" % (self.cname, lparams)
+            self._debug("step[%d] f_obj_hpo lparams = %s" % (self.cnt, lparams, ))
+            # normal f_obj, create block, run it, return results
             f_obj(lparams)
 
             # now we have self.dynblock
@@ -2836,8 +2840,10 @@ class SeqLoopBlock2(Block2):
 
         # set loop function wether loop body is list or func
         if type(self.loop) is list:
+            self._debug("loop is list")
             f_obj_ = f_obj
         else:
+            self._debug("loop is func")
             f_obj_ = f_obj_hpo
 
         # loop the loop
@@ -2845,11 +2851,11 @@ class SeqLoopBlock2(Block2):
         # print "%s-%s.step[%d]" % (self.cname, self.id, self.cnt)
         # loopblock loop
         for i in range(self.numsteps/self.loopblocksize):
-            # print "%s-%s.step[%d] loop iter %d" % (self.cname, self.id, self.cnt, i,)
             # sys.stdout.flush()
             then = time.time()
 
             # run the loop, if it's a func loop: need input function from config
+            self._debug("step[%d] loop iter %d, trying to get results, time = %s" % (self.cnt, i, then))
             results = self.f_loop(i, f_obj_)
             # print "results", results
             self._debug("f_loop results[%d] = %s" % (i, results, ))
@@ -3298,7 +3304,7 @@ class CountBlock2(PrimBlock2):
         # print self.inputs
         # FIXME: modulo / cout range with reset/overflow
 
-        print "\n%s endofinit bus = %s\n" % (self.cname, self.bus.keys())
+        # print "\n%s endofinit bus = %s\n" % (self.cname, self.bus.keys())
     @decStep()
     def step(self, x = None):
         """CountBlock step: if blocksize is 1 just copy the counter, if bs > 1 set cnt_ to range"""
