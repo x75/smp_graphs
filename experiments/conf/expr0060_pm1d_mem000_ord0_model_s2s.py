@@ -8,6 +8,7 @@ adaptive internal models
 0060
  - x keep pre_l2, configure for mild infodist
  - introduce pre_l2_pre_2_robot1_s0 map as batch learning internal model: sklearn model block
+ - loop over few d's and models (save / load models)
 
 0061
  - 0060 add online learning
@@ -27,6 +28,8 @@ self-exploration
  - run expr and show how error statistics can drive model learning
  - learn the first model (finally)
 """
+
+from sklearn.gaussian_process.kernels import WhiteKernel, ExpSineSquared
 
 from smp_base.plot import table
 
@@ -72,10 +75,10 @@ lconf = {
     'd_i': 0.0,
     'infodistgen': {
         'type': 'random_lookup',
-        'numelem': 1001,
+        'numelem': 1001, # sampling grid
         'l_a': 0.0,
         'd_a': 0.98,
-        'd_s': 0.8,
+        'd_s': 0.5,
         's_a': 0.02,
         's_f': 2.0,
         'e': 0.0,
@@ -84,6 +87,7 @@ lconf = {
 }
 
 div_meas = lconf['div_meas']
+numelem = lconf['infodistgen']['numelem']
 
 #predicted variables
 # p_vars = ['pre_l0/pre']
@@ -208,15 +212,21 @@ graph = OrderedDict([
                 ('mdl1', {
                     'block': ModelBlock2,
                     'params': {
-                        'debug': False,
+                        'debug': True,
                         'blocksize': numsteps,
                         'models': {
                             # from top config
                             # 'pre_l2_2_robot1_s0': shln,
                             'pre_l2_2_robot1_s0': {
                                 'type': 'sklearn',
-                                'skmodel': 'linear_model.LinearRegression',
-                                'skmodel_params': {},
+                                # 'skmodel': 'linear_model.LinearRegression',
+                                # 'skmodel_params': {'alpha': 1.0},
+                                # 'skmodel': 'kernel_ridge.KernelRidge',
+                                # 'skmodel_params': {'alpha': 0.1, 'kernel': 'rbf'},
+                                # 'skmodel': model_selection.GridSearchCV
+                                'skmodel': 'gaussian_process.GaussianProcessRegressor',
+                                'skmodel_params': {'kernel': ExpSineSquared(1.0, 5.0, periodicity_bounds=(1e-2, 1e1)) + WhiteKernel(1e-1)},
+                                # 'skmodel': 'gaussian_process.kernels.WhiteKernel, ExpSineSquared',
                             },
                         },
                         'inputs': {
@@ -226,7 +236,8 @@ graph = OrderedDict([
                             'x_tg': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
                         },
                         'outputs': {
-                            'y': {'shape': (dim_s0, 1)},
+                            'y': {'shape': (dim_s0, numsteps)},
+                            'h': {'shape': (dim_s0, numelem), 'trigger': 'trig/pre_l2_t1'},
                         },
                     }
                 }),
@@ -468,7 +479,9 @@ graph = OrderedDict([
                 'pre_l0': {'bus': 'pre_l0/pre', 'shape': (dim_s_goal, numsteps)},
                 'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
                 'pre_l2': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
-                'pre_l2_h': {'bus': 'pre_l2/h', 'shape': (dim_s0, 1001)},
+                'pre_l2_h': {'bus': 'pre_l2/h', 'shape': (dim_s0, numelem)},
+                'mdl1_y': {'bus': 'mdl1/y', 'shape': (dim_s0, numsteps)},
+                'mdl1_h': {'bus': 'mdl1/h', 'shape': (dim_s0, numelem)},
                 'credit_l1': {'bus': 'budget/credit', 'shape': (1, numsteps)},
                 'budget_mu': {'bus': 'm_budget/y_mu', 'shape': (1, 1)},
                 'budget_var': {'bus': 'm_budget/y_var', 'shape': (1, 1)},
@@ -512,6 +525,15 @@ graph = OrderedDict([
                         'legend_loc': 'left',
                     },
                     {
+                        'input': ['mdl1_h'], 'plot': timeseries,
+                        'title': 'transfer function $h$', 'aspect': 1.0, 
+                        'xaxis': np.linspace(-1, 1, 1001), # 'xlabel': 'input [x]',
+                        'xlim': (-1.1, 1.1), 'xticks': True, 'xticklabels': False,
+                        'ylabel': 'output $y = h(x)$',
+                        'ylim': (-1.1, 1.1), 'yticks': True,
+                        'legend_loc': 'right',
+                    },
+                    {
                         'input': ['pre_l2'], 'plot': histogram,
                         'title': 'histogram $y$', 'aspect': 'auto', # (1*numsteps)/(2*2.2),
                         'orientation': 'horizontal',
@@ -548,6 +570,17 @@ graph = OrderedDict([
                         'ylim': (-1.1, 1.1), # None,
                         # 'legend_loc': 'right',
                     },
+                    {
+                        'input': ['mdl1_y'], 'plot': timeseries,
+                        'title': 'timeseries $x$',
+                        'aspect': 2.2/numsteps,
+                        'orientation': 'vertical',
+                        'xlim': None, 'xticks': False, # 'xticklabels': False,
+                        # 'xlabel': 'time step $k$',
+                        'yticks': False,
+                        'ylim': (-1.1, 1.1),
+                        'legend_loc': 'right',
+                    },
                     {},
                 ],
                 
@@ -570,6 +603,7 @@ graph = OrderedDict([
                         'title': 'measures', 'title_pos': 'bottom',
                         'plot': table,
                     },
+                    {},
                     {
                         'input': ['m_div'], 'plot': partial(timeseries, linestyle = 'none', marker = 'o'),
                         'title': 'histogram divergence %s $h1 - h2$' % (div_meas, ),

@@ -1118,6 +1118,9 @@ def step_homeokinesis(ref):
 ################################################################################
 # sklearn based model
 def init_sklearn(ref, conf, mconf):
+    # insert defaults
+    assert mconf.has_key('skmodel')
+    assert mconf.has_key('skmodel_params')
     # check mconf
     skmodel = mconf['skmodel']
     skmodel_params = mconf['skmodel_params']
@@ -1127,15 +1130,26 @@ def init_sklearn(ref, conf, mconf):
     r = code_compile_and_run(code, gv)
     print "r", r
     ref.mdl = r['mdl']
-    print "ref.mdl", ref.mdl
+    # proper models have self.h transfer func
+    ref.h = np.zeros((conf['params']['outputs']['y']['shape'][0], ref.defaults['model_numelem']))
+    # logger.debug('ref.h = %s', ref.h.shape)
+    # self.h_sample = 
+    # print "ref.mdl", ref.mdl
 
 def step_sklearn(ref):
     # pass
-    x_in = ref.inputs['x_in']['val']    
-    x_tg = ref.inputs['x_tg']['val']
+    x_in = ref.inputs['x_in']['val'].T
+    x_tg = ref.inputs['x_tg']['val'].T
     ref.mdl.fit(x_in, x_tg)
     x_tg_ = ref.mdl.predict(x_in)
-    print "x_tg_", x_tg_
+    # print "x_tg_", x_tg_
+    ref.y = x_tg_.T
+    # logger.debug('x_in = %s', x_in.shape)
+    ref.h_sample = np.atleast_2d(np.hstack([np.linspace(np.min(x_in_), np.max(x_in_), ref.defaults['model_numelem']) for x_in_ in x_in.T]))
+    # logger.debug('ref.h_sample = %s', ref.h_sample.shape)
+    # FIXME: meshgrid or random samples if dim > 4
+    ref.h = ref.mdl.predict(ref.h_sample.T).T
+    # logger.debug('ref.h = %s', ref.h.shape)
     
 ################################################################################
 # extero-to-proprio map learning (e2p)
@@ -1931,6 +1945,7 @@ class ModelBlock2(PrimBlock2):
     """
     defaults = {
         'debug': False,
+        'model_numelem': 1001,
         'models': {
             'uniform': {
                 'type': 'random_uniform',
