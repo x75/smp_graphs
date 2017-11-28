@@ -701,7 +701,7 @@ class decStep():
         """post-process xself's outputs by copying output attributes to the bus
         """
         # if scheduled by exec timing
-        if self.block_is_scheduled(xself):
+        if xself.block_is_scheduled():
             # for all output items
             for k, v in xself.outputs.items():
                 # defer non-ndarray types
@@ -753,7 +753,7 @@ class decStep():
                     xself.pubs[k].publish(xself.msgs[k])
         
         # print "Block2.step[%d] not topblock" % (xself.cnt,)
-        if self.block_is_finished(xself):
+        if xself.block_is_finished():
             # print "Block2.step end of episode and primitive"
 
             
@@ -798,7 +798,7 @@ class decStep():
         # print "decStep.f_eval", xself.id, "xself.cnt", xself.cnt, "blocksize", xself.blocksize, "blockphase", xself.blockphase
         # if (xself.cnt % xself.blocksize) in xself.blockphase: # or (xself.cnt % xself.rate) == 0:
         # if count aligns with block's execution blocksize
-        if self.block_is_scheduled(xself):
+        if xself.block_is_scheduled():
             # are we caching?
             if not xself.topblock and xself.top.docache and xself.cache is not None and xself.cache_loaded: # cache_block and cache_inst:
                 # pass
@@ -830,19 +830,6 @@ class decStep():
 
         return f_out
 
-    def block_is_scheduled(self, xself):
-        """Block is scheduled when its count modulo its blocksize is element of the blockphase array
-        """
-        # print "xself.cnt", xself.cnt, "xself.blocksize", xself.blocksize
-        return (xself.cnt % xself.blocksize) in xself.blockphase
-
-    def block_is_finished(self, xself):
-        """Block is finished when its count equals toplevel number of steps
-        """
-        # and hasattr(xself, 'isprimitive') and xself.isprimitive:
-        # print "block_is_finished self.cnt = %d, top.numsteps = %d" % (xself.cnt, xself.top.numsteps)
-        return xself.cnt == xself.top.numsteps
-    
 ################################################################################
 # Base block class
 class Block2(object):
@@ -1928,6 +1915,19 @@ class Block2(object):
                 # self._debug("init_pass_2 k = %s, v = %s" % (k, str(v)[:60], ))
                 self._debug("init_pass_2 input items ink = %s inv['val'].shape/inv['shape'] = %s / %s" % (k, v['val'].shape, v['shape']))
             
+    def block_is_scheduled(self):
+        """Block is scheduled when its count modulo its blocksize is element of the blockphase array
+        """
+        # print "self.cnt", self.cnt, "self.blocksize", self.blocksize
+        return (self.cnt % self.blocksize) in self.blockphase
+
+    def block_is_finished(self):
+        """Block is finished when its count equals toplevel number of steps
+        """
+        # and hasattr(xself, 'isprimitive') and self.isprimitive:
+        # print "block_is_finished self.cnt = %d, top.numsteps = %d" % (self.cnt, self.top.numsteps)
+        return self.cnt == self.top.numsteps
+    
     def set_attr_from_top_conf(self):
         """set self attributes copied from corresponding toplevel attributes
         

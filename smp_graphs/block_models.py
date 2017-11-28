@@ -15,6 +15,9 @@ implemented by lightewight init() and step() function definitions
 
 from functools import partial
 
+# pickling and storing of models
+import pickle, joblib
+
 import numpy as np
 
 from mdp.nodes import PolynomialExpansionNode
@@ -1121,6 +1124,8 @@ def init_sklearn(ref, conf, mconf):
     # insert defaults
     assert mconf.has_key('skmodel')
     assert mconf.has_key('skmodel_params')
+    # sklearn models are saveable with pickle
+    ref.saveable = True
     # check mconf
     skmodel = mconf['skmodel']
     skmodel_params = mconf['skmodel_params']
@@ -1128,7 +1133,8 @@ def init_sklearn(ref, conf, mconf):
     code = 'from sklearn.{0} import {1}\nmdl = {1}(**skmodel_params)'.format(skmodel_comps[0], skmodel_comps[1])
     gv = {'skmodel_params': skmodel_params}
     r = code_compile_and_run(code, gv)
-    print "r", r
+    logger.debug("result from compile_and_run code = %s" % (code, ))
+    logger.debug("    r = %s" % (r, ))
     ref.mdl = r['mdl']
     # proper models have self.h transfer func
     ref.h = np.zeros((conf['params']['outputs']['y']['shape'][0], ref.defaults['model_numelem']))
@@ -1150,6 +1156,12 @@ def step_sklearn(ref):
     # FIXME: meshgrid or random samples if dim > 4
     ref.h = ref.mdl.predict(ref.h_sample.T).T
     # logger.debug('ref.h = %s', ref.h.shape)
+
+def save_sklearn(ref):
+    modelfileext = 'pkl'
+    modelfilenamefull = '{0}.{1}'.format(ref.modelfilename, modelfileext)
+    logger.debug("Dumping model %s/%s to file %s" % (ref.id, ref.models[ref.models.keys()[0]]['inst_'].modelstr, modelfilenamefull))
+    joblib.dump(ref.mdl, modelfilenamefull)
     
 ################################################################################
 # extero-to-proprio map learning (e2p)
@@ -1901,7 +1913,7 @@ class model(object):
         'actinf_m2': {'init': init_actinf, 'step': step_actinf},
         'actinf_m3': {'init': init_actinf, 'step': step_actinf},
         'e2p':       {'init': init_e2p,    'step': step_e2p},
-        'sklearn':   {'init': init_sklearn,    'step': step_sklearn},
+        'sklearn':   {'init': init_sklearn,    'step': step_sklearn, 'save': save_sklearn},
         # direct forward/inverse model pair learning
         'imol': {'init': init_imol, 'step': step_imol},
         # reward based learning
@@ -1926,6 +1938,14 @@ class model(object):
         # FIXME: ignoring multiple entries taking 'last' one, in dictionary order
         self.modelstr = mconf['type']
         self.models[self.modelstr]['init'](ref, conf, mconf)
+
+    def save(self, ref):
+        """Dump the model into a file
+        """
+        if hasattr(ref, 'saveable') and ref.saveable and self.models[self.modelstr].has_key('save'):
+            ref.modelfilename = '{0}/model_{1}_{2}_{3}'.format(ref.top.datadir_expr, ref.id, self.modelstr, ref.models[ref.models.keys()[0]]['skmodel'])
+            ref._info("Saving model %s into file %s" % (self.modelstr, ref.modelfilename))
+            self.models[self.modelstr]['save'](ref)
         
     def predict(self, ref):
         self.models[self.modelstr]['step'](ref)
@@ -1995,6 +2015,14 @@ class ModelBlock2(PrimBlock2):
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
         # print "\n self.models = %s" % (self.models, )
+
+    def save(self):
+        """Dump the model into a file
+        """
+        for k, v in self.models.items():
+            mdl_inst = v['inst_']
+            if hasattr(self, 'saveable') and self.saveable:
+                mdl_inst.save(ref = self)
         
     @decStep()
     def step(self, x = None):
@@ -2010,6 +2038,8 @@ class ModelBlock2(PrimBlock2):
             for mk, mv in self.models.items():
                 mv['inst_'].predict(self)
 
+        if self.block_is_finished():
+            self.save()
         # if rospy.is_shutdown():
         #     sys.exit()
 
