@@ -299,6 +299,8 @@ class Bus(MutableMapping):
         return ret
 
     def keys_loop_compress(self):
+        """Bus plotting helper function compressing all keys with loop index into base name
+        """
         loop_compressor = {}
         for k in self.store.keys():
             # squash loop delimiters down to base node-id/signal
@@ -315,6 +317,10 @@ class Bus(MutableMapping):
         return loop_compressor
         
     def store_pickle(self, conf = {}):
+        """Bus.store_pickle
+
+        Store bus as pickle for bus pltting from cache
+        """
         bus_filetype = 'pickle' # 'gml' # , 'json', 'yaml'
         bus_filename = '%s_%s.%s' % (conf['datafile_md5'], 'bus', bus_filetype)
         tmp_ = {}
@@ -325,6 +331,10 @@ class Bus(MutableMapping):
 
     @staticmethod
     def load_pickle(conf = {}):
+        """Bus.load_pickle
+
+        Load Bus from pickle for bus plotting from cache
+        """
         bus_filetype = 'pickle' # 'gml' # , 'json', 'yaml'
         bus_filename = '%s_%s.%s' % (conf['datafile_md5'], 'bus', bus_filetype)
         b = Bus()
@@ -752,11 +762,10 @@ class decStep():
                     xself.msgs[k].data = theattr
                     xself.pubs[k].publish(xself.msgs[k])
         
-        # print "Block2.step[%d] not topblock" % (xself.cnt,)
+        # clean up block activity
         if xself.block_is_finished():
-            # print "Block2.step end of episode and primitive"
 
-            
+            # define update block_store
             def update_block_store(block = None, top = None):
                 import datetime
                 assert block is not None, "Need some block to work on"
@@ -784,6 +793,7 @@ class decStep():
                 # xself.top.block_store['blocks'] = pd.concat([xself.top.block_store['blocks'], df])
                 # xself.top.block_store['blocks']['md5' == self.md5][] = 
 
+            # perform update if configured
             if xself.top.docache and xself.cache is not None and not xself.cache_loaded:
                 if hasattr(xself, 'isprimitive') and xself.isprimitive:
                     pass
@@ -1284,6 +1294,8 @@ class Block2(object):
             # append top_md5 to ensure the right context in terms of numsteps, randseed, ...
             conf_['top_md5'] = top.md5
 
+            # if not 
+            
             # # debug
             # print "%s   cache %s-%s top.md5 = %s" % (block.nesting_indent, block.cname, block.id, top.md5)
             # print "%s   cache %s-%s conf_.keys = %s" % (block.nesting_indent, block.cname, block.id, conf_.keys())
@@ -1297,7 +1309,7 @@ class Block2(object):
             block.cache_num_entries = 0
 
             # return if we don't want caching here
-            if hasattr(block, 'nocache') and block.nocache:
+            if not top.docache or hasattr(block, 'nocache') and block.nocache:
                 return
 
             self._debug("block_store keys = %s" % (top.block_store.keys(), ))
@@ -1445,8 +1457,8 @@ class Block2(object):
             print "%s    cache block_store final shape = %s" % (
                 block.nesting_indent, blocks.shape, )
 
-        if self.top.docache:
-            check_block_store(block = self)
+        # if self.top.docache:
+        check_block_store(block = self)
         
     def init_subgraph(self):
         """Block2.init_subgraph
