@@ -11,8 +11,12 @@ models dvl devleopmental models
 The model design is in progress. The current approach is to have a
 general Block wrapper for all models with particular models being
 implemented by lightewight init() and step() function definitions
+
+FIXME:
+ - clean up and enable list of models in ModelBlock2, self.models has name, conf(model, in, out), model-instance, model.mdl-instance(s)
 """
 
+from os import path as ospath
 from functools import partial
 
 # pickling and storing of models
@@ -48,7 +52,7 @@ except ImportError, e:
     HAVE_SOESGP = False
 
 from logging import DEBUG as LOGLEVEL
-logger = get_module_logger(modulename = 'block_models', loglevel = LOGLEVEL - 1)
+logger = get_module_logger(modulename = 'block_models', loglevel = LOGLEVEL - 0)
 
 def array_fix(a = None, col = True):
     """smp_graphs.common.array_fix
@@ -1129,7 +1133,7 @@ def init_sklearn(ref, mref, conf, mconf):
     assert mconf.has_key('skmodel')
     assert mconf.has_key('skmodel_params')
     # sklearn models are saveable with pickle
-    ref.saveable = True
+    mref.saveable = True
     # check mconf
     skmodel = mconf['skmodel']
     skmodel_params = mconf['skmodel_params']
@@ -1139,33 +1143,46 @@ def init_sklearn(ref, mref, conf, mconf):
     r = code_compile_and_run(code, gv)
     logger.debug("result from compile_and_run code = %s" % (code, ))
     logger.debug("    r = %s" % (r, ))
-    ref.mdl = r['mdl']
+    mref.mdl = r['mdl']
+    mref.mdl_init = False
     # proper models have self.h transfer func
     ref.h = np.zeros((conf['params']['outputs']['y']['shape'][0], ref.defaults['model_numelem']))
     # logger.debug('ref.h = %s', ref.h.shape)
     # self.h_sample = 
-    # print "ref.mdl", ref.mdl
+    # print "mref.mdl", mref.mdl
 
 def step_sklearn(ref, mref):
     # pass
     x_in = ref.inputs['x_in']['val'].T
     x_tg = ref.inputs['x_tg']['val'].T
-    ref.mdl.fit(x_in, x_tg)
-    x_tg_ = ref.mdl.predict(x_in)
+    if not mref.mdl_init:
+        mref.mdl.fit(x_in, x_tg)
+    x_tg_ = mref.mdl.predict(x_in)
     # print "x_tg_", x_tg_
     ref.y = x_tg_.T
     # logger.debug('x_in = %s', x_in.shape)
     ref.h_sample = np.atleast_2d(np.hstack([np.linspace(np.min(x_in_), np.max(x_in_), ref.defaults['model_numelem']) for x_in_ in x_in.T]))
     # logger.debug('ref.h_sample = %s', ref.h_sample.shape)
     # FIXME: meshgrid or random samples if dim > 4
-    ref.h = ref.mdl.predict(ref.h_sample.T).T
+    ref.h = mref.mdl.predict(ref.h_sample.T).T
     # logger.debug('ref.h = %s', ref.h.shape)
 
-def save_sklearn(ref):
+def load_sklearn(ref, mref):
     modelfileext = 'pkl'
-    modelfilenamefull = '{0}.{1}'.format(ref.modelfilename, modelfileext)
-    logger.debug("Dumping model %s/%s to file %s" % (ref.id, ref.models[ref.models.keys()[0]]['inst_'].modelstr, modelfilenamefull))
-    joblib.dump(ref.mdl, modelfilenamefull)
+    modelfilenamefull = '{0}.{1}'.format(mref.modelfilename, modelfileext)
+    if ospath.exists(modelfilenamefull):
+        logger.debug("Trying to load model %s/%s from existing file %s" % (ref.id, mref.modelstr, modelfilenamefull))
+        try:
+            mref.mdl = joblib.load(modelfilenamefull)
+            mref.mdl_init = True
+        except Exception, e:
+            ref._error('load_sklearn failed with %s' % (e, ))
+    
+def save_sklearn(ref, mref):
+    modelfileext = 'pkl'
+    modelfilenamefull = '{0}.{1}'.format(mref.modelfilename, modelfileext)
+    logger.debug("Dumping model %s/%s to file %s" % (ref.id, mref.modelstr, modelfilenamefull))
+    joblib.dump(mref.mdl, modelfilenamefull)
     
 ################################################################################
 # extero-to-proprio map learning (e2p)
@@ -1917,7 +1934,7 @@ class model(object):
         'actinf_m2': {'init': init_actinf, 'step': step_actinf},
         'actinf_m3': {'init': init_actinf, 'step': step_actinf},
         'e2p':       {'init': init_e2p,    'step': step_e2p},
-        'sklearn':   {'init': init_sklearn,    'step': step_sklearn, 'save': save_sklearn},
+        'sklearn':   {'init': init_sklearn,    'step': step_sklearn, 'save': save_sklearn, 'load': load_sklearn},
         # direct forward/inverse model pair learning
         'imol': {'init': init_imol, 'step': step_imol},
         # reward based learning
@@ -1946,18 +1963,32 @@ class model(object):
         self.mconf = mconf
             
         self.modelkey = mref
+        # this is braindead
         self.modelstr = mconf['type']
         self.models[self.modelstr]['init'](ref, self, conf, mconf)
 
+        # try to load existing model params
+        # self.load()
+
+    def init_modelfilename(self, ref):
+        if not hasattr(self, 'modelfilename'):
+            self.modelfilename = '{0}/model_{1}_{2}_{3}_{4}'.format(
+                ref.top.datadir_expr, ref.id, self.modelstr, self.modelkey, ref.md5)
+        # else:
+        #     self.modelfilename = '{0}/model_{1}_{2}_{3}_{4}_{5}'.format(
+        #         ref.top.datadir_expr, ref.id, self.modelstr, self.modelkey, self.mconf['skmodel'], ref.md5)
+
+    def load(self, ref):
+        if hasattr(self, 'saveable') and self.saveable and self.models[self.modelstr].has_key('load'):
+            ref._info("Trying to load model %s from file %s" % (self.modelstr, self.modelfilename))
+            self.models[self.modelstr]['load'](ref, self)
+            
     def save(self, ref):
         """Dump the model into a file
         """
-        if hasattr(ref, 'saveable') and ref.saveable and self.models[self.modelstr].has_key('save'):
-            ref.modelfilename = '{0}/model_{1}_{2}_{3}_{4}'.format(
-                ref.top.datadir_expr, ref.id, self.modelstr, ref.models[ref.models.keys()[0]]['skmodel'], ref.md5)
-            
-            ref._info("Saving model %s into file %s" % (self.modelstr, ref.modelfilename))
-            self.models[self.modelstr]['save'](ref)
+        if hasattr(self, 'saveable') and self.saveable and not self.mdl_init and self.models[self.modelstr].has_key('save'):
+            ref._info("Saving model %s into file %s" % (self.modelstr, self.modelfilename))
+            self.models[self.modelstr]['save'](ref, self)
         
     def predict(self, ref):
         self.models[self.modelstr]['step'](ref, self)
@@ -2099,14 +2130,18 @@ class ModelBlock2(PrimBlock2):
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
         # print "\n self.models = %s" % (self.models, )
+        for mk, mv in self.models.items():
+            mref = mv['inst_']
+            mref.init_modelfilename(self)
+            mref.load(self)
 
     def save(self):
         """Dump the model into a file
         """
         for k, v in self.models.items():
             mdl_inst = v['inst_']
-            if hasattr(self, 'saveable') and self.saveable:
-                mdl_inst.save(ref = self)
+            # if hasattr(self, 'saveable') and self.saveable:
+            mdl_inst.save(ref = self)
         
     @decStep()
     def step(self, x = None):

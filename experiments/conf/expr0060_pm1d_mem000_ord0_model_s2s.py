@@ -462,7 +462,7 @@ graph = OrderedDict([
     # | transfer func h | horizontal output | horziontal histogram |
     # | vertical input  | information meas  | -                    |
     # | vertical histo  | -                 | - (here the model)   |
-    ('plot_infodist', {
+    ('plot', {
         'block': PlotBlock2,
         'params': {
             # 'debug': True,

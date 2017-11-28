@@ -5,6 +5,9 @@
 Experiment class provides the basic shell for running an experiment with methods for
  - running a graph
  - loading and drawing a graph (networkx)
+
+FIXME:
+ - do caching with joblib funcs?
 """
 
 import argparse, os, re, sys
