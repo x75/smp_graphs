@@ -64,6 +64,13 @@ function whose values over the interval [-1, 1] can be controlled by
 three groups of parameters associated with unimodal gaussian
 deformation, colored noise, and point-wise independent noise."""
 
+#predicted variables
+# p_vars = ['pre_l0/pre']
+p_vars = ['robot1/s0']
+# measured variables
+# m_vars = ['robot1/s0']
+m_vars = ['pre_l2/y']
+
 # local conf dict for looping
 lconf = {
     'dim': 1,
@@ -72,7 +79,6 @@ lconf = {
     'budget': 1000/1,
     'lim': 1.0,
     'order': 0,
-    'd_i': 0.0,
     'infodistgen': {
         'type': 'random_lookup',
         'numelem': 1001, # sampling grid
@@ -84,17 +90,39 @@ lconf = {
         'e': 0.0,
     },
     'div_meas': 'chisq', # 'kld'
+    'model_s2s_params': {
+        'debug': True,
+        'blocksize': numsteps,
+        'models': {
+            # from top config
+            # 'pre_l2_2_robot1_s0': shln,
+            'pre_l2_2_robot1_s0': {
+                'type': 'sklearn',
+                # 'skmodel': 'linear_model.LinearRegression',
+                # 'skmodel_params': {'alpha': 1.0},
+                # 'skmodel': 'kernel_ridge.KernelRidge',
+                # 'skmodel_params': {'alpha': 0.1, 'kernel': 'rbf'},
+                'skmodel': 'gaussian_process.GaussianProcessRegressor',
+                'skmodel_params': {'kernel': ExpSineSquared(1.0, 5.0, periodicity_bounds=(1e-2, 1e1)) + WhiteKernel(1e-1)},
+                # 'skmodel': 'gaussian_process.kernels.WhiteKernel, ExpSineSquared',
+                # 'skmodel': model_selection.GridSearchCV
+            },
+        },
+        'inputs': {
+            # input
+            'x_in': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
+            # target
+            'x_tg': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
+        },
+        'outputs': {
+            'y': {'shape': (dim_s0, numsteps)},
+            'h': {'shape': (dim_s0, numelem), 'trigger': 'trig/pre_l2_t1'},
+        },
+    }
 }
 
 div_meas = lconf['div_meas']
 numelem = lconf['infodistgen']['numelem']
-
-#predicted variables
-# p_vars = ['pre_l0/pre']
-p_vars = ['robot1/s0']
-# measured variables
-# m_vars = ['robot1/s0']
-m_vars = ['pre_l2/y']
 
 m_hist_bins       = np.linspace(-1.1, 1.1, numbins + 1)
 m_hist_bincenters = m_hist_bins[:-1] + np.mean(np.abs(np.diff(m_hist_bins)))/2.0
@@ -121,8 +149,14 @@ dim_s_extero  = systemblock['params']['dim_s_extero']
 # dim_s_goal   = dim_s_extero
 dim_s_goal    = dim_s0
 
-
 infodistgen = lconf['infodistgen']
+
+model_s2s_sklearn = {
+    'block': ModelBlock2,
+    'params': lconf['model_s2s_params'],
+}
+
+lconf['model_s2s'] = model_s2s_sklearn
 
 # print "sysblock", systemblock['params']['dim_s_proprio']
 
@@ -208,39 +242,8 @@ graph = OrderedDict([
                     }
                 }),
 
-                # new artifical modality m2 with distortion parameters
-                ('mdl1', {
-                    'block': ModelBlock2,
-                    'params': {
-                        'debug': True,
-                        'blocksize': numsteps,
-                        'models': {
-                            # from top config
-                            # 'pre_l2_2_robot1_s0': shln,
-                            'pre_l2_2_robot1_s0': {
-                                'type': 'sklearn',
-                                # 'skmodel': 'linear_model.LinearRegression',
-                                # 'skmodel_params': {'alpha': 1.0},
-                                'skmodel': 'kernel_ridge.KernelRidge',
-                                'skmodel_params': {'alpha': 0.1, 'kernel': 'rbf'},
-                                # 'skmodel': model_selection.GridSearchCV
-                                # 'skmodel': 'gaussian_process.GaussianProcessRegressor',
-                                # 'skmodel_params': {'kernel': ExpSineSquared(1.0, 5.0, periodicity_bounds=(1e-2, 1e1)) + WhiteKernel(1e-1)},
-                                # 'skmodel': 'gaussian_process.kernels.WhiteKernel, ExpSineSquared',
-                            },
-                        },
-                        'inputs': {
-                            # input
-                            'x_in': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
-                            # target
-                            'x_tg': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
-                        },
-                        'outputs': {
-                            'y': {'shape': (dim_s0, numsteps)},
-                            'h': {'shape': (dim_s0, numelem), 'trigger': 'trig/pre_l2_t1'},
-                        },
-                    }
-                }),
+                # inverse model s2s
+                ('mdl1', lconf['model_s2s']),
                 
                 # uniformly dist. random goals, triggered when error < goalsize
                 ('pre_l1', {
@@ -361,7 +364,7 @@ graph = OrderedDict([
     }),
     
     # m: error
-    ('m_err_mdl', {
+    ('m_err_mdl1', {
         'block': MeasBlock2,
         'params': {
             'id': 'm_err',
@@ -552,7 +555,7 @@ graph = OrderedDict([
                         'xlim': (-1.1, 1.1), 'xticks': True, 'xticklabels': False,
                         'ylabel': 'output $y = h(x)$',
                         'ylim': (-1.1, 1.1), 'yticks': True,
-                        'legend_loc': 'right',
+                        'legend_loc': 'left',
                     },
                     {
                         'input': ['pre_l2'], 'plot': histogram,
@@ -580,7 +583,7 @@ graph = OrderedDict([
                         'legend_loc': 'right',
                     },
                     {
-                        'input': ['m_err', 'm_err_mdl1'], 'plot': timeseries,
+                        'input': ['m_err', 'm_err_mdl1'], 'plot': [timeseries, partial(timeseries, alpha = 0.7)],
                         'title': 'error $x - y$',
                         # 'aspect': 'auto',
                         # 'orientation': 'horizontal',
@@ -600,7 +603,7 @@ graph = OrderedDict([
                         # 'xlabel': 'time step $k$',
                         'yticks': False,
                         'ylim': (-1.1, 1.1),
-                        'legend_loc': 'right',
+                        'legend_loc': 'left',
                     },
                     {},
                 ],

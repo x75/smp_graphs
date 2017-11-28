@@ -831,7 +831,7 @@ def init_actinf(ref, mref, conf, mconf):
     ref.dgoal_ = np.linalg.norm(-ref.pre_l1_tm1)
 
     #  initialize the learner
-    ref.mdl = init_model(ref, conf, mconf)
+    ref.mdl = init_model(ref, mref, conf, mconf)
     
 def step_actinf(ref, mref):
 
@@ -1080,7 +1080,7 @@ def init_homoekinesis(ref, mref, conf, mconf):
     # hi = 1
     # for outk, outv in params['outputs'].items():
     #     setattr(ref, outk, np.random.uniform(-hi, hi, size = outv['shape']))
-    ref.mdl = init_model(ref, conf, mconf)
+    ref.mdl = init_model(ref, mref, conf, mconf)
     ref.X_  = np.zeros((mconf['idim'], 1))
     ref.y_  = np.zeros((mconf['odim'], 1))
     ref.pre_l1_tm1 = 0
@@ -1187,7 +1187,7 @@ def save_sklearn(ref, mref):
 ################################################################################
 # extero-to-proprio map learning (e2p)
 def init_e2p(ref, conf, mconf):
-    ref.mdl = init_model(ref, conf, mconf)
+    ref.mdl = init_model(ref, mref, conf, mconf)
     ref.X_  = np.zeros((mconf['idim'], 1))
     ref.y_  = np.zeros((mconf['odim'], 1))
     ref.pre = np.zeros_like(ref.y_)
@@ -1395,7 +1395,7 @@ def init_imol(ref, mref, conf, mconf):
     params = conf['params']
     # init forward model
     mconf_fwd = mconf['fwd']
-    ref.mdl_fwd = init_model(ref, conf = conf, mconf = mconf_fwd)
+    ref.mdl_fwd = init_model(ref, mref, conf = conf, mconf = mconf_fwd)
     # init inverse model
     mconf_inv = mconf['inv']
     ref.idim_inv = mconf_inv['idim']
@@ -1410,7 +1410,7 @@ def init_imol(ref, mref, conf, mconf):
     # update conf
     mconf_inv['lag_off'] = ref.lag_off_f2p_inv
     # initialize inverse model
-    ref.mdl_inv = init_model(ref, conf = conf, mconf = mconf_inv)
+    ref.mdl_inv = init_model(ref, mref, conf = conf, mconf = mconf_inv)
 
     # learning params
     ref.prerr_avg = 1e-3
@@ -1685,7 +1685,7 @@ def init_eh(ref, mref, conf, mconf):
     mconf['visualize'] = False
     
     # reservoir network
-    ref.mdl = init_model(ref, conf, mconf)
+    ref.mdl = init_model(ref, mref, conf, mconf)
 
     # FIXME: parameter configuration post-processing
     # expand input coupling matrix from specification
@@ -2112,7 +2112,8 @@ class ModelBlock2(PrimBlock2):
             conf['params'][iok].update(mconf_io[iok])
             # params[iok] = mconf_io[iok]
 
-        # self.logger.debug("conf['params'] = %s", conf['params'])
+        self.logger.debug("conf['params']['inputs'] = %s", conf['params']['inputs'])
+        self.logger.debug("conf['params']['outputs'] = %s", conf['params']['outputs'])
         
         # init models
         for mk, mv in params['models'].items():

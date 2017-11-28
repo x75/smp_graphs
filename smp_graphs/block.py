@@ -1491,7 +1491,7 @@ class Block2(object):
         else:
             # print "init_subgraph config globals", self.top.conf_vars.keys()
             if hasattr(self, 'lconf'):
-                # print "lconf", self.lconf
+                self._debug("using lconf = %s" % (self.lconf, ))
                 subconf_vars = get_config_raw(conf = self.subgraph, confvar = None, lconf = self.lconf)
                 # print "init_subgraph %s returning localvars = %s" % (self.id, subconf_vars.keys())
                 subconf = subconf_vars['conf']
@@ -2870,7 +2870,7 @@ class SeqLoopBlock2(Block2):
             self._debug("step[%d] loop iter %d, trying to get results, time = %s" % (self.cnt, i, then))
             results = self.f_loop(i, f_obj_)
             # print "results", results
-            self._debug("f_loop results[%d] = %s" % (i, results, ))
+            self._debug("step[%d] f_loop results[%d] = %s" % (self.cnt, i, results, ))
 
             # FIXME: WORKS for loop example hpo, model sweeps,
             #        BREAKS for real experiment with measure output
@@ -2931,7 +2931,8 @@ class SeqLoopBlock2(Block2):
         for outk in self.outputs.keys():
             logstr = "step[%d/%d] output %s = %s" % (self.top.cnt, self.cnt, outk, getattr(self, outk))
             self._debug(logstr)
-            
+
+        self._debug('step[%d] bus state = %s' % (self.cnt, self.bus.keys()))
         # # hack for checking hpo minimum
         # if hasattr(self, 'hp_bests'):
         #     print "%s.step: bests = %s, %s" % (self.cname, self.hp_bests[-1], f_obj_hpo(tuple([self.hp_bests[-1][k] for k in sorted(self.hp_bests[-1])])))
