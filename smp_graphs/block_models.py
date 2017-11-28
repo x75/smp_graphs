@@ -121,19 +121,23 @@ class CodingBlock2(PrimBlock2):
 # def step_identity(ref, ins = {}):
 #     return None
 
-def init_musig(ref, conf, mconf):
-    params = conf['params']
+def init_musig(ref, mref, conf, mconf):
+    # params = conf['params']
+    params = mconf
     ref.a1 = mconf['a1']
     for ink, inv in params['inputs'].items():
+    # for ink, inv in params['inputs'].items():
         print inv
         for outk in ["mu", "sig"]:
+            # outk_full = "%s/%s_%s" % (mref.modelkey, ink, outk)
             outk_full = "%s_%s" % (ink, outk)
             params['outputs'][outk_full] = {'shape': inv['shape']}
-            # setattr(self, "%s_%s" % (ink, outk), np.zeros(inv['shape']))
+            setattr(ref, outk_full, np.zeros(inv['shape']))
     # return None
 
-def step_musig(ref):
-    for ink, inv in ref.inputs.items():
+def step_musig(ref, mref):
+    # for ink, inv in ref.inputs.items():
+    for ink, inv in mref.mconf['inputs'].items():
         for outk_ in ["mu", "sig"]:
             outk = "%s_%s" % (ink, outk_)
             outv_ = getattr(ref, outk)
@@ -144,7 +148,7 @@ def step_musig(ref):
                 setattr(ref, outk, ref.a1 * outv_ + (1 - ref.a1) * np.sqrt(np.square(inv['val'] - getattr(ref, ink + "_mu"))))
 
 # model func: reservoir expansion
-def init_res(ref, conf, mconf):
+def init_res(ref, mref, conf, mconf):
     params = conf['params']
     ref.oversampling = mconf['oversampling']
     ref.res = Reservoir(
@@ -160,7 +164,7 @@ def init_res(ref, conf, mconf):
     ref.res.wi = res_input_matrix_random_sparse(mconf['input_num'], mconf['N'], density = 0.2) * mconf['input_scale']
     params['outputs']['x_res'] = {'shape': (mconf['N'], 1)}
 
-def step_res(ref):
+def step_res(ref, mref):
     # print ref.inputs['x']['val'].shape
     for i in range(ref.oversampling):
         ref.res.execute(ref.inputs['x']['val'])
@@ -179,13 +183,13 @@ def step_res(ref):
 #     pass
     
 # model func: polynomial expansion using mdp
-def init_polyexp(ref, conf, mconf):
+def init_polyexp(ref, mref, conf, mconf):
     params = conf['params']
     ref.polyexpnode = PolynomialExpansionNode(3)
     # params['outputs']['polyexp'] = {'shape': params['inputs']['x']['shape']}
     params['outputs']['polyexp'] = {'shape': (83, 1)} # ???
 
-def step_polyexp(ref):
+def step_polyexp(ref, mref):
     setattr(ref, 'polyexp', ref.polyexpnode.execute(ref.inputs['x']['val'].T).T)
 
 # model func: lookup table expansion with parametric map randomness
@@ -202,7 +206,7 @@ def do_random_lookup(ref):
     # logger.debug("%sdo_random_lookup[%s] ref.y = %s" % ('    ', ref.cnt, ref.y))
     ref.y = ref.y * (1 - ref.e) + np.random.normal(0, 1.0, ref.y.shape) * ref.e
 
-def init_random_lookup(ref, conf, mconf):
+def init_random_lookup(ref, mref, conf, mconf):
     """random_lookup: init and setup
 
     Random lookup is a model based on a transfer function.
@@ -297,14 +301,14 @@ def init_random_lookup(ref, conf, mconf):
     #     ref.x.shape, ref.y.shape, ref.h.shape, ref.h_lin.shape, ref.h_noise.dtype))
     # do_random_lookup(ref)
     
-def step_random_lookup(ref):
+def step_random_lookup(ref, mref):
     # setattr(ref, 'polyexp', ref.polyexpnode.execute(ref.inputs['x']['val'].T).T)
     ref.x = np.clip(ref.inputs['x']['val'], -1, 1)
     do_random_lookup(ref)
     # ref.y = np.searchsorted(ref.h, ref.x)
     
 # model func: random_uniform model
-def init_random_uniform(ref, conf, mconf):
+def init_random_uniform(ref, mref, conf, mconf):
     params = conf['params']
     for outk, outv in params['outputs'].items():
         lo = -np.ones(( outv['shape'] ))
@@ -313,7 +317,7 @@ def init_random_uniform(ref, conf, mconf):
         # setattr(ref, outk, np.ones(outv['shape']))
         # print "block_models.py: random_uniform_init %s = %s" % (outk, getattr(ref, outk))
 
-def step_random_uniform(ref):
+def step_random_uniform(ref, mref):
     if hasattr(ref, 'rate'):
         if (ref.cnt % ref.rate) not in ref.blockphase: return
             
@@ -386,12 +390,12 @@ def step_random_uniform_pi_2(ref):
         # print "block_models.py: random_uniform_pi_2_step %s = %s" % (outk, getattr(ref, outk))
 
 # model func: agent budget: energy,
-def init_budget(ref, conf, mconf):
+def init_budget(ref, mref, conf, mconf):
     params = conf['params']
     ref.credit = np.ones((1, 1)) * params['credit']
     ref.credit_ = ref.credit.copy()
 
-def step_budget(ref):
+def step_budget(ref, mref):
     if hasattr(ref, 'rate'):
         if (ref.cnt % ref.rate) not in ref.blockphase: return
     
@@ -413,7 +417,7 @@ def step_budget(ref):
             
     
 # model func: random_uniform_modulated model
-def init_random_uniform_modulated(ref, conf, mconf):
+def init_random_uniform_modulated(ref, mref, conf, mconf):
     params = conf['params']
     # for outk, outv in params['outputs'].items():
     outk = 'pre'
@@ -428,7 +432,7 @@ def init_random_uniform_modulated(ref, conf, mconf):
     # setattr(ref, outk, np.ones(outv['shape']))
     # print "block_models.py: random_uniform_modulated_init %s = %s" % (outk, getattr(ref, outk))
 
-def step_random_uniform_modulated(ref):
+def step_random_uniform_modulated(ref, mref):
     if hasattr(ref, 'rate'):
         if (ref.cnt % ref.rate) not in ref.blockphase: return
 
@@ -457,7 +461,7 @@ def step_random_uniform_modulated(ref):
     #     # if ref.credit
 
 # model func: alternating_sign model
-def init_alternating_sign(ref, conf, mconf):
+def init_alternating_sign(ref, mref, conf, mconf):
     params = conf['params']
     for outk, outv in params['outputs'].items():
         lo = -np.ones(( outv['shape'] ))
@@ -466,7 +470,7 @@ def init_alternating_sign(ref, conf, mconf):
         setattr(ref, outk, np.ones(outv['shape']))
         # print "block_models.py: alternating_sign_init %s = %s" % (outk, getattr(ref, outk))
 
-def step_alternating_sign(ref):
+def step_alternating_sign(ref, mref):
     if hasattr(ref, 'rate'):
         if (ref.cnt % ref.rate) not in ref.blockphase: return
             
@@ -487,7 +491,7 @@ def step_alternating_sign(ref):
         # print "block_models.py: alternating_sign_step %s = %s" % (outk, getattr(ref, outk))
         
 # used by: actinf, homeokinesis, e2p, eh (FIXME: rename reward)
-def init_model(ref, conf, mconf):
+def init_model(ref, mref, conf, mconf):
     """block_models.init_model
 
     Initialize an smp model for use in an agent self-exploration and
@@ -785,7 +789,7 @@ def tapping_EH(
 ################################################################################
 # active inference model
 # model func: actinf_m2
-def init_actinf(ref, conf, mconf):
+def init_actinf(ref, mref, conf, mconf):
     # params = conf['params']
     # hi = 1
     # for outk, outv in params['outputs'].items():
@@ -825,7 +829,7 @@ def init_actinf(ref, conf, mconf):
     #  initialize the learner
     ref.mdl = init_model(ref, conf, mconf)
     
-def step_actinf(ref):
+def step_actinf(ref, mref):
 
     # get prediction taps
     (pre_l1, pre_l0, meas_l0, prerr_l0, prerr_l0_, prerr_l0__, prerr_l0___) = ref.tapping_SM(ref)
@@ -1013,7 +1017,7 @@ def step_actinf_2(ref):
     setattr(ref, 'X_fit', X_fit)
     setattr(ref, 'Y_pre', Y_pre)
 
-# def step_actinf_prediction_errors_extended(ref):
+# def step_actinf_prediction_errors_extended(ref, mref):
 #     # if np.sum(np.abs(ref.goal_prop - ref.goal_prop_tm1)) > 1e-2:
 #     #     ref.E_prop_pred_fast = np.random.uniform(-1e-5, 1e-5, ref.E_prop_pred_fast.shape)
 #     #     ref.E_prop_pred_slow = np.random.uniform(-1e-5, 1e-5, ref.E_prop_pred_slow.shape)
@@ -1038,7 +1042,7 @@ def step_actinf_2(ref):
 #     ref.dE_prop_pred_fast = ref.E_prop_pred_fast - ref.E_prop_pred__fast
 #     ref.d_E_prop_pred_ = ref.coef_smooth_slow * ref.d_E_prop_pred_ + (1 - ref.coef_smooth_slow) * ref.dE_prop_pred_fast
 
-# def step_actinf_sample_error_gradient(ref):
+# def step_actinf_sample_error_gradient(ref, mref):
 #     # sample error gradient
 #     numsamples = 20
 #     # was @ 50
@@ -1067,7 +1071,7 @@ def step_actinf_2(ref):
     
 ################################################################################
 # selforg / playful: hs, hk, pimax/tipi?
-def init_homoekinesis(ref, conf, mconf):
+def init_homoekinesis(ref, mref, conf, mconf):
     # params = conf['params']
     # hi = 1
     # for outk, outv in params['outputs'].items():
@@ -1081,7 +1085,7 @@ def init_homoekinesis(ref, conf, mconf):
     # lag = ref.lag
     # # print "Lag = %d" % (lag,)
 
-def step_homeokinesis(ref):
+def step_homeokinesis(ref, mref):
     # get lag
     # lag = ref.inputs['']['val'][...,lag]
     # lag = 0
@@ -1120,7 +1124,7 @@ def step_homeokinesis(ref):
 
 ################################################################################
 # sklearn based model
-def init_sklearn(ref, conf, mconf):
+def init_sklearn(ref, mref, conf, mconf):
     # insert defaults
     assert mconf.has_key('skmodel')
     assert mconf.has_key('skmodel_params')
@@ -1142,7 +1146,7 @@ def init_sklearn(ref, conf, mconf):
     # self.h_sample = 
     # print "ref.mdl", ref.mdl
 
-def step_sklearn(ref):
+def step_sklearn(ref, mref):
     # pass
     x_in = ref.inputs['x_in']['val'].T
     x_tg = ref.inputs['x_tg']['val'].T
@@ -1369,7 +1373,7 @@ def tapping_imol_recurrent_fit_inv_2(ref):
         'pre_l0_flat': pre_l0.T.reshape((-1, 1)),
         }
 
-def init_imol(ref, conf, mconf):
+def init_imol(ref, mref, conf, mconf):
     # params variable shortcut
     params = conf['params']
     # init forward model
@@ -1407,7 +1411,7 @@ def init_imol(ref, conf, mconf):
     else:
         ref.recurrent = False
             
-def step_imol(ref):
+def step_imol(ref, mref):
     # tap data
     # (fit old / predict new forward)
     # fit old inverse with current feedback
@@ -1615,7 +1619,7 @@ def step_imol(ref):
                 
 ################################################################################
 # exploratory hebbian direct inverse model learning (eh diml)
-def init_eh(ref, conf, mconf):
+def init_eh(ref, mref, conf, mconf):
     """init_eh
 
     Reward modulated exploratory Hebbian learning initialization
@@ -1706,7 +1710,7 @@ def init_eh(ref, conf, mconf):
     ref.tapping_EH = partial(tapping_EH)
     ref.tapping_X = partial(tapping_X)
 
-def step_eh(ref):
+def step_eh(ref, mref):
     """step_eh
 
     Reward modulated exploratory Hebbian learning predict/update step
@@ -1922,7 +1926,7 @@ class model(object):
         'homeokinesis': {'init': init_homoekinesis, 'step': step_homeokinesis},
     }
 
-    def __init__(self, ref, conf, mconf = {}):
+    def __init__(self, ref, conf, mref = None, mconf = {}):
         """model.init
 
         Initialize the core model of a ModelBlock2.
@@ -1936,19 +1940,27 @@ class model(object):
         """
         assert mconf['type'] in self.models.keys(), "in %s.init: unknown model type, %s not in %s" % (self.__class__.__name__, mconf['type'], self.models.keys())
         # FIXME: ignoring multiple entries taking 'last' one, in dictionary order
+        if mref is None:
+            mref = self.__class__.__name__
+
+        self.mconf = mconf
+            
+        self.modelkey = mref
         self.modelstr = mconf['type']
-        self.models[self.modelstr]['init'](ref, conf, mconf)
+        self.models[self.modelstr]['init'](ref, self, conf, mconf)
 
     def save(self, ref):
         """Dump the model into a file
         """
         if hasattr(ref, 'saveable') and ref.saveable and self.models[self.modelstr].has_key('save'):
-            ref.modelfilename = '{0}/model_{1}_{2}_{3}'.format(ref.top.datadir_expr, ref.id, self.modelstr, ref.models[ref.models.keys()[0]]['skmodel'])
+            ref.modelfilename = '{0}/model_{1}_{2}_{3}_{4}'.format(
+                ref.top.datadir_expr, ref.id, self.modelstr, ref.models[ref.models.keys()[0]]['skmodel'], ref.md5)
+            
             ref._info("Saving model %s into file %s" % (self.modelstr, ref.modelfilename))
             self.models[self.modelstr]['save'](ref)
         
     def predict(self, ref):
-        self.models[self.modelstr]['step'](ref)
+        self.models[self.modelstr]['step'](ref, self)
 
 class ModelBlock2(PrimBlock2):
     """Basic Model block
@@ -1982,16 +1994,20 @@ class ModelBlock2(PrimBlock2):
     }
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
-        """ModelBlock2 init"""
+        """ModelBlock2 init
+        """
+
+        # get configuration from parent.defaults stack
         params = {}
         params.update(Block2.defaults)
         params.update(PrimBlock2.defaults)
         params.update(self.defaults)
         params.update(conf['params'])
 
+        # write back to orig conf
         conf['params'].update(params)
-        # conf.update(params)
 
+        # pre-configure some self attributes
         self.conf = conf
         self.top = top
         self.logger = logger
@@ -1999,14 +2015,82 @@ class ModelBlock2(PrimBlock2):
         self.debug = params['debug']
         # self.lag = 1
 
-        # initialize model
-        # FIXME: need to associate outputs with a model for arrays of models
-        for k, v in params['models'].items():
-            v['inst_'] = model(ref = self, conf = conf, mconf = v)
-            params['models'][k] = v
+        # s_ = super(ModelBlock2, self)
+        # self.logger.info('super = %s, %s', type(s_), s_.__class__.__name__)
 
+        def rewrite_model_to_block(conf, mkey, mconf, rewritekeys = ['inputs', 'outputs'], nummodels = 1):
+            # for k, v in mconf.items():
+            #     if k not in rewritekeys: continue
+            for k in rewritekeys:
+                conf_ = mconf
+                mconf_k = True
+                
+                if not mconf.has_key(k):
+                    mconf_k = False
+                    conf_ = conf
+                    mconf[k] = {}
+                    
+                v = conf_[k]
+                
+                for ck, cv in v.items():
+                    if nummodels > 1:
+                        ck_ = '%s/%s' % (mkey, ck)
+                        # rewrite entry
+                        mconf[k][ck_] = cv
+                        # delete original entry
+                        if mconf_k:
+                            mconf[k].pop(ck)
+                    else:
+                        mconf[k][ck] = cv
+            return mconf
+        
+        # initialize model
+        # FIXME: need to associate inputs / outputs with a model for arrays of models
+        mconf_io = {'inputs': {}, 'outputs': {}}
+        nummodels = len(params['models'])
+        for mk, mv in params['models'].items():
+            # generate model inputs/outputs configuration
+            # 1 if model brings its own i/o conf, unroll / copy that into block outputs
+            # if mv.has_key('inputs'):
+            #     print "have inputs, great"
+            #     mconf_inputs = rewrite_model_to_block(params['id'], mv, ['inputs'])
+            #     self.logger.debug("conf_ = %s" % (conf_, ))
+            # else:
+            # if v.has_key('outputs'):
+            #     print "have outputs, great"
+            #     mconf_outputs = rewrite_model_to_block(params['id'], v, ['outputs'])
+
+            # rewrite conf
+            mconf = rewrite_model_to_block(params, mk, mv, ['inputs', 'outputs'], nummodels)
+
+            # self.logger.debug("mkey = %s, mconf = %s", mk, mconf)
+            
+            # update conf
+            for iok in ['inputs', 'outputs']:
+                mconf_io[iok].update(mconf[iok])
+
+        # self.logger.debug("mconf_io = %s", mconf_io)
+            
+        # 1.1 update block conf
+        # 2   if model does not bring its own i/o conf, generate block/mdl i/o from block i/o * mdl-key
+        # 3   remove block i/o template conf
+
+        # update conf
+        for iok in ['inputs', 'outputs']:
+            # replace all block level configuration
+            conf['params'][iok].update(mconf_io[iok])
+            # params[iok] = mconf_io[iok]
+
+        # self.logger.debug("conf['params'] = %s", conf['params'])
+        
+        # init models
+        for mk, mv in params['models'].items():
+            mv['inst_'] = model(ref = self, conf = conf, mref = mk, mconf = mv)
+            params['models'][mk].update(mv)
+
+        # FIXME: legacy iodim at block level
         for k in ['idim', 'odim']:
-            if v.has_key(k):
+            if mv.has_key(k):
                 setattr(self, k, v[k])
             
         # print "\n params.models = %s" % (params['models'], )
@@ -2045,6 +2129,11 @@ class ModelBlock2(PrimBlock2):
 
 
 class TopDummy(object):
+    """Dummy top block
+
+    Can be used for testing Block2s which require 'top' argument and
+    rely on some top properties for internal operation.
+    """
     def __init__(self):
         from smp_graphs.block import Bus
         
@@ -2060,7 +2149,8 @@ class TopDummy(object):
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec
-    
+
+    # dummy top block
     top = TopDummy()
     # setattr(top, 'numsteps', 100)
     

@@ -291,7 +291,7 @@ class CTEBlock2(InfthPrimBlock2):
 ################################################################################
 # multivariate versions
 class MIMVBlock2(InfthPrimBlock2):
-    """!@brief Compute the multivariate mutual information between X and Y, aka the total MI"""
+    """Compute the multivariate mutual information between X and Y, aka the total MI"""
     @decInitInfthPrim()
     def __init__(self, conf = {}, paren = None, top = None):
         InfthPrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
@@ -299,7 +299,8 @@ class MIMVBlock2(InfthPrimBlock2):
     @decStep()
     def step(self, x = None):
         # print "%s meas = %s" % (self.cname, self.meas)
-        print "%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by" % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape),
+        self._debug("step[%d] self.inputs['x']['val'].T.shape = %s, shifting from %s to %s" % (
+            self.cnt, self.inputs['x']['val'].T.shape, self.shift[0], self.shift[1]),)
         # for k, v in self.inputs.items():
         #     # print "k", k, "v", v
         #     if k == "norm":
@@ -315,8 +316,9 @@ class MIMVBlock2(InfthPrimBlock2):
         jh = self.normalize(src, dst)
         
         for i in range(self.shift[0], self.shift[1]):
-            print "%d" % (i, ),
-            sys.stdout.flush()
+            # print "%d" % (i, ),
+            # sys.stdout.flush()
+            
             # print "self.inputs['x']['val'].T.shape", self.inputs['x']['val'].T.shape
             # dst_ = np.roll(dst, shift = i, axis = 0)
             
@@ -332,7 +334,7 @@ class MIMVBlock2(InfthPrimBlock2):
                 mi = compute_mi_multivariate(data = {'X': src, 'Y': dst}, estimator = "kraskov2", normalize = True, delay = -i)
             # print "mimv = %s" % mi
             mimvs.append(mi)
-        print ""
+        # print ""
         mimvs = np.array(mimvs)
         # print "@%d mimvs.shape = %s" % (self.cnt, mimvs.shape, )
         # print "@%d mimvs       = %s" % (self.cnt, mimvs, )
@@ -344,7 +346,7 @@ class MIMVBlock2(InfthPrimBlock2):
         # self.mi[:,0] = (mi/jh).flatten()
         # self.mimv[0,shiftsl] = mimvs.flatten() # /maxjh
         self.mimv[0,shiftsl] = mimvs.flatten() * jh # /maxjh
-        print "@%d self.mimv.shape = %s, mimv = %s, jh = %f" % (self.cnt, self.mimv.shape, self.mimv, 1.0/jh)
+        self._debug("step[%d] self.mimv.shape = %s, mimv = %s, jh = %f" % (self.cnt, self.mimv.shape, self.mimv, 1.0/jh))
 
 class TEMVBlock2(InfthPrimBlock2):
     """!@brief Compute the multivariate transfer entropy from X to Y, aka the total TE"""

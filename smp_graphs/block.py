@@ -2405,7 +2405,7 @@ class Block2(object):
                 tmp = np.hstack(tuple(self.inputs[k]['val'][:,i-j] for j in range(emblen)))
                 # print "tmp", tmp.shape, # tmp
                 ret[:,i] = tmp
-            print "ret", ret.shape, # 
+            # print "ret", ret.shape, # 
             return ret
         else:
             # return self.inputs[k]['val']

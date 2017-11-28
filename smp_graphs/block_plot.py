@@ -885,7 +885,7 @@ class ImgPlotBlock2(FigPlotBlock2):
         FigPlotBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
     def plot_subplots(self):
-        self._debug("plot_subplots self.inputs = %s", (self.inputs, ))
+        self._debug("plot_subplots self.inputs = %s" % (self.inputs, ))
         numrows = len(self.subplots)
         numcols = len(self.subplots[0])
 
@@ -917,8 +917,8 @@ class ImgPlotBlock2(FigPlotBlock2):
                 extrema[0,i,j] = np.min(subplotin['val'])
                 extrema[1,i,j] = np.max(subplotin['val'])
                 # print "i", i, "j", j, vmins_sb, vmaxs_sb
-        print "mins", self.id, extrema[0]
-        print "maxs", extrema[1]
+        self._debug("%s mins = %s" % (self.id, extrema[0], ))
+        self._debug("%s maxs = %s" % (self.id, extrema[1], ))
         vmins_sb = np.array(vmins_sb)
         vmaxs_sb = np.array(vmaxs_sb)
         # print "vmins_sb, vmaxs_sb", i, j, vmins_sb.shape, vmaxs_sb.shape
@@ -940,7 +940,7 @@ class ImgPlotBlock2(FigPlotBlock2):
         colmins = np.min(extrema[0], axis = 1) 
         colmaxs = np.max(extrema[1], axis = 1)
         
-        self._debug("plot_subplots rowmins = %s, rowmaxs = %s, colmins = %s, colmaxs = %s", (rowmins, rowmaxs, colmins, colmaxs))
+        self._debug("plot_subplots rowmins = %s, rowmaxs = %s, colmins = %s, colmaxs = %s" % (rowmins, rowmaxs, colmins, colmaxs))
         
         if True:
             for i, subplot in enumerate(self.subplots): # rows
