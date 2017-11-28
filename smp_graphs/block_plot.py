@@ -18,7 +18,7 @@ from smp_base.common     import get_module_logger
 from smp_base.plot_utils import custom_legend, put_legend_out_right, put_legend_out_top
 from smp_base.dimstack   import dimensional_stacking, digitize_pointcloud
 from smp_base.plot       import makefig, timeseries, histogram, plot_img, plotfuncs, uniform_divergence
-from smp_base.plot       import get_colorcycler
+from smp_base.plot       import get_colorcycler, fig_interaction
 from smp_base.plot       import ax_invert, ax_set_aspect
 
 from smp_graphs.common import code_compile_and_run
@@ -723,9 +723,13 @@ class PlotBlock2(FigPlotBlock2):
                 if plotdata.has_key('_stacked'):
                     self._debug("plot_subplots pass 1 subplot[%d,%d] plotting stacked" % (i, j, ))
                     plotfunc_conf[0](ax, data = plotdata['_stacked'], ordinate = t, title = title, **kwargs)
+                    # interaction
+                    fig_interaction(self.fig, ax, plotdata['_stacked'])
+
                 
                 # iterate over plotdata items
                 title_ = title
+                inv_accum = []
                 for ink, inv in plotdata.items():
                     ax = plotdatad[ink]['ax']
                     self._debug("plot_subplots pass 1 subplot[%d,%d] plotdata[%s] = inv.sh = %s, plotvar = %s, t.sh = %s" % (
@@ -760,10 +764,18 @@ class PlotBlock2(FigPlotBlock2):
 
                     # label = "%s" % ink, title = title
                     # tmp_cmaps_ = [k for k in cc.cm.keys() if 'cyclic' in k and not 'grey' in k]
+
+                    inv_accum.append(inv)
                         
                     # metadata
                     inkc += 1
 
+                if len(plotdata) > 0:
+                    inv_accum_ = np.hstack(inv_accum)
+                    
+                    # interaction
+                    fig_interaction(self.fig, ax, inv_accum_)
+                    
                 # reset to main axis
                 ax = axs['main']['ax']
                 # store the final plot data
@@ -837,7 +849,8 @@ class PlotBlock2(FigPlotBlock2):
                 loc = 'left'
                 if sb.has_key('legend_loc'):
                     loc = sb['legend_loc']
-
+                    
+                # twin axes headache
                 if len(sb['p1_axs']) == 1:
                     custom_legend(
                         labels = sb['p1_plotlabels'],
@@ -870,7 +883,6 @@ class PlotBlock2(FigPlotBlock2):
                         # set aspect after placing legend
                         # self._debug("    1 subplotconf.keys = %s" % (subplotconf.keys(), ))
                         ax_set_aspect(ax, **subplotconf)
-                
                 
                 # put_legend_out_top(labels = labels, ax = ax, resize_by = 0.8)
                 

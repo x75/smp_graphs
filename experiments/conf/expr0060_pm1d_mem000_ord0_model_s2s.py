@@ -360,6 +360,26 @@ graph = OrderedDict([
         },
     }),
     
+    # m: error
+    ('m_err_mdl', {
+        'block': MeasBlock2,
+        'params': {
+            'id': 'm_err',
+            'blocksize': numsteps,
+            'debug': False,
+            'mode': 'basic',
+            'scope': 'local',
+            'meas': 'sub',
+            'inputs': {
+                'x1': {'bus': p_vars[0], 'shape': (1, numsteps)},
+                'x2': {'bus': 'mdl1/y', 'shape': (1, numsteps)},
+            },
+            'outputs': {
+                'y': {'shape': (1, numsteps)},
+            },
+        },
+    }),
+    
     # m: (root) mean squared error
     ('m_rmse', {
         'block': FuncBlock2,
@@ -482,6 +502,7 @@ graph = OrderedDict([
                 'pre_l2_h': {'bus': 'pre_l2/h', 'shape': (dim_s0, numelem)},
                 'mdl1_y': {'bus': 'mdl1/y', 'shape': (dim_s0, numsteps)},
                 'mdl1_h': {'bus': 'mdl1/h', 'shape': (dim_s0, numelem)},
+                'm_err_mdl1': {'bus': 'm_err_mdl1/y', 'shape': (1, numsteps)},
                 'credit_l1': {'bus': 'budget/credit', 'shape': (1, numsteps)},
                 'budget_mu': {'bus': 'm_budget/y_mu', 'shape': (1, 1)},
                 'budget_var': {'bus': 'm_budget/y_var', 'shape': (1, 1)},
@@ -559,7 +580,7 @@ graph = OrderedDict([
                         'legend_loc': 'right',
                     },
                     {
-                        'input': ['m_err'], 'plot': timeseries,
+                        'input': ['m_err', 'm_err_mdl1'], 'plot': timeseries,
                         'title': 'error $x - y$',
                         # 'aspect': 'auto',
                         # 'orientation': 'horizontal',
