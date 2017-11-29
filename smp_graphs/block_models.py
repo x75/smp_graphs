@@ -1,19 +1,45 @@
-"""smp_graphs
+"""**Model blocks**: blocks that contain a model
 
-Oswald Berthold 2012-2017
+.. moduleauthor:: Oswald Berthold 2012-2017
 
-smp models: models are coders, representations, predictions, inferences, associations, ...
+Most often models are adaptive models which are trained with data like
+a neural network, a kernel machine, mixture models, and so on. More
+generally models are things like coders, hand-crafted or learned
+representations; predictors or inference engines; associative memory
+modules, etc. In a deeper sense, almost everything can be seen as a
+model but the full story is kept for *smp-graphs-ng*.
 
-models raw (fit/predict X/Y style models)
-models sm  sensorimotor  models
-models dvl devleopmental models
+Here are some more examples of model types and contexts in which they are used:
+ - *raw models* doing fit/predict, X/Y style training and prediction
+ - *sensorimotor (sm) models* are embedded in the sensorimotor context of an agent
+ - *developmental (dvl) models* are collections of raw models,
+   sm-models, and additional operators that describe and control the
+   developmental sequence of an agent
 
 The model design is in progress. The current approach is to have a
-general Block wrapper for all models with particular models being
-implemented by lightewight init() and step() function definitions
+general Block wrapper for all models. Particular models are of class
+model and actual model functions are implemented by lightewight init()
+and step() function-only definitions. This works but has some
+drawbacks, like deeper class hierarchy, limited reusability, ...
 
-FIXME:
- - clean up and enable list of models in ModelBlock2, self.models has name, conf(model, in, out), model-instance, model.mdl-instance(s)
+**Available models**
+
+Obtained with `git grep -i \^def\\ step smp_graphs/block_models.py | grep -v \\# | sed -e 's/smp_graphs\/block_models.py:def step_//' | sed -e 's/(.*$//'`.
+
+musig (:func:`init_musig`, :func:`step_musig`), res (:func:`init_res`, :func:`step_res`), polyexp (:func:`init_polyexp`, :func:`step_polyexp`), random_lookup (:func:`init_random_lookup`, :func:`step_random_lookup`), random_uniform (:func:`init_random_uniform`, :func:`step_random_uniform`), random_uniform_pi_2 (:func:`init_random_uniform_pi_2`, :func:`step_random_uniform_pi_2`), budget (:func:`init_budget`, :func:`step_budget`), random_uniform_modulated (:func:`init_random_uniform_modulated`, :func:`step_random_uniform_modulated`), alternating_sign (:func:`init_alternating_sign`, :func:`step_alternating_sign`), actinf (:func:`init_actinf`, :func:`step_actinf`), actinf_2 (:func:`init_actinf_2`, :func:`step_actinf_2`), homeokinesis (:func:`init_homeokinesis`, :func:`step_homeokinesis`), sklearn (:func:`init_sklearn`, :func:`step_sklearn`), e2p (:func:`init_e2p`, :func:`step_e2p`), imol (:func:`init_imol`, :func:`step_imol`), eh (:func:`init_eh`, :func:`step_eh`), 
+
+.. exec::
+    import json
+    from smp_graphs.block_models import model
+    modeldict = dict([(k, '') for k, v in model.models.items()])
+    json_obj = json.dumps(modeldict, sort_keys=True, indent=4)
+    print ".. code-block:: JavaScript\\n\\n    models = {0}\\n    \\n".format(json_obj)
+    pass
+
+Things
+ - FIXME: Consolidate model names by 'function'
+ - FIXME: Next approach is to convert all model definitions from function-only style to class-style with some model specific wrappers.
+ - FIXME: clean up and enable list of models in ModelBlock2, self.models has name, conf(model, in, out), model-instance, model.mdl-instance(s)
 """
 
 from os import path as ospath
@@ -1391,6 +1417,10 @@ def tapping_imol_recurrent_fit_inv_2(ref):
         }
 
 def init_imol(ref, mref, conf, mconf):
+    """internal model on-line (imol)
+
+    Implements a forward / inverse model pair with online learning algorithms.
+    """
     # params variable shortcut
     params = conf['params']
     # init forward model
@@ -1907,6 +1937,8 @@ class model(object):
 
     Low-level models are implemented via init_<model> and step_<model>
     functions reducing code.
+
+    :attr:`model.models`, :data:`model.models`.
     """
     models = {
         # open-loop models
