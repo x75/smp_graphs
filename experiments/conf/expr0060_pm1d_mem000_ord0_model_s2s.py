@@ -41,7 +41,7 @@ from smp_graphs.block_meas import MeasBlock2, MomentBlock2
 from smp_graphs.block_meas_infth import MIBlock2, InfoDistBlock2
 
 from numpy import sqrt, mean, square
-from smp_graphs.funcs import f_sin, f_motivation, f_motivation_bin, f_meansquare, f_sum, f_rootmeansquare
+from smp_graphs.funcs import f_sin, f_motivation, f_motivation_bin, f_meansquare, f_sum, f_rootmeansquare, f_envelope
 
 from smp_graphs.utils_conf import get_systemblock
 
@@ -244,7 +244,7 @@ graph = OrderedDict([
 
                 # inverse model s2s
                 ('mdl1', lconf['model_s2s']),
-                
+
                 # uniformly dist. random goals, triggered when error < goalsize
                 ('pre_l1', {
                     'block': ModelBlock2,
@@ -384,6 +384,24 @@ graph = OrderedDict([
     }),
     
     # m: (root) mean squared error
+    ('m_err_mdl1_amp', {
+        'block': FuncBlock2,
+        'params': {
+            # 'id': 'm_rmse',
+            'blocksize': numsteps,
+            'debug': False,
+            'func': f_envelope,
+            'inputs': {
+                'x': {'bus': 'm_err_mdl1/y', 'shape': (1, numsteps)},
+                'c': {'val': 0.01, 'shape': (1, 1)},
+            },
+            'outputs': {
+                'y': {'shape': (1, numsteps)},
+            },
+        },
+    }),
+
+    # m: (root) mean squared error
     ('m_rmse', {
         'block': FuncBlock2,
         'params': {
@@ -506,6 +524,7 @@ graph = OrderedDict([
                 'mdl1_y': {'bus': 'mdl1/y', 'shape': (dim_s0, numsteps)},
                 'mdl1_h': {'bus': 'mdl1/h', 'shape': (dim_s0, numelem)},
                 'm_err_mdl1': {'bus': 'm_err_mdl1/y', 'shape': (1, numsteps)},
+                'm_err_mdl1_amp': {'bus': 'm_err_mdl1_amp/y', 'shape': (1, numsteps)},
                 'credit_l1': {'bus': 'budget/credit', 'shape': (1, numsteps)},
                 'budget_mu': {'bus': 'm_budget/y_mu', 'shape': (1, 1)},
                 'budget_var': {'bus': 'm_budget/y_var', 'shape': (1, 1)},
@@ -583,7 +602,7 @@ graph = OrderedDict([
                         'legend_loc': 'right',
                     },
                     {
-                        'input': ['m_err', 'm_err_mdl1'], 'plot': [timeseries, partial(timeseries, alpha = 0.7)],
+                        'input': ['m_err', 'm_err_mdl1', 'm_err_mdl1_amp'], 'plot': [timeseries, partial(timeseries, alpha = 0.7), partial(timeseries, color = 'r')],
                         'title': 'error $x - y$',
                         # 'aspect': 'auto',
                         # 'orientation': 'horizontal',

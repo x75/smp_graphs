@@ -65,7 +65,7 @@ from smp_base.models_selforg import HK
 from smp_base.learners import smpSHL, learnerReward, Eligibility
 from smp_base.measures import meas as measf
 
-from smp_graphs.common import code_compile_and_run
+from smp_graphs.common import code_compile_and_run, get_input
 from smp_graphs.graph import nxgraph_node_by_id_recursive
 from smp_graphs.block import decInit, decStep, Block2, PrimBlock2
 from smp_graphs.tapping import tap_tupoff, tap, tap_flat, tap_unflat
@@ -519,6 +519,8 @@ def step_alternating_sign(ref, mref):
         # print "%s-%s[%d]model.step_alternating_sign %s = %s" % (
         #     ref.cname, ref.id, ref.cnt, outk, getattr(ref, outk))
         # print "block_models.py: alternating_sign_step %s = %s" % (outk, getattr(ref, outk))
+
+smpmodel_defaults = {'algo': 'knn', 'idim': 1, 'odim': 1}
         
 # used by: actinf, homeokinesis, e2p, eh (FIXME: rename reward)
 def init_model(ref, mref, conf, mconf):
@@ -548,6 +550,12 @@ def init_model(ref, mref, conf, mconf):
     - dim1: number of variables
     - dim2: number of representatives of single variable (e.g. mean coding, mixture coding, ...)
     """
+    # check conf, set defaults
+    for required in ['algo', 'idim', 'odim']:
+        if not mconf.has_key(required):
+            mconf[required] = smpmodel_defaults[required]
+            
+    # shortcut handles
     algo = mconf['algo']
     idim = mconf['idim']
     odim = mconf['odim']
@@ -1929,7 +1937,30 @@ def step_eh(ref, mref):
         print "iter[%d]: |W_o| = %f, eta = %f" % (ref.cnt, np.linalg.norm(ref.mdl.model.wo), ref.mdl.eta, )
     
     # return to execute prediction on system and wait for new measurement
-            
+
+def init_smpmodel(ref, mref, conf, mconf):
+    # pass
+    mref.mdl = init_model(ref, mref, conf, mconf)
+    ref.h = np.zeros((conf['params']['outputs']['y']['shape'][0], ref.defaults['model_numelem']))
+
+def step_smpmodel(ref, mref):
+    # for ink, inv in mref.mconf['inputs'].items():
+    #     print "step_smpmodel[%d] inputs[%s] = %s" % (ref.cnt, ink, inv)
+    X = ref.get_input('x_in')
+    Y = ref.get_input('x_tg')
+    mref.mdl.fit(X, Y)
+
+    X_ = X
+    Y_ = mref.mdl.predict(X)
+    setattr(ref, 'y', Y_)
+
+    # ref.h_sample = np.atleast_2d(np.hstack([np.linspace(np.min(x_in_), np.max(x_in_), ref.defaults['model_numelem']) for x_in_ in X.T]))
+    ref.h_sample = np.atleast_2d(np.hstack([np.linspace(-1.1, 1.1, ref.defaults['model_numelem']) for x_in_ in X.T]))
+    logger.debug('ref.h_sample = %s', ref.h_sample.shape)
+    # FIXME: meshgrid or random samples if dim > 4
+    ref.h = mref.mdl.predict(ref.h_sample.T).T
+    logger.debug('ref.h = %s', ref.h.shape)
+    
 class model(object):
     """model class
 
@@ -1960,6 +1991,7 @@ class model(object):
             'init': init_random_uniform_pi_2, 'step': step_random_uniform_pi_2},
         'random_uniform_modulated': {
             'init': init_random_uniform_modulated, 'step': step_random_uniform_modulated},
+        'smpmodel': {'init': init_smpmodel, 'step': step_smpmodel},
         # closed-loop models
         # active inference
         'actinf_m1': {'init': init_actinf, 'step': step_actinf_2},
@@ -2155,7 +2187,7 @@ class ModelBlock2(PrimBlock2):
         # FIXME: legacy iodim at block level
         for k in ['idim', 'odim']:
             if mv.has_key(k):
-                setattr(self, k, v[k])
+                setattr(self, k, mv[k])
             
         # print "\n params.models = %s" % (params['models'], )
         # print "top", top.id

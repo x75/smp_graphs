@@ -17,7 +17,7 @@ from numpy import random
 from matplotlib import colors
 
 from smp_graphs.utils import print_dict
-from smp_graphs.common import loop_delim, dict_replace_idstr_recursive, conf_strip_variables
+from smp_graphs.common import loop_delim, dict_replace_idstr_recursive, conf_strip_variables, compress_loop_id
 
 # colors
 colors_ = list(six.iteritems(colors.cnames))
@@ -549,7 +549,12 @@ def nxgraph_plot(G, ax = None, pos = None, layout_type = "spring", node_color = 
 
     # label all nodes with id and blocktype
     # labels = {node[0]: '%s\n%s' % (node[1]['block_'].id, node[1]['block_'].cname[:-6]) for node in G.nodes(data = True)}
-    labels = {node[0]: '%s\n%s' % (node[1]['block_'].id, node[1]['block_'].cname[:-6]) for node in nxgraph_nodes_iter(G, 'enable', data = True)}
+    labels = {
+        node[0]: '%s\n%s' % (
+            compress_loop_id(node[1]['block_'].id),
+            node[1]['block_'].cname[:-6]
+        ) for node in nxgraph_nodes_iter(G, 'enable', data = True)
+    }
 
     # print "labels = %s" % labels
 

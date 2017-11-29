@@ -12,6 +12,8 @@ from hyperopt import hp
 from hyperopt import STATUS_OK, STATUS_FAIL
 from hyperopt import fmin, tpe, Trials, rand, anneal
 
+from scipy.signal import filtfilt, hilbert, butter
+
 from smp_graphs.common import get_input
 
 # # callable test
@@ -298,8 +300,22 @@ def f_motivation_bin(args):
         
     return {'y': mod, 'y1': -mod}
 
+def f_envelope(args):
+    """amplitude envelope follower
+
+    the internet seems to agree that hilbert is the way to do it
+    """
+    # option 1: np.abs(hilbert(x))
+    fu_check_required_args(args, ['x'], 'f_envelope')
+    if not args.has_key('c'): args['c'] = {'val': 0.5}
+    c = args['c']['val']
+    print "funcs c = %s" % (c, )
+    b, a  = butter(4, c)
+    x = args['x']['val']
+    return {'y': filtfilt(b, a, np.abs(hilbert(x)))}
+
 ################################################################################
-# exec functions: FIXME separate file, they are not FuncBlock2 funcs
+# exec functions: FIXME separate file, they are not FuncBlock2 funcs but LoopBlock callbacks
 def f_loop_1(ref, i):
     return ('inputs', {'x': [np.random.uniform(-1, 1, (3, 1))]})
 

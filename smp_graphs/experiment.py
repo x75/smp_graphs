@@ -549,12 +549,13 @@ class Experiment(object):
         """
         # axesspec = [(0, 0), (0, 1), (0, 2), (0, slice(3, None))]
         # axesspec = [(0, 0), (0,1), (1, 0), (1,1)]
-        axesspec = None
+        axesspec = [(0, slice(0, 2)), (0, 2)]
+        # axesspec = None
         plotgraph_figures = list()
         figtitle = self.top.id.split('-')[0]
         # FIXME: uses makefig directly from smp_base.plot instead of FigPlotBlock2
         fig_nxgr = makefig(
-            rows = 1, cols = 2, wspace = 0.1, hspace = 0.1,
+            rows = 1, cols = 3, wspace = 0.1, hspace = 0.1,
             axesspec = axesspec, title = "%s"  % (figtitle, )) # "nxgraph")
         axi = 0
         

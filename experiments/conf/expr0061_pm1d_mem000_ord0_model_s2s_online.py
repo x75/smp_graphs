@@ -134,85 +134,36 @@ loop = [('lconf', {
     #     'block': repr(ModelBlock2),
     'model_s2s_params': {
             'debug': True,
-            'blocksize': numsteps,
+            'blocksize': 1, # numsteps,
             'models': {
                 # from top config
                 # 'pre_l2_2_robot1_s0': shln,
-                'pre_l2_2_robot1_s0': {
-                    'type': 'sklearn',
-                    'skmodel': 'linear_model.LinearRegression',
-                    'skmodel_params': {}, # {'alpha': 1.0},
-                    # 'skmodel': 'kernel_ridge.KernelRidge',
-                    # 'skmodel_params': {'alpha': 0.1, 'kernel': 'rbf'},
-                    # 'skmodel': 'gaussian_process.GaussianProcessRegressor',
-                    # 'skmodel_params': {'kernel': ExpSineSquared(1.0, 5.0, periodicity_bounds=(1e-2, 1e1)) + WhiteKernel(1e-1)},
-                    # 'skmodel': 'gaussian_process.kernels.WhiteKernel, ExpSineSquared',
-                    # 'skmodel': model_selection.GridSearchCV
-                },
+                
                 # 'pre_l2_2_robot1_s0': {
-                #     'type': 'imol',
-                #     'algo': algo,
-                #     'fwd': {
-                #         'type': 'imol',
-                #         'algo': algo_fwd,
-                #         'lag_past': lag_past,
-                #         'lag_future': lag_future,
-                #         'idim': dim_s0 * (lag_past[1] - lag_past[0]) * 2, # laglen
-                #         'odim': dim_s0 * (lag_future[1] - lag_future[0]), # laglen,
-                #         'laglen': laglen,
-                #         # 'laglen_past': lag_past[1] - lag_past[0],
-                #         # 'laglen_future': lag_future[1] - lag_future[0],
-                #         'eta': eta,
-                #     },
-                #                 'inv': {
-                #                     'type': 'imol',
-                #                     'algo': algo_inv,
-                #                     'lag_past': lag_past,
-                #                     'lag_future': lag_future,
-                #                     'idim': dim_s0 * (lag_past[1] - lag_past[0]) * 3, # laglen
-                #                     'odim': dim_s0 * (lag_future[1] - lag_future[0]), # laglen,
-                #                     'laglen': laglen,
-                #                     # 'laglen_past': lag_past[1] - lag_past[0],
-                #                     # 'laglen_future': lag_future[1] - lag_future[0],
-                #                     'eta': eta,
-                #                     'memory': maxlag,
-                #                     'w_input': 1.0,
-                #                     'w_bias': 0.2,
-                #                     'multitau': False, # True,
-                #                     'theta': 0.01,
-                #                     # soesgp
-                #                     'modelsize': 200,
-                #                     # 'spectral_radius': 1.5, # 0.01,
-                #                     # FORCE / pm
-                #                     # 'modelsize': 300,
-                #                     'theta_state': 0.1,
-                #                     'lrname': 'FORCE',
-                #                     'alpha': 50.0, # 10.0,
-                #                     'spectral_radius': 0.99, # 0.01,
-                #                     'tau': 0.85, # 0.8, # 0.05, # 1.0,
-                #                     # 'tau': 0.4, # 0.8, # 0.05, # 1.0,
-                #                     'wgt_thr': 2.3,
-                #                     # RLS / barrel
-                #                     # 'modelsize': 322,
-                #                     # 'theta_state': 0.1, # for RLS
-                #                     # 'lrname': 'RLS',
-                #                     # 'spectral_radius': 0.999, # 0.01,
-                #                     # 'tau': 0.08, # 0.8, # 0.05, # 1.0,
-                #                     # 'wgt_thr': 0.5,
-                #                     'mixcomps': 3,
-                #                     'oversampling': 1,
-                #                     'visualize': False,
-                #                 }
+                #     'type': 'sklearn',
+                #     'skmodel': 'linear_model.LinearRegression',
+                #     'skmodel_params': {}, # {'alpha': 1.0},
+                #     # 'skmodel': 'kernel_ridge.KernelRidge',
+                #     # 'skmodel_params': {'alpha': 0.1, 'kernel': 'rbf'},
+                #     # 'skmodel': 'gaussian_process.GaussianProcessRegressor',
+                #     # 'skmodel_params': {'kernel': ExpSineSquared(1.0, 5.0, periodicity_bounds=(1e-2, 1e1)) + WhiteKernel(1e-1)},
+                #     # 'skmodel': 'gaussian_process.kernels.WhiteKernel, ExpSineSquared',
+                #     # 'skmodel': model_selection.GridSearchCV
                 # },
+                
+                'pre_l2_2_robot1_s0': {
+                    'type': 'smpmodel',
+                    'algo': 'knn',
+                },
             },
             'inputs': {
                 # input
-                'x_in': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
+                'x_in': {'bus': m_vars[0], 'shape': (dim_s0, 1)},
                 # target
-                'x_tg': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
+                'x_tg': {'bus': p_vars[0], 'shape': (dim_s0, 1)},
             },
             'outputs': {
-                'y': {'shape': (dim_s0, numsteps)},
+                'y': {'shape': (dim_s0, 1)},
                 'h': {'shape': (dim_s0, numelem), 'trigger': 'trig_ll%d_ll%d/pre_l2_t1' % (i, i, )},
             },
         },

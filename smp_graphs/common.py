@@ -314,6 +314,14 @@ def get_input(inputs, inkey):
     assert inputs.has_key(inkey)
     return inputs[inkey]['val']
 
+def compress_loop_id(k):
+    if '/' in k: # FIXME: control explicitly with argument
+        k_ = re.sub(r'([A-Za-z0-9]+)(_(ll)([0-9]+))+\/(.*)', r'\1/\5', k)
+    else:
+        k_ = re.sub(r'([A-Za-z0-9]+)(_(ll)([0-9]+))+', r'\1', k)
+    # logger.debug('compress_loop_id: squashing %s down to %s', k, k_)
+    return k_
+
 def dict_search_recursive(d, k):
     """smp_graphs.common.dict_search_recursive
 

@@ -139,7 +139,7 @@ from smp_graphs.utils import print_dict, ordereddict_insert, xproduct, myt
 from smp_graphs.common import conf_header, conf_footer, get_input, conf_strip_variables
 from smp_graphs.common import md5, get_config_raw, get_config_raw_from_string
 
-from smp_graphs.common import set_attr_from_dict, loop_delim
+from smp_graphs.common import set_attr_from_dict, loop_delim, compress_loop_id
 from smp_graphs.common import dict_get_nodekeys_recursive, dict_replace_nodekeys_loop
 from smp_graphs.common import dict_search_recursive, dict_replace_idstr_recursive2
 from smp_graphs.common import dict_replace_idstr_recursive
@@ -275,7 +275,7 @@ class Bus(MutableMapping):
         loop_compressor = {}
         for k in self.store.keys():
             # squash loop delimiters down to base node-id/signal
-            k_ = re.sub(r'([A-Za-z0-9]+)(_(ll)([0-9]+))+\/(.*)', r'\1/\5', k)
+            k_ = compress_loop_id(k)
             # add if not there
             if not loop_compressor.has_key(k_):
                 # print "new key", k_, k
@@ -304,7 +304,7 @@ class Bus(MutableMapping):
         loop_compressor = {}
         for k in self.store.keys():
             # squash loop delimiters down to base node-id/signal
-            k_ = re.sub(r'([A-Za-z0-9]+)(_(ll)([0-9]+))+\/(.*)', r'\1/\5', k)
+            k_ = compress_loop_id(k)
             # add if not there
             if not loop_compressor.has_key(k_):
                 # print "new key", k_, k
