@@ -6,6 +6,41 @@ Basic graph operations for networkx based smp graphs: construction from
 smp_graphs configuration dictionary, manipulation, plotting, searching
 """
 
+
+"""
+check igraph / tikz plotting with tikz-network
+https://stackoverflow.com/questions/23235964/interface-between-networkx-and-igraph
+
+
+import networkx as nx, igraph as ig
+
+# create sample NetworkX graph
+g = nx.planted_partition_graph(5, 5, 0.9, 0.1, seed=3)
+
+# convert via edge list
+g1 = ig.Graph(len(g), zip(*zip(*nx.to_edgelist(g))[:2]))
+  # nx.to_edgelist(g) returns [(0, 1, {}), (0, 2, {}), ...], which is turned
+  #  into [(0, 1), (0, 2), ...] for igraph
+
+# convert via adjacency matrix
+g2 = ig.Graph.Adjacency((nx.to_numpy_matrix(g) > 0).tolist())
+
+assert g1.get_adjacency() == g2.get_adjacency()
+
+Using the edge list was somewhat faster for the following 2500-node graph on my machine:
+
+In [5]: g = nx.planted_partition_graph(50, 50, 0.9, 0.1, seed=3)
+
+In [6]: %timeit ig.Graph(len(g), zip(*zip(*nx.to_edgelist(g))[:2]))
+1 loops, best of 3: 264 ms per loop
+
+In [7]: %timeit ig.Graph.Adjacency((nx.to_numpy_matrix(g) > 0).tolist())
+1 loops, best of 3: 496 ms per loop
+
+Using the edge list was also somewhat faster for g = nx.complete_graph(2500).
+"""
+
+
 import networkx as nx
 import re, copy, random, six
 
