@@ -7,11 +7,11 @@ the plan 20171127
 adaptive internal models
 0060
  - x keep pre_l2, configure for mild infodist
- - introduce pre_l2_pre_2_robot1_s0 map as batch learning internal model: sklearn model block
- - loop over few d's and models (save / load models)
+ - x introduce pre_l2_pre_2_robot1_s0 map as batch learning internal model: sklearn model block
+ - x loop over few d's and models (save / load models)
 
 0061
- - 0060 add online learning
+ - x 0060 add online learning
 
 self-exploration
 0062
@@ -29,6 +29,7 @@ self-exploration
  - learn the first model (finally)
 """
 
+import re 
 from sklearn.gaussian_process.kernels import WhiteKernel, ExpSineSquared
 
 from smp_base.plot import table
@@ -55,21 +56,31 @@ showplot = True
 saveplot = True
 randseed = 126
 
-desc = """The purpose of this, and of the next few experiments is to
-illustrate the effect of map distortions and external entropy on the
-information distance between two corresponding variables, e.g. sensory
-modalities. Here, an abstract parameterized model is introduced that
-is able to produce these effects. The model consists of a transfer
-function whose values over the interval [-1, 1] can be controlled by
-three groups of parameters associated with unimodal gaussian
-deformation, colored noise, and point-wise independent noise."""
-
 #predicted variables
 # p_vars = ['pre_l0/pre']
 p_vars = ['robot1/s0']
 # measured variables
 # m_vars = ['robot1/s0']
 m_vars = ['pre_l2/y']
+
+desc = """This experiment extends \\ref{{{4}}} with an
+adaptive model s2s. The model is used in the agent's brain as a map
+taking measurements to their causes in prediction space. This is
+achieved by assigning measurements {1} to the model's inputs $X$ and
+predictions {2} to the models targets $Y$. The experiment contains an
+episode of {0} steps like
+\\ref{{{4}}}, with a
+model fitting and prediction step appended at the end of the
+episode. The resulting model's characteristics are shown as a transfer
+function which is obtained by sampling the model after fitting. The
+models predictions are shown as a timeseries and the error {2} - {3}
+is superimposed on the original error. These show that the adaptive
+model indeed manages to learn an adequate inverse mapping of the
+original transfer function and to reduce the resulting prediction
+error.""".format(numsteps, re.sub(r'_', r'\\_', str(m_vars)), re.sub(r'_', r'\\_', str(p_vars)), ['mdl1/y'], 'sec:smp-expr0045-pm1d-mem000-ord0-random-infodist-id')
+
+dim_s0 = 1
+numelem = 1001
 
 # local conf dict for looping
 lconf = {
@@ -81,7 +92,7 @@ lconf = {
     'order': 0,
     'infodistgen': {
         'type': 'random_lookup',
-        'numelem': 1001, # sampling grid
+        'numelem': numelem, # sampling grid
         'l_a': 0.0,
         'd_a': 0.98,
         'd_s': 0.5,
@@ -543,7 +554,7 @@ graph = OrderedDict([
                 'm_div': {'bus': 'm_div/y', 'shape': (1, numbins)},
                 'm_sum_div': {'bus': 'm_sum_div/y', 'shape': (1, 1)},
             },
-            'desc': 'Single infodist configuration',
+            'desc': 'result. In the lower left part of the figure the prediction histogram and timeseries are shown. In the experiment, the signal is transferred by the transfer function pre\_l2/$h$ and is transformed into the signal $y$ whose histogram diverges by the amount shown in the lower right corner divergence plot. In the error timeseries panel, the original prediction error and the error after the adaptive model\'s transformation are shown on top of each other, together with a magnitude estimate of the second error shown as a red line.',
 
             # subplot
             'subplots': [

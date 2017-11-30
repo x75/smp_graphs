@@ -30,7 +30,7 @@ showplot = True
 saveplot = True
 randseed = 126
 
-desc = """The purpose of this, and of the next few experiments is to
+desc = """The purpose of this and the next few experiments is to
 illustrate the effect of map distortions and external entropy on the
 information distance between two corresponding variables, e.g. sensory
 modalities. Here, an abstract parameterized model is introduced that
@@ -142,7 +142,7 @@ graph = OrderedDict([
                         'goalsize': 0.1, # np.power(0.01, 1.0/dim_s_proprio), # area of goal
                         'inputs': {
                             # 'credit': {'bus': 'budget/credit', 'shape': (1,1)},
-                            # 's0': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 1)},
+                            # 's0': {'bus': 'robot1/s0', 'shape': (dim_s_proprio, 1)},
                             's0': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, 1)},
                             's0_ref': {'bus': 'pre_l1/pre', 'shape': (dim_s_proprio, 1)},
                             },
@@ -166,7 +166,7 @@ graph = OrderedDict([
                             'infodistgen': infodistgen,
                         },
                         'inputs': {
-                            'x': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 1)},
+                            'x': {'bus': 'robot1/s0', 'shape': (dim_s_proprio, 1)},
                         },
                         'outputs': {
                             'y': {'shape': (dim_s_proprio, 1)},
@@ -188,7 +188,7 @@ graph = OrderedDict([
                             'credit': {'bus': 'budget/credit'},
                             'lo': {'val': -lim, 'shape': (dim_s_proprio, 1)},
                             'hi': {'val': lim, 'shape': (dim_s_proprio, 1)},
-                            # 'mdltr': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 1)},
+                            # 'mdltr': {'bus': 'robot1/s0', 'shape': (dim_s_proprio, 1)},
                             'mdltr': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, 1)},
                             },
                         'outputs': {
@@ -227,8 +227,8 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'shift': (0, 1),
             'inputs': {
-                'x': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
-                # 'y': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
+                'x': {'bus': 'robot1/s0', 'shape': (dim_s_proprio, numsteps)},
+                # 'y': {'bus': 'robot1/s0', 'shape': (dim_s_proprio, numsteps)},
                 'y': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, numsteps)},
             },
             'outputs': {
@@ -243,8 +243,8 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'shift': (0, 1),
             'inputs': {
-                'x': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
-                # 'y': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
+                'x': {'bus': 'robot1/s0', 'shape': (dim_s_proprio, numsteps)},
+                # 'y': {'bus': 'robot1/s0', 'shape': (dim_s_proprio, numsteps)},
                 'y': {'bus': 'pre_l2/y', 'shape': (dim_s_proprio, numsteps)},
             },
             'outputs': {
@@ -284,7 +284,7 @@ graph = OrderedDict([
             'scope': 'local',
             'meas': 'sub',
             'inputs': {
-                'x1': {'bus': 'robot1/s_proprio', 'shape': (1, numsteps)},
+                'x1': {'bus': 'robot1/s0', 'shape': (1, numsteps)},
                 'x2': {'bus': 'pre_l2/y', 'shape': (1, numsteps)},
             },
             'outputs': {
@@ -341,7 +341,7 @@ graph = OrderedDict([
             # direct histo input?
             # or signal input
             'inputs': {
-                'x1': {'bus': 'robot1/s_proprio', 'shape': (1, numsteps)},
+                'x1': {'bus': 'robot1/s0', 'shape': (1, numsteps)},
                 'x2': {'bus': 'pre_l2/y', 'shape': (1, numsteps)},
             },
             'bins': m_hist_bins,
@@ -395,7 +395,7 @@ graph = OrderedDict([
     # | transfer func h | horizontal output | horziontal histogram |
     # | vertical input  | information meas  | -                    |
     # | vertical histo  | -                 | - (here the model)   |
-    ('plot_infodist', {
+    ('plot', {
         'block': PlotBlock2,
         'params': {
             # 'debug': True,
@@ -407,7 +407,7 @@ graph = OrderedDict([
             'xlim_share': True,
             'ylim_share': True,
             'inputs': {
-                's_p': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
+                's0': {'bus': 'robot1/s0', 'shape': (dim_s_proprio, numsteps)},
                 's_e': {'bus': 'robot1/s_extero', 'shape': (dim_s_extero, numsteps)},
                 'pre_l0': {'bus': 'pre_l0/pre', 'shape': (dim_s_goal, numsteps)},
                 'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
@@ -431,8 +431,8 @@ graph = OrderedDict([
                 'm_div': {'bus': 'm_div/y', 'shape': (1, numbins)},
                 'm_sum_div': {'bus': 'm_sum_div/y', 'shape': (1, 1)},
             },
-            'desc': 'Single infodist configuration',
-
+            'desc': 'resulting trajectory and distributions. The signals $x$ and $y$ are identical except for a noise term \
+                indicated by an error of close to zero.',
             # subplot
             'subplots': [
                 # row 1: transfer func, out y time, out y histo
@@ -470,7 +470,7 @@ graph = OrderedDict([
                 # row 2: in x time, error x - y time, none
                 [
                     {
-                        'input': ['s_p'], 'plot': timeseries,
+                        'input': ['s0'], 'plot': timeseries,
                         'title': 'timeseries $x$',
                         'aspect': 2.2/numsteps,
                         'orientation': 'vertical',
@@ -498,7 +498,7 @@ graph = OrderedDict([
                 # row 3: in x histo, measures global, divergence h1, h2
                 [
                     {
-                        'input': ['s_p'], 'plot': histogram,
+                        'input': ['s0'], 'plot': histogram,
                         'title': 'histogram $x$', 'aspect': 'shared', # (1*numsteps)/(2*2.2),
                         'orientation': 'vertical',
                         'xlim': (-1.1, 1.1), 'xinvert': False, # 'xticks': False, 'xticklabels': None, #
@@ -545,7 +545,7 @@ graph = OrderedDict([
     #         'hspace': 0.15,
     #         'xlim_share': True,
     #         'inputs': {
-    #             's_p': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
+    #             's0': {'bus': 'robot1/s0', 'shape': (dim_s_proprio, numsteps)},
     #             's_e': {'bus': 'robot1/s_extero', 'shape': (dim_s_extero, numsteps)},
     #             'pre_l0': {'bus': 'pre_l0/pre', 'shape': (dim_s_goal, numsteps)},
     #             'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
@@ -562,7 +562,7 @@ graph = OrderedDict([
     #             # row 1: pre, s
     #             [
     #                 {
-    #                     'input': ['pre_l0', 's_p', 'pre_l1'],
+    #                     'input': ['pre_l0', 's0', 'pre_l1'],
     #                     'plot': [
     #                         partial(timeseries, linewidth = 1.0, alpha = 1.0, xlabel = None),
     #                         partial(timeseries, alpha = 1.0, xlabel = None),
@@ -570,7 +570,7 @@ graph = OrderedDict([
     #                     'title': 'two-level prediction and measurement (timeseries)',
     #                 },
     #                 {
-    #                     'input': ['pre_l0', 's_p', 'pre_l1'],
+    #                     'input': ['pre_l0', 's0', 'pre_l1'],
     #                     'plot': [partial(
     #                         histogram, orientation = 'horizontal', histtype = 'stepfilled',
     #                         yticks = False, xticks = False, alpha = 1.0, normed = False) for _ in range(3)],
@@ -583,7 +583,7 @@ graph = OrderedDict([
     #             # row 2: pre_l2, s
     #             [
     #                 {
-    #                     'input': ['pre_l2', 's_p'],
+    #                     'input': ['pre_l2', 's0'],
     #                     'plot': [
     #                         partial(timeseries, alpha = 1.0, xlabel = None),
     #                         partial(timeseries, alpha = 0.5, xlabel = None),
@@ -591,7 +591,7 @@ graph = OrderedDict([
     #                     'title': 'proprio and f(proprio)',
     #                 },
     #                 {
-    #                     'input': ['pre_l2', 's_p'],
+    #                     'input': ['pre_l2', 's0'],
     #                     'plot': [
     #                         partial(
     #                             histogram, orientation = 'horizontal', histtype = 'stepfilled',

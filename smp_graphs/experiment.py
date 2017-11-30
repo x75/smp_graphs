@@ -386,7 +386,7 @@ class Experiment(object):
                 'filename': self.plotgraph_filename,
                 'label': self.top.id,
                 'id': 'graph',
-                'desc': 'Graph (nxgraph)',
+                'desc': 'computation graph $G$ and top level parameters',
                 # 'width': '378.52pt',
                 'width': 0.69, # 0.59,
             }
@@ -403,7 +403,7 @@ class Experiment(object):
                 'filename': self.plotgraph_filename,
                 'label': self.top.id,
                 'id': 'bus',
-                'desc': 'Bus',
+                'desc': 'signal bus',
                 # 'width': '320pt',
                 'width': 0.3, # 0.39
             }

@@ -41,9 +41,7 @@ budget = lconf['budget'] # 510
 lim = lconf['lim'] # 1.0
 numloop = lconf['numloop'] # 1.0
 
-desc = """This experiment is looping expr0045 over the parameters that
-control the information distance between to spaces illustrating each
-parameter's effects on information distance."""
+desc = """This experiment is identical to \\ref{{{0}}} except that the batch-fitted model $s2s$ is replaced with an online learning model. As a result, it can be observed that the error magnitude, shown as a red line in the plot, incrementally decreases during the episode.""".format('sec:smp-expr0060-pm1d-mem000-ord0-model-s2s')
 
 outputs = {
     'latex': {'type': 'latex',},
