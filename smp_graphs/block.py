@@ -1061,22 +1061,6 @@ class Block2(object):
         # numsteps / blocksize
         # print "%s-%s end of init blocksize = %d" % (self.cname, self.id, self.blocksize)
 
-    def block_is_composite(self):
-        # list of necessary conditions for compositeness
-        conditions = [
-            # block conf directly contains graph dict
-            hasattr(self, 'graph'),
-            # block conf contains subgraph either as dict or as filename
-            hasattr(self, 'subgraph'),
-            # block is a LoopBlock2 with the implicit semantics that the loop is unrolled into anexplicit subgraph during init
-            (hasattr(self, 'loopblock') and len(self.loopblock) != 0),
-            # block is a ModelBlock2 with multiple models supplied in its 'models' dict
-            (hasattr(self, 'models') and len(self.models) > 1),
-        ]
-            
-        return reduce(lambda t1,t2: t1 or t2, conditions)
-        
-            
     def init_block(self):
         """Block2.init_block
 
@@ -1976,6 +1960,21 @@ class Block2(object):
         # print "block_is_finished self.cnt = %d, top.numsteps = %d" % (self.cnt, self.top.numsteps)
         return self.cnt == self.top.numsteps
     
+    def block_is_composite(self):
+        # list of necessary conditions for compositeness
+        conditions = [
+            # block conf directly contains graph dict
+            hasattr(self, 'graph'),
+            # block conf contains subgraph either as dict or as filename
+            hasattr(self, 'subgraph'),
+            # block is a LoopBlock2 with the implicit semantics that the loop is unrolled into anexplicit subgraph during init
+            (hasattr(self, 'loopblock') and len(self.loopblock) != 0),
+            # block is a ModelBlock2 with multiple models supplied in its 'models' dict
+            (hasattr(self, 'models') and len(self.models) > 1),
+        ]
+        # return OR term as reduction of list
+        return reduce(lambda t1,t2: t1 or t2, conditions)
+            
     def set_attr_from_top_conf(self):
         """set self attributes copied from corresponding toplevel attributes
         
@@ -2555,7 +2554,7 @@ class LoopBlock2(Block2):
         assert conf['params'].has_key('loopmode'), "LoopBlock2: loopmode missing"
 
         # unroll loop into dictionary
-        conf['params']['subgraph'] = self.subgraph_from_loop_unrolled(conf, paren, top)
+        conf['params']['subgraph'] = LoopBlock2.subgraph_from_loop_unrolled(self, conf, paren, top)
 
         # print "LoopBlock2 params", conf['params'].keys()
         
@@ -2564,11 +2563,12 @@ class LoopBlock2(Block2):
 
         # done
 
-    def subgraph_from_loop_unrolled(self, conf, paren, top):
+    @staticmethod
+    def subgraph_from_loop_unrolled(blockref, conf, paren, top):
         loopgraph_unrolled = OrderedDict()
-        # print "        - nxgraph_from_smp_graph loopblock %s unroll %s" % (
-        #     conf['params']['id'],
-        #     conf['params']['loop'],)
+        print "        - nxgraph_from_smp_graph loopblock %s unroll %s" % (
+            conf['params']['id'],
+            conf['params']['loop'],)
         
         # construction loop
         for i, item in enumerate(conf['params']['loop']):
@@ -2592,32 +2592,28 @@ class LoopBlock2(Block2):
             #     xid = xid,)
             
             # get template and copy
-            lpconf = copy.deepcopy(conf['params']['loopblock'])
+            if conf['params'].has_key('loopblock'):
+                lpconf = copy.deepcopy(conf['params']['loopblock'])
+            elif conf['params'].has_key('models'):
+                lpconf = copy.deepcopy(conf)
 
-            # rewrite block ids with loop count
+            # rewrite raw graph dict to composite block with raw graph as subgraph
             if type(lpconf) is OrderedDict:
                 lpconf_ = {
                         'block': Block2,
                         'params': {
                             'id': None,
-                            'numsteps': top.numsteps,
                             'subgraph': lpconf,
                             # 'graph': lpconf,
                         },
                 }
                 lpconf = lpconf_
                 
-                # for k, v in lpconf.items():
-                #     # lpconf[k] =
-                #     v = dict_replace_idstr_recursive(d = lpconf, cid = cid, xid = xid)
-            # else:
-            #     lpconf_ = dict_replace_idstr_recursive(d = lpconf, cid = cid, xid = xid)
-            #     lpconf = OrderedDict([
-            #         (
-            #             lpconf_['params']['id'],
-            #             lpconf_,)
-            #     ])
-            
+            # check for numsteps
+            if not lpconf['params'].has_key('numsteps'):
+                lpconf['params']['numsteps'] = top.numsteps
+                
+            # rewrite block ids with loop count
             lpconf = dict_replace_idstr_recursive(d = lpconf, cid = cid, xid = xid)
             
             # lpconf = dict_replace_idstr_recursive2(

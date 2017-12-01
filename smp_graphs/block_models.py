@@ -54,7 +54,7 @@ import numpy as np
 
 from smp_base.common import get_module_logger
 
-from smp_graphs.block        import decInit, decStep, Block2, PrimBlock2
+from smp_graphs.block        import decInit, decStep, Block2, PrimBlock2, LoopBlock2
 from smp_graphs.common       import code_compile_and_run, get_input
 from smp_graphs.funcs_models import model
 from smp_graphs.graph        import nxgraph_node_by_id_recursive
@@ -158,59 +158,76 @@ class ModelBlock2(PrimBlock2):
         # s_ = super(ModelBlock2, self)
         # self.logger.info('super = %s, %s', type(s_), s_.__class__.__name__)
 
-        def rewrite_model_to_block(conf, mkey, mconf, rewritekeys = ['inputs', 'outputs'], nummodels = 1):
-            # for k, v in mconf.items():
-            #     if k not in rewritekeys: continue
-            for k in rewritekeys:
-                conf_ = mconf
-                mconf_k = True
-                
-                if not mconf.has_key(k):
-                    mconf_k = False
-                    conf_ = conf
-                    mconf[k] = {}
-                    
-                v = conf_[k]
-                
-                for ck, cv in v.items():
-                    if nummodels > 1:
-                        ck_ = '%s/%s' % (mkey, ck)
-                        # rewrite entry
-                        mconf[k][ck_] = cv
-                        # delete original entry
-                        if mconf_k:
-                            mconf[k].pop(ck)
-                    else:
-                        mconf[k][ck] = cv
-            return mconf
-        
         # initialize model
-        # FIXME: need to associate inputs / outputs with a model for arrays of models
-        mconf_io = {'inputs': {}, 'outputs': {}}
-        nummodels = len(params['models'])
-        for mk, mv in params['models'].items():
-            # generate model inputs/outputs configuration
-            # 1 if model brings its own i/o conf, unroll / copy that into block outputs
-            # if mv.has_key('inputs'):
-            #     print "have inputs, great"
-            #     mconf_inputs = rewrite_model_to_block(params['id'], mv, ['inputs'])
-            #     self.logger.debug("conf_ = %s" % (conf_, ))
-            # else:
-            # if v.has_key('outputs'):
-            #     print "have outputs, great"
-            #     mconf_outputs = rewrite_model_to_block(params['id'], v, ['outputs'])
+        self.nummodels = len(params['models'])
 
-            # rewrite conf
-            mconf = rewrite_model_to_block(params, mk, mv, ['inputs', 'outputs'], nummodels)
+        if self.nummodels > 1:
+            conf['params']['subgraph'] = self.subgraph_from_models_unrolled(conf, paren, top)
+            # check for numsteps
+            if not conf['params'].has_key('numsteps'):
+                conf['params']['numsteps'] = top.numsteps
+            Block2.__init__(self, conf = conf, paren = paren, top = top)
+        else:
+            self.init_single(conf, paren, top)
 
-            # self.logger.debug("mkey = %s, mconf = %s", mk, mconf)
+            # print "\n params.models = %s" % (params['models'], )
+            # print "top", top.id
+
+            PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
+
+            self.step = self.step_single
             
-            # update conf
-            for iok in ['inputs', 'outputs']:
-                mconf_io[iok].update(mconf[iok])
+            # print "\n self.models = %s" % (self.models, )
+            # for mk, mv in self.models.items():
+            mv = self.models[self.modelkey]
+            mref = mv['inst_']
+            mref.init_modelfilename(self)
+            mref.load(self)
+            
+    def subgraph_from_models_unrolled(self, conf, paren, top):
+        # models_unrolled = OrderedDict()
+        conf['params']['loop'] = [('models', {k: v}) for k, v in conf['params']['models'].items()]
+        logger.debug('Model %s\'s models to loop yields loop = %s' % (conf['params']['id'], conf['params']['loop'], ))
+        subgraph = LoopBlock2.subgraph_from_loop_unrolled(self, conf, paren, top)
+        return subgraph
+
+    def init_single(self, conf, paren, top):
+        assert len(conf['params']['models']) == 1, "ModelBlock2.init_single requires single model configuration"
+        
+        # shortcut handles
+        params = conf['params']
+        
+        # default model inputs / outputs
+        mconf_io = {'inputs': {}, 'outputs': {}}
+        
+        # for mk, mv in params['models'].items():
+        mk = params['models'].keys()[0]
+        mv = params['models'][mk]
+
+        self.modelkey = mk
+        
+        # generate model inputs/outputs configuration
+        # 1 if model brings its own i/o conf, unroll / copy that into block outputs
+        # if mv.has_key('inputs'):
+        #     print "have inputs, great"
+        #     mconf_inputs = rewrite_model_to_block(params['id'], mv, ['inputs'])
+        #     self.logger.debug("conf_ = %s" % (conf_, ))
+        # else:
+        # if v.has_key('outputs'):
+        #     print "have outputs, great"
+        #     mconf_outputs = rewrite_model_to_block(params['id'], v, ['outputs'])
+
+        # rewrite conf
+        mconf = self.rewrite_model_to_block(params, mk, mv, ['inputs', 'outputs'], self.nummodels)
+
+        # self.logger.debug("mkey = %s, mconf = %s", mk, mconf)
+
+        # update conf
+        for iok in ['inputs', 'outputs']:
+            mconf_io[iok].update(mconf[iok])
 
         # self.logger.debug("mconf_io = %s", mconf_io)
-            
+
         # 1.1 update block conf
         # 2   if model does not bring its own i/o conf, generate block/mdl i/o from block i/o * mdl-key
         # 3   remove block i/o template conf
@@ -218,33 +235,48 @@ class ModelBlock2(PrimBlock2):
         # update conf
         for iok in ['inputs', 'outputs']:
             # replace all block level configuration
-            conf['params'][iok].update(mconf_io[iok])
+            params[iok].update(mconf_io[iok])
             # params[iok] = mconf_io[iok]
 
-        self.logger.debug("conf['params']['inputs'] = %s", conf['params']['inputs'])
-        self.logger.debug("conf['params']['outputs'] = %s", conf['params']['outputs'])
-        
+        self.logger.debug("params['inputs'] = %s", params['inputs'])
+        self.logger.debug("params['outputs'] = %s", params['outputs'])
+
         # init models
-        for mk, mv in params['models'].items():
-            mv['inst_'] = model(ref = self, conf = conf, mref = mk, mconf = mv)
-            params['models'][mk].update(mv)
+        # for mk, mv in params['models'].items():
+        mv['inst_'] = model(ref = self, conf = conf, mref = mk, mconf = mv)
+        params['models'][mk].update(mv)
 
         # FIXME: legacy iodim at block level
         for k in ['idim', 'odim']:
             if mv.has_key(k):
                 setattr(self, k, mv[k])
+
+    def rewrite_model_to_block(self, conf, mkey, mconf, rewritekeys = ['inputs', 'outputs'], nummodels = 1):
+        # for k, v in mconf.items():
+        #     if k not in rewritekeys: continue
+        for k in rewritekeys:
+            conf_ = mconf
+            mconf_k = True
             
-        # print "\n params.models = %s" % (params['models'], )
-        # print "top", top.id
-
-        PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
-
-        # print "\n self.models = %s" % (self.models, )
-        for mk, mv in self.models.items():
-            mref = mv['inst_']
-            mref.init_modelfilename(self)
-            mref.load(self)
-
+            if not mconf.has_key(k):
+                mconf_k = False
+                conf_ = conf
+                mconf[k] = {}
+                
+            v = conf_[k]
+            
+            for ck, cv in v.items():
+                if nummodels > 1:
+                    ck_ = '%s/%s' % (mkey, ck)
+                    # rewrite entry
+                    mconf[k][ck_] = cv
+                    # delete original entry
+                    if mconf_k:
+                        mconf[k].pop(ck)
+                else:
+                    mconf[k][ck] = cv
+        return mconf
+        
     def save(self):
         """Dump the model into a file
         """
@@ -254,7 +286,7 @@ class ModelBlock2(PrimBlock2):
             mdl_inst.save(ref = self)
         
     @decStep()
-    def step(self, x = None):
+    def step_single(self, x = None):
         """ModelBlock2 step"""
         # print "%s-%s.step %d" % (self.cname, self.id, self.cnt,)
         # self.debug_print("%s.step:\n\tx = %s,\n\tbus = %s,\n\tinputs = %s,\n\toutputs = %s",
@@ -266,13 +298,15 @@ class ModelBlock2(PrimBlock2):
         # FIXME: if output_is_scheduled
         
         if self.cnt % self.blocksize == 0:
-            for mk, mv in self.models.items():
-                mv['inst_'].predict(self)
+            # for mk, mv in self.models.items():
+            mk = self.modelkey
+            mv = self.models[mk]
+            mv['inst_'].predict(self)
 
-                # copy output from model to block
-                for outk, outv in self.outputs.items():
-                    assert hasattr(mv['inst_'], outk), "Model %s has not attribute %s" % (mk, outk)
-                    setattr(self, outk, getattr(mv['inst_'], outk))
+            # copy output from model to block
+            for outk, outv in self.outputs.items():
+                assert hasattr(mv['inst_'], outk), "Model %s has not attribute %s" % (mk, outk)
+                setattr(self, outk, getattr(mv['inst_'], outk))
 
         if self.block_is_finished():
             self.save()

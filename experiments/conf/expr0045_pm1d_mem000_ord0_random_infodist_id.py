@@ -164,6 +164,7 @@ graph = OrderedDict([
                         'models': {
                             # from top config
                             'infodistgen': infodistgen,
+                            # 'infodistgen2': infodistgen,
                         },
                         'inputs': {
                             'x': {'bus': 'robot1/s0', 'shape': (dim_s_proprio, 1)},
