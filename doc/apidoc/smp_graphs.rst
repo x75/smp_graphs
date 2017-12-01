@@ -100,6 +100,14 @@ smp\_graphs\.funcs module
     :undoc-members:
     :show-inheritance:
 
+smp\_graphs\.funcs\_models module
+---------------------------------
+
+.. automodule:: smp_graphs.funcs_models
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 smp\_graphs\.graph module
 -------------------------
 

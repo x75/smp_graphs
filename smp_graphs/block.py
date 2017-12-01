@@ -841,6 +841,26 @@ class decStep():
         return f_out
 
 ################################################################################
+# Base block dummy class for testing
+class DummyBlock2(object):
+    """Dummy top block
+
+    Can be used for testing Block2s which require 'top' argument and
+    rely on some top properties for internal operation.
+    """
+    def __init__(self):
+        from smp_graphs.block import Bus
+        
+        self.blocksize_min = np.inf
+        self.bus = Bus()
+        self.cnt = 0
+        self.docache = False
+        self.inputs = {}
+        self.numsteps = 100
+        self.saveplot = False
+        self.topblock = True
+    
+################################################################################
 # Base block class
 class Block2(object):
     """Block2 class
@@ -1040,7 +1060,23 @@ class Block2(object):
             
         # numsteps / blocksize
         # print "%s-%s end of init blocksize = %d" % (self.cname, self.id, self.blocksize)
+
+    def block_is_composite(self):
+        # list of necessary conditions for compositeness
+        conditions = [
+            # block conf directly contains graph dict
+            hasattr(self, 'graph'),
+            # block conf contains subgraph either as dict or as filename
+            hasattr(self, 'subgraph'),
+            # block is a LoopBlock2 with the implicit semantics that the loop is unrolled into anexplicit subgraph during init
+            (hasattr(self, 'loopblock') and len(self.loopblock) != 0),
+            # block is a ModelBlock2 with multiple models supplied in its 'models' dict
+            (hasattr(self, 'models') and len(self.models) > 1),
+        ]
+            
+        return reduce(lambda t1,t2: t1 or t2, conditions)
         
+            
     def init_block(self):
         """Block2.init_block
 
@@ -1050,10 +1086,10 @@ class Block2(object):
         # init block color
         self.init_colors()
 
+
         ################################################################################
         # 2 copy the config dict to exec graph if hierarchical
-        if hasattr(self, 'graph') or hasattr(self, 'subgraph') \
-          or (hasattr(self, 'loopblock') and len(self.loopblock) != 0):
+        if self.block_is_composite():
             """This is a composite block made up of other blocks via one of
             several mechanisms:
              - graph: is a graph configuration dict

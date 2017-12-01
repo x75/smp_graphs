@@ -145,7 +145,7 @@ def step_polyexp(ref, mref):
     setattr(ref, 'polyexp', mref.polyexpnode.execute(ref.inputs['x']['val'].T).T)
 
 # model func: lookup table expansion with parametric map randomness
-def do_random_lookup(ref):
+def do_random_lookup(ref, mref):
     """random_lookup: perform the lookup
 
     Compute bin index $i$ of input $x$ in linear range and output $y$
@@ -256,7 +256,7 @@ def init_random_lookup(ref, mref, conf, mconf):
 def step_random_lookup(ref, mref):
     # setattr(ref, 'polyexp', mref.polyexpnode.execute(ref.inputs['x']['val'].T).T)
     mref.x = np.clip(ref.inputs['x']['val'], -1, 1)
-    do_random_lookup(ref)
+    do_random_lookup(ref, mref)
     # mref.y = np.searchsorted(mref.h, mref.x)
     
 # model func: random_uniform model
@@ -344,8 +344,8 @@ def step_random_uniform_pi_2(ref):
 # model func: agent budget: energy,
 def init_budget(ref, mref, conf, mconf):
     params = conf['params']
-    ref.credit = np.ones((1, 1)) * params['credit']
-    ref.credit_ = ref.credit.copy()
+    mref.credit = np.ones((1, 1)) * params['credit']
+    mref.credit_ = mref.credit.copy()
 
 def step_budget(ref, mref):
     if hasattr(ref, 'rate'):
@@ -362,9 +362,9 @@ def step_budget(ref, mref):
     if ref.cnt % (ref.rate * 1) == 0 and mdltr_ < ref.goalsize:
         # print ref.__class__.__name__, ref.id, "lo, hi, out shapes", lo.shape, hi.shape, outv['shape']
         # setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
-        ref.credit = ref.credit_.copy()
+        mref.credit = mref.credit_.copy()
     else:
-        ref.credit -= 1
+        mref.credit -= 1
         # if ref.credit
             
     
@@ -376,10 +376,10 @@ def init_random_uniform_modulated(ref, mref, conf, mconf):
     outv = params['outputs'][outk]
     lo = -np.ones(( outv['shape'] )) * 1e-3
     hi = np.ones(( outv['shape'] )) * 1e-3
-    setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
+    setattr(mref, outk, np.random.uniform(lo, hi, size = outv['shape']))
     # ref.credit = np.ones((1, 1)) * params['credit']
     # ref.credit_ = ref.credit.copy()
-    ref.goalsize = params['goalsize']
+    mref.goalsize = params['goalsize']
     # print "ref.credit", ref.credit
     # setattr(ref, outk, np.ones(outv['shape']))
     # print "block_models.py: random_uniform_modulated_init %s = %s" % (outk, getattr(ref, outk))
@@ -395,7 +395,7 @@ def step_random_uniform_modulated(ref, mref):
     hi = ref.inputs['hi']['val'] # .T
     mdltr = ref.inputs['mdltr']['val'] # .T
     refk = ref.outputs.keys()[0]
-    mdltr_ref = getattr(ref, 'pre')
+    mdltr_ref = getattr(mref, 'pre')
     # print "refk", refk, "mdltr_ref", mdltr_ref
     d_raw = mdltr - mdltr_ref
     # print "refk", refk, "mdltr_ref", mdltr_ref, "d_raw", d_raw
@@ -404,9 +404,9 @@ def step_random_uniform_modulated(ref, mref):
     # for outk, outv in ref.outputs.items():
     outk = 'pre'
     outv = ref.outputs[outk]
-    if ref.cnt % (ref.rate * 1) == 0 and mdltr_ < ref.goalsize:
+    if ref.cnt % (ref.rate * 1) == 0 and mdltr_ < mref.goalsize:
         # print ref.__class__.__name__, ref.id, "lo, hi, out shapes", lo.shape, hi.shape, outv['shape']
-        setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
+        setattr(mref, outk, np.random.uniform(lo, hi, size = outv['shape']))
         # ref.credit = ref.credit_.copy()
     # else:
     #     ref.credit -= 1

@@ -269,7 +269,10 @@ class ModelBlock2(PrimBlock2):
             for mk, mv in self.models.items():
                 mv['inst_'].predict(self)
 
-            # copy output from model to block
+                # copy output from model to block
+                for outk, outv in self.outputs.items():
+                    assert hasattr(mv['inst_'], outk), "Model %s has not attribute %s" % (mk, outk)
+                    setattr(self, outk, getattr(mv['inst_'], outk))
 
         if self.block_is_finished():
             self.save()
@@ -277,31 +280,14 @@ class ModelBlock2(PrimBlock2):
         # if rospy.is_shutdown():
         #     sys.exit()
 
-
-class TopDummy(object):
-    """Dummy top block
-
-    Can be used for testing Block2s which require 'top' argument and
-    rely on some top properties for internal operation.
-    """
-    def __init__(self):
-        from smp_graphs.block import Bus
-        
-        self.blocksize_min = np.inf
-        self.bus = Bus()
-        self.cnt = 0
-        self.docache = False
-        self.inputs = {}
-        self.numsteps = 100
-        self.saveplot = False
-        self.topblock = True
-
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec
 
+    from smp_graphs.block import DummyBlock2
+    
     # dummy top block
-    top = TopDummy()
+    top = DummyBlock2()
     # setattr(top, 'numsteps', 100)
     
     # test model: random_lookup
