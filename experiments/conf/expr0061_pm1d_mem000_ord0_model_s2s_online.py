@@ -3,7 +3,7 @@
 .. moduleauthor:: Oswald Berthold 2017
 
 From :mod:`expr0060_pm1d_mem000_ord0_model_s2s`
- - take 0060 and add online learning
+ - take 0060 and add online learning, reuse 0060 graph and rewrite 's2s' configuration
 
 """
 from smp_graphs.block import FuncBlock2
