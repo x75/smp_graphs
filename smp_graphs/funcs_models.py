@@ -8,8 +8,12 @@ to have
 
     `modelblock -> smpmodel -> [sklearn, reservoir, ...]`
 
-FIXME: separate ref and mref tasks
+FIXME: separate ref and mref tasks [wip]
+FIXME: convert these to smpmodels and put them into smp_base
 """
+
+from os import path as ospath
+import joblib
 
 import numpy as np
 
@@ -37,6 +41,7 @@ except ImportError, e:
     HAVE_SOESGP = False
 
 # merge with embedding code and move to smp_base
+from smp_graphs.common  import code_compile_and_run, get_input
 from smp_graphs.tapping import tap_tupoff, tap, tap_flat, tap_unflat
 
 from logging import DEBUG as LOGLEVEL
@@ -184,6 +189,7 @@ def init_random_lookup(ref, mref, conf, mconf):
     if not mconf.has_key('numelem'):
         mconf['numelem'] = 1001
     inshape = params['inputs']['x']['shape']
+    logger.debug("init_random_lookup: inshape = %s", inshape)
     
     # linear ramp
     mref.h_lin = np.linspace(-1.0, 1.0, mconf['numelem']).reshape(1, mconf['numelem'])
@@ -1101,8 +1107,9 @@ def init_sklearn(ref, mref, conf, mconf):
     logger.debug("    r = %s" % (r, ))
     mref.mdl = r['mdl']
     mref.mdl_init = False
+    mref.y = 0
     # proper models have self.h transfer func
-    ref.h = np.zeros((conf['params']['outputs']['y']['shape'][0], ref.defaults['model_numelem']))
+    mref.h = np.zeros((conf['params']['outputs']['y']['shape'][0], ref.defaults['model_numelem']))
     # logger.debug('ref.h = %s', ref.h.shape)
     # self.h_sample = 
     # print "mref.mdl", mref.mdl
@@ -1111,16 +1118,17 @@ def step_sklearn(ref, mref):
     # pass
     x_in = ref.inputs['x_in']['val'].T
     x_tg = ref.inputs['x_tg']['val'].T
+    
     if not mref.mdl_init:
         mref.mdl.fit(x_in, x_tg)
     x_tg_ = mref.mdl.predict(x_in)
     # print "x_tg_", x_tg_
-    ref.y = x_tg_.T
+    mref.y = x_tg_.T
     # logger.debug('x_in = %s', x_in.shape)
-    ref.h_sample = np.atleast_2d(np.hstack([np.linspace(np.min(x_in_), np.max(x_in_), ref.defaults['model_numelem']) for x_in_ in x_in.T]))
+    mref.h_sample = np.atleast_2d(np.hstack([np.linspace(np.min(x_in_), np.max(x_in_), ref.defaults['model_numelem']) for x_in_ in x_in.T]))
     # logger.debug('ref.h_sample = %s', ref.h_sample.shape)
     # FIXME: meshgrid or random samples if dim > 4
-    ref.h = mref.mdl.predict(ref.h_sample.T).T
+    mref.h = mref.mdl.predict(mref.h_sample.T).T
     # logger.debug('ref.h = %s', ref.h.shape)
 
 def load_sklearn(ref, mref):
@@ -1893,6 +1901,10 @@ class model(object):
 
     :attr:`model.models`, :data:`model.models`.
     """
+    defaults = {
+        'type': 'random_uniform',
+    }
+        
     models = {
         # open-loop models
         # 'identity': {'init': init_identity, 'step': step_identity},
@@ -1978,4 +1990,3 @@ class model(object):
         
     def predict(self, ref):
         self.models[self.modelstr]['step'](ref, self)
-

@@ -14,23 +14,29 @@ from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2
  - a robot
 """
 def get_systemblock_pm(
-        dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1, lag = 1, **kwargs):
+        dim_s0 = 2, dim_s1 = 2, dt = 0.1, lag = 1, **kwargs):
+    """configuration utility function pointmass (pm)
+
+    Generate configuration for pointmass system block using
+    :mod:`smp_sys.systems.PointmassSys` and
+    :mod:`smp_sys.systems.Pointmass2Sys`
+
+    """
     global np, PointmassBlock2, meas
-    # print "utils_conf get_systemblock_pm: dim_s_proprio = %d, dt= %f, lag = %d, kwargs = %s" % (dim_s_proprio, dt, lag, kwargs)
-    
+    print "utils_conf get_systemblock_pm: dim_s0 = %d, dt= %f, lag = %d, kwargs = %s" % (dim_s0, dt, lag, kwargs)
+
+    # legacy argument handling
+    if kwargs.has_key('dim_s_proprio'):
+        dim_s0 = kwargs['dim_s_proprio']
+    if kwargs.has_key('dim_s_extero'):
+        dim_s1 = kwargs['dim_s_extero']
+
     # defaults
     dims = {
-        'm0': {'dim': dim_s_proprio, 'dist': 0},
-        's0': {'dim': dim_s_proprio, 'dist': 0},
+        # if we're lucky we can get away with explicit limits because they are obtained from s2s
+        'm0': {'dim': dim_s0, 'dist': 0}, # , 'mins': [-1] * dim_s0, 'maxs': [1] * dim_s0
+        's0': {'dim': dim_s0, 'dist': 0},
     }
-    order = 0
-    # update
-    if kwargs.has_key('dims'):
-        # print "updating dims", dims, kwargs['dims']
-        dims.update(kwargs['dims'])
-        # print "updated dims", dims
-    if kwargs.has_key('order'):
-        order = kwargs['order']
         
     # FIXME: disentangle block conf from sys conf?
     sysconf = {
@@ -39,40 +45,44 @@ def get_systemblock_pm(
             'id': 'robot1',
             'blocksize': 1, # FIXME: make pm blocksize aware!
             'systype': 2,
-            'sysdim': dim_s_proprio,
+            'sysdim': dim_s0,
             # initial state
-            'x0': np.random.uniform(-0.3, 0.3, (dim_s_proprio * 3, 1)),
+            'x0': np.random.uniform(-0.3, 0.3, (dim_s0 * 3, 1)),
             'inputs': {'u': {'bus': 'pre_l0/pre'}},
             'outputs': {
-                # 's_proprio': {'shape': (dim_s_proprio, 1), 'remap': 's0'},
-                's_extero':  {'shape': (dim_s_extero, 1), 'remap': 's1'},
-                's0':  {'shape': (dim_s_proprio, 1)},
-                's1':  {'shape': (dim_s_extero, 1)},
+                # 's_proprio': {'shape': (dim_s0, 1), 'remap': 's0'},
+                # 's_extero':  {'shape': (dim_s1, 1), 'remap': 's1'},
+                's0':  {'shape': (dim_s0, 1)},
+                's1':  {'shape': (dim_s1, 1)},
                 }, # , 's_all': [(9, 1)]},
-            'statedim': dim_s_proprio * 3,
-            'dt': dt,
+            # 'statedim': dim_s0 * 3,
+            'dt': 0.1,
+            # memory 
+            'order': 0,
+            'lag': 1,
             'mass': 1.0,
+            # distortion
+            'transfer': 0,
+            # distortion + memory
+            'coupling_sigma': 1e-2,
+            # external entropy
+            'anoise_mean': 0.0,
+            'anoise_std': 1e-2,
+            'sysnoise': 1e-2,
+            # other
             'force_max':  1.0,
             'force_min': -1.0,
             'friction': 0.01,
-            'sysnoise': 1e-2,
             'debug': False,
-            'dim_s_proprio': dim_s_proprio,
+            'm_mins': [-1.0] * dim_s0,
+            'm_maxs': [ 1.0] * dim_s0,
             'length_ratio': 3./2., # gain curve?
-            'm_mins': [-1.0] * dim_s_proprio,
-            'm_maxs': [ 1.0] * dim_s_proprio,
-            'dim_s_extero': dim_s_extero,
-            'lag': lag,
-            'order': order,
-            'coupling_sigma': 1e-2,
-            'transfer': 0,
-            'anoise_mean': 0.0,
-            'anoise_std': 1e-2,
             
-            # model related
-            # tapping
+            # ground truth information for configuring the model, FIXME: make model autonomous with resp. to these params
+            # memory, time: tapping
             'lag_past': (-4, -3),
             'lag_future': (-1, 0),
+            
             # low-level params
             'mdl_modelsize': 300,
             'mdl_w_input': 1.0,
@@ -87,9 +97,19 @@ def get_systemblock_pm(
             'target_f': 0.05,
         }
     }
-    
+
+    # default dims
     sysconf['params']['dims'] = dims
-    # sysconf['params'].update(kwargs)
+    
+    # update from kwargs
+    # if kwargs.has_key('dims'):
+    #     # print "updating dims", dims, kwargs['dims']
+    #     dims.update(kwargs['dims'])
+    #     # print "updated dims", dims
+    # if kwargs.has_key('order'):
+    #     order = kwargs['order']
+    sysconf['params'].update(kwargs)
+
     return sysconf
 
 def get_systemblock_sa(
@@ -265,7 +285,7 @@ def get_systemblock_sphero(
 # add missing systems
 
 get_systemblock = {
-    'pm': partial(get_systemblock_pm, dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1),
+    'pm': partial(get_systemblock_pm, dim_s0 = 2, dim_s1 = 2, dt = 0.1),
     'sa': partial(get_systemblock_sa, dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1),
     'bha': partial(get_systemblock_bha, dim_s_proprio = 9, dim_s_extero = 3, dt = 0.1),
     'lpzbarrel': partial(get_systemblock_lpzbarrel, dim_s_proprio = 2, dim_s_extero = 1, dt = 2.0/92.0), # 0.025),

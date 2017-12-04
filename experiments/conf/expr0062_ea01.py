@@ -2,7 +2,9 @@
 
 .. moduleauthor:: Oswald Berthold, 2017
 
-the plan 20171127
+the plan 20171127, see :mod:`expr0060_pm1d_mem000_ord0_model_s2s`
+
+ea: embodied agent
 
 adaptive internal models
 0060
@@ -68,33 +70,69 @@ p_vars = ['robot1/s0']
 # m_vars = ['robot1/s0']
 m_vars = ['pre_l2/y']
 
-desc = """This experiment extends \\ref{{{4}}} with an
-adaptive model s2s. The model is used in the agent's brain as a map
-taking measurements to their causes in prediction space. This is
-achieved by assigning measurements {1} to the model's inputs $X$ and
-predictions {2} to the models targets $Y$. The experiment contains an
-episode of {0} steps like
-\\ref{{{4}}}, with a
-model fitting and prediction step appended at the end of the
-episode. The resulting model's characteristics are shown as a transfer
-function which is obtained by sampling the model after fitting. The
-models predictions are shown as a timeseries and the error {2} - {3}
-is superimposed on the original error. These show that the adaptive
-model indeed manages to learn an adequate inverse mapping of the
-original transfer function and to reduce the resulting prediction
-error.""".format(numsteps, re.sub(r'_', r'\\_', str(m_vars)), re.sub(r'_', r'\\_', str(p_vars)), ['mdl1/y'], 'sec:smp-expr0045-pm1d-mem000-ord0-random-infodist-id')
+desc = """In this experiment an \\emph{{embodied agent}} is reobtained
+by putting the distortion model from the previous experiments back
+into the agent's body and environment. This establishes the first
+complete embodied agent which will be used and incrementally extended
+over the remaining sections of this chapter. The experiment appears to
+be identical to \\ref{{{4}}} but on close inspection, the computation
+graph is slightly different.
+
+An example interpretation for this model is that of proprioceptive
+space. Proprioception means self-perception and refers to a sense of
+body configuration, conveyed via joint angle measurements. In this
+thesis, proprioception is used generally to refer to an agent's
+low-level motor space represented by the predictions, measurements,
+and other statistics of the corresponding variables. Other examples
+are an outgoing motor voltage (prediction) and measured rotation rate
+on a wheeled robot, or the predicted motor current and the measured
+torque on a joint on a torque-controlled robot.
+
+IF a robots actually is constructed in such a way, that there exists a
+sensor that measures something /physically/ close to the action
+itself, it can be assumed that there will be a residual caused by
+microscopic but systematic divergence between actions and their
+corresponding measurements. The experiment shows how the simple agent
+compensates these deviations with adaptive inverse predictions.
+
+\FIXME {0}, {1}, {2}, {3}, \FIXME loop over different systems: pm, sa, bha, sphero, nao?
+""".format(
+    numsteps,
+    re.sub(r'_', r'\\_', str(m_vars)),
+    re.sub(r'_', r'\\_', str(p_vars)),
+    ['mdl1/y'],
+    'sec:smp-expr0045-pm1d-mem000-ord0-random-infodist-id',
+)
 
 dim_s0 = 1
 numelem = 1001
 
 # local conf dict for looping
 lconf = {
-    'dim': 1,
-    'dt': 0.1,
-    'lag': 1,
-    'budget': 1000/1,
-    'lim': 1.0,
-    'order': 0,
+    # environment / system
+    'sys': {
+        # global
+        'budget': 1000/1,
+        'dim': dim_s0,
+        'dim_s0': dim_s0,
+        'dim_s1': dim_s0,
+        # time delay
+        'dt': 0.1,
+        'order': 0,
+        'lag': 1,
+        # distortion
+        'transfer': 0.1,
+        # distortion and memory
+        'coupling_sigma': 1e-3,
+        # external entropy
+        'anoise_mean': 0.0,
+        'anoise_std': 1e-2,
+        'sysnoise': 1e-2,
+        'lim': 1.0,
+        # ground truth cheating
+        'numelem': numelem, # sampling grid
+    },
+    # agent / models
     'infodistgen': {
         'type': 'random_lookup',
         'numelem': numelem, # sampling grid
@@ -144,27 +182,36 @@ m_hist_bins       = np.linspace(-1.1, 1.1, numbins + 1)
 m_hist_bincenters = m_hist_bins[:-1] + np.mean(np.abs(np.diff(m_hist_bins)))/2.0
 
 # local variable shorthands
-dim = lconf['dim']
-order = lconf['order']
-budget = lconf['budget'] # 510
-lim = lconf['lim'] # 1.0
-
+dim = lconf['sys']['dim']
+budget = lconf['sys']['budget'] # 510
+order = lconf['sys']['order']
+lim = lconf['sys']['lim'] # 1.0
 outputs = {
     'latex': {'type': 'latex',},
 }
 
-# configure system block 
-systemblock   = get_systemblock['pm'](
-    dim_s_proprio = dim, dim_s_extero = dim, lag = 1, order = order)
-# systemblock   = get_systemblock['sa'](
-#     dim_s0 = dim, dim_s_extero = dim, lag = 1)
+# configure system block
+# for 0062 this start to become more involved because the system's
+# response needs to be parameterized with
+# - amount of contractive / expansive map distortion (info distance d)
+# - smoothness of map with respect to input changes (inverse frequency s, aka beta in 1/f noise)
+# - external entropy / independence (e/i)
+
+# pointmass
+systemblock   = get_systemblock['pm'](**lconf['sys'])
+#     dim_s_proprio = dim, dim_s_extero = dim, lag = 1, order = order)
 systemblock['params']['sysnoise'] = 0.0
 systemblock['params']['anoise_std'] = 0.0
-dim_s0 = systemblock['params']['dim_s_proprio']
-dim_s_extero  = systemblock['params']['dim_s_extero']
+dim_s0 = systemblock['params']['dims']['s0']['dim']
+dim_s1  = dim_s0 # systemblock['params']['dims']['s1']
 # dim_s_goal   = dim_s_extero
 dim_s_goal    = dim_s0
 
+# simplearm
+# systemblock   = get_systemblock['sa'](
+#     dim_s0 = dim, dim_s_extero = dim, lag = 1)
+
+# agent models
 infodistgen = lconf['infodistgen']
 
 model_s2s_sklearn = {
@@ -173,21 +220,6 @@ model_s2s_sklearn = {
 }
 
 lconf['model_s2s'] = model_s2s_sklearn
-
-# print "sysblock", systemblock['params']['dim_s_proprio']
-
-# TODO
-# 1. loop over randseed
-# 2. loop over budget vs. density (space limits, distance threshold), hyperopt
-# 3. loop over randseed with fixed optimized parameters
-# 4. loop over kinesis variants [bin, cont] and system variants ord [0, 1, 2, 3?] and ndim = [1,2,3,4,8,16,...,ndim_max]
-
-# TODO low-level
-# block groups
-# experiment sig, make hash, store config and logfile with that hash
-# compute experiment hash: if exists, use logfile, else compute
-# compute experiment/model_i hash: if exists, use pickled model i, else train
-# pimp smp_graphs graph visualisation
 
 # graph
 graph = OrderedDict([
@@ -531,8 +563,9 @@ graph = OrderedDict([
             'xlim_share': True,
             'ylim_share': True,
             'inputs': {
-                's_p': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
-                's_e': {'bus': 'robot1/s_extero', 'shape': (dim_s_extero, numsteps)},
+                's0': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
+                's1': {'bus': 'robot1/s1', 'shape': (dim_s1, numsteps)},
+                'sys_h': {'bus': 'robot1/h', 'shape': (dim_s0, numelem)},
                 'pre_l0': {'bus': 'pre_l0/pre', 'shape': (dim_s_goal, numsteps)},
                 'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
                 'pre_l2': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
@@ -566,7 +599,7 @@ graph = OrderedDict([
                 # row 1: transfer func, out y time, out y histo
                 [
                     {
-                        'input': ['pre_l2_h'], 'plot': timeseries,
+                        'input': ['sys_h'], 'plot': timeseries,
                         'title': 'transfer function $h$', 'aspect': 1.0, 
                         'xaxis': np.linspace(-1, 1, 1001), # 'xlabel': 'input [x]',
                         'xlim': (-1.1, 1.1), 'xticks': True, 'xticklabels': False,
@@ -575,7 +608,7 @@ graph = OrderedDict([
                         'legend_loc': 'right',
                     },
                     {
-                        'input': ['pre_l2'], 'plot': timeseries,
+                        'input': ['s0'], 'plot': timeseries,
                         'title': 'timeseries $y$', 'aspect': 'auto', # (1*numsteps)/(2*2.2),
                         'xlim': None, 'xticks': False, 'xticklabels': False,
                         # 'xlabel': 'time step $k$',
@@ -593,7 +626,7 @@ graph = OrderedDict([
                         'legend_loc': 'left',
                     },
                     {
-                        'input': ['pre_l2'], 'plot': histogram,
+                        'input': ['s0'], 'plot': histogram,
                         'title': 'histogram $y$', 'aspect': 'auto', # (1*numsteps)/(2*2.2),
                         'orientation': 'horizontal',
                         'xlim': None, # 'xticks': False, 'xticklabels': None,
@@ -607,7 +640,7 @@ graph = OrderedDict([
                 # row 2: in x time, error x - y time, none
                 [
                     {
-                        'input': ['s_p'], 'plot': timeseries,
+                        'input': ['pre_l0'], 'plot': timeseries,
                         'title': 'timeseries $x$',
                         'aspect': 2.2/numsteps,
                         'orientation': 'vertical',
@@ -646,7 +679,7 @@ graph = OrderedDict([
                 # row 3: in x histo, measures global, divergence h1, h2
                 [
                     {
-                        'input': ['s_p'], 'plot': histogram,
+                        'input': ['pre_l0'], 'plot': histogram,
                         'title': 'histogram $x$', 'aspect': 'shared', # (1*numsteps)/(2*2.2),
                         'orientation': 'vertical',
                         'xlim': (-1.1, 1.1), 'xinvert': False, # 'xticks': False, 'xticklabels': None, #
@@ -694,8 +727,8 @@ graph = OrderedDict([
     #         'hspace': 0.15,
     #         'xlim_share': True,
     #         'inputs': {
-    #             's_p': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
-    #             's_e': {'bus': 'robot1/s_extero', 'shape': (dim_s_extero, numsteps)},
+    #             's0': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
+    #             's1': {'bus': 'robot1/s_extero', 'shape': (dim_s1, numsteps)},
     #             'pre_l0': {'bus': 'pre_l0/pre', 'shape': (dim_s_goal, numsteps)},
     #             'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
     #             'pre_l2': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
@@ -711,7 +744,7 @@ graph = OrderedDict([
     #             # row 1: pre, s
     #             [
     #                 {
-    #                     'input': ['pre_l0', 's_p', 'pre_l1'],
+    #                     'input': ['pre_l0', 's0', 'pre_l1'],
     #                     'plot': [
     #                         partial(timeseries, linewidth = 1.0, alpha = 1.0, xlabel = None),
     #                         partial(timeseries, alpha = 1.0, xlabel = None),
@@ -719,7 +752,7 @@ graph = OrderedDict([
     #                     'title': 'two-level prediction and measurement (timeseries)',
     #                 },
     #                 {
-    #                     'input': ['pre_l0', 's_p', 'pre_l1'],
+    #                     'input': ['pre_l0', 's0', 'pre_l1'],
     #                     'plot': [partial(
     #                         histogram, orientation = 'horizontal', histtype = 'stepfilled',
     #                         yticks = False, xticks = False, alpha = 1.0, normed = False) for _ in range(3)],
@@ -732,7 +765,7 @@ graph = OrderedDict([
     #             # row 2: pre_l2, s
     #             [
     #                 {
-    #                     'input': ['pre_l2', 's_p'],
+    #                     'input': ['pre_l2', 's0'],
     #                     'plot': [
     #                         partial(timeseries, alpha = 1.0, xlabel = None),
     #                         partial(timeseries, alpha = 0.5, xlabel = None),
@@ -740,7 +773,7 @@ graph = OrderedDict([
     #                     'title': 'proprio and f(proprio)',
     #                 },
     #                 {
-    #                     'input': ['pre_l2', 's_p'],
+    #                     'input': ['pre_l2', 's0'],
     #                     'plot': [
     #                         partial(
     #                             histogram, orientation = 'horizontal', histtype = 'stepfilled',

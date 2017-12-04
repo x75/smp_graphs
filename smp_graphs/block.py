@@ -2194,7 +2194,8 @@ class Block2(object):
         texbuf = '\\section{%s}\n\\label{sec:%s}\n\n' % (id_, id_, )
 
         # copy expr description from conf
-        texbuf += '%s\n' % (self.desc, )
+        id_base_ = '\_'.join(self.id.split('_')[0:2])
+        texbuf += '\mypara{%s description}%s\n' % (id_base_, self.desc, )
         
         output_figures = [(k, v) for k, v in self.outputs.items() if v.has_key('type') and v['type'] in ['fig', 'plot']]
         # print "Block2.latex_close: |output_figures| = %s" % ( len(output_figures), )

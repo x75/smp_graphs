@@ -44,7 +44,6 @@ Things
  - FIXME: clean up and enable list of models in ModelBlock2, self.models has name, conf(model, in, out), model-instance, model.mdl-instance(s)
 """
 
-from os import path as ospath
 from functools import partial
 
 # pickling and storing of models
@@ -55,7 +54,6 @@ import numpy as np
 from smp_base.common import get_module_logger
 
 from smp_graphs.block        import decInit, decStep, Block2, PrimBlock2, LoopBlock2
-from smp_graphs.common       import code_compile_and_run, get_input
 from smp_graphs.funcs_models import model
 from smp_graphs.graph        import nxgraph_node_by_id_recursive
 
@@ -305,7 +303,7 @@ class ModelBlock2(PrimBlock2):
 
             # copy output from model to block
             for outk, outv in self.outputs.items():
-                assert hasattr(mv['inst_'], outk), "Model %s has not attribute %s" % (mk, outk)
+                assert hasattr(mv['inst_'], outk), "Model %s has no attribute '%s'" % (mk, outk)
                 setattr(self, outk, getattr(mv['inst_'], outk))
 
         if self.block_is_finished():
