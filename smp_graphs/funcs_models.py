@@ -92,7 +92,7 @@ def init_musig(ref, mref, conf, mconf):
             setattr(mref, outk_full, np.zeros(inv['shape']))
     # return None
 
-def step_musig(ref, mref):
+def step_musig(ref, mref, *args, **kwargs):
     # for ink, inv in ref.inputs.items():
     for ink, inv in mref.mconf['inputs'].items():
         for outk_ in ["mu", "sig"]:
@@ -121,7 +121,7 @@ def init_res(ref, mref, conf, mconf):
     mref.res.wi = res_input_matrix_random_sparse(mconf['input_num'], mconf['N'], density = 0.2) * mconf['input_scale']
     params['outputs']['x_res'] = {'shape': (mconf['N'], 1)}
 
-def step_res(ref, mref):
+def step_res(ref, mref, *args, **kwargs):
     # print ref.inputs['x']['val'].shape
     for i in range(mref.oversampling):
         mref.res.execute(ref.inputs['x']['val'])
@@ -146,22 +146,8 @@ def init_polyexp(ref, mref, conf, mconf):
     # params['outputs']['polyexp'] = {'shape': params['inputs']['x']['shape']}
     params['outputs']['polyexp'] = {'shape': (83, 1)} # ???
 
-def step_polyexp(ref, mref):
+def step_polyexp(ref, mref, *args, **kwargs):
     setattr(ref, 'polyexp', mref.polyexpnode.execute(ref.inputs['x']['val'].T).T)
-
-# model func: lookup table expansion with parametric map randomness
-def do_random_lookup(ref, mref):
-    """random_lookup: perform the lookup
-
-    Compute bin index $i$ of input $x$ in linear range and output $y$
-    as the transfer function's value at $i$.
-    """
-    # logger.debug("%sdo_random_lookup[%s] mref.x = %s, mref.h_lin = %s" % ('    ', ref.cnt, mref.x.shape, mref.h_lin.shape)) # , mref.h.shape
-    mref.x_idx = np.searchsorted(mref.h_lin[0], mref.x, side = 'right')[0]
-    # logger.debug("%sdo_random_lookup[%s] mref.x_idx = %s", '    ', ref.cnt, mref.x_idx) # , mref.h.shape
-    mref.y = mref.h[...,mref.x_idx - 1]
-    # logger.debug("%sdo_random_lookup[%s] mref.y = %s" % ('    ', ref.cnt, mref.y))
-    ref.y = ref.y * (1 - mref.e) + np.random.normal(0, 1.0, mref.y.shape) * mref.e
 
 def init_random_lookup(ref, mref, conf, mconf):
     """random_lookup: init and setup
@@ -259,12 +245,33 @@ def init_random_lookup(ref, mref, conf, mconf):
     #     mref.x.shape, mref.y.shape, mref.h.shape, mref.h_lin.shape, mref.h_noise.dtype))
     # do_random_lookup(ref)
     
-def step_random_lookup(ref, mref):
-    # setattr(ref, 'polyexp', mref.polyexpnode.execute(ref.inputs['x']['val'].T).T)
-    mref.x = np.clip(ref.inputs['x']['val'], -1, 1)
-    do_random_lookup(ref, mref)
-    # mref.y = np.searchsorted(mref.h, mref.x)
-    
+def step_random_lookup(ref, mref, *args, **kwargs):
+    # logger.debug('    step_random_lookup pre do_: args = %s, kwargs = %s', args, kwargs)
+    if len(args) > 0:
+        mref.x = args[0]
+        # logger.debug('    step_random_lookup pre do_: mref.x = %s from args', mref.x)
+        return do_random_lookup(ref, mref)
+    else:
+        mref.x = np.clip(ref.inputs['x']['val'], -1, 1)
+        # logger.debug('    step_random_lookup pre do_: mref.x = %s', mref.x)
+        do_random_lookup(ref, mref)        
+
+# model func: lookup table expansion with parametric map randomness
+def do_random_lookup(ref, mref):
+    """random_lookup: perform the lookup
+
+    Compute bin index $i$ of input $x$ in linear range and output $y$
+    as the transfer function's value at $i$.
+    """
+    # logger.debug("%sdo_random_lookup[%s] mref.x = %s, mref.h_lin = %s" % ('    ', ref.cnt, mref.x.shape, mref.h_lin.shape)) # , mref.h.shape
+    mref.x_idx = np.searchsorted(mref.h_lin[0], mref.x, side = 'right')[0]
+    # logger.debug("%sdo_random_lookup[%s] mref.x_idx = %s", '    ', ref.cnt, mref.x_idx) # , mref.h.shape
+    mref.y = mref.h[...,mref.x_idx - 1]
+    # logger.debug("%sdo_random_lookup[%s] mref.y = %s" % ('    ', ref.cnt, mref.y))
+    mref.y = mref.y * (1 - mref.e) + np.random.normal(0, 1.0, mref.y.shape) * mref.e
+    # logger.debug("%sdo_random_lookup[%s] mref.y = %s" % ('    ', ref.cnt, mref.y))
+    return mref.y
+
 # model func: random_uniform model
 def init_random_uniform(ref, mref, conf, mconf):
     params = conf['params']
@@ -275,7 +282,7 @@ def init_random_uniform(ref, mref, conf, mconf):
         # setattr(ref, outk, np.ones(outv['shape']))
         # print "block_models.py: random_uniform_init %s = %s" % (outk, getattr(ref, outk))
 
-def step_random_uniform(ref, mref):
+def step_random_uniform(ref, mref, *args, **kwargs):
     if hasattr(ref, 'rate'):
         if (ref.cnt % ref.rate) not in ref.blockphase: return
             
@@ -353,7 +360,7 @@ def init_budget(ref, mref, conf, mconf):
     mref.credit = np.ones((1, 1)) * params['credit']
     mref.credit_ = mref.credit.copy()
 
-def step_budget(ref, mref):
+def step_budget(ref, mref, *args, **kwargs):
     if hasattr(ref, 'rate'):
         if (ref.cnt % ref.rate) not in ref.blockphase: return
     
@@ -390,7 +397,7 @@ def init_random_uniform_modulated(ref, mref, conf, mconf):
     # setattr(ref, outk, np.ones(outv['shape']))
     # print "block_models.py: random_uniform_modulated_init %s = %s" % (outk, getattr(ref, outk))
 
-def step_random_uniform_modulated(ref, mref):
+def step_random_uniform_modulated(ref, mref, *args, **kwargs):
     if hasattr(ref, 'rate'):
         if (ref.cnt % ref.rate) not in ref.blockphase: return
 
@@ -428,7 +435,7 @@ def init_alternating_sign(ref, mref, conf, mconf):
         setattr(ref, outk, np.ones(outv['shape']))
         # print "block_models.py: alternating_sign_init %s = %s" % (outk, getattr(ref, outk))
 
-def step_alternating_sign(ref, mref):
+def step_alternating_sign(ref, mref, *args, **kwargs):
     if hasattr(ref, 'rate'):
         if (ref.cnt % ref.rate) not in ref.blockphase: return
             
@@ -795,7 +802,7 @@ def init_actinf(ref, mref, conf, mconf):
     #  initialize the learner
     ref.mdl = init_model(ref, mref, conf, mconf)
     
-def step_actinf(ref, mref):
+def step_actinf(ref, mref, *args, **kwargs):
 
     # get prediction taps
     (pre_l1, pre_l0, meas_l0, prerr_l0, prerr_l0_, prerr_l0__, prerr_l0___) = ref.tapping_SM(ref)
@@ -983,7 +990,7 @@ def step_actinf_2(ref):
     setattr(ref, 'X_fit', X_fit)
     setattr(ref, 'Y_pre', Y_pre)
 
-# def step_actinf_prediction_errors_extended(ref, mref):
+# def step_actinf_prediction_errors_extended(ref, mref, *args, **kwargs):
 #     # if np.sum(np.abs(ref.goal_prop - ref.goal_prop_tm1)) > 1e-2:
 #     #     ref.E_prop_pred_fast = np.random.uniform(-1e-5, 1e-5, ref.E_prop_pred_fast.shape)
 #     #     ref.E_prop_pred_slow = np.random.uniform(-1e-5, 1e-5, ref.E_prop_pred_slow.shape)
@@ -1008,7 +1015,7 @@ def step_actinf_2(ref):
 #     ref.dE_prop_pred_fast = ref.E_prop_pred_fast - ref.E_prop_pred__fast
 #     ref.d_E_prop_pred_ = ref.coef_smooth_slow * ref.d_E_prop_pred_ + (1 - ref.coef_smooth_slow) * ref.dE_prop_pred_fast
 
-# def step_actinf_sample_error_gradient(ref, mref):
+# def step_actinf_sample_error_gradient(ref, mref, *args, **kwargs):
 #     # sample error gradient
 #     numsamples = 20
 #     # was @ 50
@@ -1051,7 +1058,7 @@ def init_homoekinesis(ref, mref, conf, mconf):
     # lag = ref.lag
     # # print "Lag = %d" % (lag,)
 
-def step_homeokinesis(ref, mref):
+def step_homeokinesis(ref, mref, *args, **kwargs):
     # get lag
     # lag = ref.inputs['']['val'][...,lag]
     # lag = 0
@@ -1114,7 +1121,7 @@ def init_sklearn(ref, mref, conf, mconf):
     # self.h_sample = 
     # print "mref.mdl", mref.mdl
 
-def step_sklearn(ref, mref):
+def step_sklearn(ref, mref, *args, **kwargs):
     # pass
     x_in = ref.inputs['x_in']['val'].T
     x_tg = ref.inputs['x_tg']['val'].T
@@ -1396,7 +1403,7 @@ def init_imol(ref, mref, conf, mconf):
     else:
         ref.recurrent = False
             
-def step_imol(ref, mref):
+def step_imol(ref, mref, *args, **kwargs):
     # tap data
     # (fit old / predict new forward)
     # fit old inverse with current feedback
@@ -1695,7 +1702,7 @@ def init_eh(ref, mref, conf, mconf):
     ref.tapping_EH = partial(tapping_EH)
     ref.tapping_X = partial(tapping_X)
 
-def step_eh(ref, mref):
+def step_eh(ref, mref, *args, **kwargs):
     """step_eh
 
     Reward modulated exploratory Hebbian learning predict/update step
@@ -1873,7 +1880,7 @@ def init_smpmodel(ref, mref, conf, mconf):
     mref.mdl = init_model(ref, mref, conf, mconf)
     ref.h = np.zeros((conf['params']['outputs']['y']['shape'][0], ref.defaults['model_numelem']))
 
-def step_smpmodel(ref, mref):
+def step_smpmodel(ref, mref, *args, **kwargs):
     # for ink, inv in mref.mconf['inputs'].items():
     #     print "step_smpmodel[%d] inputs[%s] = %s" % (ref.cnt, ink, inv)
     X = ref.get_input('x_in')
@@ -1950,8 +1957,10 @@ class model(object):
         model variants.
         
         Arguments
-        - conf: Block configuration
-        - mconf: model configuration
+         - ref: Block reference for parent block
+         - conf: Block configuration for parent block
+         - mref: Model reference [self] FIXME: actually it is modelkey
+         - mconf: Model configuration
         """
         assert mconf['type'] in self.models.keys(), "in %s.init: unknown model type, %s not in %s" % (self.__class__.__name__, mconf['type'], self.models.keys())
         # FIXME: ignoring multiple entries taking 'last' one, in dictionary order
@@ -1959,10 +1968,12 @@ class model(object):
             mref = self.__class__.__name__
 
         self.mconf = mconf
-            
+
+        # use mref as modelkey and forget it
         self.modelkey = mref
         # this is braindead
         self.modelstr = mconf['type']
+        # because mref is set to self here
         self.models[self.modelstr]['init'](ref, self, conf, mconf)
 
         # try to load existing model params
@@ -1989,4 +2000,17 @@ class model(object):
             self.models[self.modelstr]['save'](ref, self)
         
     def predict(self, ref):
+        """predict func for standard modelblock use
+
+        function arguments implicit in block input foo
+        """
         self.models[self.modelstr]['step'](ref, self)
+        
+    def predict2(self, ref, mref, x):
+        """predict func for input from argument
+
+        function arguments explicit in predict arg 'x'
+
+        x not None triggers return not None
+        """
+        return self.models[self.modelstr]['step'](ref, mref, x)

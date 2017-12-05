@@ -180,7 +180,8 @@ class ModelBlock2(PrimBlock2):
             mv = self.models[self.modelkey]
             mref = mv['inst_']
             mref.init_modelfilename(self)
-            mref.load(self)
+            if self.load:
+                mref.load(self)
             
     def subgraph_from_models_unrolled(self, conf, paren, top):
         # models_unrolled = OrderedDict()
@@ -203,6 +204,10 @@ class ModelBlock2(PrimBlock2):
         mv = params['models'][mk]
 
         self.modelkey = mk
+
+        self.load = True
+        if mv.has_key('load'):
+            self.load = mv['load']
         
         # generate model inputs/outputs configuration
         # 1 if model brings its own i/o conf, unroll / copy that into block outputs

@@ -59,7 +59,7 @@ def get_systemblock_pm(
             'dt': 0.1,
             # memory 
             'order': 0,
-            'lag': 1,
+            'lag': lag,
             'mass': 1.0,
             # distortion
             'transfer': 0,
