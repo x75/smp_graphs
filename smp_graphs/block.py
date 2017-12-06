@@ -800,6 +800,8 @@ class decStep():
                 else:
                     update_block_store(block = xself, top = xself.top)
 
+            # dump input / output buffers at episode end
+
     def f_eval(self, xself, f):
         # call the function on blocksize boundaries
         # FIXME: might not be the best idea to control that on the wrapper level as some
@@ -3166,12 +3168,13 @@ class DelayBlock2(PrimBlock2):
             # set output members
             # params['outputs']["d%s" % ink] = {'shape': inshape}
             # params['outputs']["d%s" % ink] = {'shape': getattr(self, '%s_' % ink).shape}
+            # FIXME: output modifiers: struct/flat, dense/sparse, ...
             if params['flat']:
                 outshape = (inshape[0], inshape[1] * delay_num )
             else:
                 outshape = (inshape[0], delay_num, inshape[1] )
             params['outputs']["d%s" % ink] = {'shape': outshape}
-            bufshape = (inshape[0], inshape[1] + (delay_max + 1) )
+            bufshape = (inshape[0], inshape[1] + (delay_max + 1) ) # delay_max) #
             setattr(self, "%s_" % ink, np.zeros(bufshape))
 
         # rename to canonical
@@ -3450,8 +3453,7 @@ class UniformRandomBlock2(PrimBlock2):
         
     @decStep()
     def step(self, x = None):
-        self._debug("%s.step:\n\tx = %s,\n\tbus = %s,\n\tinputs = %s,\n\toutputs = %s",
-                         (self.__class__.__name__,self.outputs.keys(), self.bus, self.inputs, self.outputs))
+        self._debug("step:\n\tx = %s,\n\tinputs = %s,\n\toutputs = %s" % (self.outputs.keys(), self.inputs, self.outputs))
 
         # FIXME: relation rate / blocksize, remember cnt from last step, check difference > rate etc
         if self.cnt % self.rate == 0:
@@ -3461,7 +3463,7 @@ class UniformRandomBlock2(PrimBlock2):
                 # print 'lo', self.inputs['lo']['val'], '\nhi', self.inputs['hi']['val'], '\noutput', v['bshape']
                 x = np.random.uniform(self.inputs['lo']['val'], self.inputs['hi']['val'], size = v['shape'])
                 setattr(self, k, x)
-                # print "%s-%s self.%s = %s" % (self.cname, self.id, k, x)
+                self._debug("step self.%s = %s" % (k, x))
         
         # # loop over outputs dict and copy them to a slot in the bus
         # for k, v in self.outputs.items():

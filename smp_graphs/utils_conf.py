@@ -67,8 +67,8 @@ def get_systemblock_pm(
             'coupling_sigma': 1e-2,
             # external entropy
             'anoise_mean': 0.0,
-            'anoise_std': 1e-2,
-            'sysnoise': 1e-2,
+            'anoise_std': 1e-3,
+            'sysnoise': 1e-3,
             # other
             'force_max':  1.0,
             'force_min': -1.0,

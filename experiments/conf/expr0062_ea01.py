@@ -88,14 +88,14 @@ are an outgoing motor voltage (prediction) and measured rotation rate
 on a wheeled robot, or the predicted motor current and the measured
 torque on a joint on a torque-controlled robot.
 
-IF a robots actually is constructed in such a way, that there exists a
-sensor that measures something /physically/ close to the action
+If a robots actually is constructed in such a way, that there exists a
+sensor that measures something \\emph{{physically}} close to the action
 itself, it can be assumed that there will be a residual caused by
 microscopic but systematic divergence between actions and their
 corresponding measurements. The experiment shows how the simple agent
 compensates these deviations with adaptive inverse predictions.
 
-\FIXME {0}, {1}, {2}, {3}, \FIXME loop over different systems: pm, sa, bha, sphero, nao?
+Numsteps = {0}, measurement vars = {1}, prediction vars = {2}, crossmodal prediction m2p {3}.
 """.format(
     numsteps,
     re.sub(r'_', r'\\_', str(m_vars)),
@@ -112,22 +112,27 @@ lconf = {
     # environment / system
     'sys': {
         # global
+        # 'debug': True,
         'budget': 1000/1,
         'dim': dim_s0,
+        'dims': {
+            'm0': {'dim': dim_s0, 'dist': 0, 'lag': 1}, # , 'mins': [-1] * dim_s0, 'maxs': [1] * dim_s0
+            's0': {'dim': dim_s0, 'dist': 0, 'dissipation': 1.0},
+        },
         'dim_s0': dim_s0,
         'dim_s1': dim_s0,
         # time delay
         'dt': 0.1,
         'order': 0,
-        'lag': 2,
+        # 'lag': 3,
         # distortion
-        'transfer': 0.1,
+        'transfer': 0.0, # 1,
         # distortion and memory
-        'coupling_sigma': 1e-3,
+        'coupling_sigma': 0, # 1e-3,
         # external entropy
         'anoise_mean': 0.0,
-        'anoise_std': 1e-2,
-        'sysnoise': 1e-2,
+        'anoise_std': 0.0, # 1e-2,
+        'sysnoise': 0.0, # 1e-2,
         'lim': 1.0,
         # ground truth cheating
         'numelem': numelem, # sampling grid
@@ -239,9 +244,119 @@ graph = OrderedDict([
     # robot
     ('robot1', systemblock),
         
-    # inverse model s2s
-    ('mdl1', lconf['model_s2s']),
+    # brain
+    ('brain', {
+        # FIXME: idea: this guy needs to pass down its input/output configuration
+        #        to save typing / errors on the individual modules
+        'block': Block2,
+        'params': {
+            'numsteps': 1, # numsteps,
+            'id': 'brain',
+            'nocache': True,
+            'graph': OrderedDict([
+                # every brain has a budget
+                ('budget', {
+                    'block': ModelBlock2,
+                    'params': {
+                        'blocksize': 1,
+                        'blockphase': [0],
+                        'credit': np.ones((1, 1)) * budget,
+                        'goalsize': 0.1, # np.power(0.01, 1.0/dim_s0), # area of goal
+                        'inputs': {
+                            # 'credit': {'bus': 'budget/credit', 'shape': (1,1)},
+                            's0': {'bus': 'robot1/s0', 'shape': (dim_s0, 1)},
+                            # 's0': {'bus': m_vars[0], 'shape': (dim_s0, 1)},
+                            's0_ref': {'bus': 'pre_l1/pre', 'shape': (dim_s0, 1)},
+                            },
+                        'outputs': {
+                            'credit': {'shape': (1,1)},
+                        },
+                        'models': {
+                            'budget': {'type': 'budget_linear'},
+                        },
+                        'rate': 1,
+                    },
+                }),
+
+                # # new artifical modality m2 with distortion parameters
+                # ('pre_l2', {
+                #     'block': ModelBlock2,
+                #     'params': {
+                #         'debug': False,
+                #         'models': {
+                #             # from top config
+                #             'infodistgen': infodistgen,
+                #         },
+                #         'inputs': {
+                #             'x': {'bus': 'robot1/s0', 'shape': (dim_s0, 1)},
+                #         },
+                #         'outputs': {
+                #             'y': {'shape': (dim_s0, 1)},
+                #             'h': {'shape': (dim_s0, lconf['infodistgen']['numelem']), 'trigger': 'trig/pre_l2_t1'},
+                #         },
+                #     }
+                # }),
+
+                # inverse model s2s
+                ('mdl1', lconf['model_s2s']),
                 
+                # uniformly dist. random goals, triggered when error < goalsize
+                ('pre_l1', {
+                    'block': ModelBlock2,
+                    'params': {
+                        'blocksize': 1,
+                        'blockphase': [0],
+                        'rate': 1,
+                        # 'ros': ros,
+                        'goalsize': 0.1, # np.power(0.01, 1.0/dim_s0), # area of goal
+                        'inputs': {
+                            'credit': {'bus': 'budget/credit'},
+                            'lo': {'val': -lim, 'shape': (dim_s0, 1)},
+                            'hi': {'val': lim, 'shape': (dim_s0, 1)},
+                            # 'mdltr': {'bus': 'robot1/s0', 'shape': (dim_s0, 1)},
+                            'mdltr': {'bus': m_vars[0], 'shape': (dim_s0, 1)},
+                            },
+                        'outputs': {
+                            'pre': {'shape': (dim_s0, 1)},
+                        },
+                        'models': {
+                            'goal': {'type': 'random_uniform_modulated'}
+                            },
+                        },
+                    }),
+                    
+                # uniformly distributed random action, no modulation
+                ('pre_l0', {
+                    'block': UniformRandomBlock2,
+                    'params': {
+                        'id': 'search',
+                        # 'debug': True,
+                        'inputs': {
+                            'credit': {'bus': 'budget/credit'},
+                            'lo': {'val': -lim},
+                            'hi': {'val': lim}},
+                        'outputs': {
+                            'pre': {'shape': (dim_s0, 1)},
+                        }
+                    },
+                }),
+
+                # puppy process data block: delay motors by lag to align with their sensory effects
+                ('pre_l0_del', {
+                    'block': DelayBlock2,
+                    'params': {
+                        # 'id': 'pre_l0_del',
+                        'blocksize': 1,
+                        # 'inputs': {'y': {'bus': 'motordiff/dy'}},
+                        'inputs': {'y': {'bus': 'pre_l0/pre', 'shape': (dim_s0, 1)}},
+                        'delays': {'y': 0},
+                    }
+                }),
+        
+            ]),
+        }
+    }),
+        
     # measures
     # m: mutual information I(m1;m2)
     ('m_mi', {
@@ -451,115 +566,6 @@ graph = OrderedDict([
         },
     }),
     
-    # brain
-    ('brain', {
-        # FIXME: idea: this guy needs to pass down its input/output configuration
-        #        to save typing / errors on the individual modules
-        'block': Block2,
-        'params': {
-            'numsteps': 1, # numsteps,
-            'id': 'brain',
-            'nocache': True,
-            'graph': OrderedDict([
-                # every brain has a budget
-                ('budget', {
-                    'block': ModelBlock2,
-                    'params': {
-                        'blocksize': 1,
-                        'blockphase': [0],
-                        'credit': np.ones((1, 1)) * budget,
-                        'goalsize': 0.1, # np.power(0.01, 1.0/dim_s0), # area of goal
-                        'inputs': {
-                            # 'credit': {'bus': 'budget/credit', 'shape': (1,1)},
-                            's0': {'bus': 'robot1/s0', 'shape': (dim_s0, 1)},
-                            # 's0': {'bus': m_vars[0], 'shape': (dim_s0, 1)},
-                            's0_ref': {'bus': 'pre_l1/pre', 'shape': (dim_s0, 1)},
-                            },
-                        'outputs': {
-                            'credit': {'shape': (1,1)},
-                        },
-                        'models': {
-                            'budget': {'type': 'budget_linear'},
-                        },
-                        'rate': 1,
-                    },
-                }),
-
-                # new artifical modality m2 with distortion parameters
-                ('pre_l2', {
-                    'block': ModelBlock2,
-                    'params': {
-                        'debug': False,
-                        'models': {
-                            # from top config
-                            'infodistgen': infodistgen,
-                        },
-                        'inputs': {
-                            'x': {'bus': 'robot1/s0', 'shape': (dim_s0, 1)},
-                        },
-                        'outputs': {
-                            'y': {'shape': (dim_s0, 1)},
-                            'h': {'shape': (dim_s0, lconf['infodistgen']['numelem']), 'trigger': 'trig/pre_l2_t1'},
-                        },
-                    }
-                }),
-
-                # uniformly dist. random goals, triggered when error < goalsize
-                ('pre_l1', {
-                    'block': ModelBlock2,
-                    'params': {
-                        'blocksize': 1,
-                        'blockphase': [0],
-                        'rate': 1,
-                        # 'ros': ros,
-                        'goalsize': 0.1, # np.power(0.01, 1.0/dim_s0), # area of goal
-                        'inputs': {
-                            'credit': {'bus': 'budget/credit'},
-                            'lo': {'val': -lim, 'shape': (dim_s0, 1)},
-                            'hi': {'val': lim, 'shape': (dim_s0, 1)},
-                            # 'mdltr': {'bus': 'robot1/s0', 'shape': (dim_s0, 1)},
-                            'mdltr': {'bus': m_vars[0], 'shape': (dim_s0, 1)},
-                            },
-                        'outputs': {
-                            'pre': {'shape': (dim_s0, 1)},
-                        },
-                        'models': {
-                            'goal': {'type': 'random_uniform_modulated'}
-                            },
-                        },
-                    }),
-                    
-                # uniformly distributed random action, no modulation
-                ('pre_l0', {
-                    'block': UniformRandomBlock2,
-                    'params': {
-                        'id': 'search',
-                        'inputs': {
-                            'credit': {'bus': 'budget/credit'},
-                            'lo': {'val': -lim},
-                            'hi': {'val': lim}},
-                        'outputs': {
-                            'pre': {'shape': (dim_s0, 1)},
-                        }
-                    },
-                }),
-
-                # puppy process data block: delay motors by lag to align with their sensory effects
-                ('pre_l0_del', {
-                    'block': DelayBlock2,
-                    'params': {
-                        # 'id': 'pre_l0_del',
-                        'blocksize': 1,
-                        # 'inputs': {'y': {'bus': 'motordiff/dy'}},
-                        'inputs': {'y': {'bus': 'pre_l0/pre', 'shape': (dim_s0, 1)}},
-                        'delays': {'y': 0},
-                    }
-                }),
-        
-            ]),
-        }
-    }),
-        
     # plotting random_lookup influence
     # one configuration plot grid:
     # | transfer func h | horizontal output | horziontal histogram |
@@ -577,14 +583,14 @@ graph = OrderedDict([
             'xlim_share': True,
             'ylim_share': True,
             'inputs': {
-                's0': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
+                's0': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)}, # 
                 's1': {'bus': 'robot1/s1', 'shape': (dim_s1, numsteps)},
                 'sys_h': {'bus': 'robot1/h', 'shape': (dim_s0, numelem)},
-                'pre_l0': {'bus': 'pre_l0/pre', 'shape': (dim_s_goal, numsteps)},
+                'pre_l0': {'bus': p_vars[0], 'shape': (dim_s_goal, numsteps)}, # 'pre_l0/pre'
                 'pre_l0_del': {'bus': 'pre_l0_del/dy', 'shape': (dim_s_goal, numsteps)},
                 'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
-                'pre_l2': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
-                'pre_l2_h': {'bus': 'pre_l2/h', 'shape': (dim_s0, numelem)},
+                # 'pre_l2': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
+                # 'pre_l2_h': {'bus': 'pre_l2/h', 'shape': (dim_s0, numelem)},
                 'mdl1_y': {'bus': 'mdl1/y', 'shape': (dim_s0, numsteps)},
                 'mdl1_h': {'bus': 'mdl1/h', 'shape': (dim_s0, numelem)},
                 'm_err_mdl1': {'bus': 'm_err_mdl1/y', 'shape': (1, numsteps)},
@@ -623,7 +629,7 @@ graph = OrderedDict([
                         'legend_loc': 'right',
                     },
                     {
-                        'input': ['s0', 'pre_l0',], 'plot': timeseries,
+                        'input': ['s0', 'pre_l0', 'pre_l0_del'], 'plot': [timeseries, timeseries],
                         'title': 'timeseries $y$', 'aspect': 'auto', # (1*numsteps)/(2*2.2),
                         'xlim': None, 'xticks': False, 'xticklabels': False,
                         # 'xlabel': 'time step $k$',

@@ -94,11 +94,9 @@ class PointmassBlock2(SysBlock2):
             # print "block_cls u", self.u
             
             self.x_ = self.system.step(self.u * self.mode)
-            # print "self.x", self.x
-            # self.__dict__.update(self.x)
-            # print "PointmassBlock2-%s.step[%d] self.u = %s, self.x = %s" % (self.id, self.cnt, self.u, self.x)
-            # real output variables defined by config
-            # for k in ['s_proprio', 's_extero', 's_all']:
+            self._debug("step[%d] self.x_.keys() = %s, self.x_ = %s" % (self.cnt, self.x_.keys(), self.x_))
+
+            # loop over outputs
             for k, v in self.outputs.items():
                 # print "k", k, getattr(self, k)
                 # print "%s.step[%d]: x = %s/%s" % (self.cname, self.cnt, self.x, self.system.x)
