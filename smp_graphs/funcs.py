@@ -309,7 +309,7 @@ def f_envelope(args):
     fu_check_required_args(args, ['x'], 'f_envelope')
     if not args.has_key('c'): args['c'] = {'val': 0.5}
     c = args['c']['val']
-    print "funcs c = %s" % (c, )
+    # print "funcs.py f_envelope c = %s" % (c, )
     b, a  = butter(4, c)
     x = args['x']['val']
     return {'y': filtfilt(b, a, np.abs(hilbert(x)))}

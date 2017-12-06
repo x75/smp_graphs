@@ -175,7 +175,7 @@ def init_random_lookup(ref, mref, conf, mconf):
     if not mconf.has_key('numelem'):
         mconf['numelem'] = 1001
     inshape = params['inputs']['x']['shape']
-    logger.debug("init_random_lookup: inshape = %s", inshape)
+    # logger.debug("init_random_lookup: inshape = %s", inshape)
     
     # linear ramp
     mref.h_lin = np.linspace(-1.0, 1.0, mconf['numelem']).reshape(1, mconf['numelem'])

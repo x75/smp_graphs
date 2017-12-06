@@ -2,13 +2,23 @@
 
 .. moduleauthor:: 2017 Oswald Berthold
 
+Implements smp_graph's logging mechanism, originally culled from
+smp.smp_blocks using the :mod:`tables` hdf5 interface with function
+prefix 'log_tb_'. Second version is based on pandas and its built-in
+dataframe to hdf5 mapping mechanism.
+
 Log variables are global in smp_graphs. There are two logging mechanisms
  - :func:`log_tb` logs to hdf5 using pytables, snatched from :mod:`smpblocks`
  - :func:`log_pd` logs to hdf5 using pandas, originally from :mod:`smq`
 
 .. warning::
- - Merge this with python's own :mod:`logging`
- - Merge with more general output layer idea
+ - The logging scheme is still work in progress and will most likely change
+
+.. note::
+ - TODO: Merge this with python's own :mod:`logging`
+ - TODO: Merge with *general output layer* mechanism
+ - TODO: Merge with *general caching* idea
+ - TODO: Merge / consolidate with realtime kernel and flexible on demand logging and logfile saving
 
 """
 

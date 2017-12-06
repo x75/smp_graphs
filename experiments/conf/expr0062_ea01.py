@@ -119,7 +119,7 @@ lconf = {
         # time delay
         'dt': 0.1,
         'order': 0,
-        'lag': 0,
+        'lag': 2,
         # distortion
         'transfer': 0.1,
         # distortion and memory
@@ -238,18 +238,6 @@ graph = OrderedDict([
 
     # robot
     ('robot1', systemblock),
-        
-    # # puppy process data block: delay motors by lag to align with their sensory effects
-    # ('pre_l0_del', {
-    #     'block': DelayBlock2,
-    #     'params': {
-    #         # 'id': 'pre_l0_del',
-    #         'blocksize': 1,
-    #         # 'inputs': {'y': {'bus': 'motordiff/dy'}},
-    #         'inputs': {'y': {'bus': 'pre_l0/pre', 'shape': (dim_s0, 1)}},
-    #         'delays': {'y': 0},
-    #         }
-    #     }),
         
     # inverse model s2s
     ('mdl1', lconf['model_s2s']),
@@ -556,8 +544,18 @@ graph = OrderedDict([
                     },
                 }),
 
-
-
+                # puppy process data block: delay motors by lag to align with their sensory effects
+                ('pre_l0_del', {
+                    'block': DelayBlock2,
+                    'params': {
+                        # 'id': 'pre_l0_del',
+                        'blocksize': 1,
+                        # 'inputs': {'y': {'bus': 'motordiff/dy'}},
+                        'inputs': {'y': {'bus': 'pre_l0/pre', 'shape': (dim_s0, 1)}},
+                        'delays': {'y': 0},
+                    }
+                }),
+        
             ]),
         }
     }),
@@ -583,6 +581,7 @@ graph = OrderedDict([
                 's1': {'bus': 'robot1/s1', 'shape': (dim_s1, numsteps)},
                 'sys_h': {'bus': 'robot1/h', 'shape': (dim_s0, numelem)},
                 'pre_l0': {'bus': 'pre_l0/pre', 'shape': (dim_s_goal, numsteps)},
+                'pre_l0_del': {'bus': 'pre_l0_del/dy', 'shape': (dim_s_goal, numsteps)},
                 'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
                 'pre_l2': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
                 'pre_l2_h': {'bus': 'pre_l2/h', 'shape': (dim_s0, numelem)},
@@ -624,7 +623,7 @@ graph = OrderedDict([
                         'legend_loc': 'right',
                     },
                     {
-                        'input': ['s0'], 'plot': timeseries,
+                        'input': ['s0', 'pre_l0',], 'plot': timeseries,
                         'title': 'timeseries $y$', 'aspect': 'auto', # (1*numsteps)/(2*2.2),
                         'xlim': None, 'xticks': False, 'xticklabels': False,
                         # 'xlabel': 'time step $k$',
