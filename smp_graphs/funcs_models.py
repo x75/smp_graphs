@@ -1911,7 +1911,8 @@ class model(object):
     defaults = {
         'type': 'random_uniform',
     }
-        
+
+    # maybe using classes is appropriate? ;)
     models = {
         # open-loop models
         # 'identity': {'init': init_identity, 'step': step_identity},

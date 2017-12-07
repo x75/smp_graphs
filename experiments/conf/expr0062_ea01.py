@@ -65,7 +65,8 @@ randseed = 126
 
 # predicted variables
 p_vars = ['pre_l0/pre']
-p_del_vars = p_vars # ['pre_l0_del/dy']
+# p_del_vars = p_vars
+p_del_vars = ['delay/dy']
 # p_vars = ['robot1/s0']
 # measured variables
 m_vars = ['robot1/s0']
@@ -76,7 +77,7 @@ by putting the distortion model from the previous experiments back
 into the agent's body and environment. This establishes the first
 complete embodied agent which will be used and incrementally extended
 over the remaining sections of this chapter. The experiment appears to
-be identical to \\ref{{{4}}} but on close inspection, the computation
+be identical to \\ref{{{0}}} but on close inspection, the computation
 graph is slightly different.
 
 An example interpretation for this model is that of proprioceptive
@@ -95,15 +96,17 @@ itself, it can be assumed that there will be a residual caused by
 microscopic but systematic divergence between actions and their
 corresponding measurements. The experiment shows how the simple agent
 compensates these deviations with adaptive inverse predictions.
+""".format('sec:smp-expr0045-pm1d-mem000-ord0-random-infodist-id')
 
-Numsteps = {0}, measurement vars = {1}, prediction vars = {2}, crossmodal prediction m2p {3}.
-""".format(
-    numsteps,
-    re.sub(r'_', r'\\_', str(m_vars)),
-    re.sub(r'_', r'\\_', str(p_vars)),
-    ['mdl1/y'],
-    'sec:smp-expr0045-pm1d-mem000-ord0-random-infodist-id',
-)
+# configuration as table
+desc += """
+\\begin{{tabularx}}{{\\textwidth}}{{rrrr}}
+\\textbf{{Numsteps}} & \\textbf{{measurement vars}} & \\textbf{{prediction vars}} & \\textbf{{crossmodal prediction m2p}} \\\\
+{0} & {1} & {2} & {3} \\\\
+\\end{{tabularx}}""".format(
+    numsteps, re.sub(r'_', r'\\_', str(m_vars)), re.sub(r'_', r'\\_', str(p_vars)), ['mdl1/y'])
+
+
 
 dim_s0 = 1
 numelem = 1001
@@ -117,6 +120,8 @@ lconf = {
         'budget': 1000/1,
         'dim': dim_s0,
         'dims': {
+            # expr0062: setting proprio lag to zero (<< environment minlag 1 resp.) models
+            #           fast in-body transmission and feedback
             'm0': {'dim': dim_s0, 'dist': 0, 'lag': 0}, # , 'mins': [-1] * dim_s0, 'maxs': [1] * dim_s0
             's0': {'dim': dim_s0, 'dist': 0, 'dissipation': 1.0},
         },
@@ -127,7 +132,7 @@ lconf = {
         'order': 0,
         # 'lag': 3,
         # distortion
-        'transfer': 0.0, # 1,
+        'transfer': 3,
         # distortion and memory
         'coupling_sigma': 0, # 1e-3,
         # external entropy
@@ -136,7 +141,7 @@ lconf = {
         'sysnoise': 0.0, # 1e-2,
         'lim': 1.0,
         # ground truth cheating
-        'numelem': numelem, # sampling grid
+        'h_numelem': numelem, # sampling grid
     },
     # agent / models
     'infodistgen': {
@@ -159,10 +164,10 @@ lconf = {
             'pre_l2_2_robot1_s0': {
                 'type': 'sklearn',
                 'load': False,
-                'skmodel': 'linear_model.Ridge',
-                'skmodel_params': {'alpha': 1.0},
-                # 'skmodel': 'kernel_ridge.KernelRidge',
-                # 'skmodel_params': {'alpha': 0.1, 'kernel': 'rbf'},
+                # 'skmodel': 'linear_model.Ridge',
+                # 'skmodel_params': {'alpha': 1.0},
+                'skmodel': 'kernel_ridge.KernelRidge',
+                'skmodel_params': {'alpha': 0.1, 'kernel': reduce(lambda x, y: x + y, [ExpSineSquared(np.random.exponential(0.3), 5.0, periodicity_bounds=(1e-2, 1e1)) for _ in range(10)])}, # 'rbf'},
                 # 'skmodel': 'gaussian_process.GaussianProcessRegressor',
                 # 'skmodel_params': {'kernel': ExpSineSquared(1.0, 5.0, periodicity_bounds=(1e-2, 1e1)) + WhiteKernel(1e-1)},
                 # 'skmodel': 'gaussian_process.kernels.WhiteKernel, ExpSineSquared',
@@ -173,12 +178,12 @@ lconf = {
             # input
             'x_in': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
             # target
-            'x_tg': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
-            # 'x_tg': {'bus': 'pre_l0_del/y', 'shape': (dim_s0, numsteps)},
+            # 'x_tg': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
+            'x_tg': {'bus': p_del_vars[0], 'shape': (dim_s0, numsteps)},
         },
         'outputs': {
             'y': {'shape': (dim_s0, numsteps)},
-            'h': {'shape': (dim_s0, numelem), 'trigger': 'trig/pre_l2_t1'},
+            'h': {'shape': (dim_s0, numelem), 'trigger': 'trig/t1'},
         },
     }
 }
@@ -237,7 +242,8 @@ graph = OrderedDict([
         'params': {
             'trig': np.array([numsteps]),
             'outputs': {
-                'pre_l2_t1': {'shape': (1, 1)},
+                # 'pre_l2_t1': {'shape': (1, 1)},
+                't1': {'shape': (1, 1)},
             }
         },
     }),
@@ -279,28 +285,6 @@ graph = OrderedDict([
                     },
                 }),
 
-                # # new artifical modality m2 with distortion parameters
-                # ('pre_l2', {
-                #     'block': ModelBlock2,
-                #     'params': {
-                #         'debug': False,
-                #         'models': {
-                #             # from top config
-                #             'infodistgen': infodistgen,
-                #         },
-                #         'inputs': {
-                #             'x': {'bus': 'robot1/s0', 'shape': (dim_s0, 1)},
-                #         },
-                #         'outputs': {
-                #             'y': {'shape': (dim_s0, 1)},
-                #             'h': {'shape': (dim_s0, lconf['infodistgen']['numelem']), 'trigger': 'trig/pre_l2_t1'},
-                #         },
-                #     }
-                # }),
-
-                # inverse model s2s
-                ('mdl1', lconf['model_s2s']),
-                
                 # uniformly dist. random goals, triggered when error < goalsize
                 ('pre_l1', {
                     'block': ModelBlock2,
@@ -342,22 +326,27 @@ graph = OrderedDict([
                     },
                 }),
 
-                # puppy process data block: delay motors by lag to align with their sensory effects
-                ('pre_l0_del', {
+                # inverse model s2s
+                ('mdl1', lconf['model_s2s']),
+                
+                # delay blocks for dealing with sensorimotor delays
+                ('delay', {
                     'block': DelayBlock2,
                     'params': {
-                        # 'id': 'pre_l0_del',
+                        # 'debug': True,
                         'blocksize': 1,
                         # 'inputs': {'y': {'bus': 'motordiff/dy'}},
-                        'inputs': {'y': {'bus': 'pre_l0/pre', 'shape': (dim_s0, 1)}},
-                        'delays': {'y': 0},
+                        'inputs': {
+                            'y':     {'bus': 'pre_l0/pre', 'shape': (dim_s0, 1)},
+                            'mdl_y': {'bus': 'mdl1/y',     'shape': (dim_s0, numsteps)}},
+                        'delays': {'y': 0, 'mdl_y': 0},
                     }
                 }),
         
             ]),
         }
     }),
-        
+
     # measures
     # m: mutual information I(m1;m2)
     ('m_mi', {
@@ -366,7 +355,7 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'shift': (0, 1),
             'inputs': {
-                'x': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
+                'x': {'bus': p_del_vars[0], 'shape': (dim_s0, numsteps)},
                 # 'y': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
                 'y': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
             },
@@ -382,7 +371,7 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'shift': (0, 1),
             'inputs': {
-                'x': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
+                'x': {'bus': p_del_vars[0], 'shape': (dim_s0, numsteps)},
                 # 'y': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
                 'y': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
             },
@@ -416,14 +405,13 @@ graph = OrderedDict([
     ('m_err', {
         'block': MeasBlock2,
         'params': {
-            'id': 'm_err',
             'blocksize': numsteps,
-            'debug': False,
+            # 'debug': True,
             'mode': 'basic',
             'scope': 'local',
             'meas': 'sub',
             'inputs': {
-                'x1': {'bus': p_vars[0], 'shape': (1, numsteps)},
+                'x1': {'bus': p_del_vars[0], 'shape': (1, numsteps)},
                 'x2': {'bus': m_vars[0], 'shape': (1, numsteps)},
             },
             'outputs': {
@@ -436,16 +424,17 @@ graph = OrderedDict([
     ('m_err_mdl1', {
         'block': MeasBlock2,
         'params': {
-            'id': 'm_err',
             'blocksize': numsteps,
-            'debug': False,
+            # 'debug': True,
             'mode': 'basic',
             'scope': 'local',
             'meas': 'sub',
             'inputs': {
                 # 'x1': {'bus': p_vars[0], 'shape': (1, numsteps)},
-                'x1': {'bus': p_del_vars[0], 'shape': (1, numsteps)},
-                'x2': {'bus': 'mdl1/y', 'shape': (1, numsteps)},
+                # 'x1': {'bus': p_del_vars[0], 'shape': (1, numsteps)},
+                'x1': {'bus': 'mdl1/y', 'shape': (1, numsteps)},
+                # 'x1': {'bus': 'delay/dmdl_y',  'shape': (1, numsteps)},
+                'x2': {'bus': p_del_vars[0], 'shape': (1, numsteps)},
             },
             'outputs': {
                 'y': {'shape': (1, numsteps)},
@@ -589,12 +578,13 @@ graph = OrderedDict([
                 's1': {'bus': 'robot1/s1', 'shape': (dim_s1, numsteps)},
                 'sys_h': {'bus': 'robot1/h', 'shape': (dim_s0, numelem)},
                 'pre_l0': {'bus': p_vars[0], 'shape': (dim_s_goal, numsteps)}, # 'pre_l0/pre'
-                'pre_l0_del': {'bus': 'pre_l0_del/dy', 'shape': (dim_s_goal, numsteps)},
+                'pre_l0_del': {'bus': 'delay/dy', 'shape': (dim_s_goal, numsteps)},
                 'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
                 # 'pre_l2': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
                 # 'pre_l2_h': {'bus': 'pre_l2/h', 'shape': (dim_s0, numelem)},
                 'mdl1_y': {'bus': 'mdl1/y', 'shape': (dim_s0, numsteps)},
                 'mdl1_h': {'bus': 'mdl1/h', 'shape': (dim_s0, numelem)},
+                'mdl1_y_del': {'bus': 'delay/dmdl_y', 'shape': (dim_s0, numsteps)},
                 'm_err_mdl1': {'bus': 'm_err_mdl1/y', 'shape': (1, numsteps)},
                 'm_err_mdl1_amp': {'bus': 'm_err_mdl1_amp/y', 'shape': (1, numsteps)},
                 'credit_l1': {'bus': 'budget/credit', 'shape': (1, numsteps)},
@@ -631,7 +621,9 @@ graph = OrderedDict([
                         'legend_loc': 'right',
                     },
                     {
-                        'input': ['s0', 'pre_l0', 'pre_l0_del'], 'plot': [timeseries, timeseries],
+                        # 'input': ['s0', 'pre_l0', 'pre_l0_del'], 'plot': [timeseries for _ in range(3)],
+                        'input': ['s0', 'pre_l0'], 'plot': [timeseries for _ in range(2)],
+                        # 'input': ['s0'], 'plot': [timeseries for _ in range(3)],
                         'title': 'timeseries $y$', 'aspect': 'auto', # (1*numsteps)/(2*2.2),
                         'xlim': None, 'xticks': False, 'xticklabels': False,
                         # 'xlabel': 'time step $k$',
@@ -664,6 +656,7 @@ graph = OrderedDict([
                 [
                     {
                         'input': ['pre_l0'], 'plot': timeseries,
+                        # 'input': ['pre_l0', 'pre_l0_del'], 'plot': timeseries,
                         'title': 'timeseries $x$',
                         'aspect': 2.2/numsteps,
                         'orientation': 'vertical',
@@ -686,7 +679,8 @@ graph = OrderedDict([
                         # 'legend_loc': 'right',
                     },
                     {
-                        'input': ['mdl1_y'], 'plot': timeseries,
+                        'input': ['pre_l0', 'mdl1_y'], 'plot': timeseries,
+                        # 'input': ['pre_l0_del', 'mdl1_y', 'mdl1_y_del'], 'plot': timeseries,
                         'title': 'timeseries $x$',
                         'aspect': 2.2/numsteps,
                         'orientation': 'vertical',
@@ -720,7 +714,8 @@ graph = OrderedDict([
                     },
                     {},
                     {
-                        'input': ['m_div'], 'plot': partial(timeseries, linestyle = 'none', marker = 'o'),
+                        'input': ['m_div'], 'plot': bar,
+                        # 'input': ['m_div'], 'plot': partial(timeseries, linestyle = 'none', marker = 'o'),
                         'title': 'histogram divergence %s $h1 - h2$' % (div_meas, ),
                         'shape': (1, numbins),
                         # 'aspect': 'auto',

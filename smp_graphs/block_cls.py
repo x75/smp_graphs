@@ -81,6 +81,10 @@ class PointmassBlock2(SysBlock2):
         for k in ['s_proprio', 's_extero', 's_all']:
             setattr(self, k, self.x[k])
             # print "%s.init[%d]: x = %s/%s" % (self.cname, self.cnt, self.x, self.system.x)
+
+        # check if transfer function output 'h' is present and initialize
+        if self.outputs.has_key('h'):
+            setattr(self, 'h', np.random.uniform(0, 1, (self.dims['s0']['dim'], self.h_numelem)))
                     
     @decStep()
     def step(self, x = None):
@@ -98,7 +102,27 @@ class PointmassBlock2(SysBlock2):
 
             # loop over outputs
             for k, v in self.outputs.items():
-                # print "k", k, getattr(self, k)
+                self._debug("    output %s, self.%s = %s" % (k, k, getattr(self, k)))
+                # skip if not triggered
+                if not self.output_is_triggered(k, v, self.bus): continue
+
+                ######################################################################
+                # system ground truth hack (gth): in general this is not known which
+                # is why we are doing all of this itfp 
+                if k == 'h': # if output 'h' is configured
+                    # get h input samples, e.g. linspace, meshgrid
+                    # FIXME: random sampling if dim > 4
+                    self.h_sample = np.atleast_2d(np.hstack([np.linspace(self.m_mins[i], self.m_maxs[i], self.h_numelem) for i in range(self.dims['m0']['dim'])]))
+                    # logger.debug('ref.h_sample = %s', ref.h_sample.shape)
+                    # hack: loop over number of input samples
+                    for h_sample_i in range(self.h_numelem): # v['shape'][1]):
+                        # obtain output sample from eval of input sample on the system
+                        x_ = self.system.step(self.h_sample.T[[h_sample_i],...])
+                        # self._debug("    h_sample_i = %d, x_ = %s" % (h_sample_i, x_))
+                        # copy to block attribute
+                        self.h[...,[h_sample_i]] = x_['s0']
+                ######################################################################
+                    
                 # print "%s.step[%d]: x = %s/%s" % (self.cname, self.cnt, self.x, self.system.x)
                 k_ = getattr(self, k)
                 # print "k", k, "self.k", k_.shape
@@ -107,7 +131,8 @@ class PointmassBlock2(SysBlock2):
                     k_[...,[i]] = self.x_[k]
                 elif v.has_key('remap'):
                     k_[...,[i]] = self.x_[v['remap']]
-                # setattr(self, k, self.x[k])
+                # else:
+                #     setattr(self, k, self.x[k])
                 
 class SimplearmBlock2(SysBlock2):
     """Simple arm system block class

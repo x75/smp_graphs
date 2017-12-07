@@ -37,11 +37,12 @@ def get_systemblock_pm(
         'm0': {'dim': dim_s0, 'dist': 0}, # , 'mins': [-1] * dim_s0, 'maxs': [1] * dim_s0
         's0': {'dim': dim_s0, 'dist': 0},
     }
-        
+
     # FIXME: disentangle block conf from sys conf?
     sysconf = {
         'block': PointmassBlock2,
         'params': {
+            # 'debug': True,
             'id': 'robot1',
             'blocksize': 1, # FIXME: make pm blocksize aware!
             'systype': 2,
@@ -52,8 +53,8 @@ def get_systemblock_pm(
             'outputs': {
                 # 's_proprio': {'shape': (dim_s0, 1), 'remap': 's0'},
                 # 's_extero':  {'shape': (dim_s1, 1), 'remap': 's1'},
-                's0':  {'shape': (dim_s0, 1)},
-                's1':  {'shape': (dim_s1, 1)},
+                's0': {'shape': (dim_s0, 1)},
+                's1': {'shape': (dim_s1, 1)},
                 }, # , 's_all': [(9, 1)]},
             # 'statedim': dim_s0 * 3,
             'dt': 0.1,
@@ -73,7 +74,6 @@ def get_systemblock_pm(
             'force_max':  1.0,
             'force_min': -1.0,
             'friction': 0.01,
-            'debug': False,
             'm_mins': [-1.0] * dim_s0,
             'm_maxs': [ 1.0] * dim_s0,
             'length_ratio': 3./2., # gain curve?
@@ -101,6 +101,11 @@ def get_systemblock_pm(
     # default dims
     sysconf['params']['dims'] = dims
     
+    if kwargs.has_key('h_numelem'):
+        # h_numelem = kwargs['h_numelem']
+        sysconf['params']['outputs'].update({'h':  {'shape': (dim_s0, kwargs['h_numelem']), 'trigger': 'trig/t1'}})
+        sysconf['params']['numelem'] = kwargs['h_numelem']
+        
     # update from kwargs
     # if kwargs.has_key('dims'):
     #     # print "updating dims", dims, kwargs['dims']

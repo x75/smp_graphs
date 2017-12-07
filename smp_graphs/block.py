@@ -195,16 +195,6 @@ block_groups = {
     'output': {'cmap': block_cmaps['sequential2'][9]}, # 'copper'},
 }
 
-def outputs_check_type(k, v, typematch = 'ndarray'):
-    return v.has_key('type') and v['type'] != typematch
-
-def outputs_check_trigger(k, v, bus):
-    # return true if is 'trigger' but trigger bus inactive
-    if not v.has_key('trigger'): return False
-    istriggered = v.has_key('trigger') and bus.has_key(v['trigger']) and np.any(bus[v['trigger']] > 0)
-    return not istriggered
-
-    
 ################################################################################
 # smp_graphs types: create some types for use in configurations like const, bus, generator, func, ...
 
@@ -629,7 +619,8 @@ class decStep():
         for k, v in xself.inputs.items():
             # print "process_input: ", k, xself.id, xself.cnt, v['val'].shape, v['shape']
             # check input sanity
-            assert v['val'].shape == v['shape'], "real and desired input shapes need to agree for block %s, ink = %s, %s != %s" % (xself.id, k, v['val'].shape, v['shape'])
+            assert v['val'].shape == v['shape'], "%s-%s's real and desired input shapes need to agree but ink = %s, %s != %s" % (
+                xself.cname, xself.id, k, v['val'].shape, v['shape'])
             
             # copy bus inputs to input buffer
             if v.has_key('bus'): # input item is driven by external signal (bus value)
@@ -716,10 +707,10 @@ class decStep():
             for k, v in xself.outputs.items():
                 # defer non-ndarray types
                 # if v.has_key('type') and v['type'] != 'ndarray':
-                if outputs_check_type(k, v):
+                if xself.output_is_type(k, v):
                     # print "wrong type fail", k, v
                     continue
-                if outputs_check_trigger(k, v, xself.bus):
+                if not xself.output_is_triggered(k, v, xself.bus):
                     # xself._debug("not triggered")
                     continue
                 # else:
@@ -732,13 +723,15 @@ class decStep():
                 #         xself.cnt, xself.id, k, getattr(xself, k), getattr(xself, k).shape,
                 #         buskey, xself.blocksize)
                 
-                assert xself.bus[v['buskey']].shape == v['shape'], "real and desired output shapes need to agree block %s, outk = %s, %s != %s" % (xself.id, k, xself.bus[v['buskey']].shape, v['shape'])
+                assert xself.bus[v['buskey']].shape == v['shape'], "%s-%s's real and desired output shapes need to agree, but self.%s = %s != %s output['shape']" % (
+                    xself.cname, xself.id, k, xself.bus[v['buskey']].shape, v['shape'])
 
                 # FIXME: for all items in output channels = [bus, log, ros, pdf, latex, ...]
                 
                 # copy data onto bus
                 xself.bus[v['buskey']] = getattr(xself, k).copy()
-                # print "xself.bus[v['buskey'] = %s]" % (v['buskey'], ) , xself.bus[v['buskey']]
+                if v['buskey'] == 'robot1/h':
+                    logger.debug("output '%s', xself.bus[v['buskey'] = %s] = %s / %s" % (k, v['buskey'], xself.bus[v['buskey']], getattr(xself, k)))
                 
                 # if v.has_key('trigger'):
                 #     xself._debug("    triggered: bus[%s] = %s, buskeys = %s" % (buskey, xself.bus[v['buskey']], xself.bus.keys()))
@@ -817,7 +810,7 @@ class decStep():
                 shapes = []
                 for outk, outv in xself.outputs.items():
                     # only ndarray type outputs
-                    if outputs_check_type(outk, outv):
+                    if self.output_is_type(outk, outv):
                         continue
                     setattr(xself, outk, xself.cache_data[outk][xself.cnt-xself.blocksize:xself.cnt,...].T)
                     # print "cache out key", outk, getattr(xself, outk)
@@ -1977,6 +1970,16 @@ class Block2(object):
         # return OR term as reduction of list
         return reduce(lambda t1,t2: t1 or t2, conditions)
             
+    def output_is_type(self, k, v, typematch = 'ndarray'):
+        return v.has_key('type') and v['type'] != typematch
+
+    def output_is_triggered(self, k, v, bus):
+        # return true if is 'trigger' but trigger bus inactive
+        if not v.has_key('trigger'): return True # False
+        istriggered = v.has_key('trigger') and bus.has_key(v['trigger']) and np.any(bus[v['trigger']] > 0)
+        # return not istriggered
+        return istriggered
+    
     def set_attr_from_top_conf(self):
         """set self attributes copied from corresponding toplevel attributes
         
@@ -3122,6 +3125,7 @@ class DelayBlock2(PrimBlock2):
     Params: inputs, delay in steps / shift
 
     FIXME: pull and sift existing embedding code: smp/sequence, pointmasslearner/reservoir, smp/neural, mdp's TimeDelaySlidingWindowNode
+    FIXME: consolidate / merge with tappings, im2col, conv, ...
     """
     defaults = {
         'flat': False, # flatten output
@@ -3148,8 +3152,8 @@ class DelayBlock2(PrimBlock2):
             else:
                 inshape = inv['shape']
                 
-            # alloc delay block
-            if params.has_key('delays'):
+            # alloc delay block, checking for different configuration options
+            if params.has_key('delays'): 
                 # assert params['inputs'].keys() == params['delays'].keys()
                 delays_[ink] = params['delays'][ink]
                 # setattr(self, "%s_" % ink, np.zeros((inshape[0], inshape[1] + params['delays'][ink])))
@@ -3180,20 +3184,24 @@ class DelayBlock2(PrimBlock2):
         # rename to canonical
         params['delays'] = delays_
 
-        # self.delaytaps
+        # params['has_stepped'] = False
         
         # base block init
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
+        # init the delay lines
         self.delaytaps = {}
         for k, v in self.delays.items():
             # print "Adding delayed input %s / %s to delaytaps" % (k, v)
-            delay_tap = -np.array(v) - 1
-            delay_tap_bs = (delay_tap - np.tile(np.array(range(self.blocksize, 0, -1)), (delay_tap.shape[0],1)).T).T
+            # delay_tap = -np.array(v) - 1
+            delay_tap = -np.array(v) - 0
+            blocksize_input = self.inputs[k]['shape'][-1]
+            # blocksize_input = self.blocksize
+            delay_tap_bs = (delay_tap - np.tile(np.array(range(blocksize_input, 0, -1)), (delay_tap.shape[0],1)).T).T
             if self.flat:
                 delay_tap_bs = delay_tap_bs.flatten()
             self.delaytaps[k] = delay_tap_bs.copy()
-            # print "added ", self.delaytaps[k]
+            self._debug('delay %s with taps %s added delaytaps_bs = %s' % (k, v, self.delaytaps[k]))
 
         
         # print "DelayBlock2.init blocksize", self.blocksize
@@ -3205,6 +3213,13 @@ class DelayBlock2(PrimBlock2):
         """DelayBlock2 step"""
         # loop over input items
         for ink in self.inputs.keys():
+            # blocksize vs. input blocksize
+            blocksize_input = self.inputs[ink]['shape'][-1]
+            # multichannel delay hack for different blocksizes
+            if self.cnt % blocksize_input not in self.blockphase:
+                self._debug('input %s[%d] deferred for shape end = %s overriding blocksize = %s' % (ink, self.cnt, blocksize_input, self.blocksize))
+                continue
+            
             # get output key
             outk = "d%s" % ink
             # get buffer key
@@ -3226,15 +3241,30 @@ class DelayBlock2(PrimBlock2):
             
             # write blocksize most current input data into buffer
             sl = slice(-self.blocksize, None)
+            if blocksize_input != self.blocksize:
+                sl = slice(-blocksize_input, None)
+                self._debug('input %s shape end = %s, blocksize = %s' % (ink, self.inputs[ink]['shape'][-1], self.blocksize))
+                
+            self._debug('input %s slice sl = %s' % (ink, sl))
+
             inv_[...,sl] = self.inputs[ink]['val'].copy()
+            # if block executes only once
+            # if input blocksize == numsteps
+            if blocksize_input == self.top.numsteps:
+                self._debug('input %s bsi > numsteps, slice sl.start = %s, sl.stop = %s, inv_.shape = %s' % (ink, sl.start, sl.stop, inv_.shape))
+                # cyclic wrap of input chunk
+                inv_[...,slice(None, sl.start)] = inv_[...,slice(-sl.start, None)]
+            
+            # perform delay immediately after input
+            setattr(self, ink_, np.roll(inv_, shift = -self.blocksize, axis = -1))
             
             # print "DelayBlock2: ink", ink, "sl", sl, "inv_", inv_.shape, "input", self.inputs[ink]['val'].shape
             # print "DelayBlock2: ink", ink, inv_[...,sl].shape
 
             # outputs
-
             delaytap = self.delaytaps[ink]
             # print "delaytap", delaytap.shape, delaytap, self.blocksize
+            self._debug('input %s delaytap = %s' % (ink, delaytap))            
             setattr(self, outk, inv_[...,delaytap])
 
             
@@ -3242,8 +3272,11 @@ class DelayBlock2(PrimBlock2):
 
             # print "DelayBlock2 outk %s shape" %(outk,), self.inputs[ink]['val'].shape, getattr(self, ink_).shape, getattr(self, outk) # [...,[-1]].shape, self.inputs[ink]['val'].shape #, din.shape
             
-            # delay current input for blocksize steps
-            setattr(self, ink_, np.roll(inv_, shift = -self.blocksize, axis = -1))
+            # # delay current input for blocksize steps
+            # setattr(self, ink_, np.roll(inv_, shift = -self.blocksize, axis = -1))
+            
+            self._debug('self.%s = %s' % (ink_, getattr(self, ink_)))
+            self._debug('self.%s = %s' % (outk, getattr(self, outk)))
                         
 class SliceBlock2(PrimBlock2):
     """SliceBlock2

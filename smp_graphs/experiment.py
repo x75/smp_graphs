@@ -48,7 +48,8 @@ warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning)
 from logging import INFO as logging_INFO
 from logging import DEBUG as logging_DEBUG
 # import logging
-loglevel_DEFAULT = logging_DEBUG
+loglevel_DEFAULT = logging_INFO
+# loglevel_DEFAULT = logging_DEBUG
 logger = get_module_logger(modulename = 'experiment', loglevel = loglevel_DEFAULT)
 
 # # 'application' code
@@ -830,7 +831,7 @@ class Experiment(object):
         if self.conf['params']['plotgraph']:
             self.plotgraph(G = G, Gbus = Gbus)
 
-        logger.debug("args to conf? plotgraph_tikz = %s", self.conf['params']['plotgraph_tikz'],)
+        # logger.debug("args to conf? plotgraph_tikz = %s", self.conf['params']['plotgraph_tikz'],)
         if self.conf['params']['plotgraph_tikz']:
             self.plotgraph_tikz(G = G, Gbus = Gbus)
 
