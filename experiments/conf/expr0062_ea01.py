@@ -65,6 +65,7 @@ randseed = 126
 
 # predicted variables
 p_vars = ['pre_l0/pre']
+p_del_vars = p_vars # ['pre_l0_del/dy']
 # p_vars = ['robot1/s0']
 # measured variables
 m_vars = ['robot1/s0']
@@ -116,7 +117,7 @@ lconf = {
         'budget': 1000/1,
         'dim': dim_s0,
         'dims': {
-            'm0': {'dim': dim_s0, 'dist': 0, 'lag': 1}, # , 'mins': [-1] * dim_s0, 'maxs': [1] * dim_s0
+            'm0': {'dim': dim_s0, 'dist': 0, 'lag': 0}, # , 'mins': [-1] * dim_s0, 'maxs': [1] * dim_s0
             's0': {'dim': dim_s0, 'dist': 0, 'dissipation': 1.0},
         },
         'dim_s0': dim_s0,
@@ -442,7 +443,8 @@ graph = OrderedDict([
             'scope': 'local',
             'meas': 'sub',
             'inputs': {
-                'x1': {'bus': p_vars[0], 'shape': (1, numsteps)},
+                # 'x1': {'bus': p_vars[0], 'shape': (1, numsteps)},
+                'x1': {'bus': p_del_vars[0], 'shape': (1, numsteps)},
                 'x2': {'bus': 'mdl1/y', 'shape': (1, numsteps)},
             },
             'outputs': {
