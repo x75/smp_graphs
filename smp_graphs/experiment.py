@@ -48,7 +48,7 @@ warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning)
 from logging import INFO as logging_INFO
 from logging import DEBUG as logging_DEBUG
 # import logging
-loglevel_DEFAULT = logging_INFO
+loglevel_DEFAULT = logging_DEBUG
 logger = get_module_logger(modulename = 'experiment', loglevel = loglevel_DEFAULT)
 
 # # 'application' code
@@ -102,9 +102,10 @@ def get_args():
     parser.add_argument("-m", "--mode",       type=str, default="run",            help="Which subprogram to run [run], one of [run, graphviz]")
     parser.add_argument("-n", "--numsteps",   type=int, default=default_numsteps, help="Number of outer loop steps [%s]" % default_numsteps)
     parser.add_argument("-s", "--randseed",   type=int, default=None,             help="Random seed [None], if None, seed is taken from config file")
-    parser.add_argument("-pg", "--plotgraph", dest="plotgraph", action="store_true", default = False, help = "Enable plot of smp graph [False]")
+    parser.add_argument("-pg",   "--plotgraph", dest="plotgraph", action="store_true", default = False, help = "Enable plot of smp graph [False]")
+    parser.add_argument("-pgt",  "--plotgraph-tikz", dest="plotgraph_tikz", action="store_true", default = False, help = "Enable plot of smp graph with tikz [False]")
     parser.add_argument("-shp",  "--showplot",     dest="showplot",  action="store_true", default = None, help = "Show plots at all? [None]")
-    parser.add_argument("-nshp",  "--no-showplot",     dest="showplot",  action="store_false", default = None, help = "Show plots at all? [None]")
+    parser.add_argument("-nshp", "--no-showplot",     dest="showplot",  action="store_false", default = None, help = "Show plots at all? [None]")
     parser.add_argument("-sp",  "--saveplot",     dest="saveplot",  action="store_true", default = None, help = "Enable saving the plots of this experiment [None]")
     parser.add_argument("-nsp", "--no-saveplot",  dest="saveplot",  action="store_false", default = None, help = "Disable saving the plots of this experiment [None]")
     parser.add_argument("-cc", "--cache-clear",  dest='cache_clear', action='store_true', help="Clear the cache entry for cache hits of this experiment [False].", default = False)
@@ -141,7 +142,7 @@ def set_config_commandline_args(conf, args):
     """
     # for commandline_arg in conf['params'].has_key("numsteps"):
     #     conf['params']['numsteps'] = 100
-    gparams = ['numsteps', 'randseed', 'ros', 'docache', 'saveplot', 'showplot', 'cache_clear', 'do_pdb']
+    gparams = ['numsteps', 'randseed', 'ros', 'docache', 'saveplot', 'showplot', 'cache_clear', 'do_pdb', 'plotgraph', 'plotgraph_tikz']
     for clarg in gparams:
         if getattr(args, clarg) is not None:
             conf['params'][clarg] = getattr(args, clarg)
@@ -370,8 +371,9 @@ class Experiment(object):
         self.init_plotgraph(args)
 
     def init_plotgraph(self, args):
-        self.plotgraph_flag = args.plotgraph
-        if self.plotgraph_flag:
+        # self.plotgraph_flag = args.plotgraph
+        
+        if self.conf['params']['plotgraph']:
             self.plotgraph_figures = {}
 
             # graph plot
@@ -825,8 +827,12 @@ class Experiment(object):
         
         # plot the computation graph and the bus
         set_interactive(True)
-        if self.plotgraph_flag:
+        if self.conf['params']['plotgraph']:
             self.plotgraph(G = G, Gbus = Gbus)
+
+        logger.debug("args to conf? plotgraph_tikz = %s", self.conf['params']['plotgraph_tikz'],)
+        if self.conf['params']['plotgraph_tikz']:
+            self.plotgraph_tikz(G = G, Gbus = Gbus)
 
         if self.conf['params']['showplot']:
             set_interactive(False)
@@ -834,8 +840,47 @@ class Experiment(object):
 
         # close files
 
-import networkx as nx
-import re
+    def plotgraph_tikz(self, G = None, Gbus = None, G_cols = None):
+        """plotgraph with tikz
+
+        Use tikz to plot the graph. This is work in progress, the idea
+        is to use tikz to draw a fancy smp_graph with tikz merging the
+        matplotlib plots with the graph itself.
+
+        .. warning:: Work in progress
+
+        TODO:
+         - def convert_nxgraph_to_igraph
+         - subclass TikzGraphDrawer with custom moves
+        """
+        from tikz_network import plot
+        from tikz_network import TikzGraphDrawer
+
+        import networkx as nx
+        import igraph as ig
+        # G = nx.fast_gnp_random_graph(11, 0.28)
+        # G = nx.fast_gnp_random_graph(11, 0.28)
+        g_ = nx.planted_partition_graph(5, 5, 0.9, 0.1, seed=3)
+        g = G
+        logger.debug("nx.to_edgelist(g) = %s", nx.to_edgelist(g))
+        logger.debug("zip(*nx.to_edgelist(g)) = %s", zip(*nx.to_edgelist(g)))
+        logger.debug("zip(*zip(*nx.to_edgelist(g))[:2])= %s", zip(*zip(*nx.to_edgelist(g))[:2]))
+
+        logger.debug("nx.to_numpy_matrix(g) = %s", nx.to_numpy_matrix(g))
+        logger.debug("nx.to_numpy_matrix(g) > 0 = %s", (nx.to_numpy_matrix(g) > 0))
+
+        # g = g_
+        # g1 = ig.Graph(len(g), zip(*zip(*nx.to_edgelist(g))[:2]))
+        # g1.get_adjacency()
+        # plot(g1, 'nxgraph_tikz.tex')
+
+        # convert via adjacency matrix
+        g2 = ig.Graph.Adjacency((nx.to_numpy_matrix(g) > 0).tolist())
+        g2.get_adjacency()
+        plot(g2, 'nxgraph_tikz.tex')
+
+        # assert g1.get_adjacency() == g2.get_adjacency()
+        
 
 class Graphviz(object):
     """Graphviz class
