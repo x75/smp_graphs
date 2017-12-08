@@ -300,7 +300,8 @@ class ModelBlock2(PrimBlock2):
         # FIXME: if block_is_scheduled
         # FIXME: if output_is_scheduled
         
-        if self.cnt % self.blocksize == 0:
+        # if self.cnt % self.blocksize == 0:
+        if self.block_is_scheduled():
             # for mk, mv in self.models.items():
             mk = self.modelkey
             mv = self.models[mk]

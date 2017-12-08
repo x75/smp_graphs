@@ -64,6 +64,7 @@ def get_systemblock_pm(
             'mass': 1.0,
             # distortion
             'transfer': 0,
+            'numelem': 1001,
             # distortion + memory
             'coupling_sigma': 1e-2,
             # external entropy
@@ -101,10 +102,11 @@ def get_systemblock_pm(
     # default dims
     sysconf['params']['dims'] = dims
     
-    if kwargs.has_key('h_numelem'):
+    # if kwargs.has_key('numelem') or kwargs.has_key('h_numelem'):
+    for k in [k for k in kwargs.keys() if k in ['numelem', 'h_numelem']]:
         # h_numelem = kwargs['h_numelem']
-        sysconf['params']['outputs'].update({'h':  {'shape': (dim_s0, kwargs['h_numelem']), 'trigger': 'trig/t1'}})
-        sysconf['params']['numelem'] = kwargs['h_numelem']
+        sysconf['params']['outputs'].update({'h':  {'shape': (dim_s0, kwargs[k]), 'trigger': 'trig/t1'}})
+        sysconf['params']['numelem'] = kwargs[k]
         
     # update from kwargs
     # if kwargs.has_key('dims'):

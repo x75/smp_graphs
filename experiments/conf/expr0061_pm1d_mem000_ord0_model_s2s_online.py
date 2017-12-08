@@ -2,10 +2,12 @@
 
 .. moduleauthor:: Oswald Berthold 2017
 
-From :mod:`expr0060_pm1d_mem000_ord0_model_s2s`
- - take 0060 and add online learning, reuse 0060 graph and rewrite 's2s' configuration
-
+Starting with :mod:`expr0060_pm1d_mem000_ord0_model_s2s` we replace
+the *batch learning* sklearn model with an *online learning*
+smpmodel. We reuse the 0060 configuration graph completely and only
+rewrite the 's2s' model configuration with the loop mechanism.
 """
+
 from smp_graphs.block import FuncBlock2
 from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2
 from smp_graphs.block_models import ModelBlock2
@@ -41,7 +43,13 @@ budget = lconf['budget'] # 510
 lim = lconf['lim'] # 1.0
 numloop = lconf['numloop'] # 1.0
 
-desc = """This experiment is identical to \\ref{{{0}}} except that the batch-fitted model $s2s$ is replaced with an online learning model. As a result, it can be observed that the error magnitude, shown as a red line in the plot, incrementally decreases during the episode.""".format('sec:smp-expr0060-pm1d-mem000-ord0-model-s2s')
+desc = """This experiment is identical to \\ref{{{0}}} except that the
+batch-fitted model $s2s$ is replaced with an online learning model. As
+a result, it can be observed that the error magnitude, shown as a red
+line in the plot, incrementally decreases during the
+episode.""".format(
+    'sec:smp-expr0060-pm1d-mem000-ord0-model-s2s'
+)
 
 outputs = {
     'latex': {'type': 'latex',},
