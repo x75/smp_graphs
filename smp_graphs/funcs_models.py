@@ -1116,7 +1116,12 @@ def init_sklearn(ref, mref, conf, mconf):
     mref.mdl_init = False
     mref.y = 0
     # proper models have self.h transfer func
-    mref.h = np.zeros((conf['params']['outputs']['y']['shape'][0], ref.defaults['model_numelem']))
+    mref.h = np.zeros((
+        # conf['params']['outputs']['y']['shape'][0],
+        # ref.defaults['model_numelem']
+        mref.mdl.odim,   # dim
+        mconf['numelem'] # number observations
+    ))
     # logger.debug('ref.h = %s', ref.h.shape)
     # self.h_sample = 
     # print "mref.mdl", mref.mdl
@@ -1878,25 +1883,31 @@ def step_eh(ref, mref, *args, **kwargs):
 def init_smpmodel(ref, mref, conf, mconf):
     # pass
     mref.mdl = init_model(ref, mref, conf, mconf)
-    ref.h = np.zeros((conf['params']['outputs']['y']['shape'][0], ref.defaults['model_numelem']))
+    mref.h = np.zeros((
+        # conf['params']['outputs']['y']['shape'][0], # dim
+        # ref.defaults['model_numelem']               # number observations
+        mref.mdl.odim,   # dim
+        mconf['numelem'] # number observations
+    ))
 
 def step_smpmodel(ref, mref, *args, **kwargs):
     # for ink, inv in mref.mconf['inputs'].items():
     #     print "step_smpmodel[%d] inputs[%s] = %s" % (ref.cnt, ink, inv)
     X = ref.get_input('x_in')
     Y = ref.get_input('x_tg')
+    
     mref.mdl.fit(X, Y)
 
     X_ = X
     Y_ = mref.mdl.predict(X)
-    setattr(ref, 'y', Y_)
+    setattr(mref, 'y', Y_)
 
     # ref.h_sample = np.atleast_2d(np.hstack([np.linspace(np.min(x_in_), np.max(x_in_), ref.defaults['model_numelem']) for x_in_ in X.T]))
-    ref.h_sample = np.atleast_2d(np.hstack([np.linspace(-1.1, 1.1, ref.defaults['model_numelem']) for x_in_ in X.T]))
-    logger.debug('ref.h_sample = %s', ref.h_sample.shape)
+    mref.h_sample = np.atleast_2d(np.hstack([np.linspace(-1.1, 1.1, mref.mdl.numelem) for x_in_ in X.T]))
+    logger.debug('mref.h_sample = %s', mref.h_sample.shape)
     # FIXME: meshgrid or random samples if dim > 4
-    ref.h = mref.mdl.predict(ref.h_sample.T).T
-    logger.debug('ref.h = %s', ref.h.shape)
+    mref.h = mref.mdl.predict(mref.h_sample.T).T
+    logger.debug('ref.h = %s', mref.h.shape)
     
 class model(object):
     """model class
@@ -1910,6 +1921,7 @@ class model(object):
     """
     defaults = {
         'type': 'random_uniform',
+        'numelem': 1001,
     }
 
     # maybe using classes is appropriate? ;)
@@ -1963,11 +1975,19 @@ class model(object):
          - mref: Model reference [self] FIXME: actually it is modelkey
          - mconf: Model configuration
         """
+        # defaults
+        mconf_ = {}
+        mconf_.update(model.defaults)
+        mconf_.update(mconf)
+        mconf.update(mconf_)
+        
         assert mconf['type'] in self.models.keys(), "in %s.init: unknown model type, %s not in %s" % (self.__class__.__name__, mconf['type'], self.models.keys())
+        assert 'numelem' in mconf.keys(), "in %s.init: %s not in mconf %s" % (self.__class__.__name__, 'numelem', mconf.keys())
         # FIXME: ignoring multiple entries taking 'last' one, in dictionary order
         if mref is None:
             mref = self.__class__.__name__
 
+        # model configuration
         self.mconf = mconf
 
         # use mref as modelkey and forget it

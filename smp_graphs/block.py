@@ -1864,9 +1864,9 @@ class Block2(object):
                             
                             # FIXME: hacky
                             for i in range(1): # 5
-                                if i == 0: print "\n"
+                                # if i == 0: print "\n"
                                 # print "%s-%s init (pass 2) WARNING: bus %s doesn't exist yet and will possibly not be written to by any block, buskeys = %s" % (self.cname, self.id, v['bus'], self.bus.keys())
-                                print "%s%s-%s init (pass 2) WARNING: nonexistent bus %s" % (self.cname, self.id, v['bus'], self.nesting_indent)
+                                self._warning("%s%s-%s init (pass 2) WARNING: nonexistent bus %s" % (self.cname, self.id, v['bus'], self.nesting_indent))
                                 # if not self.top.recurrent: time.sleep(1)
                                     
                             # pre-init that bus from constant
@@ -2324,13 +2324,13 @@ class Block2(object):
 
     def _debug(self, s, *args, **kwargs):
         if self.debug and self.loglevel == logging_DEBUG: # <= logger.loglevel:
-            self._log(logging_DEBUG, s, args, kwargs)
+            self._log(logging_DEBUG, s, *args, **kwargs)
                         
-    def _info(self, s):
-        self._log(logging_INFO, s)
+    def _info(self, s, *args, **kwargs):
+        self._log(logging_INFO, s, *args, **kwargs)
             
-    def _warning(self, s):
-        self._log(logging_WARNING, s)
+    def _warning(self, s, *args, **kwargs):
+        self._log(logging_WARNING, s, *args, **kwargs)
             
     def _log(self, loglevel = logging_INFO, s = '', *args, **kwargs):
         """Block2._log wrapper
@@ -2344,7 +2344,7 @@ class Block2(object):
         Returns:
          - None
         """
-        self.logger.log(loglevel, s)
+        self.logger.log(loglevel, s, *args, **kwargs)
         
     def log_close(self):
         self._info("storing log @final iter %04d" % (self.cnt, ))

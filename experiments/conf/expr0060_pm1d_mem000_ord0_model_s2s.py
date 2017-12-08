@@ -534,7 +534,7 @@ graph = OrderedDict([
             'ylim_share': True,
             'inputs': {
                 's_p': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
-                's_e': {'bus': 'robot1/s_extero', 'shape': (dim_s_extero, numsteps)},
+                's_e': {'bus': 'robot1/s1', 'shape': (dim_s_extero, numsteps)},
                 'pre_l0': {'bus': 'pre_l0/pre', 'shape': (dim_s_goal, numsteps)},
                 'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
                 'pre_l2': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
@@ -697,7 +697,7 @@ graph = OrderedDict([
     #         'xlim_share': True,
     #         'inputs': {
     #             's_p': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
-    #             's_e': {'bus': 'robot1/s_extero', 'shape': (dim_s_extero, numsteps)},
+    #             's_e': {'bus': 'robot1/s1', 'shape': (dim_s_extero, numsteps)},
     #             'pre_l0': {'bus': 'pre_l0/pre', 'shape': (dim_s_goal, numsteps)},
     #             'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
     #             'pre_l2': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
