@@ -730,8 +730,9 @@ class decStep():
                 
                 # copy data onto bus
                 xself.bus[v['buskey']] = getattr(xself, k).copy()
-                if v['buskey'] == 'robot1/h':
-                    logger.debug("output '%s', xself.bus[v['buskey'] = %s] = %s / %s" % (k, v['buskey'], xself.bus[v['buskey']], getattr(xself, k)))
+                
+                # if v['buskey'] == 'robot1/h':
+                #     logger.debug("output '%s', xself.bus[v['buskey'] = %s] = %s / %s" % (k, v['buskey'], xself.bus[v['buskey']], getattr(xself, k)))
                 
                 # if v.has_key('trigger'):
                 #     xself._debug("    triggered: bus[%s] = %s, buskeys = %s" % (buskey, xself.bus[v['buskey']], xself.bus.keys()))
@@ -1077,8 +1078,7 @@ class Block2(object):
              - cloneblock: we are cloning another subgraph referenced by existing
                nodeid
             """
-
-            self._info("%s%s-%s.init_block composite" % (self.nesting_indent, self.cname, self.id))
+            self._debug("%s%s-%s.init_block composite" % (self.nesting_indent, self.cname, self.id))
             # print "%s   with attrs = %s" % (self.nesting_indent, self.__dict__.keys())
             # for k,v in self.__dict__.items():
             #     print "%s-%s k = %s, v = %s" % (self.cname, self.id, k, v)
@@ -1598,11 +1598,13 @@ class Block2(object):
                 )
             
             # print  "    init_subgraph subgraph_rewrite_id", self.conf['params']['id'], "xid", xid
-            
+
+            # replace id strings recursively in graph dict
             self.conf['params']['graph'] = dict_replace_idstr_recursive2(
                 d = self.conf['params']['graph'], xid = xid)
+            
+            # replace id strings recursively in outputs dict
             nks_l = dict_get_nodekeys_recursive(self.conf['params']['graph'])
-
             if self.conf['params'].has_key('outputs'):
                 # get the outputs dict
                 d_outputs = self.conf['params']['outputs']
@@ -1626,7 +1628,7 @@ class Block2(object):
         # if we're coming from non topblock init
         # self.graph = self.conf['params']['graph']
 
-        self._info("{2}{0: <20}-{3}.init_graph_pass_1 graph.keys = {1}".format(self.cname[:20], self.nxgraph.nodes(), self.nesting_indent, self.id))
+        self._debug("{2}{0: <20}-{3}.init_graph_pass_1 graph.keys = {1}".format(self.cname[:20], self.nxgraph.nodes(), self.nesting_indent, self.id))
         
         # if hasattr(self, 'graph'):
         #     print "    graph", self.graph, "\n"
@@ -1643,7 +1645,7 @@ class Block2(object):
             # self.debug_print("__init__: pass 1\nk = %s,\nv = %s", (k, print_dict(v)))
 
             # debug timing
-            self._info("{3}{0: <20}.init pass 1 k = {1: >5}, v = {2: >20}".format(
+            self._debug("{3}{0: <20}.init pass 1 k = {1: >5}, v = {2: >20}".format(
                 self.__class__.__name__[:20], k[:20], v['block'].__name__, self.nesting_indent))
             then = time.time()
 
@@ -1657,12 +1659,12 @@ class Block2(object):
             # print "%s init self.top.graph = %s" % (self.cname, self.top.graph.keys())
             
             # complete time measurement
-            # self._info("{3}{0: <20}.init pass 1 k = {1: >5}, v = {2: >20}, time = {4}".format(
+            # self._debug("{3}{0: <20}.init pass 1 k = {1: >5}, v = {2: >20}, time = {4}".format(
             #     self.__class__.__name__[:20], k, v['block_'].cname,
             #     self.nesting_indent, then,
             # ))
             now = time.time()
-            self._info("{3}{0: <20}.init pass 1 k = {1: >5}, v = {2: >20}, took = {5}s".format(
+            self._debug("{3}{0: <20}.init pass 1 k = {1: >5}, v = {2: >20}, took = {5}s".format(
                 self.__class__.__name__[:20], k, v['block_'].cname,
                 self.nesting_indent, now, now - then,
             ))
@@ -1689,11 +1691,11 @@ class Block2(object):
             
             # self.debug_print("__init__: pass 2\nk = %s,\nv = %s", (k, print_dict(v)))
             # print "%s.init pass 2 k = %s, v = %s" % (self.__class__.__name__, k, v['block'].cname)
-            self._info("{3}{0: <20}.init pass 2 k = {1: >5}, v = {2: >20}".format(self.__class__.__name__[:20], k, v['block_'].cname, self.nesting_indent))
+            self._debug("{3}{0: <20}.init pass 2 k = {1: >5}, v = {2: >20}".format(self.__class__.__name__[:20], k, v['block_'].cname, self.nesting_indent))
             then = time.time()
             # self.graph[k]['block'].init_pass_2()
             v['block_'].init_pass_2()
-            self._info("{3}{0: <20}.init pass 2 k = {1: >5}, v = {2: >20}, took = {4}s".format(
+            self._debug("{3}{0: <20}.init pass 2 k = {1: >5}, v = {2: >20}, took = {4}s".format(
                 self.__class__.__name__[:20], k, v['block_'].cname, self.nesting_indent, time.time() - then))
 
         # for k, v in self.graph.items():
@@ -2186,7 +2188,7 @@ class Block2(object):
         # check if latex output is configured
         output_latex = [(k, v) for k, v in self.outputs.items() if v.has_key('type') and v['type'] == 'latex']
         if len(output_latex) < 1:
-            self._info("latex_close: no latex output configured, output_latex = %s" % (output_latex, ))
+            self._debug("latex_close: no latex output configured, output_latex = %s" % (output_latex, ))
             return
 
         # write latex fragment for experiment
@@ -2621,9 +2623,10 @@ class LoopBlock2(Block2):
                 
             # rewrite block ids with loop count
             lpconf = dict_replace_idstr_recursive(d = lpconf, cid = cid, xid = xid)
-            
+
+            # # seems to work too
             # lpconf = dict_replace_idstr_recursive2(
-            #     d = lpconf, xid = "%d" % (i, ))
+            #     d = lpconf, xid = xid)
             
             # print "         - nxgraph_from_smp_graph loopblock unroll-%d lpconf = %s" % (i, lpconf, )
             # sys.exit(1)

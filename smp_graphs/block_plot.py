@@ -1,5 +1,6 @@
 # import itertools
 
+import re
 from collections import OrderedDict
 from functools import partial
 
@@ -313,8 +314,12 @@ class FigPlotBlock2(BaseplotBlock2):
 
         # write the figure to file
         try:
-            plotinst._info("%s-%s.save saving plot %s to filename = %s" % (plotinst.cname, plotinst.id, plotinst.title, filename))
+            plotinst._info("%s.savefig saving plot %s to filename = %s" % (plotinst.id, re.sub('\n', ' ', plotinst.title), filename))
             plotinst.fig.savefig(filename, dpi=300, bbox_inches="tight")
+        except Exception, e:
+            logger.error("%s.savefig saving failed with %s" % (plotinst.id, e))
+
+        try:
             # if plotinst.top.
             plotinst.top.outputs['latex']['figures'][plotinst.id] = {
                 'filename': filename,
@@ -323,7 +328,7 @@ class FigPlotBlock2(BaseplotBlock2):
                 'desc': plotinst.desc}
             # plotinst.fig.savefig(filename, dpi=300)
         except Exception, e:
-            logger.error("%s.save saving failed with %s" % ('FigPlotBlock2', e))
+            logger.error("%s.savefig configuring top.outputs['latex']['figures'] failed with %s" % (plotinst.id, e, ))
             
     @decStep()
     def step(self, x = None):
@@ -383,6 +388,10 @@ class PlotBlock2(FigPlotBlock2):
     """PlotBlock2 class
     
     Block for plotting timeseries and histograms
+
+    - FIXME: check_list (convert scalars to lists)
+    - FIXME: dict_safe  (safe dict getter return None on key fail)
+    - FIXME: dict_safe_if (True if dict has key and dict[key] True)
     """
     # PlotBlock2.defaults
     defaults = {
@@ -401,6 +410,7 @@ class PlotBlock2(FigPlotBlock2):
         'xlabel': None,
         'ylabel': None,
         'loc': 'left',
+        'cmap': ['rainbow'],
         # 'xticks': False,
         # 'yticks': False,
     }
@@ -710,9 +720,11 @@ class PlotBlock2(FigPlotBlock2):
                 num_cgroup_dist = 255/num_cgroups
                 # cmap_str = 'cyclic_mrybm_35_75_c68'
                 # cmap_str = 'colorwheel'
-                cmap_str = 'rainbow'
+                cmap_str = subplotconf['cmap'][0] # 'rainbow'
                 cmap_idx = None
                 cmap_off = [0 for _ in range(len(plotdata) + 1)]
+                cmap_off_group  = [0 for _ in range(len(plotdata) + 1)]
+                cmap_off_single = [0 for _ in range(len(plotdata) + 1)]
                 
                 if subplotconf.has_key('cmap_idx'):
                     cmap_idx = subplotconf['cmap_idx']
@@ -745,12 +757,18 @@ class PlotBlock2(FigPlotBlock2):
                     self._debug("plot_subplots pass 1 subplot[%d,%d] plotdata[%s] = inv.sh = %s, plotvar = %s, t.sh = %s" % (
                         i, j, ink, inv.shape, plotvar, t.shape))
 
-                    # if multiple input groups, increment color group
+                    # if multiple input groups, increment color group and compensate for implicit cycle state
                     if inkc > 0:
+                        if len(subplotconf['cmap']) > 1:
+                            cmap_str = subplotconf['cmap'][inkc]
+                            
                         ax.set_prop_cycle(
                             get_colorcycler(
                                 cmap_str = cmap_str, cmap_idx = cmap_idx,
-                                c_s = (inkc + 1 + cmap_off[inkc]) * num_cgroup_dist, c_e = (inkc + cmap_off[inkc] + 2) * num_cgroup_dist, c_n = num_cgroup_color
+                                c_s = (inkc + cmap_off[inkc])     * num_cgroup_dist - (inkc * num_cgroup_color),
+                                c_e = (inkc + cmap_off[inkc] + 1) * num_cgroup_dist - (inkc * num_cgroup_color),
+                                c_n = num_cgroup_color,
+                                # c_s = (inkc + 1 + cmap_off[inkc]) * num_cgroup_dist, c_e = (inkc + cmap_off[inkc] + 2) * num_cgroup_dist, c_n = num_cgroup_color
                                 # c_s = (inkc + 1) * num_cgroup_dist, c_e = (inkc + cmap_off[inkc]) * num_cgroup_dist, c_n = num_cgroup_color
                             ),
                         )

@@ -1110,8 +1110,8 @@ def init_sklearn(ref, mref, conf, mconf):
     code = 'from sklearn.{0} import {1}\nmdl = {1}(**skmodel_params)'.format(skmodel_comps[0], skmodel_comps[1])
     gv = {'skmodel_params': skmodel_params}
     r = code_compile_and_run(code, gv)
-    logger.debug("result from compile_and_run code = %s" % (code, ))
-    logger.debug("    r = %s" % (r, ))
+    # logger.debug("result from compile_and_run code = %s" % (code, ))
+    # logger.debug("    r = %s" % (r, ))
     mref.mdl = r['mdl']
     mref.mdl_init = False
     mref.y = 0
@@ -1157,7 +1157,7 @@ def load_sklearn(ref, mref):
 def save_sklearn(ref, mref):
     modelfileext = 'pkl'
     modelfilenamefull = '{0}.{1}'.format(mref.modelfilename, modelfileext)
-    logger.debug("Dumping model %s/%s to file %s" % (ref.id, mref.modelstr, modelfilenamefull))
+    # logger.debug("Dumping model %s/%s to file %s" % (ref.id, mref.modelstr, modelfilenamefull))
     joblib.dump(mref.mdl, modelfilenamefull)
     
 ################################################################################
@@ -1904,10 +1904,10 @@ def step_smpmodel(ref, mref, *args, **kwargs):
 
     # ref.h_sample = np.atleast_2d(np.hstack([np.linspace(np.min(x_in_), np.max(x_in_), ref.defaults['model_numelem']) for x_in_ in X.T]))
     mref.h_sample = np.atleast_2d(np.hstack([np.linspace(-1.1, 1.1, mref.mdl.numelem) for x_in_ in X.T]))
-    logger.debug('mref.h_sample = %s', mref.h_sample.shape)
+    # logger.debug('mref.h_sample = %s', mref.h_sample.shape)
     # FIXME: meshgrid or random samples if dim > 4
     mref.h = mref.mdl.predict(mref.h_sample.T).T
-    logger.debug('ref.h = %s', mref.h.shape)
+    # logger.debug('ref.h = %s', mref.h.shape)
     
 class model(object):
     """model class
@@ -2017,7 +2017,7 @@ class model(object):
         """Dump the model into a file
         """
         if hasattr(self, 'saveable') and self.saveable and not self.mdl_init and self.models[self.modelstr].has_key('save'):
-            ref._info("Saving model %s into file %s" % (self.modelstr, self.modelfilename))
+            ref._info("funcs_models: saving model %s into file %s" % (self.modelstr, self.modelfilename))
             self.models[self.modelstr]['save'](ref, self)
         
     def predict(self, ref):

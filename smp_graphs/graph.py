@@ -526,7 +526,7 @@ def nxgraph_add_edges(G):
                     m = m_l[0][0]
                     # etype = 'trig'
                     k_to_trig = G.node[n]['block_'].id
-                    logger.debug('nxgraph_add_edges: trig edge from %s[%s] to %s[%s]' % (k_from_trig, m, k_to_trig, n))
+                    # logger.debug('nxgraph_add_edges: trig edge from %s[%s] to %s[%s]' % (k_from_trig, m, k_to_trig, n))
                     edges.append((m, n))
                     # edges.append((k_from_l[0], k_to_l[0], {'type': 'data'}))
                     

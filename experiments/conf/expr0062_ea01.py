@@ -94,8 +94,8 @@ If a robots actually is constructed in such a way, that there exists a
 sensor that measures something \\emph{{physically}} close to the action
 itself, it can be assumed that there will be a residual caused by
 microscopic but systematic divergence between actions and their
-corresponding measurements. The experiment shows how the simple agent
-compensates these deviations with adaptive inverse predictions.
+corresponding measurements. The experiment shows an agent
+prepared to compensate for these deviations with adaptive inverse \\myparb{{end-expr}} predictions.
 """.format('sec:smp-expr0045-pm1d-mem000-ord0-random-infodist-id')
 
 # configuration as table
@@ -156,7 +156,7 @@ lconf = {
     },
     'div_meas': 'pyemd', # 'chisq', # 'kld'
     'model_s2s_params': {
-        'debug': True,
+        # 'debug': True,
         'blocksize': numsteps,
         'models': {
             # from top config
@@ -535,7 +535,7 @@ graph = OrderedDict([
                     'params': {
                         'id': 'm_div',
                         'blocksize': numsteps,
-                        'debug': True,
+                        # 'debug': True,
                         'mode': 'div', # 'basic',
                         'scope': 'local',
                         'meas': div_meas, # ['chisq', 'kld'],
@@ -580,7 +580,7 @@ graph = OrderedDict([
     ('plot', {
         'block': PlotBlock2,
         'params': {
-            'debug': True,
+            # 'debug': True,
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'pdf',
@@ -593,15 +593,15 @@ graph = OrderedDict([
                 's1': {'bus': 'robot1/s1', 'shape': (dim_s1, numsteps)},
                 'sys_h': {'bus': 'robot1/h', 'shape': (dim_s0, numelem)},
                 'pre_l0': {'bus': p_vars[0], 'shape': (dim_s_goal, numsteps)}, # 'pre_l0/pre'
-                'pre_l0_del': {'bus': 'delay/dy', 'shape': (dim_s_goal, numsteps)},
+                # 'pre_l0_del': {'bus': 'delay/dy', 'shape': (dim_s_goal, numsteps)},
                 'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
                 # 'pre_l2': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
                 # 'pre_l2_h': {'bus': 'pre_l2/h', 'shape': (dim_s0, numelem)},
                 'mdl1_y': {'bus': 'mdl1/y', 'shape': (dim_s0, numsteps)},
                 'mdl1_h': {'bus': 'mdl1/h', 'shape': (dim_s0, numelem)},
-                'mdl1_y_del': {'bus': 'delay/dmdl_y', 'shape': (dim_s0, numsteps)},
-                'm_err_mdl1': {'bus': 'm_err_mdl1/y', 'shape': (1, numsteps)},
-                'm_err_mdl1_amp': {'bus': 'm_err_mdl1_amp/y', 'shape': (1, numsteps)},
+                # 'mdl1_y_del': {'bus': 'delay/dmdl_y', 'shape': (dim_s0, numsteps)},
+                'err_mdl_pre': {'bus': 'm_err_mdl1/y', 'shape': (1, numsteps)},
+                'err_mdl_pre_': {'bus': 'm_err_mdl1_amp/y', 'shape': (1, numsteps)},
                 'credit_l1': {'bus': 'budget/credit', 'shape': (1, numsteps)},
                 'budget_mu': {'bus': 'm_budget/y_mu', 'shape': (1, 1)},
                 'budget_var': {'bus': 'm_budget/y_var', 'shape': (1, 1)},
@@ -615,19 +615,28 @@ graph = OrderedDict([
                     'bus': 'm_mi/mi',
                     'shape': (dim_s0, 1, 1)
                 },
-                'm_err': {'bus': 'm_err/y', 'shape': (1, numsteps)},
+                'err_pre_s0': {'bus': 'm_err/y', 'shape': (1, numsteps)},
                 'm_rmse': {'bus': 'm_rmse/y', 'shape': (1, 1)},
                 'm_div': {'bus': 'm_div/y', 'shape': (1, numbins)},
                 'm_sum_div': {'bus': 'm_sum_div/y', 'shape': (1, 1)},
             },
-            'desc': 'result. In the lower left part of the figure the prediction histogram and timeseries are shown. In the experiment, the signal is transferred by the transfer function pre\_l2/$h$ and is transformed into the signal $y$ whose histogram diverges by the amount shown in the lower right corner divergence plot. In the error timeseries panel, the original prediction error and the error after the adaptive model\'s transformation are shown on top of each other, together with a magnitude estimate of the second error shown as a red line.',
-
+            'desc': """result. In the lower left part of the figure
+            the prediction histogram and timeseries are shown. In the
+            experiment, the signal is transferred by the transfer
+            function pre\_l2/$h$ and is transformed into the signal
+            $y$ whose histogram diverges by the amount shown in the
+            lower right corner divergence plot. In the error
+            timeseries panel, the original prediction error and the
+            error after the adaptive model\'s transformation are shown
+            on top of each other, together with a magnitude estimate
+            of the second error shown as a red line.""",
             # subplot
             'subplots': [
                 # row 1: transfer func, out y time, out y histo
                 [
                     {
-                        'input': ['sys_h'], 'plot': partial(timeseries), # color = 'k'
+                        'input': ['sys_h'], 'plot': partial(timeseries), # color = 'black'
+                        'cmap': ['gray'], # 'cmap_off': [],
                         'title': 'transfer function $h$', 'aspect': 1.0, 
                         'xaxis': np.linspace(-1, 1, 1001), # 'xlabel': 'input [x]',
                         'xlim': (-1.1, 1.1), 'xticks': True, 'xticklabels': False,
@@ -648,6 +657,7 @@ graph = OrderedDict([
                     },
                     {
                         'input': ['mdl1_h'], 'plot': partial(timeseries), # , color = 'k'),
+                        'cmap': ['gray'], 'cmap_off': [1, 1],
                         'title': 'transfer function $h$', 'aspect': 1.0, 
                         'xaxis': np.linspace(-1, 1, 1001), # 'xlabel': 'input [x]',
                         'xlim': (-1.1, 1.1), 'xticks': True, 'xticklabels': False,
@@ -683,8 +693,9 @@ graph = OrderedDict([
                         'legend_loc': 'right',
                     },
                     {
-                        'input': ['m_err', 'm_err_mdl1', 'm_err_mdl1_amp'], 'plot': [timeseries, partial(timeseries, alpha = 0.7), partial(timeseries, color = 'r')],
-                        'cmap_off': [1, 1, 1, 1],
+                        'input': ['err_pre_s0', 'err_mdl_pre', 'err_mdl_pre_'],
+                        'plot': [timeseries, partial(timeseries, alpha = 0.7), partial(timeseries, color = 'r')],
+                        'cmap_off': [0] + [2] * 3,
                         'title': 'error $x - y$',
                         # 'aspect': 'auto',
                         # 'orientation': 'horizontal',
@@ -697,7 +708,7 @@ graph = OrderedDict([
                     },
                     {
                         'input': ['pre_l0', 'mdl1_y'], 'plot': timeseries,
-                        'cmap_off': [0, 1, 1],
+                        'cmap_off': [0] + [2] * 2,
                         # 'cmap_idx': [0, 30, 60],
                         # 'input': ['pre_l0_del', 'mdl1_y', 'mdl1_y_del'], 'plot': timeseries,
                         'title': 'timeseries $x$',

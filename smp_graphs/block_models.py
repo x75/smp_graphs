@@ -241,8 +241,8 @@ class ModelBlock2(PrimBlock2):
             params[iok].update(mconf_io[iok])
             # params[iok] = mconf_io[iok]
 
-        self.logger.debug("params['inputs'] = %s", params['inputs'])
-        self.logger.debug("params['outputs'] = %s", params['outputs'])
+        # self.logger.debug("params['inputs'] = %s", params['inputs'])
+        # self.logger.debug("params['outputs'] = %s", params['outputs'])
 
         # init models
         # for mk, mv in params['models'].items():

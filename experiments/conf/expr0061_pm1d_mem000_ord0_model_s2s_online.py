@@ -139,7 +139,7 @@ loop = [('lconf', {
     # 'model_s2s': {
     #     'block': repr(ModelBlock2),
     'model_s2s_params': {
-            'debug': True,
+        # 'debug': True,
             'blocksize': 1, # numsteps,
             'models': {
                 # from top config
@@ -175,13 +175,11 @@ loop = [('lconf', {
         },
 }) for i in range(numloop)]
 
-print "loop", loop
-    
 loopblock = {
     'block': Block2,
     'params': {
         'id': 'bhier',
-        'debug': True,
+        # 'debug': True,
         'logging': True,
         'topblock': False,
         'numsteps': numsteps,
@@ -199,6 +197,7 @@ loopblock = {
             },
         # 'graph': graph1,
         'outputs': {
+            # 'pre_l2_t1': {'shape': (1,1), 'buscopy': 'trig/pre_l2_t1'},
             # 'credit_min': {'shape': (1, 1), 'buscopy': 'measure/bcredit_min'},
             # 'credit_max': {'shape': (1, 1), 'buscopy': 'measure/bcredit_max'},
             # 'credit_mu': {'shape': (1, 1), 'buscopy': 'measure/bcredit_mu'},
@@ -228,7 +227,6 @@ graph = OrderedDict([
     ("b4", {
         'block': SeqLoopBlock2,
         'params': {
-            'id': 'b4',
             'debug': True,
             # loop specification, check hierarchical block to completely
             # pass on the contained in/out space?

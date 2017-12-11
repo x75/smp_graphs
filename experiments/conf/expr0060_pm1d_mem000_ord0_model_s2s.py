@@ -107,7 +107,7 @@ lconf = {
     },
     'div_meas': 'chisq', # 'kld'
     'model_s2s_params': {
-        'debug': True,
+        # 'debug': True,
         'blocksize': numsteps,
         'models': {
             # from top config
@@ -245,7 +245,7 @@ graph = OrderedDict([
                 ('pre_l2', {
                     'block': ModelBlock2,
                     'params': {
-                        'debug': False,
+                        'debug': True,
                         'models': {
                             # from top config
                             'infodistgen': infodistgen,
@@ -367,7 +367,7 @@ graph = OrderedDict([
         'params': {
             'id': 'm_err',
             'blocksize': numsteps,
-            'debug': False,
+            # 'debug': False,
             'mode': 'basic',
             'scope': 'local',
             'meas': 'sub',

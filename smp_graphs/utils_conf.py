@@ -10,6 +10,9 @@ import numpy as np
 from smp_base.measures import meas
 from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2
 
+from smp_base.common import get_module_logger
+logger = get_module_logger(modulename = 'utils_conf', loglevel = 'info')
+
 """system block
  - a robot
 """
@@ -23,7 +26,7 @@ def get_systemblock_pm(
 
     """
     global np, PointmassBlock2, meas
-    print "utils_conf get_systemblock_pm: dim_s0 = %d, dt= %f, lag = %d, kwargs = %s" % (dim_s0, dt, lag, kwargs)
+    logger.debug("get_systemblock_pm: dim_s0 = %d, dt= %f, lag = %d, kwargs = %s" % (dim_s0, dt, lag, kwargs))
 
     # legacy argument handling
     if kwargs.has_key('dim_s_proprio'):

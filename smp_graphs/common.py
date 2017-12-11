@@ -344,57 +344,6 @@ def dict_search_recursive(d, k):
     # None found
     return None
 
-def dict_replace_idstr_recursive(d, cid, xid):
-    """smp_graphs.common.dict_replace_idstr_recursive
-
-    Replace all references in dict 'd' to id 'cid' with 'cid{loop_delim}xid'
-    """
-    assert d.has_key('params')
-    # assert d['params'].has_key('id')
-
-    # print "dict_replace_idstr_recursive", print_dict(d)
-
-    if cid is None:
-        return d
-    
-    # if cid is not None:
-    # change param 'id' with loop marker and number
-    d['params']['id'] = "%s%s%s" % (cid, loop_delim, xid)
-    print "dict_replace_idstr_recursive newid", d['params']['id']
-
-    # change param 'inputs'
-    if d['params'].has_key('inputs'):
-        for ink, inv in d['params']['inputs'].items():
-            # print "        cid = %s, id = %s, ink = %s, inv = %s" % (
-            #    cid, d['params']['id'], ink, inv.keys())
-            if inv.has_key('bus'):
-                # print "        bus old", inv['bus']
-                inv['bus'] = re.sub(
-                    r'%s' % (cid, ),
-                    r'%s' % (d['params']['id'], ),
-                    inv['bus'])
-                # print "        bus new", inv['bus']
-                    
-        # change param '?'
-
-    if d['params'].has_key('graph') and type(d['params']['graph']) is not str:
-        tgraph = OrderedDict()
-        for k, v in d['params']['graph'].items():
-            # v['params']['id'] = k
-
-            # replace ids in dict val
-            v = dict_replace_idstr_recursive(d = v, cid = k, xid = xid)
-            # replace ids in dict key
-            k_ = v['params']['id']
-            # reassemble
-            tgraph[k_] = v
-            d['params']['graph'][k] = v
-        # copy new dict to graph
-        # print "tgraph", tgraph
-        d['params']['graph'] = tgraph
-        # print "d['params']['graph']", d['params']['graph']
-    return d
-
 def dict_replace_nodekeys(d, xid, idmap = {}):
     """smp_graphs.common.dict_replace_nodekeys
 
@@ -464,16 +413,18 @@ def dict_replace_nodekeyrefs(d, xid, idmap):
                     
         # fix bus references in outputs
         if d[k_]['params'].has_key('outputs'):
-            for ink, inv in [(ink, inv) for ink, inv in d[k_]['params']['outputs'].items() if inv.has_key('buscopy')]:
+            for ink, inv in [(ink, inv) for ink, inv in d[k_]['params']['outputs'].items() if dict_has_keys_any(inv, ['buscopy', 'trigger'])]:
                 # if inv.has_key('bus'):
-                invbuss = inv['buscopy'].split("/")
-                if invbuss[0] in idmap.keys():
-                    # print "ink, inv", ink, inv
-                    # print "idmap", idmap
-                    buskey = "%s/%s" % (idmap[invbuss[0]], invbuss[1])
-                    # print "dict_replace_nodekeyrefs: replacing %s with %s in node %s" % (inv['buscopy'], buskey, k_)
-                    inv['buscopy'] = buskey
-                print "\n\n\n\n\n\n\noutputs, buscopy", d[k_]['params']
+                for replkey in ['buscopy', 'trigger']:
+                    if not inv.has_key(replkey): continue
+                    invbuss = inv[replkey].split("/")
+                    if invbuss[0] in idmap.keys():
+                        # print "ink, inv", ink, inv
+                        # print "idmap", idmap
+                        buskey = "%s/%s" % (idmap[invbuss[0]], invbuss[1])
+                        # print "dict_replace_nodekeyrefs: replacing %s with %s in node %s" % (inv[replkey], buskey, k_)
+                        inv[replkey] = buskey
+                    # print "\n\n\n\n\n\n\noutputs, buscopy", d[k_]['params']
 
         # fix id references in 'copy' models (want to copy the model from the block with that id)
         if d[k_]['params'].has_key('models'):
@@ -488,20 +439,25 @@ def dict_replace_nodekeyrefs(d, xid, idmap):
         # descend into loopblock
         if d[k_]['params'].has_key('loopblock') and d[k_]['params']['loopblock']['params'].has_key('graph'):
             for ink, inv in d[k_]['params']['loopblock']['params']['outputs'].items():
-                if inv.has_key('buscopy'):
-                    invbuss = inv['buscopy'].split("/")
+                # if dict_has_keys_any(inv, ['buscopy', 'trigger']):
+                for replkey in ['buscopy', 'trigger']:
+                    if not inv.has_key(replkey): continue
+                    invbuss = inv[replkey].split("/")
                     if invbuss[0] in idmap.keys():
                         # print "ink, inv", ink, inv
                         # print "idmap", idmap
                         buskey = "%s/%s" % (idmap[invbuss[0]], invbuss[1])
-                        # print "dict_replace_nodekeyrefs: replacing %s with %s in node %s" % (inv['buscopy'], buskey, k_)
-                        inv['buscopy'] = buskey
-                        
+                        # print "dict_replace_nodekeyrefs: replacing %s with %s in node %s" % (inv[replkey], buskey, k_)
+                        inv[replkey] = buskey
+
             d[k_]['params']['loopblock']['params']['graph'], idmap = dict_replace_nodekeyrefs(d[k_]['params']['loopblock']['params']['graph'], xid, idmap)
             # print "\n\n\n\n\n\n\n", d[k_]['params']['loopblock']['params']['graph']
 
     # return to surface
     return d, idmap
+
+def dict_has_keys_any(d, keys):
+    return len([k_ for k_ in d.keys() if k_ in keys]) > 0
 
 def dict_replace_idstr_recursive2(d, xid, idmap = {}):
     """smp_graphs.common.dict_replace_idstr_recursive2
@@ -527,6 +483,74 @@ def dict_replace_idstr_recursive2(d, xid, idmap = {}):
         
     return d
 
+def dict_replace_idstr_recursive(d, cid, xid):
+    """smp_graphs.common.dict_replace_idstr_recursive
+
+    Replace all references in dict 'd' to id 'cid' with 'cid{loop_delim}xid'
+
+    Returns:
+    - d(dict): the modified dict 'd'
+    """
+    assert d.has_key('params')
+    # assert d['params'].has_key('id')
+
+    # print "dict_replace_idstr_recursive", print_dict(d)
+
+    if cid is None:
+        return d
+    
+    # if cid is not None:
+    # change param 'id' with loop marker and number
+    d['params']['id'] = "%s%s%s" % (cid, loop_delim, xid)
+    print "dict_replace_idstr_recursive newid", d['params']['id']
+
+    # change param 'inputs'
+    if d['params'].has_key('inputs'):
+        for ink, inv in d['params']['inputs'].items():
+            # print "        cid = %s, id = %s, ink = %s, inv = %s" % (
+            #    cid, d['params']['id'], ink, inv.keys())
+            if inv.has_key('bus'):
+                # print "        bus old", inv['bus']
+                inv['bus'] = re.sub(
+                    r'%s' % (cid, ),
+                    r'%s' % (d['params']['id'], ),
+                    inv['bus'])
+                # print "        bus new", inv['bus']
+                    
+        # change param '?'
+
+    # change params 'outputs'
+    if d['params'].has_key('outputs'):
+        for outk, outv in d['params']['outputs'].items():
+            # print "        cid = %s, id = %s, outk = %s, outv = %s" % (
+            #    cid, d['params']['id'], outk, outv.keys())
+            # if outv.has_key('bus'):
+            for outvk in [k_ for k_ in outv.keys() if k_ in ['trigger', 'buscopy']]:
+                print "        bus old", outv['bus']
+                outv[outvk] = re.sub(
+                    r'%s' % (cid, ),
+                    r'%s' % (d['params']['id'], ),
+                    outv[outvk])
+                # print "        bus new", outv['bus']
+                
+    if d['params'].has_key('graph') and type(d['params']['graph']) is not str:
+        tgraph = OrderedDict()
+        for k, v in d['params']['graph'].items():
+            # v['params']['id'] = k
+
+            # replace ids in dict val
+            v = dict_replace_idstr_recursive(d = v, cid = k, xid = xid)
+            # replace ids in dict key
+            k_ = v['params']['id']
+            # reassemble
+            tgraph[k_] = v
+            d['params']['graph'][k] = v
+        # copy new dict to graph
+        # print "tgraph", tgraph
+        d['params']['graph'] = tgraph
+        # print "d['params']['graph']", d['params']['graph']
+    return d
+
 def dict_get_nodekeys_recursive(d):
     """dict_get_nodekeys_recursive
 
@@ -542,36 +566,49 @@ def dict_get_nodekeys_recursive(d):
     return nodekeys
 
 def dict_replace_nodekeys_loop(d = {}, nodekeys = set(), loopiter = 0):
-    # print "dict_replace_nodekeys_loop", d.keys(), nodekeys, loopiter
+    """replace occurences of node keys in a dict with loop index
+    """
+    # logger.debug("dict_replace_nodekeys_loop dict = %s, nodekeys = %s, loopiter = %s", d.keys(), nodekeys, loopiter)
     loopiter_ = None
     if type(loopiter) is tuple:
         loopiter_ = loopiter
         loopiter = loopiter_[1]
-        
+
+    # iterate input dict
     for k, v in d.items():
         # new id from old id
         # k_ = "%s%s%s" % (k, loop_delim, xid)
+        # if key in nodekeys
         if k in nodekeys:
+            # consider hierarchy info loopiter
             if loopiter_ is not None:
                 k_ = "%s%s%s%s" % (k, loopiter_[0], loop_delim, loopiter)
+            # else cold start
             else:
                 k_ = re.sub(r'%s' % (k, ), r'%s%s%s' % (k, loop_delim, loopiter), k)
-            logger.debug("old k = %s, new k = %s" % (k, k_, ))
+            # logger.debug("old k = %s, new k = %s" % (k, k_, ))
             # overwrite old key with replacement
             d[k_] = d.pop(k)
+        # key unmodified
         else:
             k_ = k
             
         # print "k", k, "k_", k_, type(loopiter), nodekeys, type(d[k_])
         # d[k_] is number, str, list, dict
+
+        # check value
         if type(d[k_]) is str:
+            # logger.debug("dict value is str = %s", d[k_])
             for nk in nodekeys:
-                # print "replacing occur of k", nk, "in d[k_]", d[k_], "with string k_", nk, loopiter
+                # logger.debug("checking nodekey = %s", nk)
+                # logger.debug("replacing occurence of k = %s in d[k_] = %s with string k_ =%s / %s", nk,  d[k_], nk, loopiter)
                 if loopiter_ is not None:
                     d[k_] = re.sub(r'%s/' % nk, r'%s%s%s%s/' % (nk, loopiter_[0], loop_delim, loopiter), d[k_])
                 else:
                     d[k_] = re.sub(r'%s/' % nk, r'%s%s%s/' % (nk, loop_delim, loopiter), d[k_])
-            # print "replacing string k with string k_", d[k_]
+                # print "replacing string k with string k_", d[k_]
+                # logger.debug("replaced occurence of nodekey = %s in key = %s?", nk, d[k_])
+                
         elif type(d[k_]) is dict:
             d[k_] = dict_replace_nodekeys_loop(d[k_], nodekeys, loopiter_)
         # elif type(d[k_]) is list:
