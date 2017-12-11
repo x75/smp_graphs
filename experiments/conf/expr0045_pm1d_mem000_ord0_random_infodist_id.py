@@ -347,8 +347,8 @@ graph = OrderedDict([
             },
             'bins': m_hist_bins,
             'outputs': {
-                'h_x1': {'shape': (1, numbins)},
-                'h_x2': {'shape': (1, numbins)},
+                'x1_p': {'shape': (1, numbins)},
+                'x2_p': {'shape': (1, numbins)},
             },
         },
     }),
@@ -366,8 +366,8 @@ graph = OrderedDict([
             # direct histo input?
             # or signal input
             'inputs': {
-                'x1': {'bus': 'm_hist/h_x1', 'shape': (1, numbins)},
-                'x2': {'bus': 'm_hist/h_x2', 'shape': (1, numbins)},
+                'x1': {'bus': 'm_hist/x1_p', 'shape': (1, numbins)},
+                'x2': {'bus': 'm_hist/x2_p', 'shape': (1, numbins)},
             },
             'outputs': {
                 'y': {'shape': (1, numbins)},

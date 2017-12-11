@@ -1117,9 +1117,9 @@ def init_sklearn(ref, mref, conf, mconf):
     mref.y = 0
     # proper models have self.h transfer func
     mref.h = np.zeros((
-        # conf['params']['outputs']['y']['shape'][0],
+        conf['params']['outputs']['y']['shape'][0],
         # ref.defaults['model_numelem']
-        mref.mdl.odim,   # dim
+        # mref.mdl.odim,   # dim
         mconf['numelem'] # number observations
     ))
     # logger.debug('ref.h = %s', ref.h.shape)

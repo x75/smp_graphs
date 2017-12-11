@@ -18,7 +18,7 @@ graph = OrderedDict([
     ("b1", {
         'block': ConstBlock2,
         'params': {
-            'id': 'b1',
+            # 'id': 'b1',
             'blocksize': 1,
             'inputs': {'c': {'val': np.random.uniform(-1, 0.999, (3, 1))}},
             'outputs': {'x': {'shape': (3,1)}},

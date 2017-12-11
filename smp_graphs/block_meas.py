@@ -189,6 +189,7 @@ class TFBlock2(PrimBlock2):
 
 ################################################################################
 # good old plain measures: MSE, \int MSE, statistical moments, ...
+from smp_base.measures import measures as measures_available
 from smp_base.measures import meas_mse, meas_hist, div_kl, div_chisquare
 # from smp_base.measures import meas_sub
 
@@ -262,19 +263,21 @@ class MeasBlock2(PrimBlock2):
     """MeasBlock2 - measure block
 
     MeasBlock2 is a generic container for measures, see the module
-    description in :file:`smp_base/block_meas.py`.
+    description in :file:`smp_base/measures.py`.
 
-    The idea is that the meas block operation is governed by the `mode`, `scope` and `meas` attributes.
+    The idea is that the MeasBlock2 operation is governed by the
+    `mode`, `scope` and `meas` attributes.
 
-    Modes are: primitive, scan, basis transform, ...
+    Modes are: primitive (single measure), scan (multiple measures),
+    histogram (vector quant), basis transforms, ...
 
-    Scopes are local (component-wise) and global (summed over all
+    Scopes are: local (component-wise) and global (summed over all
     axes). Using parametric embedding / convolution / summation-rules,
     local-to-global can be made into a continuous spectrum.
 
     Measures are: all common distance metrics (error, manhattan,
     euclid, l1, l2, linf, min, max, cosine, ...), histo and
-    probabilistic distance metrics (KLD, chi-square, mahalanobis,
+    probabilistic distance metrics (KLD, chi-square, EMD, mahalanobis,
     ...), information theoretic (entropic) measures, basis transforms,
     ...
     """
@@ -282,12 +285,18 @@ class MeasBlock2(PrimBlock2):
         'basic': {},
         'hist': {},
     }
-    measures = {
-        'sub': {'func': np.subtract},
-        'mse': {'func': meas_mse},
-        'hist': {'func': meas_hist}, # compute histogram
-        'kld':  {'func': div_kl},
-        'chisq':  {'func': div_chisquare},
+    # use available measures from smp_base.measures
+    measures = measures_available
+    # measures = {
+    #     'sub': {'func': np.subtract},
+    #     'mse': {'func': meas_mse},
+    #     'hist': {'func': meas_hist}, # compute histogram
+    #     'kld':  {'func': div_kl},
+    #     'chisq':  {'func': div_chisquare},
+    # }
+    output_modifiers = {
+        'proba': '_p',
+        'value': '_x',
     }
     
     defaults = {
@@ -299,6 +308,7 @@ class MeasBlock2(PrimBlock2):
             'y': {'shape': (1, 1)}
         },
         'mode': 'basic',
+        'scope': 'local',
         'meas': 'mse',
         'bins': 21, # 'auto',
     }
@@ -311,7 +321,7 @@ class MeasBlock2(PrimBlock2):
         self._step = self.step_basic
 
         # mode specific setup
-        if self.mode == 'basis':
+        if self.mode == 'basic':
             if type(self.meas) is list:
                 for meas in self.meas:
                     # create outputs for measures
@@ -322,6 +332,9 @@ class MeasBlock2(PrimBlock2):
             # self.outputs
             if type(self.bins) is int:
                 self.bins = np.linspace(-1.1, 1.1, self.bins + 1)
+        # mode specific setup
+        elif self.mode == 'div':
+            self._step = self.step_div
         
         # FIXME: mangle conf for input/output dimension inference
         
@@ -347,8 +360,47 @@ class MeasBlock2(PrimBlock2):
         
         self._debug('y = measures[%s](x1, x2) = %s' % (self.meas, str(self.y)[:300]))
 
+    def step_div(self, x = None):
+        x1_p = self.get_input('x1_p').astype(np.float)
+        x2_p = self.get_input('x2_p').astype(np.float)
+        x1_x = self.get_input('x1_x').astype(np.float)
+        x2_x = self.get_input('x2_x').astype(np.float)
+        
+        self._debug('self.measures     is type = %s, length = %s' % (type(self.measures), len(self.measures)))
+        self._debug('self.measures[%s] is type = %s, length = %s' % (self.meas, type(self.measures[self.meas]), len(self.measures[self.meas])))
+        self._debug('    step_div calling %s on (x1 = %s, x2 = %s)' % (self.measures[self.meas]['func'], x1_p.shape, x2_p.shape))
+        self._debug('               x1 = %s' % (x1_p, ))
+        self._debug('               x2 = %s' % (x2_p, ))
+        
+        # distmat d(x1_i, x2_j)
+        x1_x_ = x1_x
+        x2_x_ = x2_x
+        assert len(x1_x.shape) == 1, "Assuming 1d bin specs in MeasBlock2.step_div from block id = %s FIXME" % (self.id, )
+        if  x1_x.shape[0] != x1_p.shape[0]: # bin limits
+            # x1_x_ = x1_x[:-1] + np.mean(np.abs(np.diff(x1_x)))/2.0
+            x1_x_ = x1_x[:-1] + np.abs(np.diff(x1_x))/2.0
+        if x2_x.shape[0] != x2_p.shape[0]: # bin limits
+            # x2_x_ = x2_x[:-1] + np.mean(np.abs(np.diff(x2_x)))/2.0
+            x2_x_ = x2_x[:-1] + np.abs(np.diff(x2_x))/2.0
+            
+        distmat = x1_x_[None,:] - x2_x_[:,None]
+        self._debug('    distmat = %s' % (distmat.shape, ))
+
+        div, flow = self.measures[self.meas]['func'](x1_p, x2_p, distmat, flow = True)
+        if self.scope == 'local':
+            setattr(self, 'y', np.sum(flow, axis = 0))
+            # setattr(self, 'y', np.array(flow[0]))
+        else:
+            setattr(self, 'y', div)
+            
+        
+        self._debug('y = measures[%s](x1, x2) = %s' % (self.meas, str(self.y)[:300]))
+        
+        
     def step_hist(self, x = None):
         """step for histogram
+
+        Compute the histogram for all input items.
 
         Inputs:
          - x(ndarray): data
@@ -361,9 +413,12 @@ class MeasBlock2(PrimBlock2):
         for ink, inv in self.inputs.items():
             x = self.get_input(ink)
             self._debug('    calling %s on (x = %s, bins = %s)' % (self.measures[self.meas]['func'], x.shape, self.bins))
-            h_ = self.measures[self.meas]['func'](x, bins = self.bins)
-            setattr(self, 'h_%s' % (ink, ), h_[0])
-            self._debug('    h_%s = measures[%s](x, bins) = %s' % (ink, self.meas, str(getattr(self, 'h_%s' % (ink, )))[:100]))
+            _h = self.measures[self.meas]['func'](x, bins = self.bins)
+            # h_ is a tuple (counts, bins)
+            self._debug('    _h[0].shape = %s, _h[1].shape = %s, bins = %s' % (_h[0].shape, _h[1].shape, self.bins))
+            setattr(self, '%s%s' % (ink, MeasBlock2.output_modifiers['proba']), _h[0])
+            setattr(self, '%s%s' % (ink, MeasBlock2.output_modifiers['value']), _h[1])
+            self._debug('    _h%s = measures[%s](x, bins) = %s' % (ink, self.meas, str(getattr(self, '%s%s' % (ink, MeasBlock2.output_modifiers['proba'])))[:100]))
             
         # x1 = self.get_input('x1')
         # x2 = self.get_input('x2')

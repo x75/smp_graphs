@@ -39,7 +39,7 @@ self-exploration
 import re 
 from sklearn.gaussian_process.kernels import WhiteKernel, ExpSineSquared
 
-from smp_base.plot import table
+from smp_base.plot import table, bar
 
 from smp_graphs.common import compose
 from smp_graphs.block import FuncBlock2, TrigBlock2
@@ -65,8 +65,8 @@ randseed = 126
 
 # predicted variables
 p_vars = ['pre_l0/pre']
-# p_del_vars = p_vars
-p_del_vars = ['delay/dy']
+p_del_vars = p_vars
+# p_del_vars = ['delay/dy']
 # p_vars = ['robot1/s0']
 # measured variables
 m_vars = ['robot1/s0']
@@ -154,7 +154,7 @@ lconf = {
         's_f': 2.0,
         'e': 0.0,
     },
-    'div_meas': 'chisq', # 'kld'
+    'div_meas': 'pyemd', # 'chisq', # 'kld'
     'model_s2s_params': {
         'debug': True,
         'blocksize': numsteps,
@@ -326,23 +326,23 @@ graph = OrderedDict([
                     },
                 }),
 
+                # # delay blocks for dealing with sensorimotor delays
+                # ('delay', {
+                #     'block': DelayBlock2,
+                #     'params': {
+                #         # 'debug': True,
+                #         'blocksize': 1,
+                #         # 'inputs': {'y': {'bus': 'motordiff/dy'}},
+                #         'inputs': {
+                #             'y':     {'bus': 'pre_l0/pre', 'shape': (dim_s0, 1)},
+                #             'mdl_y': {'bus': 'mdl1/y',     'shape': (dim_s0, numsteps)}},
+                #         'delays': {'y': 0, 'mdl_y': 0},
+                #     }
+                # }),
+        
                 # inverse model s2s
                 ('mdl1', lconf['model_s2s']),
                 
-                # delay blocks for dealing with sensorimotor delays
-                ('delay', {
-                    'block': DelayBlock2,
-                    'params': {
-                        # 'debug': True,
-                        'blocksize': 1,
-                        # 'inputs': {'y': {'bus': 'motordiff/dy'}},
-                        'inputs': {
-                            'y':     {'bus': 'pre_l0/pre', 'shape': (dim_s0, 1)},
-                            'mdl_y': {'bus': 'mdl1/y',     'shape': (dim_s0, numsteps)}},
-                        'delays': {'y': 0, 'mdl_y': 0},
-                    }
-                }),
-        
             ]),
         }
     }),
@@ -513,8 +513,10 @@ graph = OrderedDict([
             },
             'bins': m_hist_bins,
             'outputs': {
-                'h_x1': {'shape': (1, numbins)},
-                'h_x2': {'shape': (1, numbins)},
+                'x1_p': {'shape': (1, numbins)},
+                'x1_x': {'shape': (1, numbins + 1)},
+                'x2_p': {'shape': (1, numbins)},
+                'x2_x': {'shape': (1, numbins + 1)},
             },
         },
     }),
@@ -525,15 +527,17 @@ graph = OrderedDict([
         'params': {
             'id': 'm_div',
             'blocksize': numsteps,
-            'debug': False,
-            'mode': 'basic',
+            'debug': True,
+            'mode': 'div', # 'basic',
             'scope': 'local',
             'meas': div_meas, # ['chisq', 'kld'],
             # direct histo input?
             # or signal input
             'inputs': {
-                'x1': {'bus': 'm_hist/h_x1', 'shape': (1, numbins)},
-                'x2': {'bus': 'm_hist/h_x2', 'shape': (1, numbins)},
+                'x1_p': {'bus': 'm_hist/x1_p', 'shape': (1, numbins)},
+                'x1_x': {'bus': 'm_hist/x1_x', 'shape': (1, numbins + 1)},
+                'x2_p': {'bus': 'm_hist/x2_p', 'shape': (1, numbins)},
+                'x2_x': {'bus': 'm_hist/x2_x', 'shape': (1, numbins + 1)},
             },
             'outputs': {
                 'y': {'shape': (1, numbins)},
@@ -565,7 +569,7 @@ graph = OrderedDict([
     ('plot', {
         'block': PlotBlock2,
         'params': {
-            # 'debug': True,
+            'debug': True,
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'pdf',
@@ -612,7 +616,7 @@ graph = OrderedDict([
                 # row 1: transfer func, out y time, out y histo
                 [
                     {
-                        'input': ['sys_h'], 'plot': timeseries,
+                        'input': ['sys_h'], 'plot': partial(timeseries), # color = 'k'
                         'title': 'transfer function $h$', 'aspect': 1.0, 
                         'xaxis': np.linspace(-1, 1, 1001), # 'xlabel': 'input [x]',
                         'xlim': (-1.1, 1.1), 'xticks': True, 'xticklabels': False,
@@ -622,7 +626,7 @@ graph = OrderedDict([
                     },
                     {
                         # 'input': ['s0', 'pre_l0', 'pre_l0_del'], 'plot': [timeseries for _ in range(3)],
-                        'input': ['s0', 'pre_l0'], 'plot': [timeseries for _ in range(2)],
+                        'input': ['pre_l0', 's0', ], 'plot': [partial(timeseries, alpha = 0.3), timeseries],
                         # 'input': ['s0'], 'plot': [timeseries for _ in range(3)],
                         'title': 'timeseries $y$', 'aspect': 'auto', # (1*numsteps)/(2*2.2),
                         'xlim': None, 'xticks': False, 'xticklabels': False,
@@ -632,16 +636,17 @@ graph = OrderedDict([
                         'legend_loc': 'left',
                     },
                     {
-                        'input': ['mdl1_h'], 'plot': timeseries,
+                        'input': ['mdl1_h'], 'plot': partial(timeseries), # , color = 'k'),
                         'title': 'transfer function $h$', 'aspect': 1.0, 
                         'xaxis': np.linspace(-1, 1, 1001), # 'xlabel': 'input [x]',
                         'xlim': (-1.1, 1.1), 'xticks': True, 'xticklabels': False,
                         'ylabel': 'output $y = h(x)$',
-                        'ylim': (-1.1, 1.1), 'yticks': True,
+                        'ylim': (-1.1, 1.1), 'yticks': True, 'yticklabels': False,
                         'legend_loc': 'left',
                     },
                     {
                         'input': ['s0'], 'plot': histogram,
+                        'cmap_off': [1, 1],
                         'title': 'histogram $y$', 'aspect': 'auto', # (1*numsteps)/(2*2.2),
                         'orientation': 'horizontal',
                         'xlim': None, # 'xticks': False, 'xticklabels': None,
@@ -668,6 +673,7 @@ graph = OrderedDict([
                     },
                     {
                         'input': ['m_err', 'm_err_mdl1', 'm_err_mdl1_amp'], 'plot': [timeseries, partial(timeseries, alpha = 0.7), partial(timeseries, color = 'r')],
+                        'cmap_off': [1, 1, 1, 1],
                         'title': 'error $x - y$',
                         # 'aspect': 'auto',
                         # 'orientation': 'horizontal',
@@ -680,6 +686,8 @@ graph = OrderedDict([
                     },
                     {
                         'input': ['pre_l0', 'mdl1_y'], 'plot': timeseries,
+                        'cmap_off': [0, 1, 1],
+                        # 'cmap_idx': [0, 30, 60],
                         # 'input': ['pre_l0_del', 'mdl1_y', 'mdl1_y_del'], 'plot': timeseries,
                         'title': 'timeseries $x$',
                         'aspect': 2.2/numsteps,
@@ -719,7 +727,7 @@ graph = OrderedDict([
                         'title': 'histogram divergence %s $h1 - h2$' % (div_meas, ),
                         'shape': (1, numbins),
                         # 'aspect': 'auto',
-                        # 'orientation': 'horizontal',
+                        'orientation': 'vertical',
                         'xlim': None, # 'xticks': False, # 'xticklabels': False,
                         'xaxis': m_hist_bincenters, 'xlabel': 'bins $k$',
                         # 'yticks': False,

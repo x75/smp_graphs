@@ -711,11 +711,21 @@ class PlotBlock2(FigPlotBlock2):
                 # cmap_str = 'cyclic_mrybm_35_75_c68'
                 # cmap_str = 'colorwheel'
                 cmap_str = 'rainbow'
+                cmap_idx = None
+                cmap_off = [0 for _ in range(len(plotdata) + 1)]
+                
+                if subplotconf.has_key('cmap_idx'):
+                    cmap_idx = subplotconf['cmap_idx']
+                self._debug("plot_subplots pass 1 subplot[%d,%d] cmap_idx = %s" % (i, j, cmap_idx))
+                if subplotconf.has_key('cmap_off'):
+                    assert type(subplotconf['cmap_off']) is list, "cmap_off param needs to be a list"
+                    cmap_off = subplotconf['cmap_off']
+                self._debug("plot_subplots pass 1 subplot[%d,%d] cmap_off = %s" % (i, j, cmap_off))
 
                 ax.set_prop_cycle(
                     get_colorcycler(
-                        cmap_str = cmap_str, cmap_idx = None,
-                        c_s = inkc * num_cgroup_dist, c_e = (inkc + 1) * num_cgroup_dist, c_n = num_cgroup_color
+                        cmap_str = cmap_str, cmap_idx = cmap_idx,
+                        c_s = (inkc + cmap_off[inkc]) * num_cgroup_dist, c_e = (inkc + cmap_off[inkc] + 1) * num_cgroup_dist, c_n = num_cgroup_color
                     )
                 )
                 
@@ -739,8 +749,9 @@ class PlotBlock2(FigPlotBlock2):
                     if inkc > 0:
                         ax.set_prop_cycle(
                             get_colorcycler(
-                                cmap_str = cmap_str, cmap_idx = None,
-                                c_s = (inkc + 1) * num_cgroup_dist, c_e = (inkc + 2) * num_cgroup_dist, c_n = num_cgroup_color
+                                cmap_str = cmap_str, cmap_idx = cmap_idx,
+                                c_s = (inkc + 1 + cmap_off[inkc]) * num_cgroup_dist, c_e = (inkc + cmap_off[inkc] + 2) * num_cgroup_dist, c_n = num_cgroup_color
+                                # c_s = (inkc + 1) * num_cgroup_dist, c_e = (inkc + cmap_off[inkc]) * num_cgroup_dist, c_n = num_cgroup_color
                             ),
                         )
 
