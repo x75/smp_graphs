@@ -298,24 +298,33 @@ class TextBlock2(BaseplotBlock2):
 
         # make sure that data has been generated
         if (self.cnt % self.blocksize) in self.blockphase: # or (xself.cnt % xself.rate) == 0:
+            top_id = re.sub(r'_', r'-', self.top.id)
+            table_title = 'Results: %s' % (top_id)
+            table_id = '%s' % (top_id, )
+            table_caption = self.desc
+            
             # self.textbuf = '\\begin{tabularx}{\\textwidth}{|r|X|}\n'
             self.textbuf = """\\bigskip
 \\begin{minipage}{\\linewidth}
 \\centering
-\\captionof{table}{Table Title} \\label{tab:title2}
-\\begin{tabularx}{200pt}{|r|r|}\n"""
+\\captionof{table}{%s} \\label{tab:%s}
+\\begin{tabularx}{0.3\\textwidth}{rr}\\toprule[1.0pt]\n""" % (table_title, table_id)
             self.textbuf += '\\textbf{Measure} & \\textbf{Value}\\\\\n'
-            self.textbuf += '\\hline\n'
-            for ink, inv in self.inputs.items():
+            self.textbuf += '\\midrule\n'
+            # for ink, inv in self.inputs.items():
+            inputkeys = self.inputs.keys()
+            inputkeys.sort()
+            for ink in inputkeys:
+                inv = self.inputs[ink]
                 self._info('ink = %s, inv = %s' % (ink, inv))
                 self.textbuf += '{:} & ${:10.4f}$ \\\\\n'.format(re.sub(r'_', r'\_', ink), inv['val'].flatten()[0])
                 
-            self.textbuf += '\\end{tabularx}\n'
+            self.textbuf += '\\bottomrule[2pt]\n\\end{tabularx}\n'
 
             self.textbuf += """\\par
 \\bigskip
-Should be a caption
-\\end{minipage}\n"""
+%s
+\\end{minipage}\n""" % (table_caption)
             
 #             self.textbuf += """\n
 # \\bigskip

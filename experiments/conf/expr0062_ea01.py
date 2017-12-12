@@ -771,6 +771,7 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'tex',
+            'desc': 'Budget statistics, information closeness / distance (mi/di), root mean squared prediction error and mean divergence.',
             'inputs': {
                 # globally integrated scalar values
                 'budget_mu': {'bus': 'm_budget/y_mu', 'shape': (1, 1)},
