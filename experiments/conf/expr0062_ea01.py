@@ -44,6 +44,7 @@ from smp_base.plot import table, bar
 from smp_graphs.common import compose
 from smp_graphs.block import FuncBlock2, TrigBlock2
 from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2
+from smp_graphs.block_plot import TextBlock2
 from smp_graphs.block_models import ModelBlock2
 from smp_graphs.block_meas import MeasBlock2, MomentBlock2
 from smp_graphs.block_meas_infth import MIBlock2, InfoDistBlock2
@@ -760,6 +761,27 @@ graph = OrderedDict([
                 ],
                 
             ],
+        },
+    }),
+
+    # results table
+    ('table', {
+        'block': TextBlock2,
+        'params': {
+            'blocksize': numsteps,
+            'saveplot': saveplot,
+            'savetype': 'tex',
+            'inputs': {
+                # globally integrated scalar values
+                'budget_mu': {'bus': 'm_budget/y_mu', 'shape': (1, 1)},
+                'budget_var': {'bus': 'm_budget/y_var', 'shape': (1, 1)},
+                'budget_min': {'bus': 'm_budget/y_min', 'shape': (1, 1)},
+                'budget_max': {'bus': 'm_budget/y_max', 'shape': (1, 1)},
+                'm_di': {'bus': 'm_di/infodist', 'shape': (dim_s0, 1, 1)},
+                'm_mi': {'bus': 'm_mi/mi', 'shape': (dim_s0, 1, 1)},
+                'm_rmse': {'bus': 'm_rmse/y', 'shape': (1, 1)},
+                'm_sum_div': {'bus': 'm_sum_div/y', 'shape': (1, 1)},
+            }
         },
     }),
 

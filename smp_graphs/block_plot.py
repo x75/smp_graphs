@@ -1,5 +1,13 @@
-# import itertools
+"""smp_graphs.block_plot
 
+Plotting blocks
+
+.. moduleauthor:: Oswald Berthold, 2017
+
+Available blocks: :class:`AnalysisBlock2`, :class:`BaseplotBlock2`,
+:class:`FigPlotBlock2`, :class:`PlotBlock2`, :class:`ImgPlotBlock2`,
+:class:`MatrixPlotBlock2`, :class:`SnsMatrixPlotBlock2`
+"""
 import re
 from collections import OrderedDict
 from functools import partial
@@ -203,7 +211,7 @@ class AnalysisBlock2(PrimBlock2):
             # append plot type to title
             title += " " + plottype
         return title
-        
+
 
 class BaseplotBlock2(AnalysisBlock2):
     """Plotting base class
@@ -231,10 +239,12 @@ class BaseplotBlock2(AnalysisBlock2):
         AnalysisBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
     def prepare_saveplot(self):
-        """if saveplot set, compute filename and register top.outputs of type fig
+        """if saveplot is set, compute filename and register top.outputs of type fig
         """
         if self.saveplot:
+            # generate filename
             self.filename = '%s_%s.%s' % (self.top.datafile_expr, self.id, self.savetype)
+            # register as top block output
             self.top.outputs['%s' % (self.id, )] = {
                 'type': 'fig',
                 'filename': self.filename,
@@ -244,6 +254,89 @@ class BaseplotBlock2(AnalysisBlock2):
                 'width': 1.0,
             }
     
+class TextBlock2(BaseplotBlock2):
+    """TextBlock2
+
+    Block for text output, currently the only target / backend is *latex*.
+
+    ..note:: This block duplicates Block2's :func:`Block2.latex_close` functionality. FIXME: merge
+    """
+    defaults = {
+        'block_group': ['output', 'measure'],
+        'savetype': 'tex',
+    }
+    @decInit()
+    def __init__(self, conf = {}, paren = None, top = None):
+        # update child class 'self' defaults
+        defaults = {}
+        defaults.update(AnalysisBlock2.defaults, **self.defaults)
+        self.defaults = defaults
+        
+        # super init
+        BaseplotBlock2.__init__(self, conf = conf, paren = paren, top = top)
+
+        # prepare for saving
+        # self.prepare_saveplot()
+        if self.saveplot:
+            # self.filename = '%s_%s.%s' % (self.top.datafile_expr, self.id, self.savetype)
+            self.filename = '%s/%s_%s.%s' % (self.top.datadir_expr, self.top.id, self.id, self.savetype)
+            self._info('Filename set to %s' % (self.filename, ))
+
+    @decStep()
+    def step(self, x = None):
+        """Call the :func:`plot_subplots` function
+
+        Makes sure
+         - that there is some data to plot
+         - that the data is loaded from the :data:`log_store` instead
+           of the :class:`Bus` inputs if the :data:`inputs_log` is
+           set.
+        """
+        
+        # have inputs at all?
+        if len(self.inputs) < 1: return
+
+        # make sure that data has been generated
+        if (self.cnt % self.blocksize) in self.blockphase: # or (xself.cnt % xself.rate) == 0:
+            self.textbuf = '\\begin{tabularx}{\\textwidth}{|r|l|}\n'
+            self.textbuf += '\\textbf{Measure} & \\textbf{Value}\\\\\n'
+            self.textbuf += '\\hline\n'
+            for ink, inv in self.inputs.items():
+                self._info('ink = %s, inv = %s' % (ink, inv))
+                self.textbuf += '%s & $%f$ \\\\\n' % (re.sub(r'_', r'\_', ink), inv['val'].flatten()[0])
+                
+            self.textbuf += '\\end{tabularx}\n'
+
+            self.textbuf += """\n
+\\bigskip
+\\begin{minipage}{\\linewidth}
+\\centering
+\\captionof{table}{Table Title} \\label{tab:title2} 
+\\begin{tabularx}{\\linewidth}{@{} C{1in} C{.85in} *4X @{}}\\toprule[1.5pt]
+\\bf Variable Name & \\bf Regression 1 & \\bf Mean & \\bf Std. Dev & \\bf Min & \\bf Max\\\\\\midrule
+text        &  text     & text      &  text     &  text     &text\\\\
+\\bottomrule[1.25pt]
+\\end {tabularx}\\par
+\\bigskip
+Should be a caption
+\\end{minipage}
+"""
+
+            if self.saveplot:
+                self.save()
+
+    def save(self):
+        """Save the analysis, redirect to corresponding class method, passing the instance
+        """
+        try:
+            f = open(self.filename, 'w')
+            f.write(self.textbuf)
+            f.flush()
+            f.close()
+            self._info('Saved texbuf (%d) to file %s' % (len(self.textbuf), self.filename))
+        except Exception, e:
+            self._error('Saving texbuf to file %s failed with %s' % (self.filename, e))
+
 class FigPlotBlock2(BaseplotBlock2):
     """FigPlotBlock2 class
 
