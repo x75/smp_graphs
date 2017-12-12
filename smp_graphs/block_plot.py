@@ -298,29 +298,39 @@ class TextBlock2(BaseplotBlock2):
 
         # make sure that data has been generated
         if (self.cnt % self.blocksize) in self.blockphase: # or (xself.cnt % xself.rate) == 0:
-            self.textbuf = '\\begin{tabularx}{\\textwidth}{|r|l|}\n'
+            # self.textbuf = '\\begin{tabularx}{\\textwidth}{|r|X|}\n'
+            self.textbuf = """\\bigskip
+\\begin{minipage}{\\linewidth}
+\\centering
+\\captionof{table}{Table Title} \\label{tab:title2}
+\\begin{tabularx}{200pt}{|r|r|}\n"""
             self.textbuf += '\\textbf{Measure} & \\textbf{Value}\\\\\n'
             self.textbuf += '\\hline\n'
             for ink, inv in self.inputs.items():
                 self._info('ink = %s, inv = %s' % (ink, inv))
-                self.textbuf += '%s & $%f$ \\\\\n' % (re.sub(r'_', r'\_', ink), inv['val'].flatten()[0])
+                self.textbuf += '{:} & ${:10.4f}$ \\\\\n'.format(re.sub(r'_', r'\_', ink), inv['val'].flatten()[0])
                 
             self.textbuf += '\\end{tabularx}\n'
 
-            self.textbuf += """\n
-\\bigskip
-\\begin{minipage}{\\linewidth}
-\\centering
-\\captionof{table}{Table Title} \\label{tab:title2} 
-\\begin{tabularx}{\\linewidth}{@{} C{1in} C{.85in} *4X @{}}\\toprule[1.5pt]
-\\bf Variable Name & \\bf Regression 1 & \\bf Mean & \\bf Std. Dev & \\bf Min & \\bf Max\\\\\\midrule
-text        &  text     & text      &  text     &  text     &text\\\\
-\\bottomrule[1.25pt]
-\\end {tabularx}\\par
+            self.textbuf += """\\par
 \\bigskip
 Should be a caption
-\\end{minipage}
-"""
+\\end{minipage}\n"""
+            
+#             self.textbuf += """\n
+# \\bigskip
+# \\begin{minipage}{\\linewidth}
+# \\centering
+# \\captionof{table}{Table Title} \\label{tab:title2} 
+# \\begin{tabularx}{\\linewidth}{@{} C{1in} C{.85in} *4X @{}}\\toprule[1.5pt]
+# \\bf Variable Name & \\bf Regression 1 & \\bf Mean & \\bf Std. Dev & \\bf Min & \\bf Max\\\\\\midrule
+# text        &  text     & text      &  text     &  text     &text\\\\
+# \\bottomrule[1.25pt]
+# \\end {tabularx}\\par
+# \\bigskip
+# Should be a caption
+# \\end{minipage}
+# """
 
             if self.saveplot:
                 self.save()
