@@ -2290,7 +2290,7 @@ class Block2(object):
                     descs.append(figdesc_)
 
                 c_ = ', '.join(["%s \\autoref{fig:%s}" % (desc, ref) for (desc, ref) in zip(descs, refs)])
-                caption = "  \\caption{\\label{fig:%s-%s}%s's %s.}\n\\end{figure}\n\n\n" % (figlabel_, figk, id_, c_)
+                caption = "  \\caption{\\label{fig:%s-%s}%s %s.}\n\\end{figure}\n\n\n" % (figlabel_, figk, id_, c_)
                 figbuf += caption
                 
                 texbuf += figbuf

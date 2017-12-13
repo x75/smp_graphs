@@ -53,6 +53,7 @@ from numpy import sqrt, mean, square
 from smp_graphs.funcs import f_sin, f_motivation, f_motivation_bin, f_meansquare, f_sum, f_rootmeansquare, f_envelope
 
 from smp_graphs.utils_conf import get_systemblock
+from smp_graphs.utils_conf_meas import get_measures_block
 
 # global parameters can be overwritten from the commandline
 ros = False
@@ -286,6 +287,25 @@ graph = OrderedDict([
                     },
                 }),
 
+                # m: budget moments
+                ('m_budget', {
+                    'block': MomentBlock2,
+                    'params': {
+                        'id': 'm_budget',
+                        # 'debug': True,
+                        'blocksize': numsteps,
+                        'inputs': {
+                            'y': {'bus': 'budget/credit', 'shape': (1, numsteps)},
+                        },
+                        'outputs': {
+                            'y_mu': {'shape': (1, 1)},
+                            'y_var': {'shape': (1, 1)},
+                            'y_min': {'shape': (1, 1)},
+                            'y_max': {'shape': (1, 1)},
+                        },
+                    },
+                }),
+    
                 # uniformly dist. random goals, triggered when error < goalsize
                 ('pre_l1', {
                     'block': ModelBlock2,
@@ -348,231 +368,17 @@ graph = OrderedDict([
         }
     }),
 
-    # measures
-    ('measures', {
-        'block': Block2,
-        'params': {
-            'numsteps': 1, # numsteps,
-            'id': 'measures',
-            'nocache': True,
-            'graph': OrderedDict([
-                # m: mutual information I(m1;m2)
-                ('m_mi', {
-                    'block': MIBlock2,
-                    'params': {
-                        'blocksize': numsteps,
-                        'shift': (0, 1),
-                        'inputs': {
-                            'x': {'bus': p_del_vars[0], 'shape': (dim_s0, numsteps)},
-                            # 'y': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
-                            'y': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
-                        },
-                        'outputs': {
-                            'mi': {'shape': (1, 1, 1)},
-                        }
-                    }
-                }),
-                
-                # m: information distance d(m1, m2) = 1 - (I(m1; m2)/H(m1,m2))
-                ('m_di', {
-                    'block': InfoDistBlock2,
-                    'params': {
-                        'blocksize': numsteps,
-                        'shift': (0, 1),
-                        'inputs': {
-                            'x': {'bus': p_del_vars[0], 'shape': (dim_s0, numsteps)},
-                            # 'y': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
-                            'y': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
-                        },
-                        'outputs': {
-                            'infodist': {'shape': (1, 1, 1)},
-                        }
-                    }
-                }),
+    # get measures via measblock utility func
+    # measures: direct pre2meas
+    get_measures_block(**{
+        'measblockid': 0, 'numsteps': numsteps, 'p_vars': p_vars, 'p_del_vars': p_del_vars,
+        'm_vars': m_vars, 'dim_s0': dim_s0, 'numbins': numbins, 'div_meas': div_meas}),
 
-                # m: budget moments
-                ('m_budget', {
-                    'block': MomentBlock2,
-                    'params': {
-                        'id': 'm_budget',
-                        # 'debug': True,
-                        'blocksize': numsteps,
-                        'inputs': {
-                            # 'credit': {'bus': 'pre_l1/credit', 'shape': (1, numsteps)},
-                            'y': {'bus': 'budget/credit', 'shape': (1, numsteps)},
-                        },
-                        'outputs': {
-                            'y_mu': {'shape': (1, 1)},
-                            'y_var': {'shape': (1, 1)},
-                            'y_min': {'shape': (1, 1)},
-                            'y_max': {'shape': (1, 1)},
-                        },
-                    },
-                }),
-
-                # m: error
-                ('m_err', {
-                    'block': MeasBlock2,
-                    'params': {
-                        'blocksize': numsteps,
-                        # 'debug': True,
-                        'mode': 'basic',
-                        'scope': 'local',
-                        'meas': 'sub',
-                        'inputs': {
-                            'x1': {'bus': p_del_vars[0], 'shape': (1, numsteps)},
-                            'x2': {'bus': m_vars[0], 'shape': (1, numsteps)},
-                        },
-                        'outputs': {
-                            'y': {'shape': (1, numsteps)},
-                        },
-                    },
-                }),
-    
-                # m: error
-                ('m_err_mdl1', {
-                    'block': MeasBlock2,
-                    'params': {
-                        'blocksize': numsteps,
-                        # 'debug': True,
-                        'mode': 'basic',
-                        'scope': 'local',
-                        'meas': 'sub',
-                        'inputs': {
-                            # 'x1': {'bus': p_vars[0], 'shape': (1, numsteps)},
-                            # 'x1': {'bus': p_del_vars[0], 'shape': (1, numsteps)},
-                            'x1': {'bus': 'mdl1/y', 'shape': (1, numsteps)},
-                            # 'x1': {'bus': 'delay/dmdl_y',  'shape': (1, numsteps)},
-                            'x2': {'bus': p_del_vars[0], 'shape': (1, numsteps)},
-                        },
-                        'outputs': {
-                            'y': {'shape': (1, numsteps)},
-                        },
-                    },
-                }),
-    
-                # m: (root) mean squared error
-                ('m_err_mdl1_amp', {
-                    'block': FuncBlock2,
-                    'params': {
-                        # 'id': 'm_rmse',
-                        'blocksize': numsteps,
-                        'debug': False,
-                        'func': f_envelope,
-                        'inputs': {
-                            'x': {'bus': 'm_err_mdl1/y', 'shape': (1, numsteps)},
-                            'c': {'val': 0.01, 'shape': (1, 1)},
-                        },
-                        'outputs': {
-                            'y': {'shape': (1, numsteps)},
-                        },
-                    },
-                }),
-
-                # m: (root) mean squared error
-                ('m_rmse', {
-                    'block': FuncBlock2,
-                    'params': {
-                        # 'id': 'm_rmse',
-                        'blocksize': numsteps,
-                        'debug': False,
-                        'func': f_rootmeansquare,
-                        'inputs': {
-                            'x': {'bus': 'm_err/y', 'shape': (1, numsteps)},
-                        },
-                        'outputs': {
-                            'y': {'shape': (1, 1)},
-                        },
-                    },
-                }),
-
-                # testing function composition
-                # # m: (root) mean squared error
-                # ('m_rmse', {
-                #     'block': FuncBlock2,
-                #     'params': {
-                #         # 'id': 'm_rmse',
-                #         'blocksize': numsteps,
-                #         'debug': False,
-                #         'func': compose(sqrt, mean, square),
-                #         'inputs': {
-                #             'x': {'bus': 'm_err/y', 'shape': (1, numsteps)},
-                #         },
-                #         'outputs': {
-                #             'y': {'shape': (1, 1)},
-                #         },
-                #     },
-                # }),
-    
-                # m: histogram
-                ('m_hist', {
-                    'block': MeasBlock2,
-                    'params': {
-                        'id': 'm_hist',
-                        'blocksize': numsteps,
-                        'debug': False,
-                        'mode': 'hist',
-                        'scope': 'local',
-                        'meas': 'hist',
-                        # direct histo input?
-                        # or signal input
-                        'inputs': {
-                            'x1': {'bus': p_vars[0], 'shape': (1, numsteps)},
-                            'x2': {'bus': m_vars[0], 'shape': (1, numsteps)},
-                        },
-                        'bins': m_hist_bins,
-                        'outputs': {
-                            'x1_p': {'shape': (1, numbins)},
-                            'x1_x': {'shape': (1, numbins + 1)},
-                            'x2_p': {'shape': (1, numbins)},
-                            'x2_x': {'shape': (1, numbins + 1)},
-                        },
-                    },
-                }),
-
-                # m: divergence histos
-                ('m_div', {
-                    'block': MeasBlock2,
-                    'params': {
-                        'id': 'm_div',
-                        'blocksize': numsteps,
-                        # 'debug': True,
-                        'mode': 'div', # 'basic',
-                        'scope': 'local',
-                        'meas': div_meas, # ['chisq', 'kld'],
-                        # direct histo input?
-                        # or signal input
-                        'inputs': {
-                            'x1_p': {'bus': 'm_hist/x1_p', 'shape': (1, numbins)},
-                            'x1_x': {'bus': 'm_hist/x1_x', 'shape': (1, numbins + 1)},
-                            'x2_p': {'bus': 'm_hist/x2_p', 'shape': (1, numbins)},
-                            'x2_x': {'bus': 'm_hist/x2_x', 'shape': (1, numbins + 1)},
-                        },
-                        'outputs': {
-                            'y': {'shape': (1, numbins)},
-                        },
-                    },
-                }),
-
-                # m: sum divergence
-                ('m_sum_div', {
-                    'block': FuncBlock2,
-                    'params': {
-                        'blocksize': numsteps,
-                        'debug': False,
-                        'func': f_sum,
-                        'inputs': {
-                            'x': {'bus': 'm_div/y', 'shape': (1, numbins)},
-                        },
-                        'outputs': {
-                            'y': {'shape': (1, 1)},
-                        },
-                    },
-                }),
-            ]),
-        },
-    }),
-
+    # measures: indirect mdlpre2meas
+    get_measures_block(**{
+        'measblockid': 1, 'numsteps': numsteps, 'p_vars': p_vars, 'p_del_vars': ['mdl1/y'],
+        'm_vars': m_vars, 'dim_s0': dim_s0, 'numbins': numbins, 'div_meas': div_meas}),
+        
     # plotting random_lookup influence
     # one configuration plot grid:
     # | transfer func h | horizontal output | horziontal histogram |
@@ -601,25 +407,27 @@ graph = OrderedDict([
                 'mdl1_y': {'bus': 'mdl1/y', 'shape': (dim_s0, numsteps)},
                 'mdl1_h': {'bus': 'mdl1/h', 'shape': (dim_s0, numelem)},
                 # 'mdl1_y_del': {'bus': 'delay/dmdl_y', 'shape': (dim_s0, numsteps)},
-                'err_mdl_pre': {'bus': 'm_err_mdl1/y', 'shape': (1, numsteps)},
-                'err_mdl_pre_': {'bus': 'm_err_mdl1_amp/y', 'shape': (1, numsteps)},
+                # budget stats                
                 'credit_l1': {'bus': 'budget/credit', 'shape': (1, numsteps)},
                 'budget_mu': {'bus': 'm_budget/y_mu', 'shape': (1, 1)},
                 'budget_var': {'bus': 'm_budget/y_var', 'shape': (1, 1)},
                 'budget_min': {'bus': 'm_budget/y_min', 'shape': (1, 1)},
                 'budget_max': {'bus': 'm_budget/y_max', 'shape': (1, 1)},
+                # measures / errors
+                'err_mdl_pre': {'bus': 'm_err1/y', 'shape': (1, numsteps)},
+                'err_mdl_pre_': {'bus': 'm_err1_a/y', 'shape': (1, numsteps)},                
                 'm_di': {
-                    'bus': 'm_di/infodist',
+                    'bus': 'm_di0/infodist',
                     'shape': (dim_s0, 1, 1)
                 },
                 'm_mi': {
-                    'bus': 'm_mi/mi',
+                    'bus': 'm_mi0/mi',
                     'shape': (dim_s0, 1, 1)
                 },
-                'err_pre_s0': {'bus': 'm_err/y', 'shape': (1, numsteps)},
-                'm_rmse': {'bus': 'm_rmse/y', 'shape': (1, 1)},
-                'm_div': {'bus': 'm_div/y', 'shape': (1, numbins)},
-                'm_sum_div': {'bus': 'm_sum_div/y', 'shape': (1, 1)},
+                'err_pre_s0': {'bus': 'm_err0/y', 'shape': (1, numsteps)},
+                'm_rmse': {'bus': 'm_rmse0/y', 'shape': (1, 1)},
+                'm_div': {'bus': 'm_div0/y', 'shape': (1, numbins)},
+                'm_sum_div': {'bus': 'm_div0_sum/y', 'shape': (1, 1)},
             },
             'desc': """result. In the lower left part of the figure
             the prediction histogram and timeseries are shown. In the
@@ -737,11 +545,12 @@ graph = OrderedDict([
                         'legend_loc': 'right',
                     },
                     {
-                        'input': ['budget_%s' % (outk,) for outk in ['mu', 'var', 'min', 'max']] + ['m_mi', 'm_di', 'm_rmse', 'm_sum_div'],
-                        'shape': [(1, 1) for outk in ['mu', 'var', 'min', 'max', 'm_mi', 'm_di', 'm_rmse', 'm_sum_div']],
-                        'mode': 'stack',
-                        'title': 'measures', 'title_pos': 'bottom',
-                        'plot': table,
+                        # changed: plot table with latex tabular
+                        # 'input': ['budget_%s' % (outk,) for outk in ['mu', 'var', 'min', 'max']] + ['m_mi', 'm_di', 'm_rmse', 'm_sum_div'],
+                        # 'shape': [(1, 1) for outk in ['mu', 'var', 'min', 'max', 'm_mi', 'm_di', 'm_rmse', 'm_sum_div']],
+                        # 'mode': 'stack',
+                        # 'title': 'measures', 'title_pos': 'bottom',
+                        # 'plot': table,
                     },
                     {},
                     {
@@ -778,10 +587,10 @@ graph = OrderedDict([
                 'budget_var': {'bus': 'm_budget/y_var', 'shape': (1, 1)},
                 'budget_min': {'bus': 'm_budget/y_min', 'shape': (1, 1)},
                 'budget_max': {'bus': 'm_budget/y_max', 'shape': (1, 1)},
-                'm_di': {'bus': 'm_di/infodist', 'shape': (dim_s0, 1, 1)},
-                'm_mi': {'bus': 'm_mi/mi', 'shape': (dim_s0, 1, 1)},
-                'm_rmse': {'bus': 'm_rmse/y', 'shape': (1, 1)},
-                'm_sum_div': {'bus': 'm_sum_div/y', 'shape': (1, 1)},
+                'm_di': {'bus': 'm_di0/infodist', 'shape': (dim_s0, 1, 1)},
+                'm_mi': {'bus': 'm_mi0/mi', 'shape': (dim_s0, 1, 1)},
+                'm_rmse': {'bus': 'm_rmse0/y', 'shape': (1, 1)},
+                'm_sum_div': {'bus': 'm_sum_div0/y', 'shape': (1, 1)},
             }
         },
     }),

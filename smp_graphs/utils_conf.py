@@ -4,11 +4,17 @@ some utils for use in configuration files
 """
 
 from functools import partial
+from collections import OrderedDict
 
 import numpy as np
 
 from smp_base.measures import meas
 from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2
+
+from smp_graphs.block import Block2, FuncBlock2
+from smp_graphs.block_meas import MomentBlock2, MeasBlock2
+from smp_graphs.block_meas_infth import MIBlock2, InfoDistBlock2
+from smp_graphs.funcs import f_sum, f_envelope, f_rootmeansquare
 
 from smp_base.common import get_module_logger
 logger = get_module_logger(modulename = 'utils_conf', loglevel = 'info')

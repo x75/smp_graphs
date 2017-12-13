@@ -53,17 +53,17 @@ outputs = {
 
 # configure system block 
 systemblock   = get_systemblock['pm'](
-    dim_s_proprio = dim, dim_s_extero = dim, lag = 1, order = order)
+    dim_s0 = dim, dim_s1 = dim, lag = 1, order = order)
 # systemblock   = get_systemblock['sa'](
-#     dim_s_proprio = dim, dim_s_extero = dim, lag = 1)
+#     dim_s0 = dim, dim_s1 = dim, lag = 1)
 systemblock['params']['sysnoise'] = 0.0
 systemblock['params']['anoise_std'] = 0.0
-dim_s_proprio = systemblock['params']['dim_s_proprio']
-dim_s_extero  = systemblock['params']['dim_s_extero']
-# dim_s_goal   = dim_s_extero
-dim_s_goal    = dim_s_proprio
+dim_s0 = systemblock['params']['dims']['s0']['dim']
+dim_s1 = systemblock['params']['dims']['s0']['dim']
+# dim_s_goal   = dim_s1
+dim_s_goal    = dim_s0
 
-# print "sysblock", systemblock['params']['dim_s_proprio']
+# print "sysblock", systemblock['params']['dims']['s0']['dim']
 
 # TODO
 # 1. loop over randseed
@@ -100,11 +100,11 @@ graph = OrderedDict([
                         'blocksize': 1,
                         'blockphase': [0],
                         'credit': np.ones((1, 1)) * budget,
-                        'goalsize': 0.1, # np.power(0.01, 1.0/dim_s_proprio), # area of goal
+                        'goalsize': 0.1, # np.power(0.01, 1.0/dim_s0), # area of goal
                         'inputs': {
                             # 'credit': {'bus': 'budget/credit', 'shape': (1,1)},
-                            's0': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 1)},
-                            's0_ref': {'bus': 'pre_l1/pre', 'shape': (dim_s_proprio, 1)},
+                            's0': {'bus': 'robot1/s0', 'shape': (dim_s0, 1)},
+                            's0_ref': {'bus': 'pre_l1/pre', 'shape': (dim_s0, 1)},
                             },
                         'outputs': {
                             'credit': {'shape': (1,1)},
@@ -123,15 +123,15 @@ graph = OrderedDict([
                         'blockphase': [0],
                         'rate': 1,
                         # 'ros': ros,
-                        'goalsize': 0.1, # np.power(0.01, 1.0/dim_s_proprio), # area of goal
+                        'goalsize': 0.1, # np.power(0.01, 1.0/dim_s0), # area of goal
                         'inputs': {
                             'credit': {'bus': 'budget/credit'},
-                            'lo': {'val': -lim, 'shape': (dim_s_proprio, 1)},
-                            'hi': {'val': lim, 'shape': (dim_s_proprio, 1)},
-                            'mdltr': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, 1)},
+                            'lo': {'val': -lim, 'shape': (dim_s0, 1)},
+                            'hi': {'val': lim, 'shape': (dim_s0, 1)},
+                            'mdltr': {'bus': 'robot1/s0', 'shape': (dim_s0, 1)},
                             },
                         'outputs': {
-                            'pre': {'shape': (dim_s_proprio, 1)},
+                            'pre': {'shape': (dim_s0, 1)},
                         },
                         'models': {
                             'goal': {'type': 'random_uniform_modulated'}
@@ -149,7 +149,7 @@ graph = OrderedDict([
                             'lo': {'val': -lim},
                             'hi': {'val': lim}},
                         'outputs': {
-                            'pre': {'shape': (dim_s_proprio, 1)},
+                            'pre': {'shape': (dim_s0, 1)},
                             }
                         },
                     }),
@@ -190,8 +190,8 @@ graph = OrderedDict([
             'wspace': 0.15,
             'hspace': 0.15,
             'inputs': {
-                's_p': {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, numsteps)},
-                's_e': {'bus': 'robot1/s_extero', 'shape': (dim_s_extero, numsteps)},
+                's_p': {'bus': 'robot1/s0', 'shape': (dim_s0, numsteps)},
+                's_e': {'bus': 'robot1/s1', 'shape': (dim_s1, numsteps)},
                 'pre_l0': {'bus': 'pre_l0/pre', 'shape': (dim_s_goal, numsteps)},
                 'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
                 'credit_l1': {'bus': 'budget/credit', 'shape': (1, numsteps)},

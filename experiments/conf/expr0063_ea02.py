@@ -25,7 +25,7 @@ self-exploration
 0063
  - 0062 fixed with delay
 
-0064
+0064,5,6,7
  - add pre/meas pairs
  - add meas stack statistics or expand meas stack resp.
  - move meas stack into brain
