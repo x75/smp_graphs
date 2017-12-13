@@ -58,8 +58,7 @@ def get_measures_block(*args, **kwargs):
                             'blocksize': numsteps,
                             'shift': (0, 1),
                             'inputs': {
-                                'x': {'bus': p_del_vars[0], 'shape': (dim_s0, numsteps)},
-                                # 'y': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
+                                'x': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
                                 'y': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
                             },
                             'outputs': {
@@ -75,8 +74,7 @@ def get_measures_block(*args, **kwargs):
                             'blocksize': numsteps,
                             'shift': (0, 1),
                             'inputs': {
-                                'x': {'bus': p_del_vars[0], 'shape': (dim_s0, numsteps)},
-                                # 'y': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
+                                'x': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
                                 'y': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
                             },
                             'outputs': {
@@ -95,7 +93,7 @@ def get_measures_block(*args, **kwargs):
                             'scope': 'local',
                             'meas': 'sub',
                             'inputs': {
-                                'x1': {'bus': p_del_vars[0], 'shape': (1, numsteps)},
+                                'x1': {'bus': p_vars[0], 'shape': (1, numsteps)},
                                 'x2': {'bus': m_vars[0], 'shape': (1, numsteps)},
                             },
                             'outputs': {
@@ -103,29 +101,7 @@ def get_measures_block(*args, **kwargs):
                             },
                         },
                     }),
-        
-                    # # m: error
-                    # ('m_err_mdl1%d' % (measblockid, ), {
-                    #     'block': MeasBlock2,
-                    #     'params': {
-                    #         'blocksize': numsteps,
-                    #         # 'debug': True,
-                    #         'mode': 'basic',
-                    #         'scope': 'local',
-                    #         'meas': 'sub',
-                    #         'inputs': {
-                    #             # 'x1': {'bus': p_vars[0], 'shape': (1, numsteps)},
-                    #             # 'x1': {'bus': p_del_vars[0], 'shape': (1, numsteps)},
-                    #             'x1': {'bus': 'mdl1/y', 'shape': (1, numsteps)},
-                    #             # 'x1': {'bus': 'delay/dmdl_y',  'shape': (1, numsteps)},
-                    #             'x2': {'bus': p_del_vars[0], 'shape': (1, numsteps)},
-                    #         },
-                    #         'outputs': {
-                    #             'y': {'shape': (1, numsteps)},
-                    #         },
-                    #     },
-                    # }),
-        
+                
                     # m: (root) mean squared error
                     ('m_err%d_a' % (measblockid, ), {
                         'block': FuncBlock2,
@@ -174,8 +150,8 @@ def get_measures_block(*args, **kwargs):
                             # direct histo input?
                             # or signal input
                             'inputs': {
-                                'x1': {'bus': p_del_vars[0], 'shape': (1, numsteps)},
-                                'x2': {'bus': m_vars[0],     'shape': (1, numsteps)},
+                                'x1': {'bus': p_vars[0], 'shape': (1, numsteps)},
+                                'x2': {'bus': m_vars[0], 'shape': (1, numsteps)},
                             },
                             'bins': m_hist_bins,
                             'outputs': {

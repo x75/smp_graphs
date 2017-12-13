@@ -36,9 +36,9 @@ def get_systemblock_pm(
 
     # legacy argument handling
     if kwargs.has_key('dim_s_proprio'):
-        dim_s0 = kwargs['dim_s_proprio']
+        dim_s0 = kwargs.pop('dim_s_proprio')
     if kwargs.has_key('dim_s_extero'):
-        dim_s1 = kwargs['dim_s_extero']
+        dim_s1 = kwargs.pop('dim_s_extero')
 
     # defaults
     dims = {
@@ -110,7 +110,10 @@ def get_systemblock_pm(
 
     # default dims
     sysconf['params']['dims'] = dims
-    
+
+    # update the lot?
+    sysconf['params'].update(kwargs)
+
     # if kwargs.has_key('numelem') or kwargs.has_key('h_numelem'):
     for k in [k for k in kwargs.keys() if k in ['numelem', 'h_numelem']]:
         # h_numelem = kwargs['h_numelem']

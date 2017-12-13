@@ -952,6 +952,7 @@ class Block2(object):
         self.modulename = self.__class__.__module__
         # self.logger = get_module_logger(modulename = '{0: >20}.{1: <20}'.format(self.modulename, self.cname_full), loglevel = self.loglevel)
         self.logger = get_module_logger(modulename = '{0}.{1}'.format(self.modulename, self.cname_full), loglevel = self.loglevel)
+        # self.logger = get_module_logger(modulename = modulename_, loglevel = self.loglevel)
         # print "cname_full = %s, modulename = %s, logger.name = %s" % (self.cname_full, self.modulename, self.logger.name)
             
         ################################################################################
@@ -3181,8 +3182,8 @@ class DelayBlock2(PrimBlock2):
             else:
                 outshape = (inshape[0], delay_num, inshape[1] )
             params['outputs']["d%s" % ink] = {'shape': outshape}
-            bufshape = (inshape[0], inshape[1] + (delay_max + 1) ) # delay_max) #
-            setattr(self, "%s_" % ink, np.zeros(bufshape))
+            bufshape = (inshape[0], inshape[1] + (delay_max + 0) ) # delay_max) #
+            setattr(self, "%s_buf" % ink, np.zeros(bufshape))
 
         # rename to canonical
         params['delays'] = delays_
@@ -3205,7 +3206,6 @@ class DelayBlock2(PrimBlock2):
                 delay_tap_bs = delay_tap_bs.flatten()
             self.delaytaps[k] = delay_tap_bs.copy()
             self._debug('delay %s with taps %s added delaytaps_bs = %s' % (k, v, self.delaytaps[k]))
-
         
         # print "DelayBlock2.init blocksize", self.blocksize
         # print "DelayBlock2.init delays", self.delays
@@ -3226,7 +3226,7 @@ class DelayBlock2(PrimBlock2):
             # get output key
             outk = "d%s" % ink
             # get buffer key
-            ink_ = "%s_" % ink
+            ink_ = "%s_buf" % ink
             # stack last and current block input
             inv_ = getattr(self, ink_)
 
@@ -3269,7 +3269,6 @@ class DelayBlock2(PrimBlock2):
             # print "delaytap", delaytap.shape, delaytap, self.blocksize
             self._debug('input %s delaytap = %s' % (ink, delaytap))            
             setattr(self, outk, inv_[...,delaytap])
-
             
             # setattr(self, outk, inv_[...,slice(0, self.blocksize)])
 

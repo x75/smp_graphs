@@ -1,4 +1,4 @@
-"""smp_graphs smp_expr0062
+"""smp_graphs smp_expr0063
 
 .. moduleauthor:: Oswald Berthold, 2017
 
@@ -17,23 +17,27 @@ adaptive internal models
 
 self-exploration
 0062
- - put transfer func back into system and recreate 0062
- - motivation, sampling, limits, energy, ...
- - configure mild distortion and noise, time delay = 1, 
- - run 0062 and see it fail
- - explain fail: time 
- - motivate prerequisites: delay by tapping; introspection by error
-       statistics; adaptation to slow components by mu-coding or sfa;
-       limits by learning progress and error stats; modulation, spawn, and
-       kill by introspection
+ - x put transfer func back into system and recreate 0062
+ - x configure mild distortion and noise, time delay = 1, 
+ - x run 0062 and see it fail
+ - x explain fail: time
 
-0064
+0063
+ - x 0062 fixed with delay
+
+0064,5,6,7
  - add pre/meas pairs
  - add meas stack statistics or expand meas stack resp.
  - move meas stack into brain
  - spawn block / kill block
  - run expr and show how error statistics can drive model learning
  - learn the first model (finally)
+
+ - motivate prerequisites: delay by tapping; introspection by error
+   statistics; adaptation to slow components by mu-coding or sfa;
+   limits by learning progress and error stats; modulation, spawn, and
+   kill by introspection
+ - motivation, sampling, limits, energy, ...
 """
 
 import re 
