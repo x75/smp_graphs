@@ -17,15 +17,13 @@ adaptive internal models
 
 self-exploration
 0062
- - put transfer func back into system and recreate 0062
- - motivation, sampling, limits, energy, ...
- - configure mild distortion and noise, time delay = 1, 
- - run 0062 and see it fail
- - explain fail: time 
- - motivate prerequisites: delay by tapping; introspection by error
-       statistics; adaptation to slow components by mu-coding or sfa;
-       limits by learning progress and error stats; modulation, spawn, and
-       kill by introspection
+ - x put transfer func back into system and recreate 0062
+ - x configure mild distortion and noise, time delay = 1, 
+ - x run 0062 and see it fail
+ - x explain fail: time 
+
+0063
+ - x 0062 fixed with delay and online learning
 
 0064
  - add pre/meas pairs
@@ -33,7 +31,15 @@ self-exploration
  - move meas stack into brain
  - spawn block / kill block
  - run expr and show how error statistics can drive model learning
- - learn the first model (finally)
+
+> 0064
+ - motivate prerequisites: delay by tapping; introspection by error
+   statistics; adaptation to slow components by mu-coding or sfa;
+   limits by learning progress and error stats; modulation, spawn, and
+   kill by introspection
+ - motivation, sampling, limits, energy, ...
+
+ - learn the first proper model (finally :)
 """
 
 import re 

@@ -1,4 +1,4 @@
-"""smp_graphs smp_expr0063
+"""smp_graphs smp_expr0064
 
 .. moduleauthor:: Oswald Berthold, 2017
 
@@ -20,24 +20,26 @@ self-exploration
  - x put transfer func back into system and recreate 0062
  - x configure mild distortion and noise, time delay = 1, 
  - x run 0062 and see it fail
- - x explain fail: time
+ - x explain fail: time 
 
 0063
  - x 0062 fixed with delay and online learning
 
-0064,5,6,7
+0064
  - add pre/meas pairs
  - add meas stack statistics or expand meas stack resp.
  - move meas stack into brain
  - spawn block / kill block
  - run expr and show how error statistics can drive model learning
- - learn the first model (finally)
 
+> 0064
  - motivate prerequisites: delay by tapping; introspection by error
    statistics; adaptation to slow components by mu-coding or sfa;
    limits by learning progress and error stats; modulation, spawn, and
    kill by introspection
  - motivation, sampling, limits, energy, ...
+
+ - learn the first proper model (finally :)
 """
 
 import re 
@@ -71,38 +73,20 @@ randseed = 126
 
 # predicted variables
 p_vars = ['pre_l0/pre']
-p_del_vars = p_vars
-# p_del_vars = ['delay/dy']
+# p_del_vars = p_vars
+p_del_vars = ['delay/dy']
 # p_vars = ['robot1/s0']
 # measured variables
 m_vars = ['robot1/s0']
 # m_vars = ['pre_l2/y']
 
-desc = """In this experiment an \\emph{{embodied agent}} is reobtained
-by putting the distortion model from the previous experiments back
-into the agent's body and environment. This establishes the first
-complete embodied agent which will be used and incrementally extended
-over the remaining sections of this chapter. The experiment appears to
-be identical to \\ref{{{0}}} but on close inspection, the computation
-graph is slightly different.
-
-An example interpretation for this model is that of proprioceptive
-space. Proprioception means self-perception and refers to a sense of
-body configuration, conveyed via joint angle measurements. In this
-thesis, proprioception is used generally to refer to an agent's
-low-level motor space represented by the predictions, measurements,
-and other statistics of the corresponding variables. Other examples
-are an outgoing motor voltage (prediction) and measured rotation rate
-on a wheeled robot, or the predicted motor current and the measured
-torque on a joint on a torque-controlled robot.
-
-If a robots actually is constructed in such a way, that there exists a
-sensor that measures something \\emph{{physically}} close to the action
-itself, it can be assumed that there will be a residual caused by
-microscopic but systematic divergence between actions and their
-corresponding measurements. The experiment shows an agent
-prepared to compensate for these deviations with adaptive inverse \\myparb{{end-expr}} predictions.
-""".format('sec:smp-expr0045-pm1d-mem000-ord0-random-infodist-id')
+desc = """This experiment fixes the delay problem of the previous one
+in \\autoref{{{0}}} by introducing a delay operator, which is
+configured with the \\emph{{known}} delay of one time step, and using
+the delayed prediction pre\\_l0 $z^{{-1}}$ as the model's target
+input. This restores the proper temporal alignment of the input and
+target variables and a very good model can be acquired by the
+agent.""".format('sec:smp-expr0062-ea01')
 
 # configuration as table
 desc += """
@@ -110,9 +94,8 @@ desc += """
 \\textbf{{Numsteps}} & \\textbf{{measurement vars}} & \\textbf{{prediction vars}} & \\textbf{{crossmodal prediction m2p}} \\\\
 {0} & {1} & {2} & {3} \\\\
 \\end{{tabularx}}""".format(
-    numsteps, re.sub(r'_', r'\\_', str(m_vars)), re.sub(r'_', r'\\_', str(p_vars)), ['mdl1/y'])
-
-
+    numsteps, re.sub(r'_', r'\\_', str(m_vars)),
+    re.sub(r'_', r'\\_', str(p_vars)) + ' $z^{-1}$', ['mdl1/y'])
 
 dim_s0 = 1
 numelem = 1001
@@ -126,7 +109,7 @@ lconf = {
         'budget': 1000/1,
         'dim': dim_s0,
         'dims': {
-            # expr0062: setting proprio lag to zero (<< environment minlag 1 resp.) models
+            # expr0064: setting proprio lag to zero (<< environment minlag 1 resp.) models
             #           fast in-body transmission and feedback
             'm0': {'dim': dim_s0, 'dist': 0, 'lag': 0}, # , 'mins': [-1] * dim_s0, 'maxs': [1] * dim_s0
             's0': {'dim': dim_s0, 'dist': 0, 'dissipation': 1.0},
@@ -148,6 +131,9 @@ lconf = {
         'lim': 1.0,
         # ground truth cheating
         'h_numelem': numelem, # sampling grid
+        # control input
+        'inputs': {'u': {'bus': p_vars[0]}},
+        # 'inputs': {'u': {'bus': 'mdl1/y'}}
     },
     # agent / models
     'infodistgen': {
@@ -164,32 +150,43 @@ lconf = {
     # 'div_meas':  'pyemd', # 'chisq', # 
     'model_s2s_params': {
         # 'debug': True,
-        'blocksize': numsteps,
+        'blocksize': 1, # numsteps,
         'models': {
             # from top config
             # 'pre_l2_2_robot1_s0': shln,
+            
+            # # batch learner
+            # 'pre_l2_2_robot1_s0': {
+            #     'type': 'sklearn',
+            #     'load': False,
+            #     # 'skmodel': 'linear_model.Ridge',
+            #     # 'skmodel_params': {'alpha': 1.0},
+            #     'skmodel': 'kernel_ridge.KernelRidge',
+            #     'skmodel_params': {'alpha': 0.1, 'kernel': reduce(lambda x, y: x + y, [ExpSineSquared(np.random.exponential(0.3), 5.0, periodicity_bounds=(1e-2, 1e1)) for _ in range(10)])}, # 'rbf'},
+            #     # 'skmodel': 'gaussian_process.GaussianProcessRegressor',
+            #     # 'skmodel_params': {'kernel': ExpSineSquared(1.0, 5.0, periodicity_bounds=(1e-2, 1e1)) + WhiteKernel(1e-1)},
+            #     # 'skmodel': 'gaussian_process.kernels.WhiteKernel, ExpSineSquared',
+            #     # 'skmodel': model_selection.GridSearchCV
+            # },
+
+            # online learner
             'pre_l2_2_robot1_s0': {
-                'type': 'sklearn',
-                'load': False,
-                # 'skmodel': 'linear_model.Ridge',
-                # 'skmodel_params': {'alpha': 1.0},
-                'skmodel': 'kernel_ridge.KernelRidge',
-                'skmodel_params': {'alpha': 0.1, 'kernel': reduce(lambda x, y: x + y, [ExpSineSquared(np.random.exponential(0.3), 5.0, periodicity_bounds=(1e-2, 1e1)) for _ in range(10)])}, # 'rbf'},
-                # 'skmodel': 'gaussian_process.GaussianProcessRegressor',
-                # 'skmodel_params': {'kernel': ExpSineSquared(1.0, 5.0, periodicity_bounds=(1e-2, 1e1)) + WhiteKernel(1e-1)},
-                # 'skmodel': 'gaussian_process.kernels.WhiteKernel, ExpSineSquared',
-                # 'skmodel': model_selection.GridSearchCV
+                'type': 'smpmodel',
+                'algo': 'knn',
             },
         },
         'inputs': {
             # input
-            'x_in': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
+            # 'x_in': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
+            'x_in': {'bus': m_vars[0], 'shape': (dim_s0, 1)},
             # target
             # 'x_tg': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
-            'x_tg': {'bus': p_del_vars[0], 'shape': (dim_s0, numsteps)},
+            # 'x_tg': {'bus': p_del_vars[0], 'shape': (dim_s0, numsteps)},
+            'x_tg': {'bus': p_del_vars[0], 'shape': (dim_s0, 1, 1)},
         },
         'outputs': {
-            'y': {'shape': (dim_s0, numsteps)},
+            # 'y': {'shape': (dim_s0, numsteps)},
+            'y': {'shape': (dim_s0, 1)},
             'h': {'shape': (dim_s0, numelem), 'trigger': 'trig/t1'},
         },
     }
@@ -352,19 +349,20 @@ graph = OrderedDict([
                     },
                 }),
 
-                # # delay blocks for dealing with sensorimotor delays
-                # ('delay', {
-                #     'block': DelayBlock2,
-                #     'params': {
-                #         # 'debug': True,
-                #         'blocksize': 1,
-                #         # 'inputs': {'y': {'bus': 'motordiff/dy'}},
-                #         'inputs': {
-                #             'y':     {'bus': 'pre_l0/pre', 'shape': (dim_s0, 1)},
-                #             'mdl_y': {'bus': 'mdl1/y',     'shape': (dim_s0, numsteps)}},
-                #         'delays': {'y': 0, 'mdl_y': 0},
-                #     }
-                # }),
+                # delay blocks for dealing with sensorimotor delays
+                ('delay', {
+                    'block': DelayBlock2,
+                    'params': {
+                        # 'debug': True,
+                        'blocksize': 1,
+                        # 'inputs': {'y': {'bus': 'motordiff/dy'}},
+                        'inputs': {
+                            'y': {'bus': p_vars[0], 'shape': (dim_s0, 1)},
+                            'y1': {'bus': p_vars[0], 'shape': (dim_s0, 1)},
+                            'mdl_y': {'bus': 'mdl1/y',     'shape': (dim_s0, numsteps)}},
+                        'delays': {'y': 1, 'y1': 1, 'mdl_y': 0},
+                    }
+                }),
         
                 # inverse model s2s
                 ('mdl1', lconf['model_s2s']),
@@ -376,13 +374,13 @@ graph = OrderedDict([
     # get measures via measblock utility func
     # measures: direct pre2meas
     get_measures_block(**{
-        'measblockid': 0, 'numsteps': numsteps, 'p_vars': p_vars, 'p_del_vars': p_del_vars,
+        'measblockid': 0, 'numsteps': numsteps, 'p_vars': p_vars, 'p_del_vars': p_vars,
         'm_vars': m_vars, 'dim_s0': dim_s0, 'numbins': numbins, 'div_meas': div_meas}),
 
     # measures: indirect mdlpre2meas
     get_measures_block(**{
-        'measblockid': 1, 'numsteps': numsteps, 'p_vars': p_vars, 'p_del_vars': ['mdl1/y'],
-        'm_vars': m_vars, 'dim_s0': dim_s0, 'numbins': numbins, 'div_meas': div_meas}),
+        'measblockid': 1, 'numsteps': numsteps, 'p_vars': ['delay/dy'], 'p_del_vars': p_del_vars,
+        'm_vars': ['mdl1/y'], 'dim_s0': dim_s0, 'numbins': numbins, 'div_meas': div_meas}),
         
     # plotting random_lookup influence
     # one configuration plot grid:
@@ -405,13 +403,14 @@ graph = OrderedDict([
                 's1': {'bus': 'robot1/s1', 'shape': (dim_s1, numsteps)},
                 'sys_h': {'bus': 'robot1/h', 'shape': (dim_s0, numelem)},
                 'pre_l0': {'bus': p_vars[0], 'shape': (dim_s_goal, numsteps)}, # 'pre_l0/pre'
-                # 'pre_l0_del': {'bus': 'delay/dy', 'shape': (dim_s_goal, numsteps)},
+                'pre_l0_del': {'bus': 'delay/dy', 'shape': (dim_s_goal, numsteps)},
+                'pre_l0_del1': {'bus': 'delay/dy1', 'shape': (dim_s_goal, numsteps)},
                 'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
                 # 'pre_l2': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
                 # 'pre_l2_h': {'bus': 'pre_l2/h', 'shape': (dim_s0, numelem)},
                 'mdl1_y': {'bus': 'mdl1/y', 'shape': (dim_s0, numsteps)},
                 'mdl1_h': {'bus': 'mdl1/h', 'shape': (dim_s0, numelem)},
-                # 'mdl1_y_del': {'bus': 'delay/dmdl_y', 'shape': (dim_s0, numsteps)},
+                'mdl1_y_del': {'bus': 'delay/dmdl_y', 'shape': (dim_s0, numsteps)},
                 # budget stats                
                 'credit_l1': {'bus': 'budget/credit', 'shape': (1, numsteps)},
                 'budget_mu': {'bus': 'm_budget/y_mu', 'shape': (1, 1)},
@@ -421,6 +420,10 @@ graph = OrderedDict([
                 # measures / errors
                 'err_mdl_pre': {'bus': 'm_err1/y', 'shape': (1, numsteps)},
                 'err_mdl_pre_': {'bus': 'm_err1_a/y', 'shape': (1, numsteps)},                
+                'm_rmse1': {'bus': 'm_rmse1/y', 'shape': (1, 1)},
+                'm_div1': {'bus': 'm_div1/y', 'shape': (1, numbins)},
+                'm_div1_sum': {'bus': 'm_div1_sum/y', 'shape': (1, 1)},
+                
                 'm_di': {
                     'bus': 'm_di0/infodist',
                     'shape': (dim_s0, 1, 1)
@@ -430,20 +433,18 @@ graph = OrderedDict([
                     'shape': (dim_s0, 1, 1)
                 },
                 'err_pre_s0': {'bus': 'm_err0/y', 'shape': (1, numsteps)},
-                'm_rmse': {'bus': 'm_rmse0/y', 'shape': (1, 1)},
-                'm_div': {'bus': 'm_div0/y', 'shape': (1, numbins)},
-                'm_sum_div': {'bus': 'm_div0_sum/y', 'shape': (1, 1)},
+                'err_pre_s0_': {'bus': 'm_err0_a/y', 'shape': (1, numsteps)},
+                'm_rmse0': {'bus': 'm_rmse0/y', 'shape': (1, 1)},
+                'm_div0': {'bus': 'm_div0/y', 'shape': (1, numbins)},
+                'm_div0_sum': {'bus': 'm_div0_sum/y', 'shape': (1, 1)},
             },
-            'desc': """result. In the lower left part of the figure
-            the prediction histogram and timeseries are shown. In the
-            experiment, the signal is transferred by the transfer
-            function pre\_l2/$h$ and is transformed into the signal
-            $y$ whose histogram diverges by the amount shown in the
-            lower right corner divergence plot. In the error
-            timeseries panel, the original prediction error and the
-            error after the adaptive model\'s transformation are shown
-            on top of each other, together with a magnitude estimate
-            of the second error shown as a red line.""",
+            'desc': """is almost identical to
+            \\autoref{sec:smp-expr0062-ea01} with the small but all
+            important difference that the model is now trained with
+            the original target delayed by one time step. The effect
+            can be seen in the model's transfer function, in the
+            timeseries of model prediction over l0 prediction, and in
+            the error timeseries.""",
             # subplot
             'subplots': [
                 # row 1: transfer func, out y time, out y histo
@@ -507,9 +508,12 @@ graph = OrderedDict([
                         'legend_loc': 'right',
                     },
                     {
-                        'input': ['err_pre_s0', 'err_mdl_pre', 'err_mdl_pre_'],
-                        'plot': [timeseries, partial(timeseries, alpha = 0.7), partial(timeseries, color = 'r')],
-                        'cmap_off': [0] + [2] * 3,
+                        'input': ['err_pre_s0', 'err_pre_s0_', 'err_mdl_pre', 'err_mdl_pre_'],
+                        'plot': [
+                            partial(timeseries, alpha = 0.33), timeseries,
+                            timeseries, partial(timeseries, alpha = 0.7)
+                        ],
+                        'cmap_off': [0] * 2 + [2] * 3,
                         'title': 'error $x - y$',
                         # 'aspect': 'auto',
                         # 'orientation': 'horizontal',
@@ -521,8 +525,9 @@ graph = OrderedDict([
                         # 'legend_loc': 'right',
                     },
                     {
-                        'input': ['pre_l0', 'mdl1_y'], 'plot': timeseries,
-                        'cmap_off': [0] + [2] * 2,
+                        'input': ['pre_l0', 'mdl1_y'],
+                        'plot': [timeseries, partial(timeseries, linewidth = 1.0),],
+                        'cmap_off': [0] * 1 + [2] * 2,
                         # 'cmap_idx': [0, 30, 60],
                         # 'input': ['pre_l0_del', 'mdl1_y', 'mdl1_y_del'], 'plot': timeseries,
                         'title': 'timeseries $x$',
@@ -559,7 +564,7 @@ graph = OrderedDict([
                     },
                     {},
                     {
-                        'input': ['m_div'], 'plot': bar,
+                        'input': ['m_div0', 'm_div1'], 'plot': bar,
                         # 'input': ['m_div'], 'plot': partial(timeseries, linestyle = 'none', marker = 'o'),
                         'title': 'histogram divergence %s $h1 - h2$' % (div_meas, ),
                         'shape': (1, numbins),
@@ -582,11 +587,11 @@ graph = OrderedDict([
     ('table', {
         'block': TextBlock2,
         'params': {
-            'debug': True,
+            # 'debug': True,
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'tex',
-            'title': 'Results expr0062 for direct and model-based predictions',
+            'title': 'Results expr0064 for direct and model-based predictions',
             'desc': 'Budget statistics, information closeness / distance (mi/di), root mean squared prediction error and mean divergence.',
             'inputs': {
                 # global budget stats
