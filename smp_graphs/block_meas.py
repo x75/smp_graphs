@@ -388,7 +388,8 @@ class MeasBlock2(PrimBlock2):
 
         div, flow = self.measures[self.meas]['func'](x1_p, x2_p, distmat, flow = True)
         if self.scope == 'local':
-            setattr(self, 'y', np.sum(flow, axis = 0))
+            # setattr(self, 'y', np.sum(flow, axis = 0))
+            setattr(self, 'y', flow)
             # setattr(self, 'y', np.array(flow[0]))
         else:
             setattr(self, 'y', div)

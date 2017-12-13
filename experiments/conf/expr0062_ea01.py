@@ -156,7 +156,8 @@ lconf = {
         's_f': 2.0,
         'e': 0.0,
     },
-    'div_meas': 'pyemd', # 'chisq', # 'kld'
+    'div_meas': 'kld',
+    # 'div_meas':  'pyemd', # 'chisq', # 
     'model_s2s_params': {
         # 'debug': True,
         'blocksize': numsteps,
@@ -577,21 +578,45 @@ graph = OrderedDict([
     ('table', {
         'block': TextBlock2,
         'params': {
+            'debug': True,
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'tex',
+            'title': 'Results expr0062 for direct and model-based predictions',
             'desc': 'Budget statistics, information closeness / distance (mi/di), root mean squared prediction error and mean divergence.',
             'inputs': {
-                # globally integrated scalar values
+                # global budget stats
                 'budget_mu': {'bus': 'm_budget/y_mu', 'shape': (1, 1)},
                 'budget_var': {'bus': 'm_budget/y_var', 'shape': (1, 1)},
                 'budget_min': {'bus': 'm_budget/y_min', 'shape': (1, 1)},
                 'budget_max': {'bus': 'm_budget/y_max', 'shape': (1, 1)},
-                'm_di': {'bus': 'm_di0/infodist', 'shape': (dim_s0, 1, 1)},
-                'm_mi': {'bus': 'm_mi0/mi', 'shape': (dim_s0, 1, 1)},
-                'm_rmse': {'bus': 'm_rmse0/y', 'shape': (1, 1)},
-                'm_sum_div': {'bus': 'm_sum_div0/y', 'shape': (1, 1)},
-            }
+                # meas0: direct pre2meas
+                'm_di0': {'bus': 'm_di0/infodist', 'shape': (dim_s0, 1, 1)},
+                'm_mi0': {'bus': 'm_mi0/mi', 'shape': (dim_s0, 1, 1)},
+                'm_rmse0': {'bus': 'm_rmse0/y', 'shape': (1, 1)},
+                'm_div0_sum': {'bus': 'm_div0_sum/y', 'shape': (1, 1)},
+                # meas1: direct pre2meas
+                'm_di1': {'bus': 'm_di1/infodist', 'shape': (dim_s0, 1, 1)},
+                'm_mi1': {'bus': 'm_mi1/mi', 'shape': (dim_s0, 1, 1)},
+                'm_rmse1': {'bus': 'm_rmse1/y', 'shape': (1, 1)},
+                'm_div1_sum': {'bus': 'm_div1_sum/y', 'shape': (1, 1)},
+            },
+            'layout': {
+                'numrows': 8,
+                'numcols': 3,
+                'rowlabels': ['Measure', 'global', 'direct', 'model-based'],
+                'collabels': ['budget_mu', 'budget_var', 'budget_min', 'budget_max', 'mi', 'di', 'rmse', 'div'],
+                'cells': [
+                    ['budget_mu', ] + [None] * 2,
+                    ['budget_var', ] + [None] * 2,
+                    ['budget_min', ] + [None] * 2,
+                    ['budget_max', ] + [None] * 2,
+                    [None, 'm_mi0', 'm_mi1'],
+                    [None, 'm_di0', 'm_di1'],
+                    [None, 'm_rmse0', 'm_rmse1'],
+                    [None, 'm_div0_sum', 'm_div1_sum'],
+                ],
+            },
         },
     }),
 

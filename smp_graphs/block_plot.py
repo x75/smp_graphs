@@ -264,6 +264,10 @@ class TextBlock2(BaseplotBlock2):
     defaults = {
         'block_group': ['output', 'measure'],
         'savetype': 'tex',
+        'title': None,
+        'desc': None,
+        'layout': None,
+        'colwidth': 0.15, # default column width in textwidths
     }
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
@@ -300,28 +304,75 @@ class TextBlock2(BaseplotBlock2):
         if (self.cnt % self.blocksize) in self.blockphase: # or (xself.cnt % xself.rate) == 0:
             top_id = re.sub(r'_', r'-', self.top.id)
             table_title = 'Results: %s' % (top_id)
-            table_id = '%s' % (top_id, )
+            if self.title is not None:
+                table_title = self.title
+            table_id = '%s-%s' % (top_id, self.id)
             table_caption = self.desc
+            table_width = self.colwidth * 2
+            table_cellalign = 'r' * 2
+            table_rowlables = ['Measure', 'Value']
             
+            inputkeys = self.inputs.keys()
+            inputkeys.sort()
+            table_collables = inputkeys # [ink for ink in inputkeys]
+
+            table_cells = [[ink] for ink in inputkeys]
+
+            # table geometry
+            # - default is two columns: | name | value |, one row for each input item
+            # - if table spec is given, use that
+            if self.layout is not None:
+                self._debug('layout = %s' % (self.layout, ))
+                assert self.layout.has_key('cells'), "Layout needs entries: numrows, numcols, rowlables, collables, cells"
+                
+                table_width = self.colwidth * (len(self.layout['cells'][0]) + 1)
+                table_cellalign = 'r' * (len(self.layout['cells'][0]) + 1)
+                if table_width > 0.99:
+                    self._warning('table too wide for portrait textwidth with %f' % (table_width, ))
+
+                table_rowlables = self.layout['rowlabels']
+                table_collables = self.layout['collabels']
+
+                table_cells = self.layout['cells']
+                
+            # table head
             # self.textbuf = '\\begin{tabularx}{\\textwidth}{|r|X|}\n'
             self.textbuf = """\\bigskip
 \\begin{minipage}{\\linewidth}
 \\centering
 \\captionof{table}{%s} \\label{tab:%s}
-\\begin{tabularx}{0.3\\textwidth}{rr}\\toprule[1.0pt]\n""" % (table_title, table_id)
-            self.textbuf += '\\textbf{Measure} & \\textbf{Value}\\\\\n'
-            self.textbuf += '\\midrule\n'
-            # for ink, inv in self.inputs.items():
-            inputkeys = self.inputs.keys()
-            inputkeys.sort()
-            for ink in inputkeys:
-                inv = self.inputs[ink]
-                self._info('ink = %s, inv = %s' % (ink, inv))
-                self.textbuf += '{:} & ${:10.4f}$ \\\\\n'.format(re.sub(r'_', r'\_', ink), inv['val'].flatten()[0])
-                
+\\small
+\\begin{tabularx}{%f\\textwidth}{%s}\\toprule[1.0pt]\n""" % (table_title, table_id, table_width, table_cellalign)
+
+            # table row labels
+            self.textbuf += '\\textbf{{{0}}}'.format(table_rowlables[0])
+            for rowlabel in table_rowlables[1:]:
+                self.textbuf += '& \\textbf{{{0}}}'.format(rowlabel)
+            self.textbuf += '\\\\\n\\midrule\n'
+            
+            # # for ink, inv in self.inputs.items():
+            # inputkeys = self.inputs.keys()
+            # inputkeys.sort()
+            # for ink in inputkeys:
+            #     inv = self.inputs[ink]
+            #     self._info('ink = %s, inv = %s' % (ink, inv))
+            #     self.textbuf += '{:} & ${:10.4f}$ \\\\\n'.format(re.sub(r'_', r'\_', ink), inv['val'].flatten()[0])
+
+            for r, tablerow in enumerate(table_cells):
+                self.textbuf += '{:}'.format(re.sub(r'_', r'\_', table_collables[r]))
+                for tablecol in tablerow:
+                    # print "cell", tablerow, tablecol
+                    if tablecol is not None:
+                        cellv = self.inputs[tablecol]['val'].flatten()[0]
+                        self.textbuf += '& ${:10.4f}$'.format(cellv)
+                    else:
+                        self.textbuf += '& '
+                self.textbuf +=  '\\\\\n' # row terminate
+                    
             self.textbuf += '\\bottomrule[2pt]\n\\end{tabularx}\n'
 
             self.textbuf += """\\par
+\\normalsize
 \\bigskip
 %s
 \\end{minipage}\n""" % (table_caption)
