@@ -10,12 +10,7 @@ import numpy as np
 
 from smp_base.measures import meas
 from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2
-
-from smp_graphs.block import Block2, FuncBlock2
-from smp_graphs.block_meas import MomentBlock2, MeasBlock2
-from smp_graphs.block_meas_infth import MIBlock2, InfoDistBlock2
-from smp_graphs.funcs import f_sum, f_envelope, f_rootmeansquare
-
+6
 from smp_base.common import get_module_logger
 logger = get_module_logger(modulename = 'utils_conf', loglevel = 'info')
 
@@ -36,9 +31,9 @@ def get_systemblock_pm(
 
     # legacy argument handling
     if kwargs.has_key('dim_s_proprio'):
-        dim_s0 = kwargs.pop('dim_s_proprio')
+        dim_s0 = kwargs['dim_s_proprio']
     if kwargs.has_key('dim_s_extero'):
-        dim_s1 = kwargs.pop('dim_s_extero')
+        dim_s1 = kwargs['dim_s_extero']
 
     # defaults
     dims = {
@@ -110,10 +105,7 @@ def get_systemblock_pm(
 
     # default dims
     sysconf['params']['dims'] = dims
-
-    # update the lot?
-    sysconf['params'].update(kwargs)
-
+    
     # if kwargs.has_key('numelem') or kwargs.has_key('h_numelem'):
     for k in [k for k in kwargs.keys() if k in ['numelem', 'h_numelem']]:
         # h_numelem = kwargs['h_numelem']

@@ -190,7 +190,9 @@ lconf = {
         },
         'outputs': {
             'y': {'shape': (dim_s0, numsteps)},
-            'h': {'shape': (dim_s0, numelem), 'trigger': 'trig/t1'},
+            'h': {
+                'shape': (dim_s0, numelem),
+                'trigger': 'trig/t1', 'trigger_func': 'h'},
         },
     }
 }

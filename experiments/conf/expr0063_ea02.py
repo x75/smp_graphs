@@ -24,10 +24,9 @@ self-exploration
 
 0063
  - x 0062 fixed with delay and online learning
- - close the loop!
 
 0064
- - enable closed-loop
+ - close the loop with blk_mode, route, sequencer
  - add pre/meas pairs
  - add meas stack statistics or expand meas stack resp.
  - move meas stack into brain
@@ -50,8 +49,9 @@ from sklearn.gaussian_process.kernels import WhiteKernel, ExpSineSquared
 from smp_base.plot import table, bar
 
 from smp_graphs.common import compose
-from smp_graphs.block import FuncBlock2, TrigBlock2
+from smp_graphs.block import FuncBlock2, TrigBlock2, RouteBlock2
 from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2
+from smp_graphs.block_ols import SequencerBlock2
 from smp_graphs.block_plot import TextBlock2
 from smp_graphs.block_models import ModelBlock2
 from smp_graphs.block_meas import MeasBlock2, MomentBlock2
@@ -65,7 +65,7 @@ from smp_graphs.utils_conf_meas import get_measures_block
 
 # global parameters can be overwritten from the commandline
 ros = False
-numsteps = 10000/10
+numsteps = 10000/5
 numbins = 21
 recurrent = True
 debug = False
@@ -135,7 +135,8 @@ lconf = {
         'h_numelem': numelem, # sampling grid
         # control input
         # 'inputs': {'u': {'bus': p_vars[0]}},
-        'inputs': {'u': {'bus': 'mdl1/y2'}}
+        # 'inputs': {'u': {'bus': 'mdl1/y2'}},
+        'inputs': {'u': {'bus': 'motor/y'}},
     },
     # agent / models
     'infodistgen': {
@@ -186,7 +187,8 @@ lconf = {
             # target
             # 'x_tg': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
             # 'x_tg': {'bus': p_del_vars[0], 'shape': (dim_s0, numsteps)},
-            'x_tg': {'bus': p_del_vars[0], 'shape': (dim_s0, 1, 1)},
+            # 'x_tg': {'bus': p_del_vars[0], 'shape': (dim_s0, 1, 1)},
+            'x_tg': {'bus': 'mdl1_target/y', 'shape': (dim_s0, 1, 1)},
         },
         'outputs': {
             # 'y': {'shape': (dim_s0, numsteps)},
@@ -254,6 +256,38 @@ graph = OrderedDict([
                 # 'pre_l2_t1': {'shape': (1, 1)},
                 't1': {'shape': (1, 1)},
             }
+        },
+    }),
+
+    # trying a new way of sequencing: the sequencer :)
+    ('seq', {
+        'block': SequencerBlock2,
+        'params': {
+            'blocksize': 1,
+            'sequences': {
+                'motor': {
+                    'shape': (1,1),
+                    'events': {
+                        0: np.ones((1,1)) * 0,
+                        numsteps/2: np.ones((1,1)) * 1
+                    }
+                },
+            }
+        }
+    }),
+
+    # motor routing
+    ('motor', {
+        'block': RouteBlock2,
+        'params': {
+            'debug': True,
+            'inputs': OrderedDict([
+                # ('r', {'val': np.array([[1]])}),
+                ('r', {'bus': 'seq/motor'}),
+                ('pre_l0', {'bus': 'pre_l0/pre', 'shape': (dim_s0, 1)}),
+                ('mdl_y2', {'bus': 'mdl1/y2'}),
+            ]),
+            # implicit output is 'y'
         },
     }),
 
@@ -364,11 +398,26 @@ graph = OrderedDict([
                         'inputs': {
                             'y': {'bus': p_vars[0], 'shape': (dim_s0, 1)},
                             'y1': {'bus': p_vars[0], 'shape': (dim_s0, 1)},
-                            'mdl_y': {'bus': 'mdl1/y',     'shape': (dim_s0, numsteps)}},
-                        'delays': {'y': 1, 'y1': 1, 'mdl_y': 0},
+                            'mdl_y2': {'bus': 'mdl1/y2',     'shape': (dim_s0, 1)}},
+                        'delays': {'y': 1, 'y1': 1, 'mdl_y2': 1},
                     }
                 }),
         
+                # motor routing
+                ('mdl1_target', {
+                    'block': RouteBlock2,
+                    'params': {
+                        'debug': True,
+                        'inputs': OrderedDict([
+                            # ('r', {'val': np.array([[1]])}),
+                            ('r', {'bus': 'seq/motor'}),
+                            ('pre_l0', {'bus': 'delay/dy', 'shape': (dim_s0, 1, 1)}),
+                            ('mdl_y2', {'bus': 'delay/dmdl_y2', 'shape': (dim_s0, 1, 1)}),
+                        ]),
+                        # implicit output is 'y'
+                    },
+                }),
+
                 # inverse model s2s
                 ('mdl1', lconf['model_s2s']),
                 

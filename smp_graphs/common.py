@@ -309,7 +309,7 @@ def get_input(inputs, inkey):
 
     An smp_graphs bus operation: return the 'val' field of the inputs' item at 'inkey'
     """
-    assert type(inputs) is dict
+    assert type(inputs) in [dict, OrderedDict]
     assert inkey is not None
     assert inputs.has_key(inkey)
     return inputs[inkey]['val']

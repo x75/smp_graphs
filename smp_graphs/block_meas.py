@@ -372,10 +372,12 @@ class MeasBlock2(PrimBlock2):
         self._debug('               x1 = %s' % (x1_p, ))
         self._debug('               x2 = %s' % (x2_p, ))
         
+        if len(x1_x.shape) > 1: x1_x = x1_x[0,:]
+        if len(x2_x.shape) > 1: x2_x = x2_x[0,:]
+        assert len(x1_x.shape) == 1, "Assuming 1d bin specs but got %s in MeasBlock2.step_div from block id = %s " % (x1_x.shape, self.id)
         # distmat d(x1_i, x2_j)
         x1_x_ = x1_x
         x2_x_ = x2_x
-        assert len(x1_x.shape) == 1, "Assuming 1d bin specs in MeasBlock2.step_div from block id = %s FIXME" % (self.id, )
         if  x1_x.shape[0] != x1_p.shape[0]: # bin limits
             # x1_x_ = x1_x[:-1] + np.mean(np.abs(np.diff(x1_x)))/2.0
             x1_x_ = x1_x[:-1] + np.abs(np.diff(x1_x))/2.0
@@ -394,9 +396,7 @@ class MeasBlock2(PrimBlock2):
         else:
             setattr(self, 'y', div)
             
-        
         self._debug('y = measures[%s](x1, x2) = %s' % (self.meas, str(self.y)[:300]))
-        
         
     def step_hist(self, x = None):
         """step for histogram

@@ -135,7 +135,7 @@ loop = [('lconf', {
         's_f': 2.0,
         'e': 0.0,
     },
-    'div_meas': 'chisq', # 'kld'
+    'div_meas': 'kld', # 'chisq'
     # 'model_s2s': {
     #     'block': repr(ModelBlock2),
     'model_s2s_params': {
@@ -170,7 +170,7 @@ loop = [('lconf', {
             },
             'outputs': {
                 'y': {'shape': (dim_s0, 1)},
-                'h': {'shape': (dim_s0, numelem), 'trigger': 'trig_ll%d_ll%d/pre_l2_t1' % (i, i, )},
+                'h': {'shape': (dim_s0, numelem), 'trigger': 'trig_ll%d_ll%d/pre_l2_t1' % (i, i, ), 'trigger_func': 'h'},
             },
         },
 }) for i in range(numloop)]

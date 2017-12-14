@@ -105,7 +105,7 @@ lconf = {
         's_f': 2.0,
         'e': 0.0,
     },
-    'div_meas': 'chisq', # 'kld'
+    'div_meas': 'kld', # 'chisq'
     'model_s2s_params': {
         # 'debug': True,
         'blocksize': numsteps,
@@ -134,7 +134,7 @@ lconf = {
         },
         'outputs': {
             'y': {'shape': (dim_s0, numsteps)},
-            'h': {'shape': (dim_s0, numelem), 'trigger': 'trig/pre_l2_t1'},
+            'h': {'shape': (dim_s0, numelem), 'trigger': 'trig/pre_l2_t1', 'trigger_func': 'h'},
         },
     }
 }
@@ -485,14 +485,18 @@ graph = OrderedDict([
             'id': 'm_div',
             'blocksize': numsteps,
             'debug': False,
-            'mode': 'basic',
+            'mode': 'div', # 'basic',
             'scope': 'local',
             'meas': div_meas, # ['chisq', 'kld'],
             # direct histo input?
             # or signal input
             'inputs': {
-                'x1': {'bus': 'm_hist/x1_p', 'shape': (1, numbins)},
-                'x2': {'bus': 'm_hist/x2_p', 'shape': (1, numbins)},
+                # 'x1': {'bus': 'm_hist/x1_p', 'shape': (1, numbins)},
+                # 'x2': {'bus': 'm_hist/x2_p', 'shape': (1, numbins)},
+                'x1_p': {'bus': 'm_hist/x1_p', 'shape': (1, numbins)},
+                'x1_x': {'bus': 'm_hist/x1_x', 'shape': (1, numbins + 1)},
+                'x2_p': {'bus': 'm_hist/x2_p', 'shape': (1, numbins)},
+                'x2_x': {'bus': 'm_hist/x2_x', 'shape': (1, numbins + 1)},
             },
             'outputs': {
                 'y': {'shape': (1, numbins)},

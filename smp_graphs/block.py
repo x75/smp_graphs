@@ -2439,7 +2439,7 @@ class Block2(object):
         failsafe preprocessing of input tensor using input specification
         """
         if not self.inputs.has_key(k):
-            logger.error('%s-%s get_input failed, no key = %s in self.inputs.keys = %s' % (self.cname, self.id, self.inputs.keys()))
+            logger.error('%s-%s get_input failed, no key = %s in self.inputs.keys = %s' % (self.cname, self.id, k, self.inputs.keys()))
             return np.zeros((1,1))
         
         if self.inputs[k].has_key('embedding'):
@@ -3461,6 +3461,42 @@ class TrigBlock2(PrimBlock2):
             else:
                 setattr(self, outk, np.zeros(outv['shape']))
                 # self._debug("not triggered %s = %s" % (outk, getattr(self, outk),))
+        
+class RouteBlock2(PrimBlock2):
+    """RouteBlock2 class
+
+    Route block selects one of its inputs to route to the output.
+
+    FIXME: RoutingMatrix?
+    """
+    defaults = {
+        # 'cnt': np.ones((1,1)),
+        'debug': False,
+        'outputs': {
+            # 'x': {'shape': (1,1)}
+        },
+        'block_group': 'data',
+    }
+        
+    @decInit()
+    def __init__(self, conf = {}, paren = None, top = None):
+        conf['params']['inputkeys'] = copy.copy(conf['params']['inputs'].keys())
+        conf['params']['inputkeys'].pop(0)
+        conf['params']['inputkey'] = 0
+
+        ink = conf['params']['inputkeys'][0]
+        conf['params']['outputs'] = {'y': {'shape': conf['params']['inputs'][ink]['shape']}}
+        
+        PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
+        self._debug('self.inputkeys = %s' % (self.inputkeys))
+                
+    @decStep()
+    def step(self, x = None):
+        """RouteBlock step"""
+        
+        if not self.block_is_scheduled(): return
+        self.inputkey = int(self.get_input('r')[0,0])
+        setattr(self, 'y', self.get_input(self.inputkeys[self.inputkey]))
         
 class UniformRandomBlock2(PrimBlock2):
     """UniformRandomBlock2 class

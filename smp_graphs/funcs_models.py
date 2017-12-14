@@ -215,7 +215,7 @@ def init_random_lookup(ref, mref, conf, mconf):
 
     mref.h_gauss_inv_int -= np.mean(mref.h_gauss_inv_int)
     mref.h_gauss_inv_int /= np.max(np.abs(mref.h_gauss_inv_int))
-    mref.h_gauss_inv_int *= min(1.0, mref.d_s)
+    # mref.h_gauss_inv_int *= min(1.0, mref.d_s)
 
     # additive noise on base h
     # mref.h_noise = np.random.uniform(-1, 1, (mconf['numelem'], )) # .reshape(1, mconf['numelem'])
@@ -1126,6 +1126,13 @@ def init_sklearn(ref, mref, conf, mconf):
     # logger.debug('ref.h = %s', ref.h.shape)
     # self.h_sample = 
     # print "mref.mdl", mref.mdl
+    
+    # set trigger callback
+    trigger_funcs = {'h': partial(trig_sklearn_h, mref = mref)}
+    for outk, outv in conf['params']['outputs'].items():
+        if outv.has_key('trigger') and outv.has_key('trigger_func'):
+            outv['trigger_func'] = trigger_funcs[outv['trigger_func']] # code_compile_and_run('trig_sklearn_{0}'.format(outv['trigger_func']), gv)
+            logger.debug('converted trigger_func to %s' % (outv['trigger_func'], ))
 
 def step_sklearn(ref, mref, *args, **kwargs):
     # pass
@@ -1138,12 +1145,27 @@ def step_sklearn(ref, mref, *args, **kwargs):
     # print "x_tg_", x_tg_
     mref.y = x_tg_.T
     # logger.debug('x_in = %s', x_in.shape)
-    mref.h_sample = np.atleast_2d(np.hstack([np.linspace(np.min(x_in_), np.max(x_in_), ref.defaults['model_numelem']) for x_in_ in x_in.T]))
+    # mref.h_sample = np.atleast_2d(np.hstack([np.linspace(np.min(x_in_), np.max(x_in_), ref.defaults['model_numelem']) for x_in_ in x_in.T]))
     # logger.debug('ref.h_sample = %s', ref.h_sample.shape)
     # FIXME: meshgrid or random samples if dim > 4
-    mref.h = mref.mdl.predict(mref.h_sample.T).T
+    # mref.h = mref.mdl.predict(mref.h_sample.T).T
     # logger.debug('ref.h = %s', ref.h.shape)
 
+def trig_sklearn_h(ref, mref, *args, **kwargs):
+    # need idim
+    # idim = mref.mdl.idim
+    # numelem = mref.mdl.numelem
+    idim = ref.inputs['x_in']['shape'][0]
+    numelem = ref.outputs['h']['shape'][1]
+    mref.h_sample = np.atleast_2d(np.hstack([np.linspace(-1.1, 1.1, numelem) for _ in range(idim)]))
+    # logger.debug('mref.h_sample = %s', mref.h_sample.shape)
+    # FIXME: meshgrid or random samples if dim > 4
+    mref.h = mref.mdl.predict(mref.h_sample.T).T
+    # hack because we are called by step wrapper _after_ ModelBlock2 has copied mref to ref outputs
+    ref.h = mref.h
+    # logger.debug('mref.h = %s', mref.h)
+    # logger.debug(' ref.h = %s',  ref.h)
+    
 def load_sklearn(ref, mref):
     modelfileext = 'pkl'
     modelfilenamefull = '{0}.{1}'.format(mref.modelfilename, modelfileext)
@@ -1909,9 +1931,12 @@ def step_smpmodel(ref, mref, *args, **kwargs):
     smpmodel's computation step
     """
     # get fit input handles
-    X = ref.get_input('x_in')
+    X = np.atleast_2d(ref.get_input('x_in')).T
     Y = ref.get_input('x_tg')
 
+    # logger.debug('X = %s, Y = %s', X.shape, Y.shape)
+    if len(Y.shape) > 2: Y = np.reshape(Y, (-1, ref.blocksize))
+    
     # fit the model
     mref.mdl.fit(X, Y)
 
