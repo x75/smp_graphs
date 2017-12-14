@@ -43,7 +43,7 @@ self-exploration
 """
 
 import re 
-from sklearn.gaussian_process.kernels import WhiteKernel, ExpSineSquared
+# from sklearn.gaussian_process.kernels import WhiteKernel, ExpSineSquared
 
 from smp_base.plot import table, bar
 
@@ -367,21 +367,21 @@ graph = OrderedDict([
                 # inverse model s2s
                 ('mdl1', lconf['model_s2s']),
                 
+                # get measures via measblock utility func
+                # measures: direct pre2meas
+                get_measures_block(**{
+                    'measblockid': 0, 'numsteps': numsteps, 'p_vars': p_vars, 'p_del_vars': p_vars,
+                    'm_vars': m_vars, 'dim_s0': dim_s0, 'numbins': numbins, 'div_meas': div_meas}),
+
+                # measures: indirect mdlpre2meas
+                get_measures_block(**{
+                    'measblockid': 1, 'numsteps': numsteps, 'p_vars': ['delay/dy'], 'p_del_vars': p_del_vars,
+                    'm_vars': ['mdl1/y'], 'dim_s0': dim_s0, 'numbins': numbins, 'div_meas': div_meas}),
+        
             ]),
         }
     }),
 
-    # get measures via measblock utility func
-    # measures: direct pre2meas
-    get_measures_block(**{
-        'measblockid': 0, 'numsteps': numsteps, 'p_vars': p_vars, 'p_del_vars': p_vars,
-        'm_vars': m_vars, 'dim_s0': dim_s0, 'numbins': numbins, 'div_meas': div_meas}),
-
-    # measures: indirect mdlpre2meas
-    get_measures_block(**{
-        'measblockid': 1, 'numsteps': numsteps, 'p_vars': ['delay/dy'], 'p_del_vars': p_del_vars,
-        'm_vars': ['mdl1/y'], 'dim_s0': dim_s0, 'numbins': numbins, 'div_meas': div_meas}),
-        
     # plotting random_lookup influence
     # one configuration plot grid:
     # | transfer func h | horizontal output | horziontal histogram |
