@@ -1915,10 +1915,17 @@ def step_smpmodel(ref, mref, *args, **kwargs):
     # fit the model
     mref.mdl.fit(X, Y)
 
-    # get predict input handles
-    X_ = X
     # predict
-    Y_ = mref.mdl.predict(X_)
+    Y_ = mref.mdl.predict(X)
+
+    # get predict input handles and use separate input if available
+    if ref.inputs.has_key('x_in2'):
+        X2 = ref.get_input('x_in2')
+        # predict
+        Y2_ = mref.mdl.predict(X2)
+        # prepare for block output
+        setattr(mref, 'y2', Y2_)
+        
     # prepare for block output
     setattr(mref, 'y', Y_)
 
@@ -1935,7 +1942,7 @@ def trig_smpmodel_h(ref, mref, *args, **kwargs):
     # hack because we are called by step wrapper _after_ ModelBlock2 has copied mref to ref outputs
     ref.h = mref.h
     # logger.debug('mref.h = %s', mref.h)
-    logger.debug(' ref.h = %s',  ref.h)
+    # logger.debug(' ref.h = %s',  ref.h)
     
 class model(object):
     """model class

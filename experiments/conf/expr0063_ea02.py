@@ -134,8 +134,8 @@ lconf = {
         # ground truth cheating
         'h_numelem': numelem, # sampling grid
         # control input
-        'inputs': {'u': {'bus': p_vars[0]}},
-        # 'inputs': {'u': {'bus': 'mdl1/y'}}
+        # 'inputs': {'u': {'bus': p_vars[0]}},
+        'inputs': {'u': {'bus': 'mdl1/y2'}}
     },
     # agent / models
     'infodistgen': {
@@ -173,18 +173,16 @@ lconf = {
 
             # online learner
             's0pre2s0meas': {
-                'type': 'smpmodel',
-                'algo': 'knn',
+                'type': 'smpmodel', 'algo': 'knn', 'n_neighbors': 5, #  'prior': 'random', 'prior_width': 0.01,
             },
-            # 's0pre2s0meas_predict': {
-            #     'type': 'smpmodel',
-            #     'algo': 'knn',
-            # },
         },
         'inputs': {
             # input
             # 'x_in': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
+            # fit input
             'x_in': {'bus': m_vars[0], 'shape': (dim_s0, 1)},
+            # predict input
+            'x_in2': {'bus': p_vars[0], 'shape': (dim_s0, 1)},
             # target
             # 'x_tg': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
             # 'x_tg': {'bus': p_del_vars[0], 'shape': (dim_s0, numsteps)},
@@ -193,6 +191,7 @@ lconf = {
         'outputs': {
             # 'y': {'shape': (dim_s0, numsteps)},
             'y': {'shape': (dim_s0, 1)},
+            'y2': {'shape': (dim_s0, 1)},
             'h': {'shape': (dim_s0, numelem), 'trigger': 'trig/t1', 'trigger_func': 'h'},
         },
     }

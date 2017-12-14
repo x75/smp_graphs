@@ -597,9 +597,9 @@ class decStep():
     def process_blk_mode(self, xself):
         if hasattr(xself, 'inputs') and xself.inputs.has_key('blk_mode'):
             # print "blk_mode", xself.id, np.sum(xself.inputs['blk_mode']['val']) # xself.inputs['blk_mode']['val'], xself.inputs['blk_mode']['val'] < 0.1
+            # if the mode input is zero, skip processing
             if np.sum(xself.inputs['blk_mode']['val']) < 0.1:
-                # print "blub"
-                xself.cnt += 1
+                # xself.cnt += 1
                 return True
         return False
 
