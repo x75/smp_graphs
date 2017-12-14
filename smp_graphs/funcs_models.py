@@ -13,6 +13,7 @@ FIXME: convert these to smpmodels and put them into smp_base
 """
 
 from os import path as ospath
+from functools import partial
 import joblib
 
 import numpy as np
@@ -1881,7 +1882,12 @@ def step_eh(ref, mref, *args, **kwargs):
     # return to execute prediction on system and wait for new measurement
 
 def init_smpmodel(ref, mref, conf, mconf):
-    # pass
+    """smpmodel is a simple wrapper for smpModels
+
+    This implements very simple single batch fit and open-loop prediction scenarios.
+
+    For temporal embedding use smpmodel2, actinf, imol, eh
+    """
     mref.mdl = init_model(ref, mref, conf, mconf)
     mref.h = np.zeros((
         # conf['params']['outputs']['y']['shape'][0], # dim
@@ -1889,25 +1895,47 @@ def init_smpmodel(ref, mref, conf, mconf):
         mref.mdl.odim,   # dim
         mconf['numelem'] # number observations
     ))
+    
+    # set trigger callback
+    trigger_funcs = {'h': partial(trig_smpmodel_h, mref = mref)}
+    for outk, outv in conf['params']['outputs'].items():
+        if outv.has_key('trigger') and outv.has_key('trigger_func'):
+            outv['trigger_func'] = trigger_funcs[outv['trigger_func']] # code_compile_and_run('trig_smpmodel_{0}'.format(outv['trigger_func']), gv)
+            logger.debug('converted trigger_func to %s' % (outv['trigger_func'], ))
 
 def step_smpmodel(ref, mref, *args, **kwargs):
-    # for ink, inv in mref.mconf['inputs'].items():
-    #     print "step_smpmodel[%d] inputs[%s] = %s" % (ref.cnt, ink, inv)
+    """smpmodel step
+
+    smpmodel's computation step
+    """
+    # get fit input handles
     X = ref.get_input('x_in')
     Y = ref.get_input('x_tg')
-    
+
+    # fit the model
     mref.mdl.fit(X, Y)
 
+    # get predict input handles
     X_ = X
-    Y_ = mref.mdl.predict(X)
+    # predict
+    Y_ = mref.mdl.predict(X_)
+    # prepare for block output
     setattr(mref, 'y', Y_)
 
+def trig_smpmodel_h(ref, mref, *args, **kwargs):
+    # logger.debug('trig_smpmodel_h dir(ref) = %s', dir(ref))
+    # logger.debug('trig_smpmodel_h dir(mref) = %s', dir(mref))
+    # logger.debug('trig_smpmodel_h dir(mref.mdl) = %s', dir(mref.mdl))
     # ref.h_sample = np.atleast_2d(np.hstack([np.linspace(np.min(x_in_), np.max(x_in_), ref.defaults['model_numelem']) for x_in_ in X.T]))
-    mref.h_sample = np.atleast_2d(np.hstack([np.linspace(-1.1, 1.1, mref.mdl.numelem) for x_in_ in X.T]))
+    # need idim
+    mref.h_sample = np.atleast_2d(np.hstack([np.linspace(-1.1, 1.1, mref.mdl.numelem) for _ in range(mref.mdl.idim)]))
     # logger.debug('mref.h_sample = %s', mref.h_sample.shape)
     # FIXME: meshgrid or random samples if dim > 4
     mref.h = mref.mdl.predict(mref.h_sample.T).T
-    # logger.debug('ref.h = %s', mref.h.shape)
+    # hack because we are called by step wrapper _after_ ModelBlock2 has copied mref to ref outputs
+    ref.h = mref.h
+    # logger.debug('mref.h = %s', mref.h)
+    logger.debug(' ref.h = %s',  ref.h)
     
 class model(object):
     """model class

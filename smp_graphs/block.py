@@ -1981,6 +1981,9 @@ class Block2(object):
         if not v.has_key('trigger'): return True # False
         istriggered = v.has_key('trigger') and bus.has_key(v['trigger']) and np.any(bus[v['trigger']] > 0)
         # return not istriggered
+        if istriggered:
+            if v.has_key('trigger_func'):
+                v['trigger_func'](self)
         return istriggered
     
     def set_attr_from_top_conf(self):

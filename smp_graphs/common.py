@@ -526,7 +526,8 @@ def dict_replace_idstr_recursive(d, cid, xid):
             #    cid, d['params']['id'], outk, outv.keys())
             # if outv.has_key('bus'):
             for outvk in [k_ for k_ in outv.keys() if k_ in ['trigger', 'buscopy']]:
-                print "        bus old", outv['bus']
+                # if outv.has_key('bus'):
+                #     print "        bus old", outv['bus']
                 outv[outvk] = re.sub(
                     r'%s' % (cid, ),
                     r'%s' % (d['params']['id'], ),

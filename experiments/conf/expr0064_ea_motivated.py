@@ -24,8 +24,10 @@ self-exploration
 
 0063
  - x 0062 fixed with delay and online learning
+ - close the loop!
 
 0064
+ - enable closed-loop
  - add pre/meas pairs
  - add meas stack statistics or expand meas stack resp.
  - move meas stack into brain

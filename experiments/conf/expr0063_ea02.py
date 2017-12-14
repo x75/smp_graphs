@@ -24,8 +24,10 @@ self-exploration
 
 0063
  - x 0062 fixed with delay and online learning
+ - close the loop!
 
 0064
+ - enable closed-loop
  - add pre/meas pairs
  - add meas stack statistics or expand meas stack resp.
  - move meas stack into brain
@@ -170,10 +172,14 @@ lconf = {
             # },
 
             # online learner
-            'pre_l2_2_robot1_s0': {
+            's0pre2s0meas': {
                 'type': 'smpmodel',
                 'algo': 'knn',
             },
+            # 's0pre2s0meas_predict': {
+            #     'type': 'smpmodel',
+            #     'algo': 'knn',
+            # },
         },
         'inputs': {
             # input
@@ -187,7 +193,7 @@ lconf = {
         'outputs': {
             # 'y': {'shape': (dim_s0, numsteps)},
             'y': {'shape': (dim_s0, 1)},
-            'h': {'shape': (dim_s0, numelem), 'trigger': 'trig/t1'},
+            'h': {'shape': (dim_s0, numelem), 'trigger': 'trig/t1', 'trigger_func': 'h'},
         },
     }
 }
