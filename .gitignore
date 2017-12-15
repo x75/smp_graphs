@@ -1,6 +1,7 @@
 *~
 *.pyc
 *.prof
+*.bak
 doc/html
 doc/latex
 doc/_build
