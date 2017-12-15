@@ -79,7 +79,7 @@ numsteps = cnf['numsteps']
 xdim = cnf['xdim']
 ydim = cnf['ydim']
 xdim_eff = cnf['xdim_eff']
-if cnf.has_key('sys_slicespec'):
+if 'sys_slicespec' in cnf:
     sys_slicespec = cnf['sys_slicespec']
 else:
     sys_slicespec = {'x': {'acc': slice(0, 3), 'gyr': slice(3, xdim)}}

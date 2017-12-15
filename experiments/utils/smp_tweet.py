@@ -7,7 +7,7 @@ import argparse, os, sys
 import tweepy
 
 def post_tweet_image(api, status, image):
-    print "Pushing img = '%s', status = '%s'" %( args.image, args.status)
+    print("Pushing img = '%s', status = '%s'" %( args.image, args.status))
     api.update_with_media(args.image, args.status)
 
 # def post_tweet_paper(api, status, image):

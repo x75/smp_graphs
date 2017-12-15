@@ -28,7 +28,7 @@ ydim = 4
 # print looparray_
 # looparray = looparray_
 looparray = [('file', {'filename': fname, 'filetype': 'puppy'}) for fname in filearray]
-print "looparray", looparray
+print("looparray", looparray)
 
 loopblocksize = 1000
 numsteps = len(looparray) * loopblocksize

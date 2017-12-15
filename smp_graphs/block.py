@@ -151,6 +151,7 @@ from smp_graphs.graph import nxgraph_nodes_iter
 from logging import WARNING as logging_WARNING
 from logging import INFO as logging_INFO
 from logging import DEBUG as logging_DEBUG
+from functools import reduce
 # import logging
 loglevel_DEFAULT = logging_INFO
 logger = get_module_logger(modulename = 'block', loglevel = logging_DEBUG)
@@ -230,14 +231,14 @@ class Bus(MutableMapping):
         return key
 
     def has_key(self, key):
-        return self.store.has_key(key)
+        return key in self.store
 
     # custom methods
     def setval(self, k, v):
         self.store[k] = v
 
     def __str__(self):
-        storekeys = self.store.keys()
+        storekeys = list(self.store.keys())
         storekeys.sort()
         ret = ''
         for k in storekeys:
@@ -254,7 +255,7 @@ class Bus(MutableMapping):
         ret = ''
 
         if not loop_compress:
-            storekeys = self.store.keys()
+            storekeys = list(self.store.keys())
             storekeys.sort()
             # print "storekeys", storekeys
             for k in storekeys:
@@ -263,11 +264,11 @@ class Bus(MutableMapping):
             return ret
 
         loop_compressor = {}
-        for k in self.store.keys():
+        for k in list(self.store.keys()):
             # squash loop delimiters down to base node-id/signal
             k_ = compress_loop_id(k)
             # add if not there
-            if not loop_compressor.has_key(k_):
+            if k_ not in loop_compressor:
                 # print "new key", k_, k
                 loop_compressor[k_] = {
                     'v': self.store[k],
@@ -276,7 +277,7 @@ class Bus(MutableMapping):
             else:
                 loop_compressor[k_]['cnt'] += 1
 
-        storekeys = loop_compressor.keys()
+        storekeys = list(loop_compressor.keys())
         # print "storekeys", storekeys
         storekeys.sort()
         # print "storekeys", storekeys
@@ -292,11 +293,11 @@ class Bus(MutableMapping):
         """Bus plotting helper function compressing all keys with loop index into base name
         """
         loop_compressor = {}
-        for k in self.store.keys():
+        for k in list(self.store.keys()):
             # squash loop delimiters down to base node-id/signal
             k_ = compress_loop_id(k)
             # add if not there
-            if not loop_compressor.has_key(k_):
+            if k_ not in loop_compressor:
                 # print "new key", k_, k
                 loop_compressor[k_] = {
                     'v': self.store[k],
@@ -314,7 +315,7 @@ class Bus(MutableMapping):
         bus_filetype = 'pickle' # 'gml' # , 'json', 'yaml'
         bus_filename = '%s_%s.%s' % (conf['datafile_md5'], 'bus', bus_filetype)
         tmp_ = {}
-        for k, v in self.store.items():
+        for k, v in list(self.store.items()):
             # print "Bus k = %s, v = %s" % (k, v)
             tmp_[k] = v.shape
         pickle.dump(tmp_, open(bus_filename, 'wb'))
@@ -329,7 +330,7 @@ class Bus(MutableMapping):
         bus_filename = '%s_%s.%s' % (conf['datafile_md5'], 'bus', bus_filetype)
         b = Bus()
         tmp_ = pickle.load(open(bus_filename, 'rb'))
-        for k, v in tmp_.items():
+        for k, v in list(tmp_.items()):
             b[k] = np.zeros(v)
         return b
         
@@ -368,7 +369,7 @@ class Bus(MutableMapping):
         # ax.plot(np.random.uniform(-5, 5, 100), "ko", alpha = 0.1)
         i = 0
         bs_width_max = 0
-        storekeys = self.store.keys()
+        storekeys = list(self.store.keys())
         storekeys.sort()
         # for k, v in self.store.items():
         for k in storekeys:
@@ -565,7 +566,7 @@ class decStep():
         """
         try:
             return self.wrap_l1(xself, f, args, kwargs)
-        except Exception, e:
+        except Exception as e:
             pdb.set_trace()
             return None
 
@@ -595,7 +596,7 @@ class decStep():
         return f_out
 
     def process_blk_mode(self, xself):
-        if hasattr(xself, 'inputs') and xself.inputs.has_key('blk_mode'):
+        if hasattr(xself, 'inputs') and 'blk_mode' in xself.inputs:
             # print "blk_mode", xself.id, np.sum(xself.inputs['blk_mode']['val']) # xself.inputs['blk_mode']['val'], xself.inputs['blk_mode']['val'] < 0.1
             # if the mode input is zero, skip processing
             if np.sum(xself.inputs['blk_mode']['val']) < 0.1:
@@ -604,7 +605,7 @@ class decStep():
         return False
 
     def get_credit(self, xself):
-        if xself.inputs.has_key('credit'):
+        if 'credit' in xself.inputs:
             return np.all(xself.inputs['credit']['val'] > 0.0)
         else:
             return True
@@ -616,14 +617,14 @@ class decStep():
         escnt  = xself.cnt
         
         # loop over block's inputs
-        for k, v in xself.inputs.items():
+        for k, v in list(xself.inputs.items()):
             # print "process_input: ", k, xself.id, xself.cnt, v['val'].shape, v['shape']
             # check input sanity
             assert v['val'].shape == v['shape'], "%s-%s's real and desired input shapes need to agree but ink = %s, %s != %s" % (
                 xself.cname, xself.id, k, v['val'].shape, v['shape'])
             
             # copy bus inputs to input buffer
-            if v.has_key('bus'): # input item is driven by external signal (bus value)
+            if 'bus' in v: # input item is driven by external signal (bus value)
                 # exec   blocksize of the input's source node
                 # FIXME: search once and store, recursively over nxgraph and subgraphs
                 blocksize_input     = get_blocksize_input(xself.top.nxgraph, v['bus'])
@@ -674,8 +675,8 @@ class decStep():
                             # np.fliplr(xself.bus[v[2]])
                             # v['val'][...,-blocksize_input_bus:] = self.bus[v['bus']].copy()
                             v['val'][...,-blocksize_input_bus:] = xself.bus[v['bus']].copy()
-                        except Exception, e:
-                            print "%s-%s[%d].decStep input copy k = %s from bus %s/%s to %s/%s, %s" % (xself.cname, xself.id, xself.cnt, k, v['bus'], xself.bus[v['bus']].shape, v['shape'], v['val'].shape, e)
+                        except Exception as e:
+                            print("%s-%s[%d].decStep input copy k = %s from bus %s/%s to %s/%s, %s" % (xself.cname, xself.id, xself.cnt, k, v['bus'], xself.bus[v['bus']].shape, v['shape'], v['val'].shape, e))
                             sys.exit(1)
                             
                         # if k == 'd2':
@@ -692,7 +693,7 @@ class decStep():
                         #     print v['val'][...,-1]
                     
             # copy input to output if inkey k is in outkeys
-            if k in xself.outputs.keys():
+            if k in list(xself.outputs.keys()):
                 setattr(xself, k, v['val'].copy()) # to copy or not to copy
                 
                 # # debug in to out copy
@@ -704,7 +705,7 @@ class decStep():
         # if scheduled by exec timing
         if xself.block_is_scheduled():
             # for all output items
-            for k, v in xself.outputs.items():
+            for k, v in list(xself.outputs.items()):
                 # defer non-ndarray types
                 # if v.has_key('type') and v['type'] != 'ndarray':
                 if xself.output_is_type(k, v):
@@ -766,9 +767,9 @@ class decStep():
                 # if not block.isprimitive: return
 
                 # m = md5(str(block.conf))
-                print "update_block_store block = %s (%s)" % (block, block.md5)
+                print("update_block_store block = %s (%s)" % (block, block.md5))
 
-                print "block_store", block.top.block_store.keys()
+                print("block_store", list(block.top.block_store.keys()))
 
                 # if hasattr(xself, 'nxgraph'):
                 #     xself.cache['nxgraph'] = nxgraph_to_smp_graph(block.nxgraph, asdict = True) # str()
@@ -809,7 +810,7 @@ class decStep():
             if not xself.topblock and xself.top.docache and xself.cache is not None and xself.cache_loaded: # cache_block and cache_inst:
                 # pass
                 shapes = []
-                for outk, outv in xself.outputs.items():
+                for outk, outv in list(xself.outputs.items()):
                     # only ndarray type outputs
                     if self.output_is_type(outk, outv):
                         continue
@@ -821,7 +822,7 @@ class decStep():
                     shapes.append(xself.cache_data[outk].shape)
                     # print "outk", outk, xself.cache_data[outk] # [xself.cnt-xself.blocksize:xself.cnt]
                 if xself.cnt % 100 == 0:
-                    print "decStep.f_eval\n    %s-%s cache hit at %s\n        using cached data with shapes %s\n" % (xself.cname, xself.id, xself.md5, shapes)
+                    print("decStep.f_eval\n    %s-%s cache hit at %s\n        using cached data with shapes %s\n" % (xself.cname, xself.id, xself.md5, shapes))
                 f_out = None
                 
             # not caching
@@ -912,12 +913,12 @@ class Block2(object):
         set_attr_from_dict(self, copy.copy(defaults))
                     
         # fetch existing configuration arguments
-        if type(self.conf) == dict and self.conf.has_key('params'):
+        if type(self.conf) == dict and 'params' in self.conf:
             # print "Block2 init params", self.conf['params']
             params = copy.deepcopy(self.conf['params'])
             set_attr_from_dict(self, params)
         else:
-            print "What could it be? Look at %s" % (self.conf)
+            print("What could it be? Look at %s" % (self.conf))
 
         # FIXME: no changes to conf['params'] after this?
             
@@ -1172,19 +1173,19 @@ class Block2(object):
               and type(self.graph) is str \
               and self.graph.startswith('id:'):
                 # search node
-                print "top graph", self.top.nxgraph.nodes()
+                print("top graph", self.top.nxgraph.nodes())
                 targetid = self.graph[3:] # id template
                 targetnode = nxgraph_node_by_id_recursive(self.top.nxgraph, targetid)
-                print "%s-%s" % (self.cname, self.id), "targetid", targetid, "targetnode", targetnode
+                print("%s-%s" % (self.cname, self.id), "targetid", targetid, "targetnode", targetnode)
                 if len(targetnode) > 0:
-                    print "    targetnode id = %d, node = %s" % (
+                    print("    targetnode id = %d, node = %s" % (
                         targetnode[0][0],
-                        targetnode[0][1].node[targetnode[0][0]])
+                        targetnode[0][1].node[targetnode[0][0]]))
                 # copy node
                 clone = {}
                 tnode = targetnode[0][1].node[targetnode[0][0]]
-                for k in tnode.keys():
-                    print "cloning: subcloning: k = %s, v = %s" % (k, tnode[k])
+                for k in list(tnode.keys()):
+                    print("cloning: subcloning: k = %s, v = %s" % (k, tnode[k]))
                     clone[k]  = copy.copy(tnode[k])
                     if k == 'block_':
                         clone[k].inputs  = copy.deepcopy(tnode[k].inputs)
@@ -1248,7 +1249,7 @@ class Block2(object):
                 clone['params']['id'] = id_orig + "_clone"
                 clone['block_'].id    = id_orig + "_clone"
                 # replace input refs
-                for k, v in clone['block_'].inputs.items():
+                for k, v in list(clone['block_'].inputs.items()):
                     # if v['bus']
                     # v['bus'].split("/")[0]
                     # v['bus'].split("/")[0] + "_clone"
@@ -1258,15 +1259,15 @@ class Block2(object):
                         # replace all occurences of original id with clone id
                         v['bus'] = re.sub(id_orig, clone['params']['id'], v['bus'])
                     clone['block_'].inputs[k] = copy.deepcopy(v)
-                    print "%s.init cloning  input k = %s, v = %s" % (self.cname, k, clone['block_'].inputs[k])
+                    print("%s.init cloning  input k = %s, v = %s" % (self.cname, k, clone['block_'].inputs[k]))
                     
                 # replace output refs
-                for k, v in clone['block_'].outputs.items():
+                for k, v in list(clone['block_'].outputs.items()):
                     # v['buskey'].split("/")[0], v['buskey'].split("/")[0] + "_clone"
                     v['buskey'] = re.sub(id_orig, clone['params']['id'], v['buskey'])
-                    print "%s.init cloning output k = %s, v = %s" % (self.cname, k, v)
+                    print("%s.init cloning output k = %s, v = %s" % (self.cname, k, v))
                     clone['block_'].outputs[k] = copy.deepcopy(v)
-                print "cloning: cloned block_.id = %s" % (clone['block_'].id)
+                print("cloning: cloned block_.id = %s" % (clone['block_'].id))
                 
                 # add the modified node
                 self.nxgraph.add_node(0, **clone)
@@ -1328,13 +1329,13 @@ class Block2(object):
             if not top.docache or hasattr(block, 'nocache') and block.nocache:
                 return
 
-            self._debug("block_store keys = %s" % (top.block_store.keys(), ))
+            self._debug("block_store keys = %s" % (list(top.block_store.keys()), ))
             self._debug("block_store has blocks? is %s" % (hasattr(top.block_store, 'blocks'), ))
             # print "top.block_store['/blocks'] is top.block_store.blocks? is %s" % (top.block_store['/blocks'] is top.block_store.blocks, )
             
             # store exists
             # if hasattr(top.block_store, 'blocks'):
-            if len(top.block_store.keys()) > 0:
+            if len(list(top.block_store.keys())) > 0:
                 # blocks dataframe ref
                 blocks = top.block_store.blocks
                 # print "    blocks", blocks
@@ -1357,10 +1358,10 @@ class Block2(object):
                     block.cache = blocks[:][query]
                     if block.cache is not None and block.cache.shape[0] < 1:
                         block.cache = None
-                except Exception, e:
-                    print "%s%s-%s.check_block_store cache retrieval for %s failed with %s" % (
+                except Exception as e:
+                    print("%s%s-%s.check_block_store cache retrieval for %s failed with %s" % (
                         block.nesting_indent,
-                        block.cname, block.id, block.md5, e)
+                        block.cname, block.id, block.md5, e))
                     block.cache = None
                     
                 # print "check_block_store", block.md5, blocks['md5']
@@ -1368,10 +1369,10 @@ class Block2(object):
                 
             # cache loaded successfully
             if top.docache and block.cache is not None and block.cache.shape[0] != 0:
-                print "%s%s-%s.check_block_store" % (block.nesting_indent, block.cname, block.id)
-                print "%s    cache found for %s\n%s    cache['log_stores'] = %s" % (
+                print("%s%s-%s.check_block_store" % (block.nesting_indent, block.cname, block.id))
+                print("%s    cache found for %s\n%s    cache['log_stores'] = %s" % (
                     block.nesting_indent, block.md5,
-                    block.nesting_indent, block.cache['log_store'].values)
+                    block.nesting_indent, block.cache['log_store'].values))
 
                 if top.cache_clear:
                     logstr = "%s    cache_clear set, deleting cache entry %s / %s" % (block.nesting_indent, block.md5, blocks.shape)
@@ -1392,7 +1393,7 @@ class Block2(object):
                             # print "hits deref", blocks[hits]
                             blocks_pre_drop_shape = blocks.shape
                             blocks = blocks.drop(index = [hit_])
-                            print "%s    cache_clear set, dropping, pre = %s, post = %s" % (block.nesting_indent, blocks_pre_drop_shape, blocks.shape)
+                            print("%s    cache_clear set, dropping, pre = %s, post = %s" % (block.nesting_indent, blocks_pre_drop_shape, blocks.shape))
                     # # save
                     # blocks.to_hdf(top.block_store, key = 'blocks')
                     block.cache = None
@@ -1404,13 +1405,13 @@ class Block2(object):
                         top.log_store_cache = pd.HDFStore(block.cache['log_store'].values[0])
                     
                     block.cache_data = {}
-                    for outk, outv in block.outputs.items():
-                        if outv.has_key('type') and outv['type'] != 'ndarray': continue
+                    for outk, outv in list(block.outputs.items()):
+                        if 'type' in outv and outv['type'] != 'ndarray': continue
                         # x_ = block.cache_h5['%s/%s' % (block.id, outk)].values
                         x_ = top.log_store_cache['%s/%s' % (block.id, outk)].values
-                        print "%s%s-%s.check_block_store:     loading output %s cached data = %s" % (
+                        print("%s%s-%s.check_block_store:     loading output %s cached data = %s" % (
                             block.nesting_indent,
-                            block.cname, block.id, outk, x_)
+                            block.cname, block.id, outk, x_))
                         # FIXME: check cache and runtime shape geometry
                         block.cache_data[outk] = x_.copy()
                         setattr(block, outk, block.cache_data[outk][...,[0]])
@@ -1445,21 +1446,21 @@ class Block2(object):
                 # print "df =\n", df
 
                 # block store is empty
-                if len(top.block_store.keys()) < 1:
+                if len(list(top.block_store.keys())) < 1:
                     top.block_store['/blocks'] = df
                     blocks = top.block_store.blocks
-                    print "%scache None found, no cache entries exist %s, %s" %(
-                        block.nesting_indent, blocks.shape, df.shape)
+                    print("%scache None found, no cache entries exist %s, %s" %(
+                        block.nesting_indent, blocks.shape, df.shape))
                 else:
-                    print "%s    cache None found, cache entries exist %s" % (
-                        block.nesting_indent, blocks.shape)
-                    print "%s    cache_new blocks pre  concat = %s" % (block.nesting_indent, blocks.shape)
+                    print("%s    cache None found, cache entries exist %s" % (
+                        block.nesting_indent, blocks.shape))
+                    print("%s    cache_new blocks pre  concat = %s" % (block.nesting_indent, blocks.shape))
                     blocks = pd.concat([blocks, df])
-                    print "%s    cache_new blocks post concat = %s" % (block.nesting_indent, blocks.shape)
+                    print("%s    cache_new blocks post concat = %s" % (block.nesting_indent, blocks.shape))
                     # print "df2 concat(store, df)", df2.shape, df2
                     #  top.block_store['/blocks'] = df2
-                    print "%s    cache_new inserted entry at index %s with md5 = %s" % (
-                        block.nesting_indent, index, block.md5) # , df.md5, df2.shape)
+                    print("%s    cache_new inserted entry at index %s with md5 = %s" % (
+                        block.nesting_indent, index, block.md5)) # , df.md5, df2.shape)
 
                 # re-get cache
                 block.cache = blocks[:][blocks.md5 == block.md5]
@@ -1470,8 +1471,8 @@ class Block2(object):
 
             # synchronize these two
             top.block_store['/blocks'] = blocks
-            print "%s    cache block_store final shape = %s" % (
-                block.nesting_indent, blocks.shape, )
+            print("%s    cache block_store final shape = %s" % (
+                block.nesting_indent, blocks.shape, ))
 
         # if self.top.docache:
         check_block_store(block = self)
@@ -1537,32 +1538,32 @@ class Block2(object):
         # additional configuration for the subgraph
         if hasattr(self, 'subgraphconf'):
             # modifications happen in conf space since graph init pass 1 and 2 are pending
-            for confk, confv in self.subgraphconf.items():
+            for confk, confv in list(self.subgraphconf.items()):
                 # split block id from config parameter
                 (confk_id, confk_param) = confk.split("/")
                 # get the block's node
                 confnode = dict_search_recursive(self.conf['params']['graph'], confk_id)
                 # return on fail
                 if confnode is None: continue
-                print "subgraphconf node = %s" % (confnode['block'], )
-                print "               param = %s" % (confk_param, )
-                print "               val_bare = %s" % (confv, )
-                print "               val_old = %s" % (confnode['params'][confk_param], )
+                print("subgraphconf node = %s" % (confnode['block'], ))
+                print("               param = %s" % (confk_param, ))
+                print("               val_bare = %s" % (confv, ))
+                print("               val_old = %s" % (confnode['params'][confk_param], ))
                 # overwrite param dict
                 # tmp = {}
                 # tmp.update(confnode['params'][confk_param], **confv)
                 if type(confv) is dict:
                     tmp_ = copy.copy(confnode['params'][confk_param])
                     tmp_.update(**confv)
-                    print "               val_new = %s, tmp_ = %s" % (confnode['params'][confk_param], tmp_)
+                    print("               val_new = %s, tmp_ = %s" % (confnode['params'][confk_param], tmp_))
                 else:
-                    print "               val_new = %s" % (confv, )
+                    print("               val_new = %s" % (confv, ))
                     confnode['params'][confk_param] = confv
                     
                 # print "               val_new = %s, val_old = %s" % (confv, confnode['params'][confk_param])
                 # debug print
-                for paramk, paramv in confnode['params'].items():
-                    print "    %s = %s" % (paramk, paramv)
+                for paramk, paramv in list(confnode['params'].items()):
+                    print("    %s = %s" % (paramk, paramv))
         # # debug
         # print self.conf['params']['graph']['brain_learn_proprio']['params']['graph'][confk_id]
 
@@ -1606,7 +1607,7 @@ class Block2(object):
             
             # replace id strings recursively in outputs dict
             nks_l = dict_get_nodekeys_recursive(self.conf['params']['graph'])
-            if self.conf['params'].has_key('outputs'):
+            if 'outputs' in self.conf['params']:
                 # get the outputs dict
                 d_outputs = self.conf['params']['outputs']
                 # replace bus references
@@ -1720,13 +1721,13 @@ class Block2(object):
             self.subs = {}
             self.msgs = {}
 
-        for k, v in self.outputs.items(): # problematic
+        for k, v in list(self.outputs.items()): # problematic
         # for k, v in self.conf['params']['outputs'].items():
             # print "%s.init_outputs: outk = %s, outv = %s" % (self.cname, k, v)
             assert type(v) is dict, "Old config of block %s, output %s, type %s, %s" % (self.id, k, type(v), v)
 
             # check type
-            if not v.has_key('type'):
+            if 'type' not in v:
                 v['type'] = 'ndarray'
                 
             if v['type'] == 'ndarray':
@@ -1750,11 +1751,11 @@ class Block2(object):
         assert v is not None, "init_outputs_ndarray called with output val = None"
 
         # auto-fix shape for buscopy
-        if v.has_key('buscopy') and not v.has_key('shape') and self.bus.has_key(v['buscopy']):
+        if 'buscopy' in v and 'shape' not in v and v['buscopy'] in self.bus:
             v['shape'] = self.bus[v['buscopy']].shape
         
         # assert v.keys()[0] in ['shape', 'bus'], "Need 'bus' or 'shape' key in outputs spec of %s" % (self.id, )
-        assert v.has_key('shape'), "%s-%s's output spec %s needs 'shape' param but has %s " % (self.cname, self.id, k, v.keys())
+        assert 'shape' in v, "%s-%s's output spec %s needs 'shape' param but has %s " % (self.cname, self.id, k, list(v.keys()))
         # if v.has_key('shape'):
         assert len(v['shape']) > 1, "Block %s, output %s 'shape' tuple is needs at least (dim1 x output blocksize), v = %s" % (self.id, k, v)
         # # create new shape tuple by appending the blocksize to original dimensions
@@ -1768,7 +1769,7 @@ class Block2(object):
         v['buskey'] = "%s/%s" % (self.id, k)
 
         # logging by output item
-        if not v.has_key('logging'):
+        if 'logging' not in v:
             v['logging'] = True
                 
         # set self attribute to that shape
@@ -1800,8 +1801,8 @@ class Block2(object):
         if not self.logging: return
 
         # assume output's initialized        
-        for k, v in self.outputs.items():
-            if (not v.has_key('init')) or (not v['init']) or (not v['logging']): continue
+        for k, v in list(self.outputs.items()):
+            if ('init' not in v) or (not v['init']) or (not v['logging']): continue
                 
             # FIXME: ellipsis
             tbl_columns_dims = "_".join(["%d" for axis in v['shape'][:-1]])
@@ -1834,7 +1835,7 @@ class Block2(object):
             # that's actually for pass 2 to enable recurrent connections
             # old format: variable: [buffered const/array, shape, bus]
             # new format: variable: {'val': buffered const/array, 'shape': shape, 'src': bus|const|generator?}
-            for k, v in self.inputs.items():
+            for k, v in list(self.inputs.items()):
                 self._debug("init_pass_2 input items ink = %s, inv = %s" % (k, v, ))
                 assert len(v) > 0
                 # FIXME: when is inv not a dict?
@@ -1842,8 +1843,8 @@ class Block2(object):
                 # assert v.has_key('shape'), "input dict of %s/%s needs 'shape' entry, or do something about it" % (self.id, k)
                 
                 # set input from bus
-                if v.has_key('bus'):
-                    if v.has_key('shape'):
+                if 'bus' in v:
+                    if 'shape' in v:
                         # init input buffer from configuration shape
                         # print "input config shape = %s" % (v['shape'][:-1],)
                         # if len(v['shape']) == 1:
@@ -1863,7 +1864,7 @@ class Block2(object):
                         v['val'] = np.zeros(v['shape']) # ibuf >= blocksize
                         
                         # bus item does not exist yet
-                        if not self.bus.has_key(v['bus']):
+                        if v['bus'] not in self.bus:
                             
                             # FIXME: hacky
                             for i in range(1): # 5
@@ -1888,8 +1889,8 @@ class Block2(object):
                                 sl = slice(sls, sle) #
                                 
                                 v['val'] = self.bus[v['bus']][...,sl].copy()
-                                print "#" * 80
-                                print "sl", sl, v['val']
+                                print("#" * 80)
+                                print("sl", sl, v['val'])
                             else:
                                 # print "\nsetting", self.cname, v
                                 assert v['shape'][0] == self.bus[v['bus']].shape[0], "%s-%s's input buffer and input bus shapes need to agree (besides blocksize) for input %s, buf: %s, bus: %s/%s" % (self.cname, self.id, k, v['shape'], v['bus'], self.bus[v['bus']].shape)
@@ -1898,11 +1899,11 @@ class Block2(object):
                             # v['val'][...,0:inbus.shape[-1]] = inbus
                         # print "Blcok2: init_pass_2 v['val'].shape", self.id, v['val'].shape
                         
-                    elif not v.has_key('shape'):
+                    elif 'shape' not in v:
                         # check if key exists or not. if it doesn't, that means this is a block inside dynamical graph construction
                         # print "\nplotblock", self.bus.keys()
 
-                        assert self.bus.has_key(v['bus']), "Requested by %s-%s, bus item %s is not in buskeys %s" % (self.cname, self.id, v['bus'], self.bus.keys())
+                        assert v['bus'] in self.bus, "Requested by %s-%s, bus item %s is not in buskeys %s" % (self.cname, self.id, v['bus'], list(self.bus.keys()))
                     
                         # enforce bus blocksize smaller than local blocksize, tackle later
                         # CHECK
@@ -1925,12 +1926,12 @@ class Block2(object):
                 #     if v[0].endswith('.h5'):
                 #         setattr(self, k, v[0])
                 else:
-                    assert v.has_key('bus') or v.has_key('val'), "%s-%s's input spec needs either 'bus' or 'val' entry in %s" % (
-                        self.cname, self.id, v.keys())
+                    assert 'bus' in v or 'val' in v, "%s-%s's input spec needs either 'bus' or 'val' entry in %s" % (
+                        self.cname, self.id, list(v.keys()))
                     # expand scalar to vector
                     if np.isscalar(v['val']):
                         # check for shape info
-                        if not v.has_key('shape'):
+                        if 'shape' not in v:
                             v['shape'] = (1,1)
                         # create ones multiplied by constant
                         v['val'] = np.ones(v['shape']) * v['val']
@@ -1974,15 +1975,15 @@ class Block2(object):
         return reduce(lambda t1,t2: t1 or t2, conditions)
             
     def output_is_type(self, k, v, typematch = 'ndarray'):
-        return v.has_key('type') and v['type'] != typematch
+        return 'type' in v and v['type'] != typematch
 
     def output_is_triggered(self, k, v, bus):
         # return true if is 'trigger' but trigger bus inactive
-        if not v.has_key('trigger'): return True # False
-        istriggered = v.has_key('trigger') and bus.has_key(v['trigger']) and np.any(bus[v['trigger']] > 0)
+        if 'trigger' not in v: return True # False
+        istriggered = 'trigger' in v and v['trigger'] in bus and np.any(bus[v['trigger']] > 0)
         # return not istriggered
         if istriggered:
-            if v.has_key('trigger_func'):
+            if 'trigger_func' in v:
                 v['trigger_func'](self)
         return istriggered
     
@@ -1993,7 +1994,7 @@ class Block2(object):
         """
         for attr in ['saveplot']:
             top_attr = getattr(self.top, attr)
-            if top_attr is not None and self.conf['params'].has_key(attr):
+            if top_attr is not None and attr in self.conf['params']:
                 # print "Block2.set_attr_from_top_conf copying top.%s = %s to conf['params'] %s" % (attr, top_attr, self.conf['params']['saveplot'])
                 self.conf['params'][attr] = top_attr
                 setattr(self, attr, top_attr)
@@ -2039,7 +2040,7 @@ class Block2(object):
             # c = np.mean(b/np.max(b))
             c = int(np.sum(b) % linelen)
         
-            ck = plot_colors.keys()[c]
+            ck = list(plot_colors.keys())[c]
             # print "Block2-%s.init_colors k = %s, ck = %s, color = %s" % (self.id, c, ck, plot_colors[ck])
             return plot_colors[ck]
 
@@ -2048,7 +2049,7 @@ class Block2(object):
                 self.top.colorcnt = 0
             else:
                 self.top.colorcnt += 1
-            ck =  plot_colors.keys()[self.top.colorcnt]
+            ck =  list(plot_colors.keys())[self.top.colorcnt]
             return plot_colors[ck]
             
         def get_color_from_cmap():
@@ -2076,14 +2077,14 @@ class Block2(object):
         fmtstring = "\n%s[%d]." + fmtstring
         data = (self.cname,self.cnt) + data
         if self.debug:
-            print fmtstring % data
+            print(fmtstring % data)
 
     def step_cache(self):
         """Block2.step_cache
 
         Compute data for all subordinate nodes by outputting this block's cache
         """
-        print "%s-%s cached" % (self.cname,self.id,)
+        print("%s-%s cached" % (self.cname,self.id,))
         pass
 
     def step_compute(self):
@@ -2154,9 +2155,9 @@ class Block2(object):
     def bus_copy(self):
         """Compute block output by copying data from the bus argument
         """
-        for k, v in [(k_, v_) for k_, v_ in self.outputs.items() if v_.has_key('buscopy')]:
+        for k, v in [(k_, v_) for k_, v_ in list(self.outputs.items()) if 'buscopy' in v_]:
             buskey = v['buscopy']
-            assert self.bus.has_key(buskey), "Assuming in %s-%s that bus has key %s but %s" % (self.cname, self.id, buskey, self.bus.keys())
+            assert buskey in self.bus, "Assuming in %s-%s that bus has key %s but %s" % (self.cname, self.id, buskey, list(self.bus.keys()))
             # if buskey.startswith('b4') and np.mean(self.bus[buskey]) != 0.0: # or 'measure' in buskey:
             #     # , getattr(self, k), self.bus[buskey], self.bus.keys()
             #     print "buscopy[%d]: from buskey = %s to bus %s/%s" % (self.cnt, buskey, self.id, k)
@@ -2190,7 +2191,7 @@ class Block2(object):
         FIXME: use pylatex (if available)?
         """
         # check if latex output is configured
-        output_latex = [(k, v) for k, v in self.outputs.items() if v.has_key('type') and v['type'] == 'latex']
+        output_latex = [(k, v) for k, v in list(self.outputs.items()) if 'type' in v and v['type'] == 'latex']
         if len(output_latex) < 1:
             self._debug("latex_close: no latex output configured, output_latex = %s" % (output_latex, ))
             return
@@ -2208,7 +2209,7 @@ class Block2(object):
         id_base_ = '\_'.join(self.id.split('_')[0:2])
         texbuf += '\mypara{%s description}%s\n' % (id_base_, self.desc, )
         
-        output_figures = [(k, v) for k, v in self.outputs.items() if v.has_key('type') and v['type'] in ['fig', 'plot']]
+        output_figures = [(k, v) for k, v in list(self.outputs.items()) if 'type' in v and v['type'] in ['fig', 'plot']]
         # print "Block2.latex_close: |output_figures| = %s" % ( len(output_figures), )
 
         """
@@ -2274,7 +2275,7 @@ class Block2(object):
                     subfigref_ = '%s-%d' % (figref_, i)
 
                     figwidth_ = '0.99\\textwidth'
-                    if figv.has_key('width'):
+                    if 'width' in figv:
                         if type(figv['width']) is list:
                             if figv['width'][i] is not None:
                                 figwidth_ = figv['width'][i]
@@ -2325,7 +2326,7 @@ class Block2(object):
                     self._debug("%s-%s.plot_close closing node, saving plot %s" % (self.cname, self.id, node.id,))
                     try:
                         node.save()
-                    except Exception, e:
+                    except Exception as e:
                         logger.error('%s-%s.plot_close node(%s-%s).save() failed with %s' % (self.cname, self.id, node.cname, node.id, e))
 
     def _debug(self, s, *args, **kwargs):
@@ -2376,8 +2377,8 @@ class Block2(object):
                 node.log_attr()
 
             # loop output items
-            for k,v in node.outputs.items():
-                if (not v.has_key('init')) or (not v['init']) or (not v['logging']): continue
+            for k,v in list(node.outputs.items()):
+                if ('init' not in v) or (not v['init']) or (not v['logging']): continue
         
                 tbl_columns_dims = "_".join(["%d" for axis in v['shape'][:-1]])
                 tbl_columns = [tbl_columns_dims % tup for tup in xproduct(itertools.product, v['shape'][:-1])]
@@ -2393,7 +2394,7 @@ class Block2(object):
     def get_config(self):
         """Block2.get_config: get the current node instance as a dictionary"""
         params = {}
-        for k, v in self.__dict__.items():
+        for k, v in list(self.__dict__.items()):
             # FIXME: include bus, top, paren?
             if k not in ['conf', 'bus', 'top', 'paren']:
                 params[k] = v
@@ -2438,11 +2439,11 @@ class Block2(object):
 
         failsafe preprocessing of input tensor using input specification
         """
-        if not self.inputs.has_key(k):
-            logger.error('%s-%s get_input failed, no key = %s in self.inputs.keys = %s' % (self.cname, self.id, k, self.inputs.keys()))
+        if k not in self.inputs:
+            logger.error('%s-%s get_input failed, no key = %s in self.inputs.keys = %s' % (self.cname, self.id, k, list(self.inputs.keys())))
             return np.zeros((1,1))
         
-        if self.inputs[k].has_key('embedding'):
+        if 'embedding' in self.inputs[k]:
             emblen = self.inputs[k]['embedding']
             embshp = self.inputs[k]['shape']
             assert len(embshp) == 2
@@ -2500,10 +2501,10 @@ class FuncBlock2(Block2):
         # assumes func to be smp_graphs aware and map the input/output onto the inner function 
         f_val = self.func(self.inputs)
         if type(f_val) is dict:
-            for k, v in f_val.items():
+            for k, v in list(f_val.items()):
                 setattr(self, k, v)
         else:
-            for outk, outv in self.outputs.items():
+            for outk, outv in list(self.outputs.items()):
                 # print "k, v", outk, outv, f_val
                 setattr(self, outk, f_val)
             self.y = f_val
@@ -2562,8 +2563,8 @@ class LoopBlock2(Block2):
         conf['params'] = self.defaults
         
         # sanity check: loop specification
-        assert conf['params'].has_key('loop'), "LoopBlock2: loop spec missing"
-        assert conf['params'].has_key('loopmode'), "LoopBlock2: loopmode missing"
+        assert 'loop' in conf['params'], "LoopBlock2: loop spec missing"
+        assert 'loopmode' in conf['params'], "LoopBlock2: loopmode missing"
 
         # unroll loop into dictionary
         conf['params']['subgraph'] = LoopBlock2.subgraph_from_loop_unrolled(self, conf, paren, top)
@@ -2578,9 +2579,9 @@ class LoopBlock2(Block2):
     @staticmethod
     def subgraph_from_loop_unrolled(blockref, conf, paren, top):
         loopgraph_unrolled = OrderedDict()
-        print "        - nxgraph_from_smp_graph loopblock %s unroll %s" % (
+        print("        - nxgraph_from_smp_graph loopblock %s unroll %s" % (
             conf['params']['id'],
-            conf['params']['loop'],)
+            conf['params']['loop'],))
         
         # construction loop
         for i, item in enumerate(conf['params']['loop']):
@@ -2604,9 +2605,9 @@ class LoopBlock2(Block2):
             #     xid = xid,)
             
             # get template and copy
-            if conf['params'].has_key('loopblock'):
+            if 'loopblock' in conf['params']:
                 lpconf = copy.deepcopy(conf['params']['loopblock'])
-            elif conf['params'].has_key('models'):
+            elif 'models' in conf['params']:
                 lpconf = copy.deepcopy(conf)
 
             # rewrite raw graph dict to composite block with raw graph as subgraph
@@ -2622,7 +2623,7 @@ class LoopBlock2(Block2):
                 lpconf = lpconf_
                 
             # check for numsteps
-            if not lpconf['params'].has_key('numsteps'):
+            if 'numsteps' not in lpconf['params']:
                 lpconf['params']['numsteps'] = top.numsteps
                 
             # rewrite block ids with loop count
@@ -2655,12 +2656,12 @@ class LoopBlock2(Block2):
             """
             # copy loop items into full conf
             for (paramk, paramv) in item:
-                print "    replacing conf from loop", paramk, paramv
+                print("    replacing conf from loop", paramk, paramv)
                 # lpconf['params'][paramk] = paramv # .copy()
                 # FIXME: include id/params syntax in loop update
-                if lpconf['params'].has_key('subgraph'):
-                    for (blockk, blockv) in lpconf['params']['subgraph'].items():
-                        if blockv['params'].has_key(paramk):
+                if 'subgraph' in lpconf['params']:
+                    for (blockk, blockv) in list(lpconf['params']['subgraph'].items()):
+                        if paramk in blockv['params']:
                             blockv['params'][paramk] = paramv # .copy()
                 else:
                     lpconf['params'][paramk] = paramv # .copy()
@@ -2678,8 +2679,8 @@ class LoopBlock2(Block2):
             # nc += 1
 
         # print "        loopgraph_unrolled", loopgraph_unrolled.keys()
-        for k, v in loopgraph_unrolled.items():
-            print "loop %s, params = %s" % (k, v['params'].keys())
+        for k, v in list(loopgraph_unrolled.items()):
+            print("loop %s, params = %s" % (k, list(v['params'].keys())))
         # sys.exit(1)
         # conf['params']['subgraph'] = loopgraph_unrolled
         # conf['params']['graph'] = loopgraph_unrolled
@@ -2764,12 +2765,12 @@ class SeqLoopBlock2(Block2):
         """Compute step from cached data
         """
 
-        print "%s-%s[%d] this should never print but be caught by step decorator :)" % (self.cname, self.id, self.cnt)
-        print "%s-%s[%d] is cached at %s\n    cache = %s" % (self.cname, self.id, self.cnt, self.md5, self.cache)
+        print("%s-%s[%d] this should never print but be caught by step decorator :)" % (self.cname, self.id, self.cnt))
+        print("%s-%s[%d] is cached at %s\n    cache = %s" % (self.cname, self.id, self.cnt, self.md5, self.cache))
         if isinstance(self, SeqLoopBlock2): # hasattr(self, 'cache_data') and 
-            print "    ready for batch playback of %s" % (self.cache_data.keys(),)
-        for outk in self.outputs.keys():
-            print "cached self.%s = %s" % (outk, getattr(self, outk))
+            print("    ready for batch playback of %s" % (list(self.cache_data.keys()),))
+        for outk in list(self.outputs.keys()):
+            print("cached self.%s = %s" % (outk, getattr(self, outk)))
             pass
     
     # @decStep()
@@ -2805,7 +2806,7 @@ class SeqLoopBlock2(Block2):
                 # reset the seed for this loop
                 np.random.seed(lparams[1])
                 
-            for k, v in self.loopblock['params'].items():
+            for k, v in list(self.loopblock['params'].items()):
                 # print "SeqLoopBlock2.step.f_obj loopblock params", k, v # , lparams[0]
 
                 if k == 'id':
@@ -2855,7 +2856,7 @@ class SeqLoopBlock2(Block2):
             
             # copy looped-block outputs to loop-block outputs
             d = {}
-            for outk, outv in self.dynblock.outputs.items():
+            for outk, outv in list(self.dynblock.outputs.items()):
                 d[outk] = getattr(self.dynblock, outk)
             # print "j", j, "d", d
             return d
@@ -2874,9 +2875,9 @@ class SeqLoopBlock2(Block2):
 
             # compute the loss for hpo from dynblock outputs
             loss = 0
-            for outk in self.outputs.keys():
+            for outk in list(self.outputs.keys()):
                 # omit input values / FIXME
-                if outk in self.dynblock.inputs.keys(): continue
+                if outk in list(self.dynblock.inputs.keys()): continue
                 # print "outk", outk, getattr(dynblock, outk)
                 # FIXME: if outk == 'y' as functions result
                 loss += np.mean(getattr(self.dynblock, outk), axis = 1, keepdims = True)
@@ -2933,7 +2934,7 @@ class SeqLoopBlock2(Block2):
             #     print "dynout", getattr(dynblock, k)
 
             # setting SeqLoopBlock2's outputs
-            for outk in self.outputs.keys():
+            for outk in list(self.outputs.keys()):
                 # print "SeqLoopBlock2.step[%d] loop iter %d, outk = %s, dynblock outk = %s" % (self.cnt, i, outk, self.dynblock.outputs.keys(), )
                 outvar = getattr(self, outk)
                 # print "SeqLoopBlock2.step[%d] loop iter %d, outk = %s, outvar = %s" % (self.cnt, i, outk, outvar, )
@@ -2947,8 +2948,8 @@ class SeqLoopBlock2(Block2):
 
                 # FIXME: which breaks more?
                 # assert self.dynblock.outputs.has_key(outk), "Assuming %s-%s.outputs has key %s, but %s" % (self.dynblock.cname, self.dynblock.id, outk, self.dynblock.outputs.keys())
-                if not self.dynblock.outputs.has_key(outk):
-                    self._warning("Output %s not found in %s-%s's outputs %s" % (outk, self.dynblock.cname, self.dynblock.id, self.dynblock.outputs.keys()))
+                if outk not in self.dynblock.outputs:
+                    self._warning("Output %s not found in %s-%s's outputs %s" % (outk, self.dynblock.cname, self.dynblock.id, list(self.dynblock.outputs.keys())))
                     continue
 
                 # compute slice
@@ -2973,11 +2974,11 @@ class SeqLoopBlock2(Block2):
         # print "%s-%s.step dynamic graph = %s" % (self.cname, self.id, confgraph_full)
         self.nxgraph = nxgraph_from_smp_graph(confgraph_full)
 
-        for outk in self.outputs.keys():
+        for outk in list(self.outputs.keys()):
             logstr = "step[%d/%d] output %s = %s" % (self.top.cnt, self.cnt, outk, getattr(self, outk))
             self._debug(logstr)
 
-        self._debug('step[%d] bus state = %s' % (self.cnt, self.bus.keys()))
+        self._debug('step[%d] bus state = %s' % (self.cnt, list(self.bus.keys())))
         # # hack for checking hpo minimum
         # if hasattr(self, 'hp_bests'):
         #     print "%s.step: bests = %s, %s" % (self.cname, self.hp_bests[-1], f_obj_hpo(tuple([self.hp_bests[-1][k] for k in sorted(self.hp_bests[-1])])))
@@ -3023,18 +3024,18 @@ class IBlock2(PrimBlock2):
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
         # default out
-        if not conf['params'].has_key('outputs'):
+        if 'outputs' not in conf['params']:
             conf['params']['outputs'] = {}
 
         # create output states
-        for k, v in conf['params']['inputs'].items():
-            print "%s.init inkeys %s" % (self.__class__.__name__, k)
-            print "IBlock2 conf['params'] keys", conf['params'].keys()
-            print "IBlock2 conf['params']['outputs'] keys = %s" % (conf['params']['outputs'].keys(), ) # ["I%s" % k]
+        for k, v in list(conf['params']['inputs'].items()):
+            print("%s.init inkeys %s" % (self.__class__.__name__, k))
+            print("IBlock2 conf['params'] keys", list(conf['params'].keys()))
+            print("IBlock2 conf['params']['outputs'] keys = %s" % (list(conf['params']['outputs'].keys()), )) # ["I%s" % k]
             outk = 'I%s' % (k, )
             busk = conf['params']['inputs'][k]
             # print "IBlock2 outk = %s, busk = %s" % (outk, busk, )
-            if conf['params']['outputs'].has_key(outk):
+            if outk in conf['params']['outputs']:
                 # conf['params']['outputs'][outk] = {'shape': top.bus[busk['bus']].shape} # ['val'].shape]}
                 pass
             else:
@@ -3052,7 +3053,7 @@ class IBlock2(PrimBlock2):
     @decStep()
     def step_leak(self, x = None):
         for i in range(self.blocksize):
-            for ink in self.inputs.keys():
+            for ink in list(self.inputs.keys()):
                 outk = "I%s" % ink
                 tmp_ = getattr(self, outk)
                 tmp_[:,i] = ((1 - self.leak) * tmp_[:,i-1]) + (self.inputs[ink][0][:,i] * self.d)
@@ -3060,7 +3061,7 @@ class IBlock2(PrimBlock2):
 
     @decStep()
     def step_all(self, x = None):
-        for ink, inv in self.inputs.items():
+        for ink, inv in list(self.inputs.items()):
             outk = 'I%s' % ink
             # input integral / cumsum
             Iin = np.cumsum(inv['val'], axis = 1) # * self.d
@@ -3070,7 +3071,7 @@ class IBlock2(PrimBlock2):
             # setattr(self, outk, getattr(self, outk) + (self.inputs[ink][0] * 1.0))
             # multi step / batch
             setattr(self, outk, Iin)
-            print "IBlock2.step[%d] self.%s = %s / %s" % (self.cnt, outk, getattr(self, outk).shape, self.outputs[outk]['shape'])
+            print("IBlock2.step[%d] self.%s = %s / %s" % (self.cnt, outk, getattr(self, outk).shape, self.outputs[outk]['shape']))
 
 class dBlock2(PrimBlock2):
     """dBlock2 class
@@ -3085,10 +3086,10 @@ class dBlock2(PrimBlock2):
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
         """dBlock2 init"""
-        if not conf['params'].has_key('outputs'):
+        if 'outputs' not in conf['params']:
             conf['params']['outputs'] = {}
             
-        for ink in conf['params']['inputs'].keys():
+        for ink in list(conf['params']['inputs'].keys()):
             # get input shape
             inshape = top.bus[conf['params']['inputs'][ink]['bus']].shape
             # inshape = conf['params']['inputs'][ink]['shape']
@@ -3104,7 +3105,7 @@ class dBlock2(PrimBlock2):
     @decStep()
     def step(self, x = None):
         """dBlock2 step"""
-        for ink in self.inputs.keys():
+        for ink in list(self.inputs.keys()):
             # output key
             outk = "d%s" % ink
             # input from last block
@@ -3118,7 +3119,7 @@ class dBlock2(PrimBlock2):
             din = np.diff(tmp_[:,tmp_sl], axis = 1) * self.d
             # which should be same shape is input
             assert din.shape == self.inputs[ink]['val'].shape
-            print "dBlock2.step", self.id, self.cnt, getattr(self, outk)[:,[-1]].shape, self.inputs[ink]['val'].shape, din.shape
+            print("dBlock2.step", self.id, self.cnt, getattr(self, outk)[:,[-1]].shape, self.inputs[ink]['val'].shape, din.shape)
             setattr(self, outk, din)
             # store current input
             setattr(self, ink_, self.inputs[ink]['val'].copy())
@@ -3144,23 +3145,23 @@ class DelayBlock2(PrimBlock2):
         """DelayBlock2 init"""
         params = conf['params']
 
-        for dk, dv in self.defaults.items():
-            if not params.has_key(dk):
+        for dk, dv in list(self.defaults.items()):
+            if dk not in params:
                 params[dk] = dv
 
         delays_ = {}
 
         # loop over input items
-        for ink, inv in params['inputs'].items():
+        for ink, inv in list(params['inputs'].items()):
             # get input shape
             # assert top.bus.has_key(params['inputs'][ink]['bus']), "DelayBlock2 needs existing bus item at %s to infer delay shape" % (params['inputs'][ink]['bus'], )
-            if top.bus.has_key(inv['bus']):
+            if inv['bus'] in top.bus:
                 inshape = top.bus[inv['bus']].shape
             else:
                 inshape = inv['shape']
                 
             # alloc delay block, checking for different configuration options
-            if params.has_key('delays'): 
+            if 'delays' in params: 
                 # assert params['inputs'].keys() == params['delays'].keys()
                 delays_[ink] = params['delays'][ink]
                 # setattr(self, "%s_" % ink, np.zeros((inshape[0], inshape[1] + params['delays'][ink])))
@@ -3198,13 +3199,13 @@ class DelayBlock2(PrimBlock2):
 
         # init the delay lines
         self.delaytaps = {}
-        for k, v in self.delays.items():
+        for k, v in list(self.delays.items()):
             # print "Adding delayed input %s / %s to delaytaps" % (k, v)
             # delay_tap = -np.array(v) - 1
             delay_tap = -np.array(v) - 0
             blocksize_input = self.inputs[k]['shape'][-1]
             # blocksize_input = self.blocksize
-            delay_tap_bs = (delay_tap - np.tile(np.array(range(blocksize_input, 0, -1)), (delay_tap.shape[0],1)).T).T
+            delay_tap_bs = (delay_tap - np.tile(np.array(list(range(blocksize_input, 0, -1))), (delay_tap.shape[0],1)).T).T
             if self.flat:
                 delay_tap_bs = delay_tap_bs.flatten()
             self.delaytaps[k] = delay_tap_bs.copy()
@@ -3218,7 +3219,7 @@ class DelayBlock2(PrimBlock2):
     def step(self, x = None):
         """DelayBlock2 step"""
         # loop over input items
-        for ink in self.inputs.keys():
+        for ink in list(self.inputs.keys()):
             # blocksize vs. input blocksize
             blocksize_input = self.inputs[ink]['shape'][-1]
             # multichannel delay hack for different blocksizes
@@ -3293,13 +3294,13 @@ class SliceBlock2(PrimBlock2):
     """
     def __init__(self, conf = {}, paren = None, top = None):
         params = conf['params']
-        if not params.has_key('outputs'):
+        if 'outputs' not in params:
             params['outputs'] = {}
             
-        for k, v in params['inputs'].items():
+        for k, v in list(params['inputs'].items()):
             slicespec = params['slices'][k]
             # print slicespec
-            for slk, slv in slicespec.items():
+            for slk, slv in list(slicespec.items()):
                 # print "%s.init inkeys %s, slicekey = %s" % (self.__class__.__name__, k, slk)
                 # really use the specified output shape, not execution blocksize
                 oblocksize = v['shape'][-1]
@@ -3315,11 +3316,11 @@ class SliceBlock2(PrimBlock2):
 
     @decStep()
     def step(self, x = None):
-        for ink in self.inputs.keys():
+        for ink in list(self.inputs.keys()):
             # print "%s-%s[%d] ink = %s, inv = %s" % (self.cname, self.id, self.cnt,
             #                                             ink, self.inputs[ink])
             slicespec = self.slices[ink]
-            for slk, slv in slicespec.items():
+            for slk, slv in list(slicespec.items()):
                 outk = "%s_%s" % (ink, slk)
                 setattr(self, outk, self.inputs[ink]['val'][slv])
                 # print "%s-%s.step[%d] outk = %s, outsh = %s, out = %s" % (self.cname, self.id, self.cnt, outk, getattr(self, outk).shape, getattr(self, outk))
@@ -3334,7 +3335,7 @@ class StackBlock2(PrimBlock2):
 
     @decStep()
     def step(self, x = None):
-        st = [inv['val'] for ink, inv in self.inputs.items()]
+        st = [inv['val'] for ink, inv in list(self.inputs.items())]
         # print "Stack st = %s" % ( len(st))
         self.y = np.vstack(st)
                     
@@ -3383,7 +3384,7 @@ class CountBlock2(PrimBlock2):
         self.offset = 0
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
         # single output key
-        self.outk = self.outputs.keys()[0]
+        self.outk = list(self.outputs.keys())[0]
         # init cnt_ of blocksize
         # self.cnt_ = np.zeros(self.outputs[self.outk]['shape'] + (self.blocksize,))
         # self.cnt = None # ???
@@ -3454,7 +3455,7 @@ class TrigBlock2(PrimBlock2):
         #     self.cnt_[...,0] = self.cnt
         # FIXME: make that a for output items loop
         # print "getattr self.outk", self.outk, getattr(self, self.outk), self.cnt_
-        for outk, outv in self.outputs.items():
+        for outk, outv in list(self.outputs.items()):
             if self.cnt in self.trig:
                 setattr(self, outk, np.ones(outv['shape']))
                 # self._debug("    triggered %s = %s" % (outk, getattr(self, outk),))
@@ -3480,7 +3481,7 @@ class RouteBlock2(PrimBlock2):
         
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
-        conf['params']['inputkeys'] = copy.copy(conf['params']['inputs'].keys())
+        conf['params']['inputkeys'] = copy.copy(list(conf['params']['inputs'].keys()))
         conf['params']['inputkeys'].pop(0)
         conf['params']['inputkey'] = 0
 
@@ -3516,7 +3517,7 @@ class UniformRandomBlock2(PrimBlock2):
         # print "UniformRandomBlock2 keys", self.__dict__.keys()
         # print "out x", self.outputs['x']['shape']
         # print "out x", self.outputs['x']
-        for k, v in self.outputs.items():
+        for k, v in list(self.outputs.items()):
             x_ = np.random.uniform(-1e-1, 1e-1, v['shape'])
             if hasattr(self, 'lo') and hasattr(self, 'hi'):
                 x_ = np.random.uniform(self.lo, self.hi, v['shape'])
@@ -3527,12 +3528,12 @@ class UniformRandomBlock2(PrimBlock2):
         
     @decStep()
     def step(self, x = None):
-        self._debug("step:\n\tx = %s,\n\tinputs = %s,\n\toutputs = %s" % (self.outputs.keys(), self.inputs, self.outputs))
+        self._debug("step:\n\tx = %s,\n\tinputs = %s,\n\toutputs = %s" % (list(self.outputs.keys()), self.inputs, self.outputs))
 
         # FIXME: relation rate / blocksize, remember cnt from last step, check difference > rate etc
         if self.cnt % self.rate == 0:
             # FIXME: take care of rate/blocksize issue
-            for k, v in self.outputs.items():
+            for k, v in list(self.outputs.items()):
                 # x = np.random.uniform(self.inputs['lo'][0][:,[-1]], self.inputs['hi'][0][:,[-1]], (self.outputs[k][0]))
                 # print 'lo', self.inputs['lo']['val'], '\nhi', self.inputs['hi']['val'], '\noutput', v['bshape']
                 x = np.random.uniform(self.inputs['lo']['val'], self.inputs['hi']['val'], size = v['shape'])

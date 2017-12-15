@@ -60,7 +60,7 @@ dim_s_extero  = systemblock['params']['dim_s_extero']
 # dim_s_goal   = dim_s_extero
 dim_s_goal    = dim_s_proprio
 
-print "sysblock", systemblock['params']['dim_s_proprio']
+print("sysblock", systemblock['params']['dim_s_proprio'])
 
 # TODO
 # 1. loop over randseed

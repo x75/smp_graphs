@@ -259,7 +259,7 @@ eta = 0.7
 # eta = 0.1
 # eta = 0.01
 
-print "dm_actinf_m1_goal_error_ND_embedding.py: dim_s_proprio = %s" % (dim_s_proprio, )
+print("dm_actinf_m1_goal_error_ND_embedding.py: dim_s_proprio = %s" % (dim_s_proprio, ))
 
 def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
     global partial

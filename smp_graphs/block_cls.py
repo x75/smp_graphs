@@ -40,7 +40,7 @@ class PointmassBlock2(SysBlock2):
     def __init__(self, conf = {}, paren = None, top = None):
         # print "PointmassBlock2 conf = %s" %(conf,)
         # if hasattr(self, 'systype') and self.systype == 2:
-        if conf['params'].has_key('systype') and conf['params']['systype'] == 2:
+        if 'systype' in conf['params'] and conf['params']['systype'] == 2:
             self.system = Pointmass2Sys(conf['params'])
         else:
             self.system = PointmassSys(conf['params'])
@@ -49,7 +49,7 @@ class PointmassBlock2(SysBlock2):
         # conf['params']['outputs'].update(self.system.dims)
         # systems new state space
         # print "dims", self.system.x # .keys()
-        for k,v in self.system.dims.items():
+        for k,v in list(self.system.dims.items()):
             # print "adding output", k, self.system.x[k].shape
             # conf['params']['outputs'][k] = {'shape': self.system.x[k].shape}
             conf['params']['outputs'][k] = {'shape': (self.system.x[k].shape[0], conf['params']['blocksize'])}
@@ -83,7 +83,7 @@ class PointmassBlock2(SysBlock2):
             # print "%s.init[%d]: x = %s/%s" % (self.cname, self.cnt, self.x, self.system.x)
 
         # check if transfer function output 'h' is present and initialize
-        if self.outputs.has_key('h'):
+        if 'h' in self.outputs:
             setattr(self, 'h', np.random.uniform(0, 1, (self.dims['s0']['dim'], self.h_numelem)))
                     
     @decStep()
@@ -98,10 +98,10 @@ class PointmassBlock2(SysBlock2):
             # print "block_cls u", self.u
             
             self.x_ = self.system.step(self.u * self.mode)
-            self._debug("step[%d] self.x_.keys() = %s, self.x_ = %s" % (self.cnt, self.x_.keys(), self.x_))
+            self._debug("step[%d] self.x_.keys() = %s, self.x_ = %s" % (self.cnt, list(self.x_.keys()), self.x_))
 
             # loop over outputs
-            for k, v in self.outputs.items():
+            for k, v in list(self.outputs.items()):
                 self._debug("    output %s, self.%s = %s" % (k, k, getattr(self, k)))
                 # skip if not triggered
                 if not self.output_is_triggered(k, v, self.bus): continue
@@ -126,10 +126,10 @@ class PointmassBlock2(SysBlock2):
                 # print "%s.step[%d]: x = %s/%s" % (self.cname, self.cnt, self.x, self.system.x)
                 k_ = getattr(self, k)
                 # print "k", k, "self.k", k_.shape
-                if self.x_.has_key(k):
+                if k in self.x_:
                     #   print "i", i, "k", k, "self.x", self.x_[k].shape, "k_", k_.shape
                     k_[...,[i]] = self.x_[k]
-                elif v.has_key('remap'):
+                elif 'remap' in v:
                     k_[...,[i]] = self.x_[v['remap']]
                 # else:
                 #     setattr(self, k, self.x[k])
@@ -175,7 +175,7 @@ class SimplearmBlock2(SysBlock2):
             # print "%s-%s.step[%d] self.x = %s" % (self.cname, self.id, self.cnt, self.x)
             # real output variables defined by config
             # for k in ['s_proprio', 's_extero', 's_all']:
-            for k in self.outputs.keys():
+            for k in list(self.outputs.keys()):
                 k_ = getattr(self, k)
                 k_[:,[i]] = self.x[k]
                 # setattr(self, k, self.x[k])
@@ -212,7 +212,7 @@ class BhasimulatedBlock2(SysBlock2):
             # print "self.u", self.u
             # real output variables defined by config
             # for k in ['s_proprio', 's_extero', 's_all']:
-            for k in self.outputs.keys():
+            for k in list(self.outputs.keys()):
                 k_ = getattr(self, k)
                 # print "bhasysblock k_", k_, k_[:,[i]].shape, self.x[k].shape
                 # print "bhasysblock k_", k_, k_[:,[i]], self.x[k]
@@ -220,7 +220,7 @@ class BhasimulatedBlock2(SysBlock2):
                 # setattr(self, k, self.x[k])
                 # print "%s.step[%d]: x = %s/%s" % (self.cname, self.cnt, self.x, self.system.x)
             if self.doplot and self.cnt % 100 == 0:
-                print "%s.step plotting arm with u = %s" % (self.cname, self.u.T)
+                print("%s.step plotting arm with u = %s" % (self.cname, self.u.T))
                 self.system.visualize(self.ax, self.u.T)
                 plt.draw()
                 plt.pause(1e-6)

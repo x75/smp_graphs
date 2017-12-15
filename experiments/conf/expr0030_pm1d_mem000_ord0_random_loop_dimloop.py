@@ -35,7 +35,7 @@ numloop_inner = 10
 
 desc = "Experiment expr0030 computes the budget statistics over {0} episodes for sensorimotor dimension $d = {1}$".format(
     numloop_inner,
-    range(1, numloop + 1),
+    list(range(1, numloop + 1)),
 )
 outputs = {
     'latex': {'type': 'latex',},
@@ -280,7 +280,7 @@ loop = [('lconf', {
             'order': 0,
             'numloop': numloop_inner,
         }) for i in range(numloop)]
-print "loop", loop
+print("loop", loop)
 
 graph = OrderedDict([
     # # concurrent loop

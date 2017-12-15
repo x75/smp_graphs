@@ -8,7 +8,7 @@ https://stackoverflow.com/questions/10636024/python-pandas-gui-for-viewing-a-dat
 https://github.com/bluenote10/PandasDataFrameGUI
 """
 
-from __future__ import absolute_import, division, print_function
+
 
 """
 If you are getting wx related import errors when running in a virtualenv:
@@ -67,7 +67,7 @@ def main_list_groups(args):
     if h5f is None: return 1
 
     print("Datafile = %s" % (h5f.filename))
-    print("    Keys = %s" % (h5f.keys()))    
+    print("    Keys = %s" % (list(h5f.keys())))    
     print("  Groups = %s" % (h5f.groups()))    
     
 def main_show_group(args):
@@ -78,10 +78,10 @@ def main_show_group(args):
         
     if h5f is None: return 1
 
-    print("HDFStore.keys = %s" % (h5f.keys(), ))
+    print("HDFStore.keys = %s" % (list(h5f.keys()), ))
 
     df = None
-    if args.group in h5f.keys():
+    if args.group in list(h5f.keys()):
         print("Found group %s in h5f.keys" % (args.group, ))
         df = h5f[args.group]
 

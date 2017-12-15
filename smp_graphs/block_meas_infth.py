@@ -46,8 +46,8 @@ class decStepInfthPrim():
             # call step
             meas = f(xself, *args, **kwargs)
             meas = np.array(meas)
-            print "%s meas.shape = %s" % (xself.cname, meas.shape)
-            for outk, outv in xself.outputs.items():
+            print("%s meas.shape = %s" % (xself.cname, meas.shape))
+            for outk, outv in list(xself.outputs.items()):
                 # self.jh = meas.reshape()
                 setattr(xself, outk, meas.reshape(outv['shape']))
         return wrap
@@ -66,7 +66,7 @@ class InfthPrimBlock2(PrimBlock2):
         jhinv = 1.0
         if self.norm_out:
             # normalize from external input, overrides stepwise norm_out
-            if self.inputs.has_key('norm'):
+            if 'norm' in self.inputs:
                 jhinv = 1.0 / self.get_input('norm').T
                 
             # normalize over input block
@@ -92,10 +92,10 @@ class JHBlock2(InfthPrimBlock2):
         src = self.inputs['x']['val'].T
         dst = self.inputs['y']['val'].T
         
-        print "%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by " % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape),
+        print("%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by " % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape), end=' ')
         
         for i in range(self.shift[0], self.shift[1]):
-            print "%d" % (i, ),
+            print("%d" % (i, ), end=' ')
             sys.stdout.flush()
             
             # src_ = np.roll(self.inputs['x']['val'].T, shift = i, axis = 0)
@@ -109,7 +109,7 @@ class JHBlock2(InfthPrimBlock2):
             # jh = compute_mi_multivariate(data = {'X': st, 'Y': st}, delay = -i)
             # print "%s.step[%d] data = %s, jh = %f" % (self.cname, self.cnt, st.shape, jh)
             meas.append(jh)
-        print ""
+        print("")
         return meas
         
 class MIBlock2(InfthPrimBlock2):
@@ -145,7 +145,7 @@ class MIBlock2(InfthPrimBlock2):
             
             meas.append(mi.copy())
 
-        print ""
+        print("")
         meas = np.array(meas)
         self.mi = meas.T.copy() * jh
         self._debug("%s-%s.mi = %s\n    mi/jh = %s/%s" % (self.cname, self.id, self.mi.shape, self.mi, jh)) # , mi.shape
@@ -223,7 +223,7 @@ class TEBlock2(InfthPrimBlock2):
         src = self.inputs['x']['val'].T
         dst = self.inputs['y']['val'].T
         
-        print "%s.step[%d]-%s src.shape = %s, dst.shape = %s" % (self.cname, self.cnt, self.id, src.shape, dst.shape,),
+        print("%s.step[%d]-%s src.shape = %s, dst.shape = %s" % (self.cname, self.cnt, self.id, src.shape, dst.shape,), end=' ')
 
         # norm
         jh = self.normalize(src, dst)
@@ -263,13 +263,13 @@ class CTEBlock2(InfthPrimBlock2):
         src  = self.inputs['y']['val'].T
         cond = self.inputs['cond']['val'].T
         
-        print "%s.step[%d]-%s src.shape = %s, dst.shape = %s, cond.shape = %s" % (self.cname, self.cnt, self.id, src.shape, dst.shape, cond.shape),
+        print("%s.step[%d]-%s src.shape = %s, dst.shape = %s, cond.shape = %s" % (self.cname, self.cnt, self.id, src.shape, dst.shape, cond.shape), end=' ')
 
         # norm
         jh = self.normalize(src, dst, cond)
 
         for i in range(self.shift[0], self.shift[1]):
-            print "%d" % (i, ),
+            print("%d" % (i, ), end=' ')
             sys.stdout.flush()
             
             # src  = np.roll(self.inputs['x']['val'].T, shift = i, axis = 0)
@@ -280,7 +280,7 @@ class CTEBlock2(InfthPrimBlock2):
             # cte = compute_conditional_transfer_entropy(dst, src, cond)
             cte = compute_conditional_transfer_entropy(src, dst, cond, delay = -i, xcond = self.xcond)
             ctes.append(cte.copy())
-        print ""
+        print("")
 
         ctes = np.array(ctes)
         # print "%s-%s.step ctes.shape = %s / %s" % (self.cname, self.id, ctes.shape, ctes.T.shape)
@@ -362,13 +362,13 @@ class TEMVBlock2(InfthPrimBlock2):
         src = self.inputs['y']['val'].T
         dst = self.inputs['x']['val'].T
         
-        print "%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by" % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape),
+        print("%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by" % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape), end=' ')
 
         # norm
         jh = self.normalize(src, dst)
         
         for i in range(self.shift[0], self.shift[1]):
-            print "%d" % (i, ),
+            print("%d" % (i, ), end=' ')
             sys.stdout.flush()
             
             # dst_ = np.roll(dst, shift = i, axis = 0)
@@ -378,7 +378,7 @@ class TEMVBlock2(InfthPrimBlock2):
             # mi = compute_transfer_entropy_multivariate(src, dst, delay = -self.shift[0]+i)
             mi = compute_transfer_entropy_multivariate(src, dst, delay = -i)
             temvs.append(mi)
-        print ""
+        print("")
         temvs = np.array(temvs)
         # self.temv[0,shiftsl] = temvs.flatten()
         self.temv[0,shiftsl] = temvs.flatten() * jh

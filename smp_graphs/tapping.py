@@ -38,7 +38,7 @@ def tap(ref, inkey = None, lag = None):
     assert inkey is not None, "block_models.tap needs input key inkey"
     assert lag is not None, "block_models.tap needs tapping 'lag', None given"
     if type(lag) is tuple:
-        tapping = range(lag[0], lag[1])
+        tapping = list(range(lag[0], lag[1]))
     # print "%s.%s tap(%s).tap = %s" % (ref.__class__.__name__, ref.id, inkey, tapping)
     return ref.inputs[inkey]['val'][...,tapping]
 

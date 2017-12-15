@@ -378,22 +378,22 @@ for k in [
         'mdl_spectral_radius', ' mdl_tau', 'mdl_mdltr_type',
         'mdl_mdltr_thr', 'mdl_perf_measure', 'mdl_perf_model_type',
         'mdl_wgt_thr', 'mdl_coeff_a']:
-    if systemblock['params'].has_key(k):
+    if k in systemblock['params']:
         mdl_cnf[k] = systemblock['params'][k]
 
-print "mdl_cnf = {"
-for k, v in mdl_cnf.items():
-    print "    %s = %s" % (k, v)
+print("mdl_cnf = {")
+for k, v in list(mdl_cnf.items()):
+    print("    %s = %s" % (k, v))
 
 
 # update default target config with system specific values
 for k in ['target_f']:
-    if systemblock['params'].has_key(k):
+    if k in systemblock['params']:
         tgt_cnf[k] = systemblock['params'][k]
 
-print "tgt_cnf = {"
-for k, v in tgt_cnf.items():
-    print "    %s = %s" % (k, v)
+print("tgt_cnf = {")
+for k, v in list(tgt_cnf.items()):
+    print("    %s = %s" % (k, v))
         
 # algo = 'knn' #
 # algo = 'gmm' #
@@ -1089,22 +1089,22 @@ graph = OrderedDict([
                             'pre_l1': {
                                 'bus': 'pre_l1/pre',
                                 # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag, -minlag)},
-                                'shape': (dim_s_proprio, maxlag_x), 'lag': range(lag_past[0], lag_past[1])},
+                                'shape': (dim_s_proprio, maxlag_x), 'lag': list(range(lag_past[0], lag_past[1]))},
                             # ascending prediction error
                             'pre_l0': {
                                 'bus': 'pre_l0/pre',
                                 # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)},
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(lag_past[0] + 1, lag_past[1] + 1)},
+                                'shape': (dim_s_proprio, maxlag), 'lag': list(range(lag_past[0] + 1, lag_past[1] + 1))},
                             # ascending prediction error
                             'prerr_l0': {
                                 'bus': 'pre_l0/err',
                                 # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)},
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(lag_past[0] + 1, lag_past[1] + 1)},
+                                'shape': (dim_s_proprio, maxlag), 'lag': list(range(lag_past[0] + 1, lag_past[1] + 1))},
                             # measurement
                             'meas_l0': {
                                 'bus': 'robot1/s_proprio',
                                 # 'shape': (dim_s_proprio, maxlag), 'lag': range(-laglen, 0)}
-                                'shape': (dim_s_proprio, maxlag_x), 'lag': range(lag_future[0], lag_future[1])}
+                                'shape': (dim_s_proprio, maxlag_x), 'lag': list(range(lag_future[0], lag_future[1]))}
                             },
                         'outputs': {
                             'pre': {'shape': (dim_s_proprio, 1)},

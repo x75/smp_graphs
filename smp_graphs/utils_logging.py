@@ -185,7 +185,7 @@ def log_pd_init_block(tbl_name, tbl_dim, tbl_columns = None, numsteps=100, block
     # np.prod(tbl_dim[:-1]), # flattened dim without blocksize
 
     # print "logging.log_pd_init_block: adding %s to log_lognodes with columns %s" % (tbl_name, tbl_columns)
-    log_lognodes[tbl_name] = pd.DataFrame(columns=tbl_columns, index = range(numsteps), dtype=float)
+    log_lognodes[tbl_name] = pd.DataFrame(columns=tbl_columns, index = list(range(numsteps)), dtype=float)
     # log_logarray[tbl_name] = np.zeros((len(tbl_columns), log_blocksize))
     # log_logarray[tbl_name] = np.zeros((len(tbl_columns), numsteps))
     log_logarray[tbl_name] = np.zeros((np.prod(tbl_dim[:-1]), numsteps))
@@ -233,7 +233,7 @@ def log_pd_deinit():
 def log_pd_store():
     # store logs, FIXME incrementally
     global log_lognodes, log_store
-    for k,v in log_lognodes.items():
+    for k,v in list(log_lognodes.items()):
         # if 'b4/' in k:
         if np.any(np.isnan(v)):
             logger.warning("storing nan values, table k = %s with data type = %s" % (k, type(v)))
@@ -247,7 +247,7 @@ Arguments:
       data: the data as a dim x 1 numpy vector
 """
     global log_lognodes, log_lognodes_idx, log_blocksize, log_logarray, log_lognodes_blockidx
-    assert log_lognodes_idx.has_key(tbl_name), "Logtable key = %s is not in keys = %s" % (tbl_name, log_lognodes_idx.keys())
+    assert tbl_name in log_lognodes_idx, "Logtable key = %s is not in keys = %s" % (tbl_name, list(log_lognodes_idx.keys()))
     # print "log_pd tbl_name = %s, data.shape = %s" % (tbl_name, data.flatten().shape), log_lognodes_idx[tbl_name]
     # infer blocksize from data
     blocksize = data.shape[-1]
@@ -340,7 +340,7 @@ def log_pd_dump_config(h5store, storekey = None):
     try:
         ret = store.get_storer(storekey).attrs.conf
     except AttributeError:
-        print "key %s doesn't exist" % (storekey)
+        print("key %s doesn't exist" % (storekey))
         ret = None
     store.close()
     return ret

@@ -257,7 +257,7 @@ def make_puppy_rp_plot_inputs():
     inspec = OrderedDict()
     for i,l in enumerate(looparray):
         # print "l", l
-        if not l[1].has_key('length'):
+        if 'length' not in l[1]:
             l[1]['length'] = 0
         for j, buskey_base in enumerate(buskey_bases):
             inspec['%s_ll%d_%d' % (buskey_signal[j], i, j, )] = {

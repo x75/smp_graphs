@@ -77,9 +77,9 @@ def ordereddict_insert(ordereddict = None, insertionpoint = None, itemstoadd = [
     Self rolled ordered dict insertion from http://stackoverflow.com/questions/29250479/insert-into-ordereddict-behind-key-foo-inplace
     """
     assert ordereddict is not None
-    assert insertionpoint in ordereddict.keys(), "insp = %s, keys = %s, itemstoadd = %s" % (insertionpoint, ordereddict.keys(), itemstoadd)
+    assert insertionpoint in list(ordereddict.keys()), "insp = %s, keys = %s, itemstoadd = %s" % (insertionpoint, list(ordereddict.keys()), itemstoadd)
     new_ordered_dict = ordereddict.__class__()
-    for key, value in ordereddict.items():
+    for key, value in list(ordereddict.items()):
         new_ordered_dict[key] = value
         if key == insertionpoint:
             # check if itemstoadd is list or dict
@@ -88,7 +88,7 @@ def ordereddict_insert(ordereddict = None, insertionpoint = None, itemstoadd = [
                     keytoadd, valuetoadd = item
                     new_ordered_dict[keytoadd] = valuetoadd
             else:
-                for keytoadd, valuetoadd in itemstoadd.items():
+                for keytoadd, valuetoadd in list(itemstoadd.items()):
                     new_ordered_dict[keytoadd] = valuetoadd
         # else:
         #     print "insertionpoint %s doesn't exist in dict" % (insertionpoint)
@@ -101,9 +101,9 @@ def xproduct(f, tup):
     """compute the cartesian product of a variable number of tensor dimensions"""
     assert len(tup) > 0
     if len(tup) > 1: # still dimensions left
-        return xproduct(partial(f, range(tup[0])), tup[1:]) # call yourself with partial of current dim and remaining dims
+        return xproduct(partial(f, list(range(tup[0]))), tup[1:]) # call yourself with partial of current dim and remaining dims
     # until nothings left
-    return [elem for elem in f(range(tup[0]))]
+    return [elem for elem in f(list(range(tup[0])))]
 
 def mytupleroll(tup, direction = 1):
     return tuple(roll(array(tup), shift = direction))

@@ -832,22 +832,22 @@ graph = OrderedDict([
                                 # training on past goal, prediction with current goal
                                 # should be possible inside step_model to use current
                                 # goal
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(lag_past[0], lag_past[1])},
+                                'shape': (dim_s_proprio, maxlag), 'lag': list(range(lag_past[0], lag_past[1]))},
                             # ascending prediction error
                             'pre_l0': {
                                 'bus': 'pre_l0/pre',
                                 # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)},
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(lag_past[0] + 1, lag_past[1] + 1)},
+                                'shape': (dim_s_proprio, maxlag), 'lag': list(range(lag_past[0] + 1, lag_past[1] + 1))},
                             # ascending prediction error
                             'prerr_l0': {
                                 'bus': 'pre_l0/err',
                                 # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)},
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(lag_past[0] + 1, lag_past[1] + 1)},
+                                'shape': (dim_s_proprio, maxlag), 'lag': list(range(lag_past[0] + 1, lag_past[1] + 1))},
                             # measurement
                             'meas_l0': {
                                 'bus': 'robot1/s_proprio',
                                 # 'shape': (dim_s_proprio, maxlag), 'lag': range(-laglen, 0)}
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(lag_future[0], lag_future[1])}
+                                'shape': (dim_s_proprio, maxlag), 'lag': list(range(lag_future[0], lag_future[1]))}
                             },
                         'outputs': {
                             'pre': {'shape': (dim_s_proprio, 1)},

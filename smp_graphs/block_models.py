@@ -70,8 +70,8 @@ class CodingBlock2(PrimBlock2):
         
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
         
-        for ink, inv in self.inputs.items():
-            print inv
+        for ink, inv in list(self.inputs.items()):
+            print(inv)
             for outk in ["mu", "sig", "std"]:
                 if outk.endswith("sig"):
                     setattr(self, "%s_%s" % (ink, outk), np.ones(inv['shape']))
@@ -81,12 +81,12 @@ class CodingBlock2(PrimBlock2):
     @decStep()
     def step(self, x = None):
         self.debug_print("%s.step:\n\tx = %s,\n\tbus = %s,\n\tinputs = %s,\n\toutputs = %s",
-                         (self.__class__.__name__,self.outputs.keys(), self.bus, self.inputs, self.outputs))
+                         (self.__class__.__name__,list(self.outputs.keys()), self.bus, self.inputs, self.outputs))
 
         # FIXME: relation rate / blocksize, remember cnt from last step, check difference > rate etc
         
         if self.cnt % self.blocksize == 0:
-            for ink, inv in self.inputs.items():
+            for ink, inv in list(self.inputs.items()):
                 for outk_ in ["mu", "sig", "std"]:
                     outk = "%s_%s" % (ink, outk_)
                     outv_ = getattr(self, outk)
@@ -162,7 +162,7 @@ class ModelBlock2(PrimBlock2):
         if self.nummodels > 1:
             conf['params']['subgraph'] = self.subgraph_from_models_unrolled(conf, paren, top)
             # check for numsteps
-            if not conf['params'].has_key('numsteps'):
+            if 'numsteps' not in conf['params']:
                 conf['params']['numsteps'] = top.numsteps
             Block2.__init__(self, conf = conf, paren = paren, top = top)
         else:
@@ -185,7 +185,7 @@ class ModelBlock2(PrimBlock2):
             
     def subgraph_from_models_unrolled(self, conf, paren, top):
         # models_unrolled = OrderedDict()
-        conf['params']['loop'] = [('models', {k: v}) for k, v in conf['params']['models'].items()]
+        conf['params']['loop'] = [('models', {k: v}) for k, v in list(conf['params']['models'].items())]
         logger.debug('Model %s\'s models to loop yields loop = %s' % (conf['params']['id'], conf['params']['loop'], ))
         subgraph = LoopBlock2.subgraph_from_loop_unrolled(self, conf, paren, top)
         return subgraph
@@ -200,13 +200,13 @@ class ModelBlock2(PrimBlock2):
         mconf_io = {'inputs': {}, 'outputs': {}}
         
         # for mk, mv in params['models'].items():
-        mk = params['models'].keys()[0]
+        mk = list(params['models'].keys())[0]
         mv = params['models'][mk]
 
         self.modelkey = mk
 
         self.load = True
-        if mv.has_key('load'):
+        if 'load' in mv:
             self.load = mv['load']
         
         # generate model inputs/outputs configuration
@@ -251,7 +251,7 @@ class ModelBlock2(PrimBlock2):
 
         # FIXME: legacy iodim at block level
         for k in ['idim', 'odim']:
-            if mv.has_key(k):
+            if k in mv:
                 setattr(self, k, mv[k])
 
     def rewrite_model_to_block(self, conf, mkey, mconf, rewritekeys = ['inputs', 'outputs'], nummodels = 1):
@@ -261,14 +261,14 @@ class ModelBlock2(PrimBlock2):
             conf_ = mconf
             mconf_k = True
             
-            if not mconf.has_key(k):
+            if k not in mconf:
                 mconf_k = False
                 conf_ = conf
                 mconf[k] = {}
                 
             v = conf_[k]
             
-            for ck, cv in v.items():
+            for ck, cv in list(v.items()):
                 if nummodels > 1:
                     ck_ = '%s/%s' % (mkey, ck)
                     # rewrite entry
@@ -283,7 +283,7 @@ class ModelBlock2(PrimBlock2):
     def save(self):
         """Dump the model into a file
         """
-        for k, v in self.models.items():
+        for k, v in list(self.models.items()):
             mdl_inst = v['inst_']
             # if hasattr(self, 'saveable') and self.saveable:
             mdl_inst.save(ref = self)
@@ -308,7 +308,7 @@ class ModelBlock2(PrimBlock2):
             mv['inst_'].predict(self)
 
             # copy output from model to block
-            for outk, outv in self.outputs.items():
+            for outk, outv in list(self.outputs.items()):
                 assert hasattr(mv['inst_'], outk), "Model %s has no attribute '%s'" % (mk, outk)
                 setattr(self, outk, getattr(mv['inst_'], outk))
 
@@ -355,9 +355,9 @@ if __name__ == '__main__':
 
     block = ModelBlock2(conf = default_conf, paren = top, top = top)
 
-    print "bus\n", top.bus.astable()
+    print("bus\n", top.bus.astable())
 
-    print "block", block.id
+    print("block", block.id)
 
     # for i in range(10):
     #     top.bus['robot1/s_proprio'] = np.random.uniform(-1, 1, (dim_s_proprio, 1))
@@ -397,8 +397,8 @@ if __name__ == '__main__':
         xs[...,[i]] = top.x
         ys[...,[i]] = top.y
 
-    print "xs", xs
-    print "ys", ys
+    print("xs", xs)
+    print("ys", ys)
     fig = plt.figure()
     gs = GridSpec(2,1)
     ax1 = fig.add_subplot(gs[0])

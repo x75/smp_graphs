@@ -596,24 +596,24 @@ graph = OrderedDict([
                             # descending prediction
                             'e2p_l1': {
                                 'bus': 'e2p/pre',
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag, -minlag)}, # lag}, # m1
+                                'shape': (dim_s_proprio, maxlag), 'lag': list(range(-maxlag, -minlag))}, # lag}, # m1
                                 # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)}, # lag}, # m2
                             'pre_l1': {
                                 'bus': 'pre_l1/pre',
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag, -minlag)}, # lag}, # m1
+                                'shape': (dim_s_proprio, maxlag), 'lag': list(range(-maxlag, -minlag))}, # lag}, # m1
                                 # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)}, # lag}, # m2
                             # ascending prediction error
                             'pre_l0': {
                                 'bus': 'pre_l0/pre',
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)}, # lag},
+                                'shape': (dim_s_proprio, maxlag), 'lag': list(range(-maxlag + 1, -minlag + 1))}, # lag},
                             # ascending prediction error
                             'prerr_l0': {
                                 'bus': 'pre_l0/err',
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)}, # lag},
+                                'shape': (dim_s_proprio, maxlag), 'lag': list(range(-maxlag + 1, -minlag + 1))}, # lag},
                             # measurement
                             'meas_l0': {
                                 'bus': 'robot1/s_proprio',
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(-laglen, 0)}
+                                'shape': (dim_s_proprio, maxlag), 'lag': list(range(-laglen, 0))}
                             },
                         'outputs': {
                             'pre': {'shape': (dim_s_proprio, 1)},
@@ -674,12 +674,12 @@ graph = OrderedDict([
                             # measurement proprio
                             'meas_l0_proprio': {
                                 'bus': 'robot1/s_proprio',
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(-laglen, 0)},
+                                'shape': (dim_s_proprio, maxlag), 'lag': list(range(-laglen, 0))},
                             # measurement extero
                             'meas_l0_extero': {
                                 'bus': 'robot1/s_extero',
                                 # 'shape': (dim_s_extero, maxlag), 'lag': range(-laglen, 0)},
-                                'shape': (dim_s_extero, 1), 'lag': range(-1, 0)},
+                                'shape': (dim_s_extero, 1), 'lag': list(range(-1, 0))},
                             },
                         'outputs': {
                             'pre': {'shape': (dim_s_proprio, 1)},

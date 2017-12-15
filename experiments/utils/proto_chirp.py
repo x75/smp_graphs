@@ -31,7 +31,7 @@ for i, method in enumerate(methods):
     else:
         t_ = t
         
-    print "t", t
+    print("t", t)
     
     chirp = sig.chirp(t = t, f0 = 1e-3, t1 = T1, f1 = sr/2, method = method)
     # CHIRP = fft.rfft(chirp)

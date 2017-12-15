@@ -17,5 +17,5 @@ if __name__ == "__main__":
 
     assert args.logfile is not None, "Need a logfile to load, use --logfile logfile.h5"
     
-    print "conf ini", log.log_pd_dump_config(args.logfile, storekey = 'conf')
-    print "conf fin", log.log_pd_dump_config(args.logfile, storekey = 'conf_final')
+    print("conf ini", log.log_pd_dump_config(args.logfile, storekey = 'conf'))
+    print("conf fin", log.log_pd_dump_config(args.logfile, storekey = 'conf_final'))

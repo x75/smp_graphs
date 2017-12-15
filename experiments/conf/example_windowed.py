@@ -8,7 +8,7 @@ numsteps = bs_win_2*10
 bs_win = 128*4
 num_win = (numsteps/bs_win)-1
 
-print "steps and wins", bs_win_2, numsteps, bs_win, num_win
+print("steps and wins", bs_win_2, numsteps, bs_win, num_win)
     
 graph = OrderedDict([
     # file source
