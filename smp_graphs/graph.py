@@ -264,7 +264,8 @@ def nxgraph_from_smp_graph(conf):
     return G
 
 def nxgraph_get_layout(G, layout_type):
-    """get an nx.graph layout from a config string"""
+    """get an nx.graph layout from a config string
+    """
     if layout_type == "spring":
         # spring
         layout = nx.spring_layout(G)
@@ -297,7 +298,8 @@ def nxgraph_get_layout(G, layout_type):
         for node in G.nodes():
             pos[node] = array([G.node[node]['layout']['x'], G.node[node]['layout']['y']])
 
-        return pos
+        # return pos
+        layout = pos
         
     elif layout_type == "linear_hierarchical2":
         # print 'G.nodes', G.nodes()
@@ -637,10 +639,10 @@ def nxgraph_plot(G, ax = None, pos = None, layout_type = "spring", node_color = 
             # print "edge type = %s, %s" % (edgetype, edge)
     # logger.debug('nxgraph_plot: typededges = %s' % (typededges, ))
 
-    nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = typededges['hier'], edge_color = "b", width = 0.8, alpha = 0.2)
-    nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = typededges['loop'], edge_color = "g", width = 1.0, alpha = 0.2)
-    nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = typededges['data'], edge_color = "k", width = 1.0, alpha = 0.2)
-    nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = typededges['trig'], edge_color = "r", width = 1.0, alpha = 0.2)
+    nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = typededges['hier'], edge_color = "b", width = 0.8, alpha = 0.5)
+    nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = typededges['loop'], edge_color = "g", width = 1.0, alpha = 0.5)
+    nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = typededges['data'], edge_color = "k", width = 1.0, alpha = 0.25)
+    nx.draw_networkx_edges(G, ax = ax, pos = layout, edgelist = typededges['trig'], edge_color = "r", width = 1.0, alpha = 0.5)
 
     # set title to config filename removing timestamp and hash
     # title = re.sub(r'_[0-9]+_[0-9]+', r'', G.name.split("-")[0])
@@ -649,7 +651,7 @@ def nxgraph_plot(G, ax = None, pos = None, layout_type = "spring", node_color = 
     ax.title.set_position((0.05, 0.9))
     ax.title.set_alpha(0.65)
 
-    ax.set_axis_off()
+    # ax.set_axis_off()
     
     # ax.set_xticks([])
     # ax.set_xticklabels([])
@@ -725,17 +727,29 @@ def recursive_hierarchical(G, lvlx = 0, lvly = 0):
     2) construct flattened graph during draw recursion
     3) draw edges across hierarchy boundaries
     """
+    layout_type = 'random_hierarchical' # 'linear_hierarchical' # shell, pygraphviz, random
 
     G_ = nx.MultiDiGraph()
 
     xincr = 0.4/float(G.number_of_nodes() + 1)
-    
+
+    # get a random layout for this graph level
+    layout_ = nx.random_layout(G, center = (lvlx + 0.5, lvly + 0.5))
+    xincr = 1.2
+    yincr = 1.2
+
     # for i, node in enumerate(G.nodes()):
     for i, node in enumerate(nxgraph_nodes_iter(G, 'enable')):
         G.node[node]['layout'] = {}
         G.node[node]['layout']['level'] = lvlx
-        G.node[node]['layout']['x'] = lvlx + (i * xincr) # + (random.normal() * 0.1)
-        G.node[node]['layout']['y'] = lvly # + (random.normal() * 0.1)
+
+        
+        G.node[node]['layout']['x'] = layout_[node][0] # lvlx + (i * xincr) # + (random.normal() * 0.1)
+        G.node[node]['layout']['y'] = layout_[node][1] # lvly # + (random.normal() * 0.1)
+        
+        # G.node[node]['layout']['x'] = lvlx + (i * xincr) # + (random.normal() * 0.1)
+        # G.node[node]['layout']['y'] = lvly # + (random.normal() * 0.1)
+        
         # G_.add_node('l%d_%s_%s' % (lvl, node, G.node[node]['block_'].id), G.node[node])
         nodeid_ = 'l%d_%s' % (lvlx, G.node[node]['block_'].id)
         # print "node", nodeid_, G.node[node] # ['block_'].id # .keys()
@@ -751,8 +765,13 @@ def recursive_hierarchical(G, lvlx = 0, lvly = 0):
         if hasattr(G.node[node]['block_'], 'nxgraph'):
             # print "node.nxgraph:", G.node[node]['block_'].nxgraph
             # lvlx += 1
-            G2, G2_number_of_nodes_total = recursive_hierarchical(G.node[node]['block_'].nxgraph, lvlx = lvlx + 1, lvly = lvly)
-            lvly += G2_number_of_nodes_total # G2.number_of_nodes()
+            G2, G2_number_of_nodes_total = recursive_hierarchical(G.node[node]['block_'].nxgraph, lvlx = lvlx + xincr, lvly = lvly)
+
+            # # linear_hierarchical
+            # lvly += G2_number_of_nodes_total # G2.number_of_nodes()
+            # random
+            lvly += yincr
+
             # print "G2", G2.nodes()
             G_ = nx.compose(G2, G_)
             mainedge = True
@@ -761,12 +780,22 @@ def recursive_hierarchical(G, lvlx = 0, lvly = 0):
                 g2x = g2nodelyt['x']
                 g2y = g2nodelyt['y']
                 # print "node %s - g2node %s[%d/%d]" % (nodeid_, g2node, g2x, g2y)
-                if lvlx == g2x-1 and G_.node[nodeid_]['layout']['y'] == g2y:
+                
+                # check for hierarchy levels
+                # if lvlx == g2x-1 and G_.node[nodeid_]['layout']['y'] == g2y:
+                if g2x < lvlx + 2.2:
                     G_.add_edge(nodeid_, g2node, type = 'hier', main = mainedge)
                     mainedge = False
+                    
+                # # check for hierarchy levels
+                # if lvlx == g2x-1 and G_.node[nodeid_]['layout']['y'] == g2y:
+                #     G_.add_edge(nodeid_, g2node, type = 'hier', main = mainedge)
+                #     mainedge = False
+                
             # print "G_", G_.nodes(), G_.edges()
         else:
-            lvly += 1
+            # lvly += 1
+            lvly += 0
 
     if lvlx == 0:
         G_.name = G.name

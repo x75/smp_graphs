@@ -24,10 +24,9 @@ self-exploration
 
 0063
  - x 0062 fixed with delay and online learning
- - close the loop!
 
 0064
- - enable closed-loop
+ - close the loop with blk_mode, route, sequencer
  - add pre/meas pairs
  - add meas stack statistics or expand meas stack resp.
  - move meas stack into brain
@@ -49,13 +48,14 @@ import re
 
 from smp_base.plot import table, bar
 
-from smp_graphs.common import compose
-from smp_graphs.block import FuncBlock2, TrigBlock2
+from smp_graphs.block import FuncBlock2, TrigBlock2, RouteBlock2
 from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2
-from smp_graphs.block_plot import TextBlock2
-from smp_graphs.block_models import ModelBlock2
 from smp_graphs.block_meas import MeasBlock2, MomentBlock2
 from smp_graphs.block_meas_infth import MIBlock2, InfoDistBlock2
+from smp_graphs.block_models import ModelBlock2
+from smp_graphs.block_ols import SequencerBlock2
+from smp_graphs.block_plot import TextBlock2
+from smp_graphs.common import compose
 
 from numpy import sqrt, mean, square
 from smp_graphs.funcs import f_sin, f_motivation, f_motivation_bin, f_meansquare, f_sum, f_rootmeansquare, f_envelope
@@ -82,13 +82,11 @@ p_del_vars = ['delay/dy']
 m_vars = ['robot1/s0']
 # m_vars = ['pre_l2/y']
 
-desc = """This experiment fixes the delay problem of the previous one
-in \\autoref{{{0}}} by introducing a delay operator, which is
-configured with the \\emph{{known}} delay of one time step, and using
-the delayed prediction pre\\_l0 $z^{{-1}}$ as the model's target
-input. This restores the proper temporal alignment of the input and
-target variables and a very good model can be acquired by the
-agent.""".format('sec:smp-expr0062-ea01')
+desc = """The final experiment serves to illustrate that by combining
+an instantaneous error $e$ with versions of itself integrated over
+different time spans, primitive motivation $m$ is obtained. The
+motivation $m$ is hardwired to spawn a local model at the site the the
+error occurs and accumulates.""".format()
 
 # configuration as table
 desc += """
@@ -134,8 +132,9 @@ lconf = {
         # ground truth cheating
         'h_numelem': numelem, # sampling grid
         # control input
-        'inputs': {'u': {'bus': p_vars[0]}},
+        # 'inputs': {'u': {'bus': p_vars[0]}},
         # 'inputs': {'u': {'bus': 'mdl1/y'}}
+        'inputs': {'u': {'bus': 'motor/y'}}
     },
     # agent / models
     'infodistgen': {
@@ -180,16 +179,21 @@ lconf = {
         'inputs': {
             # input
             # 'x_in': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
+            # fit input
             'x_in': {'bus': m_vars[0], 'shape': (dim_s0, 1)},
+            # predict input
+            'x_in2': {'bus': p_vars[0], 'shape': (dim_s0, 1)},
             # target
             # 'x_tg': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
             # 'x_tg': {'bus': p_del_vars[0], 'shape': (dim_s0, numsteps)},
-            'x_tg': {'bus': p_del_vars[0], 'shape': (dim_s0, 1, 1)},
+            # 'x_tg': {'bus': p_del_vars[0], 'shape': (dim_s0, 1)},
+            'x_tg': {'bus': 'mdl1_target/y', 'shape': (dim_s0, 1)},
         },
         'outputs': {
             # 'y': {'shape': (dim_s0, numsteps)},
             'y': {'shape': (dim_s0, 1)},
-            'h': {'shape': (dim_s0, numelem), 'trigger': 'trig/t1'},
+            'y2': {'shape': (dim_s0, 1)},
+            'h': {'shape': (dim_s0, numelem), 'trigger': 'trig/t1', 'trigger_func': 'h'},
         },
     }
 }
@@ -251,6 +255,41 @@ graph = OrderedDict([
                 # 'pre_l2_t1': {'shape': (1, 1)},
                 't1': {'shape': (1, 1)},
             }
+        },
+    }),
+
+    # trying a new way of sequencing: the sequencer :)
+    ('seq', {
+        'block': SequencerBlock2,
+        'params': {
+            'blocksize': 1,
+            'sequences': {
+                'motor': {
+                    'shape': (1,1),
+                    'events': {
+                        0: np.ones((1,1)) * 0,
+                        numsteps/2: np.ones((1,1)) * 1
+                    }
+                },
+            }
+        }
+    }),
+
+    # replace sequence with err threshold
+
+    # motor routing
+    ('motor', {
+        'block': RouteBlock2,
+        'params': {
+            'debug': True,
+            'blocksize': 1,
+            'inputs': OrderedDict([
+                # ('r', {'val': np.array([[1]])}),
+                ('r', {'bus': 'seq/motor'}),
+                ('pre_l0', {'bus': 'pre_l0/pre', 'shape': (dim_s0, 1)}),
+                ('mdl_y2', {'bus': 'mdl1/y2'}),
+            ]),
+            # implicit output is 'y'
         },
     }),
 
@@ -358,6 +397,7 @@ graph = OrderedDict([
                         # 'debug': True,
                         'blocksize': 1,
                         # 'inputs': {'y': {'bus': 'motordiff/dy'}},
+                        'flat': True,
                         'inputs': {
                             'y': {'bus': p_vars[0], 'shape': (dim_s0, 1)},
                             'y1': {'bus': p_vars[0], 'shape': (dim_s0, 1)},
@@ -366,6 +406,22 @@ graph = OrderedDict([
                     }
                 }),
         
+                # motor routing
+                ('mdl1_target', {
+                    'block': RouteBlock2,
+                    'params': {
+                        'debug': True,
+                        'inputs': OrderedDict([
+                            # ('r', {'val': np.array([[1]])}),
+                            ('r', {'bus': 'seq/motor'}),
+                            ('pre_l0', {'bus': 'delay/dy', 'shape': (dim_s0, 1)}),
+                            # ('mdl_y2', {'bus': 'delay/dmdl_y2', 'shape': (dim_s0, 1, 1)}),
+                            ('mdl_y2', {'bus': 'mdl1/y2', 'shape': (dim_s0, 1)}),
+                        ]),
+                        # implicit output is 'y'
+                    },
+                }),
+
                 # inverse model s2s
                 ('mdl1', lconf['model_s2s']),
                 
@@ -378,7 +434,7 @@ graph = OrderedDict([
                 # measures: indirect mdlpre2meas
                 get_measures_block(**{
                     'measblockid': 1, 'numsteps': numsteps, 'p_vars': ['delay/dy'], 'p_del_vars': p_del_vars,
-                    'm_vars': ['mdl1/y'], 'dim_s0': dim_s0, 'numbins': numbins, 'div_meas': div_meas}),
+                    'm_vars': m_vars, 'dim_s0': dim_s0, 'numbins': numbins, 'div_meas': div_meas}),
         
             ]),
         }
@@ -411,6 +467,7 @@ graph = OrderedDict([
                 # 'pre_l2': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
                 # 'pre_l2_h': {'bus': 'pre_l2/h', 'shape': (dim_s0, numelem)},
                 'mdl1_y': {'bus': 'mdl1/y', 'shape': (dim_s0, numsteps)},
+                'mdl1_y2': {'bus': 'mdl1/y2', 'shape': (dim_s0, numsteps)},
                 'mdl1_h': {'bus': 'mdl1/h', 'shape': (dim_s0, numelem)},
                 'mdl1_y_del': {'bus': 'delay/dmdl_y', 'shape': (dim_s0, numsteps)},
                 # budget stats                
@@ -421,7 +478,8 @@ graph = OrderedDict([
                 'budget_max': {'bus': 'm_budget/y_max', 'shape': (1, 1)},
                 # measures / errors
                 'err_mdl_pre': {'bus': 'm_err1/y', 'shape': (1, numsteps)},
-                'err_mdl_pre_': {'bus': 'm_err1_a/y', 'shape': (1, numsteps)},                
+                # 'err_mdl_pre_': {'bus': 'm_err1_a/y', 'shape': (1, numsteps)},                
+                'err_mdl_pre_': {'bus': 'm_err1_a/Ix', 'shape': (1, numsteps)},
                 'm_rmse1': {'bus': 'm_rmse1/y', 'shape': (1, 1)},
                 'm_div1': {'bus': 'm_div1/y', 'shape': (1, numbins)},
                 'm_div1_sum': {'bus': 'm_div1_sum/y', 'shape': (1, 1)},
@@ -435,7 +493,8 @@ graph = OrderedDict([
                     'shape': (dim_s0, 1, 1)
                 },
                 'err_pre_s0': {'bus': 'm_err0/y', 'shape': (1, numsteps)},
-                'err_pre_s0_': {'bus': 'm_err0_a/y', 'shape': (1, numsteps)},
+                # 'err_pre_s0_': {'bus': 'm_err0_a/y', 'shape': (1, numsteps)},
+                'err_pre_s0_': {'bus': 'm_err0_a/Ix', 'shape': (1, numsteps)},
                 'm_rmse0': {'bus': 'm_rmse0/y', 'shape': (1, 1)},
                 'm_div0': {'bus': 'm_div0/y', 'shape': (1, numbins)},
                 'm_div0_sum': {'bus': 'm_div0_sum/y', 'shape': (1, 1)},
@@ -463,7 +522,7 @@ graph = OrderedDict([
                     },
                     {
                         # 'input': ['s0', 'pre_l0', 'pre_l0_del'], 'plot': [timeseries for _ in range(3)],
-                        'input': ['pre_l0', 's0', ], 'plot': [partial(timeseries, alpha = 0.3), timeseries],
+                        'input': ['pre_l0', 's0'], 'plot': [partial(timeseries, alpha = 0.3), timeseries],
                         # 'input': ['s0'], 'plot': [timeseries for _ in range(3)],
                         'title': 'timeseries $y$', 'aspect': 'auto', # (1*numsteps)/(2*2.2),
                         'xlim': None, 'xticks': False, 'xticklabels': False,

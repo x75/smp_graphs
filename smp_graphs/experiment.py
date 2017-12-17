@@ -552,13 +552,17 @@ class Experiment(object):
         """
         # axesspec = [(0, 0), (0, 1), (0, 2), (0, slice(3, None))]
         # axesspec = [(0, 0), (0,1), (1, 0), (1,1)]
-        axesspec = [(0, slice(0, 2)), (0, 2)]
-        # axesspec = None
+        # axesspec = [(0, slice(0, 2)), (0, 2)]
+        # rows = 1
+        # cols = 3
+        rows = 1
+        cols = 1
+        axesspec = None
         plotgraph_figures = list()
         figtitle = self.top.id.split('-')[0]
         # FIXME: uses makefig directly from smp_base.plot instead of FigPlotBlock2
         fig_nxgr = makefig(
-            rows = 1, cols = 3, wspace = 0.1, hspace = 0.1,
+            rows = rows, cols = cols, wspace = 0.1, hspace = 0.1,
             axesspec = axesspec, title = "%s"  % (figtitle, )) # "nxgraph")
         axi = 0
         
@@ -590,7 +594,7 @@ class Experiment(object):
             G_cols = nxgraph_get_node_colors(G_)
             
         # print "G_cols", G_cols
-        nxgraph_plot(G_, ax = fig_nxgr.axes[axi], layout_type = "linear_hierarchical", node_color = G_cols, node_size = 300)
+        nxgraph_plot(G_, ax = fig_nxgr.axes[axi], layout_type = "linear_hierarchical", node_color = G_cols, node_size = 1000)
         # nxgraph_plot(G_, ax = fig_nxgr.axes[axi], layout_type = "spring", node_color = G_cols, node_size = 300)
         # fig_nxgr.axes[axi].set_aspect(1)
         axi += 1
@@ -605,25 +609,25 @@ class Experiment(object):
         #     currentscalefactor = 1.0,
         #     shrink = 0.8)
 
-        # plot parameters
-        ax = fig_nxgr.axes[axi]
-        params_table = {
-            'numsteps': [self.top.numsteps],
-            'caching': [self.conf['params']['docache']],
-            # 'system': [self.conf],
-            # 'lconf': self.conf
-        }
+        # # plot parameters
+        # ax = fig_nxgr.axes[axi]
+        # params_table = {
+        #     'numsteps': [self.top.numsteps],
+        #     'caching': [self.conf['params']['docache']],
+        #     # 'system': [self.conf],
+        #     # 'lconf': self.conf
+        # }
 
-        ax.title.set_text('params')
-        ax.set_axis_off()
+        # ax.title.set_text('params')
+        # ax.set_axis_off()
 
-        bbox = ax.get_position()
-        bbox.x0 *= 1.2
-        bbox.y0 *= 0.7
-        ax.set_position(bbox)
+        # bbox = ax.get_position()
+        # bbox.x0 *= 1.2
+        # bbox.y0 *= 0.7
+        # ax.set_position(bbox)
         
-        ax.table(cellText = params_table.values(), rowLabels = params_table.keys(), loc = 'center')
-        axi += 1
+        # ax.table(cellText = params_table.values(), rowLabels = params_table.keys(), loc = 'center')
+        # axi += 1
         
         assert Gbus is not None
         # if Gbus is None:

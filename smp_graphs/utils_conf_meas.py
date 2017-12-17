@@ -8,7 +8,7 @@ from collections import OrderedDict
 import numpy as np
 
 # from smp_base.measures import meas_div
-from smp_graphs.block import Block2, FuncBlock2
+from smp_graphs.block import Block2, FuncBlock2, IBlock2
 from smp_graphs.block_meas import MomentBlock2, MeasBlock2
 from smp_graphs.block_meas_infth import MIBlock2, InfoDistBlock2
 from smp_graphs.funcs import f_sum, f_envelope, f_rootmeansquare
@@ -102,7 +102,7 @@ def get_measures_block(*args, **kwargs):
                         },
                     }),
                 
-                    # m: (root) mean squared error
+                    # m: (root) low pass filtered
                     ('m_err%d_a' % (measblockid, ), {
                         'block': FuncBlock2,
                         'params': {
@@ -118,6 +118,21 @@ def get_measures_block(*args, **kwargs):
                                 'y': {'shape': (1, numsteps)},
                             },
                         },
+
+                        # TODO: slowness spectrum bank
+                        
+                        # 'block': IBlock2,
+                        # 'params': {
+                        #     'blocksize': 1,
+                        #     'debug': False,
+                        #     'leak': 0.05,
+                        #     'inputs': {
+                        #         'x': {'bus': 'm_err%d/y' % (measblockid, ), 'shape': (1, 1)},
+                        #     },
+                        #     'outputs': {
+                        #         'Ix': {'shape': (1, 1)},
+                        #     },
+                        # },
                     }),
     
                     # m: (root) mean squared error
