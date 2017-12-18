@@ -87,52 +87,52 @@ def get_measures_block(*args, **kwargs):
                     ('m_err%d' % (measblockid, ), {
                         'block': MeasBlock2,
                         'params': {
-                            'blocksize': numsteps,
+                            'blocksize': 1,
                             # 'debug': True,
                             'mode': 'basic',
                             'scope': 'local',
                             'meas': 'sub',
                             'inputs': {
-                                'x1': {'bus': p_vars[0], 'shape': (1, numsteps)},
-                                'x2': {'bus': m_vars[0], 'shape': (1, numsteps)},
+                                'x1': {'bus': p_vars[0], 'shape': (1, 1)},
+                                'x2': {'bus': m_vars[0], 'shape': (1, 1)},
                             },
                             'outputs': {
-                                'y': {'shape': (1, numsteps)},
+                                'y': {'shape': (1, 1)},
                             },
                         },
                     }),
                 
                     # m: (root) low pass filtered
                     ('m_err%d_a' % (measblockid, ), {
-                        'block': FuncBlock2,
-                        'params': {
-                            # 'id': 'm_rmse',
-                            'blocksize': numsteps,
-                            'debug': False,
-                            'func': f_envelope,
-                            'inputs': {
-                                'x': {'bus': 'm_err%d/y' % (measblockid, ), 'shape': (1, numsteps)},
-                                'c': {'val': 0.01, 'shape': (1, 1)},
-                            },
-                            'outputs': {
-                                'y': {'shape': (1, numsteps)},
-                            },
-                        },
+                        # 'block': FuncBlock2,
+                        # 'params': {
+                        #     # 'id': 'm_rmse',
+                        #     'blocksize': numsteps,
+                        #     'debug': False,
+                        #     'func': f_envelope,
+                        #     'inputs': {
+                        #         'x': {'bus': 'm_err%d/y' % (measblockid, ), 'shape': (1, numsteps)},
+                        #         'c': {'val': 0.01, 'shape': (1, 1)},
+                        #     },
+                        #     'outputs': {
+                        #         'y': {'shape': (1, numsteps)},
+                        #     },
+                        # },
 
                         # TODO: slowness spectrum bank
                         
-                        # 'block': IBlock2,
-                        # 'params': {
-                        #     'blocksize': 1,
-                        #     'debug': False,
-                        #     'leak': 0.05,
-                        #     'inputs': {
-                        #         'x': {'bus': 'm_err%d/y' % (measblockid, ), 'shape': (1, 1)},
-                        #     },
-                        #     'outputs': {
-                        #         'Ix': {'shape': (1, 1)},
-                        #     },
-                        # },
+                        'block': IBlock2,
+                        'params': {
+                            'blocksize': 1,
+                            'debug': True,
+                            'leak': 0.05,
+                            'inputs': {
+                                'x': {'bus': 'm_err%d/y' % (measblockid, ), 'shape': (1, 1)},
+                            },
+                            'outputs': {
+                                'Ix': {'shape': (1, 1)},
+                            },
+                        },
                     }),
     
                     # m: (root) mean squared error

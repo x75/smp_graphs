@@ -3010,9 +3010,12 @@ class PrimBlock2(Block2):
 class IBlock2(PrimBlock2):
     """IBlock2 class
 
-    Integrator block: add input 'k_i' in input.keys to current value of output state 'Ik_i'
+    Integrator block: add input 'k_i' in input.keys to current value
+    of output state 'Ik_i'
 
     Params: inputs ['x'], outputs ['Ix'], leakrate [1.0]
+
+    .. note:: Seems this block is batch only.
     """
     defaults = {
         # 'leak': 0.0,
@@ -3039,6 +3042,7 @@ class IBlock2(PrimBlock2):
                 pass
             else:
                 conf['params']['outputs'][outk] = {'shape': v['shape']} # {'shape': top.bus[busk['bus']].shape} # ['val'].shape]}
+            setattr(self, outk, np.zeros(v['shape']))
             
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
@@ -3051,12 +3055,23 @@ class IBlock2(PrimBlock2):
 
     @decStep()
     def step_leak(self, x = None):
+        # loop over blocksize
         for i in range(self.blocksize):
+            # do it for all inputs
             for ink in self.inputs.keys():
+                # get input
+                inv = self.get_input(ink)#[...,[i]]
+                self._debug('input %s current %s' % (ink, inv))
+                # with corresponding output
                 outk = "I%s" % ink
-                tmp_ = getattr(self, outk)
-                tmp_[:,i] = ((1 - self.leak) * tmp_[:,i-1]) + (self.inputs[ink][0][:,i] * self.d)
+                # get last state
+                tmp_ = getattr(self, outk).copy()
+                self._debug('input %s last int state %s' % (ink, tmp_))
+                # integrate with leak
+                tmp_[...,[i]] = ((1 - self.leak) * tmp_[...,[i-1]]) + (inv * self.leak)
+                #  store state
                 setattr(self, outk, tmp_)
+        self._debug('self.%s = %s' % (outk, getattr(self, outk)))
 
     @decStep()
     def step_all(self, x = None):

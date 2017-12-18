@@ -734,9 +734,10 @@ def recursive_hierarchical(G, lvlx = 0, lvly = 0):
     xincr = 0.4/float(G.number_of_nodes() + 1)
 
     # get a random layout for this graph level
-    layout_ = nx.random_layout(G, center = (lvlx + 0.5, lvly + 0.5))
-    xincr = 1.2
-    yincr = 1.2
+    # layout_ = nx.random_layout(G, center = (lvlx + 0.0, lvly + 0.0))
+    layout_ = nx.spring_layout(G, center = (lvlx + 0.0, lvly + 0.0))
+    xincr = 1.3
+    yincr = 1.3
 
     # for i, node in enumerate(G.nodes()):
     for i, node in enumerate(nxgraph_nodes_iter(G, 'enable')):
