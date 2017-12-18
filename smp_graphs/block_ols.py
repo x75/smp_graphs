@@ -63,7 +63,7 @@ class FileBlock2(Block2):
                 # print "data", self.data[k].shape[1]
                 # print "out dim", conf['params']['outputs'][k]
                 conf['params']['outputs'][k]['shape'] = (self.data[k].shape[1], conf['params']['blocksize'])
-                print "out dim", conf['params']['outputs'][k]
+                # print "out dim", conf['params']['outputs'][k]
             # self.x = np.zeros((self.odim, 1))
         
         Block2.__init__(self, conf = conf, paren = paren, top = top)
@@ -128,7 +128,7 @@ class FileBlock2(Block2):
         # sphero res learner
         elif filetype == 'sphero_res_learner':
             self.data = np.load(lfile)
-            print "fileblock self.data sphero", self.data.keys()
+            # print "fileblock self.data sphero", self.data.keys()
             del conf['params']['outputs']['log']
             # for k in self.data.keys():
             for k in ['x', 'zn', 't']:
@@ -143,12 +143,12 @@ class FileBlock2(Block2):
 
                 conf['params']['outputs'][k_] = {'shape': self.data[k][:,sl].T.shape}
             self.step = self.step_sphero_res_learner
-            print "fileblock sphero_res_learner conf", conf['params']['outputs']
+            # print "fileblock sphero_res_learner conf", conf['params']['outputs']
         ############################################################
         # test data format 1
         elif filetype == 'testdata1':
             self.data = np.load(lfile)
-            print "fileblock self.data testdata1", self.data.keys()
+            # print "fileblock self.data testdata1", self.data.keys()
             del conf['params']['outputs']['log']
             for k in self.data.keys():
             # for k in ['x', 'zn', 't']:
@@ -163,7 +163,7 @@ class FileBlock2(Block2):
 
                 conf['params']['outputs'][k_] = [self.data[k][:,sl].shape]
             self.step = self.step_testdata1
-            print "fileblock testdata1 conf", conf['params']['outputs']
+            # print "fileblock testdata1 conf", conf['params']['outputs']
             
         ############################################################
         # selflogconfs
@@ -192,7 +192,7 @@ class FileBlock2(Block2):
                     k_ = "/".join(k_.split("/")[1:])
                     # assert conf['params']['blocksize'] == self.store[k].shape[0], "numsteps (%d) needs to be set to numsteps (%s) in the file %s" % (conf['params']['blocksize'], self.store[k].shape, lfile)
                     
-                    print "%s.init store_key = %s, raw key = %s, shape = %s" % (self.__class__.__name__, k, k_, self.store[k].shape)
+                    # print "%s.init store_key = %s, raw key = %s, shape = %s" % (self.__class__.__name__, k, k_, self.store[k].shape)
                     # conf['params']['outputs'][k_] = {'shape': self.store[k].T.shape[:-1]}
                     if conf['params'].has_key('blocksize'):
                         conf['params']['outputs'][k_] = {'shape': self.store[k].T.shape[:-1] + (conf['params']['blocksize'],)}
@@ -210,7 +210,7 @@ class FileBlock2(Block2):
             rate, data = wavfile.read(lfile)
             sl = slice(conf['params']['file']['offset'], conf['params']['file']['offset'] + conf['params']['file']['length'])
             self.data = {'x': data[sl]}
-            print "data", data.shape, self.data['x'].shape
+            # print "data", data.shape, self.data['x'].shape
             self.step = self.step_wav
             
         elif filetype == 'mp3':
@@ -326,7 +326,7 @@ class FileBlock2(Block2):
     def step_selflogconf(self, x = None):
         self.debug_print("%s.step: x = %s, bus = %s", (self.__class__.__name__, x, self.bus))
         if (self.cnt % self.blocksize) == 0:
-            print self.store.keys()
+            # print self.store.keys()
             for k, v in self.outputs.items():
                 print "trying k = %s, v = %s" % (k, v)
                 if k.startswith('conf'):

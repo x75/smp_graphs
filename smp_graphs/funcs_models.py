@@ -8,8 +8,11 @@ to have
 
     `modelblock -> smpmodel -> [sklearn, reservoir, ...]`
 
-FIXME: separate ref and mref tasks [wip]
-FIXME: convert these to smpmodels and put them into smp_base
+TODO
+- separate ref and mref tasks [wip]
+- convert these to smpmodels and put them into smp_base
+- expansions: poly, res, ...
+- unsup: incsfa, ...
 """
 
 from os import path as ospath
@@ -84,8 +87,7 @@ def init_musig(ref, mref, conf, mconf):
     params = mconf
     mref.a1 = mconf['a1']
     for ink, inv in params['inputs'].items():
-    # for ink, inv in params['inputs'].items():
-        print inv
+        # print "init_musig", inv
         for outk in ["mu", "sig"]:
             # outk_full = "%s/%s_%s" % (mref.modelkey, ink, outk)
             outk_full = "%s_%s" % (ink, outk)
@@ -127,7 +129,8 @@ def step_res(ref, mref, *args, **kwargs):
     for i in range(mref.oversampling):
         mref.res.execute(ref.inputs['x']['val'])
     # print ref.res.r.shape
-    setattr(ref, 'x_res', mref.res.r)
+    ref._debug('step_res  mref.res.r = %s' % (mref.res.r))
+    setattr(mref, 'x_res', mref.res.r)
 
 # TODO: model func: attractor neural network expansion (ANN-x)
 #       the idea is:
@@ -143,13 +146,15 @@ def step_res(ref, mref, *args, **kwargs):
 # model func: polynomial expansion using mdp
 def init_polyexp(ref, mref, conf, mconf):
     params = conf['params']
-    mref.polyexpnode = PolynomialExpansionNode(3)
+    if 'degree' not in params:
+        params['degree'] = 3
+    mref.polyexpnode = PolynomialExpansionNode(params['degree'])
     # params['outputs']['polyexp'] = {'shape': params['inputs']['x']['shape']}
-    params['outputs']['polyexp'] = {'shape': (83, 1)} # ???
+    params['outputs']['y'] = {'shape': (83, 1)} # ??? magic number computed from expansion size with degree 3 FIXME
 
 def step_polyexp(ref, mref, *args, **kwargs):
-    setattr(ref, 'polyexp', mref.polyexpnode.execute(ref.inputs['x']['val'].T).T)
-
+    setattr(mref, 'y', mref.polyexpnode.execute(ref.inputs['x']['val'].T).T)
+    
 def init_random_lookup(ref, mref, conf, mconf):
     """random_lookup: init and setup
 

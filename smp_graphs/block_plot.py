@@ -200,15 +200,25 @@ class AnalysisBlock2(PrimBlock2):
             # get the plot type from the plotfunc type
             if hasattr(plotfunc, 'func_name'):
                 # plain function
-                plottype = plotfunc.func_name
+                plotfunc_ = plotfunc
             elif hasattr(plotfunc, 'func'):
                 # partial'ized func
-                plottype = plotfunc.func.func_name
+                # plottype = plotfunc.func.func_name
+                plotfunc_ = plotfunc.func
             else:
                 # unknown func type
-                plottype = timeseries # "unk plottype"
+                plotfunc_ = timeseries # "unk plottype"
 
-            # append plot type to title
+            plottype = plotfunc_.func_name
+            # self._debug('get_title_from_plot_type func_name / plottype = %s/%s' % (type(plottype), plottype))
+            
+            # # append plot type to title, unwrap if necessary
+            # if plottype is 'wrap':
+            #     self._debug('get_title_from_plot_type wrapped = %s' % (dir(plotfunc_), ))
+            #     self._debug('get_title_from_plot_type wrapped = %s' % (plotfunc_.func_code, ))
+            #     # title += self.get_title_from_plot_type([plotfunc_])
+            # else:
+            #     title += " " + plottype
             title += " " + plottype
         return title
 
@@ -566,6 +576,8 @@ class PlotBlock2(FigPlotBlock2):
         'ylim_share': True,
         # 'subplots': [[{'input': ['x'], 'plot': timeseries}]],
         'subplots': [[{}]],
+        'plot_subplots_pass_1_flag': False,
+        'plot_subplots_pass_2_flag': False,
     }
 
     defaults_subplotconf = {
@@ -994,6 +1006,17 @@ class PlotBlock2(FigPlotBlock2):
                 # [subplotconf['slice'][0]:subplotconf['slice'][1]].T)
         # subplots pass 1: done
 
+        if not self.plot_subplots_pass_2_flag:
+            self.plot_subplots_pass_2(cols_xlim_max, rows_ylim_max)
+            self.plot_subplots_pass_2_flag = True
+
+        self._debug("plot_subplots len fig.axes = %d" % (len(self.fig.axes)))
+            
+        plt.draw()
+        plt.pause(1e-9)
+
+
+    def plot_subplots_pass_2(self, cols_xlim_max, rows_ylim_max):
         ################################################################################
         # subplots pass 2: clean up and compute globally shared dynamic vars
         # adjust xaxis
@@ -1077,11 +1100,6 @@ class PlotBlock2(FigPlotBlock2):
                         ax_set_aspect(ax, **subplotconf)
                 
                 # put_legend_out_top(labels = labels, ax = ax, resize_by = 0.8)
-                
-        self._debug("plot_subplots len fig.axes = %d" % (len(self.fig.axes)))
-            
-        plt.draw()
-        plt.pause(1e-9)
 
 # plot a matrix via imshow/pcolor
 class ImgPlotBlock2(FigPlotBlock2):

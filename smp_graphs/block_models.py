@@ -63,7 +63,7 @@ logger = get_module_logger(modulename = 'block_models', loglevel = LOGLEVEL - 0)
 class CodingBlock2(PrimBlock2):
     """CodingBlock2
 
-    mean-variance-residual coding block, recursive estimate of input's mu and sigma
+    Mean-variance-residual coding block, recursive estimate of input's mu and sigma
     """
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
@@ -71,7 +71,7 @@ class CodingBlock2(PrimBlock2):
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
         
         for ink, inv in self.inputs.items():
-            print inv
+            # print inv
             for outk in ["mu", "sig", "std"]:
                 if outk.endswith("sig"):
                     setattr(self, "%s_%s" % (ink, outk), np.ones(inv['shape']))
@@ -182,6 +182,8 @@ class ModelBlock2(PrimBlock2):
             mref.init_modelfilename(self)
             if self.load:
                 mref.load(self)
+
+            # self._debug('init: outputs = %s' % (self.outputs, ))
             
     def subgraph_from_models_unrolled(self, conf, paren, top):
         # models_unrolled = OrderedDict()

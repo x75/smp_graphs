@@ -3015,7 +3015,7 @@ class IBlock2(PrimBlock2):
 
     Params: inputs ['x'], outputs ['Ix'], leakrate [1.0]
 
-    .. note:: Seems this block is batch only.
+    .. note:: Presence of 'leak' parameter controls choice of step function. No 'leak' param maps to np.cumsum over batch of blocksize / input-blocksize.
     """
     defaults = {
         # 'leak': 0.0,

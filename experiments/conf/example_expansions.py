@@ -45,7 +45,7 @@ ppycnf2 = {
     # 'logfile': 'data/stepPickles/step_period_76_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_26_0.pickle',
     'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle', # continuous sweep
-    'numsteps': 5000,
+    'numsteps': 1000,
     # 'logfile': 'data/goodPickles/recording_eC0.20_eA0.02_c0.50_n1000_id0.pickle',
     # 'numsteps': 1000,
     'logtype': 'puppy',
@@ -80,13 +80,16 @@ graph = OrderedDict([
         'block': FileBlock2,
         'params': {
             'id': 'data',
-            'debug': False,
+            # 'debug': False,
             # 'blocksize': overlap, # numsteps,
             'blocksize': srcsize, # numsteps,
             'type': cnf['logtype'],
             'file': {'filename': cnf['logfile']},
-            'outputs': {'log': None, 'x': {'shape': (xdim, srcsize)},
-                            'y': {'shape': (ydim, srcsize)}},
+            'outputs': {
+                'log': None,
+                'x': {'shape': (xdim, srcsize)},
+                'y': {'shape': (ydim, srcsize)}
+            },
         },
     }),
 
@@ -97,7 +100,7 @@ graph = OrderedDict([
             'id': 'dataslice',
             # 'blocksize': overlap,
             'blocksize': srcsize,
-            'debug': True,
+            # 'debug': True,
             # puppy sensors
             'inputs': {'x': {'bus': 'data/x', 'shape': (xdim, srcsize)}},
             'slices': sys_slicespec,
@@ -108,7 +111,6 @@ graph = OrderedDict([
     ('coding', {
         'block': CodingBlock2,
         'params': {
-            'id': 'coding',
             'blocksize': srcsize,
             'inputs': {'x': {'bus': 'data/x', 'shape': (xdim, srcsize)}},
             'outputs': {
@@ -122,7 +124,7 @@ graph = OrderedDict([
     ('mb0', {
         'block': ModelBlock2,
         'params': {
-            'id': 'mb0',
+            'debug': True,
             'blocksize': 1,
             'inputs': {'x': {'bus': 'data/x', 'shape': (xdim, 1)}},
             # 'inputs': {'x': {'bus': 'coding/x_std', 'shape': (xdim, 1)}},
@@ -138,14 +140,14 @@ graph = OrderedDict([
     ('mb1', {
         'block': ModelBlock2,
         'params': {
-            'id': 'mb1',
+            # 'debug': True,
             'blocksize': 1,
             # 'inputs': {'x': {'bus': 'data/x', 'shape': (xdim, 1)}},
             'inputs': {'x': {'bus': 'coding/x_std', 'shape': (xdim, 1)}},
             'outputs': {},
             # models': {'res': "reservoir"},
             'models': {
-                'musig': {'type': 'musig', 'a1': 0.996},
+                # 'musig': {'type': 'musig', 'a1': 0.996},
                 'res': {
                     'type': 'res', 'N': 100, 'input_num': xdim, 
                     'output_num': 1, 'input_scale': 1.0, 'bias_scale': 0.0,
@@ -153,120 +155,123 @@ graph = OrderedDict([
             },
         }
     }),
-
-    ('mimv', {
-        'block': MIMVBlock2,
-        'params': {
-            'id': 'mimv',
-            'blocksize': 100,
-            'debug': False,
-            'inputs': {
-                'y': {'bus': 'data/x', 'shape': (xdim, 100)},   # src
-                'x': {'bus': 'mb1/x_res', 'shape': (100, 100)}, # dst
-                # 'norm': {'val': np.array([[7.0]]), 'shape': (1, 1)},
-            },
-            'embeddingscan': "src",
-            'shift': (scanstart, scanstop),
-            'outputs': {'mimv': {'shape': (1, scanlen)}}
-        }
-    }),
     
-    ('mimv2', {
-        'block': MIMVBlock2,
-        'params': {
-            'id': 'mimv2',
-            'blocksize': 100,
-            'debug': False,
-            'inputs': {
-                'y': {'bus': 'data/y', 'shape': (ydim, 100)},
-                'x': {'bus': 'data/x', 'shape': (xdim, 100)},
-                # 'norm': {'val': np.array([[7.0]]), 'shape': (1, 1)},
-            },
-            'shift': (scanstart, scanstop),
-            'outputs': {'mimv': {'shape': (1, scanlen)}}
-        }
-    }),
-    
-    ('plot_ts', {
+    ('plot', {
         'block': PlotBlock2,
         'params': {
-            'id': 'plot_ts',
-            'blocksize': 500,
-            'debug': False,
+            'blocksize': numsteps, # 500,
+            # 'debug': True,
             'saveplot': False,
             'savetype': 'pdf',
             'wspace': 0.2, 'hspace': 0.2,
-            'inputs': {'d1': {'bus': 'data/y', 'shape': (ydim, numsteps)},
-                       'd2': {'bus': 'coding/x_mu', 'shape': (xdim, numsteps)},
-                       'd3': {'bus': 'coding/x_sig', 'shape': (xdim, numsteps)},
-                       'd4': {'bus': 'coding/x_std', 'shape': (xdim, numsteps)},
-                       'd5': {'bus': 'mb1/x_res', 'shape': (100, numsteps)},
-                       'd6': {'bus': 'mb1/x_sig', 'shape': (xdim, numsteps)},
-                       'd7': {'bus': 'mb0/polyexp', 'shape': (83, numsteps)},
+            'inputs': {
+                'data_x': {'bus': 'data/x', 'shape': (xdim, numsteps)},
+                'data_y': {'bus': 'data/y', 'shape': (ydim, numsteps)},
+                'data_x_mu': {'bus': 'coding/x_mu', 'shape': (xdim, numsteps)},
+                'data_x_sig': {'bus': 'coding/x_sig', 'shape': (xdim, numsteps)},
+                'data_x_std': {'bus': 'coding/x_std', 'shape': (xdim, numsteps)},
+                'data_x_res': {'bus': 'mb1/x_res', 'shape': (100, numsteps)},
+                'data_x_sig2': {'bus': 'mb1_ll0_ll0/x_sig', 'shape': (xdim, numsteps)},
+                'data_x_poly': {'bus': 'mb0/y', 'shape': (83, numsteps)},
              },
             'outputs': {}, # 'x': {'shape': (3, 1)}
             'subplots': [
                 [
-                    {'input': 'd1', 'ndslice': (slice(None), slice(None)), 'shape': (ydim, numsteps), 'plot': timeseries},
-                    {'input': 'd7', 'ndslice': (slice(None), slice(None)), 'shape': (83, numsteps), 'plot': timeseries},
+                    {
+                        'input': ['data_x', 'data_y'], 'ndslice': [(slice(None), slice(None)), (slice(None), slice(None))],
+                        'shape': [(xdim, numsteps), (ydim, numsteps)], 'plot': timeseries, 'title': 'data/x+y'},
+                    {'input': 'data_x_poly', 'ndslice': (slice(None), slice(None)), 'shape': (83, numsteps),   'plot': timeseries, 'title': 'polyexp'},
                 ],
                 [
-                    {'input': 'd2', 'ndslice': (slice(None), slice(None)), 'shape': (xdim, numsteps), 'plot': timeseries},
-                    {'input': 'd3', 'ndslice': (slice(None), slice(None)), 'shape': (xdim, numsteps), 'plot': timeseries},
+                    {'input': 'data_x_mu', 'ndslice': (slice(None), slice(None)), 'shape': (xdim, numsteps), 'plot': timeseries, 'title': 'mu'},
+                    {'input': 'data_x_sig', 'ndslice': (slice(None), slice(None)), 'shape': (xdim, numsteps), 'plot': timeseries, 'title': 'sig'},
                 ],
                 [
-                    {'input': 'd4', 'ndslice': (slice(None), slice(None)), 'shape': (xdim, numsteps), 'plot': timeseries},
-                    {'input': 'd4', 'ndslice': (slice(None), slice(None)), 'shape': (xdim, numsteps), 'plot': histogram},
+                    {'input': 'data_x_std', 'ndslice': (slice(None), slice(None)), 'shape': (xdim, numsteps), 'plot': timeseries, 'title': 'std'},
+                    {'input': 'data_x_std', 'ndslice': (slice(None), slice(None)), 'shape': (xdim, numsteps), 'plot': histogram, 'title': 'std'},
                 ],
                 [
-                    {'input': 'd5', 'ndslice': (slice(None), slice(None)), 'shape': (100, numsteps), 'plot': timeseries},
-                    {'input': 'd6', 'ndslice': (slice(None), slice(None)), 'shape': (xdim, numsteps), 'plot': timeseries},
+                    {'input': 'data_x_res', 'ndslice': (slice(None), slice(None)), 'shape': (100, numsteps), 'plot': timeseries, 'title': 'res'},
+                    {'input': 'data_x_sig2', 'ndslice': (slice(None), slice(None)), 'shape': (xdim, numsteps), 'plot': timeseries, 'title': 'res_sig'},
                 ],
             ]
         }
     }),
 
-    # plot multivariate (global) mutual information over timeshifts
-    ('plot_infth', {
-        'block': ImgPlotBlock2,
-        'params': {
-            'id': 'plot_infth',
-            'logging': False,
-            'saveplot': saveplot,
-            'debug': True,
-            'wspace': 0.5,
-            'hspace': 0.5,
-            'blocksize': 100, # numsteps,
-            'inputs': {
-                'd1': {'bus': 'mimv/mimv', 'shape': (1, scanlen * numsteps/100)},
-                'd2': {'bus': 'mimv2/mimv', 'shape': (1, scanlen * numsteps/100)},
-                # 'd3': {'bus': 'temv/temv', 'shape': (1, scanlen * numsteps/overlap)},                
-                't': {'val': np.linspace(scanstart, scanstop-1, scanlen)},},
-            'outputs': {}, #'x': {'shape': (3, 1)}},
-            'subplots': [
-                [
-                    {'input': 'd1', 
-                         'cmap': 'Reds',
-                    'title': 'Multivariate mutual information I(X;Y) for time shifts [0, ..., 20]',
-                    'ndslice': (slice(None), slice(None)),
-                    # 'dimstack': {'x': [0], 'y': [1]},
-                    'shape': (numsteps/100, scanlen)},
+    # ('mimv', {
+    #     'block': MIMVBlock2,
+    #     'params': {
+    #         'id': 'mimv',
+    #         'blocksize': 100,
+    #         # 'debug': False,
+    #         'inputs': {
+    #             'y': {'bus': 'data/x', 'shape': (xdim, 100)},   # src
+    #             'x': {'bus': 'mb1/x_res', 'shape': (100, 100)}, # dst
+    #             # 'norm': {'val': np.array([[7.0]]), 'shape': (1, 1)},
+    #         },
+    #         'embeddingscan': "src",
+    #         'shift': (scanstart, scanstop),
+    #         'outputs': {'mimv': {'shape': (1, scanlen)}}
+    #     }
+    # }),
+    
+    # ('mimv2', {
+    #     'block': MIMVBlock2,
+    #     'params': {
+    #         'id': 'mimv2',
+    #         'blocksize': 100,
+    #         # 'debug': False,
+    #         'inputs': {
+    #             'y': {'bus': 'data/y', 'shape': (ydim, 100)},
+    #             'x': {'bus': 'data/x', 'shape': (xdim, 100)},
+    #             # 'norm': {'val': np.array([[7.0]]), 'shape': (1, 1)},
+    #         },
+    #         'shift': (scanstart, scanstop),
+    #         'outputs': {'mimv': {'shape': (1, scanlen)}}
+    #     }
+    # }),
+    
+    # # plot multivariate (global) mutual information over timeshifts
+    # ('plot_infth', {
+    #     'block': ImgPlotBlock2,
+    #     'params': {
+    #         'id': 'plot_infth',
+    #         'logging': False,
+    #         'saveplot': saveplot,
+    #         # 'debug': True,
+    #         'wspace': 0.5,
+    #         'hspace': 0.5,
+    #         'blocksize': 100, # numsteps,
+    #         'inputs': {
+    #             'd1': {'bus': 'mimv/mimv', 'shape': (1, scanlen * numsteps/100)},
+    #             'd2': {'bus': 'mimv2/mimv', 'shape': (1, scanlen * numsteps/100)},
+    #             # 'd3': {'bus': 'temv/temv', 'shape': (1, scanlen * numsteps/overlap)},                
+    #             't': {'val': np.linspace(scanstart, scanstop-1, scanlen)},},
+    #         'outputs': {}, #'x': {'shape': (3, 1)}},
+    #         'subplots': [
+    #             [
+    #                 {'input': 'd1', 
+    #                      'cmap': 'Reds',
+    #                 'title': 'Multivariate mutual information I(X;Y) for time shifts [0, ..., 20]',
+    #                 'ndslice': (slice(None), slice(None)),
+    #                 # 'dimstack': {'x': [0], 'y': [1]},
+    #                 'shape': (numsteps/100, scanlen)},
                     
-                    {'input': 'd2', 
-                    'cmap': 'Reds',
-                    'title': 'Multivariate mutual information I(X;Y) for time shifts [0, ..., 20]',
-                    'ndslice': (slice(None), slice(None)),
-                    # 'dimstack': {'x': [0], 'y': [1]},
-                    'shape': (numsteps/100, scanlen)},
-                    # {
-                    # 'input': 'd3',
-                    # 'ndslice': (slice(None), slice(None)),
-                    # # 'dimstack': {'x': [2, 1], 'y': [0]},
-                    # 'shape': (numsteps/overlap, scanlen),
-                    # 'cmap': 'Reds'},
-                ],
-            ]
-        },
-    }),
+    #                 {'input': 'd2', 
+    #                 'cmap': 'Reds',
+    #                 'title': 'Multivariate mutual information I(X;Y) for time shifts [0, ..., 20]',
+    #                 'ndslice': (slice(None), slice(None)),
+    #                 # 'dimstack': {'x': [0], 'y': [1]},
+    #                 'shape': (numsteps/100, scanlen)},
+    #                 # {
+    #                 # 'input': 'd3',
+    #                 # 'ndslice': (slice(None), slice(None)),
+    #                 # # 'dimstack': {'x': [2, 1], 'y': [0]},
+    #                 # 'shape': (numsteps/overlap, scanlen),
+    #                 # 'cmap': 'Reds'},
+    #             ],
+    #         ]
+    #     },
+    # }),
     
 ])
