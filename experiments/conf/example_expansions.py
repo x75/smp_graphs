@@ -75,6 +75,9 @@ winsize = 1
 overlap = 1
 srcsize = overlap
 
+dim_mb1_res = 20
+dim_mb0_poly = 2
+
 graph = OrderedDict([
     ('data', {
         'block': FileBlock2,
@@ -132,7 +135,7 @@ graph = OrderedDict([
             # models': {'res': "reservoir"},
             'models': {
                 # this specfies the actually modelling class
-                'polyexp': {'type': 'polyexp'},
+                'polyexp': {'type': 'polyexp', 'degree': dim_mb0_poly},
             },
         }
     }),
@@ -149,9 +152,24 @@ graph = OrderedDict([
             'models': {
                 # 'musig': {'type': 'musig', 'a1': 0.996},
                 'res': {
-                    'type': 'res', 'N': 100, 'input_num': xdim, 
+                    'type': 'res', 'N': dim_mb1_res, 'input_num': xdim, 
                     'output_num': 1, 'input_scale': 1.0, 'bias_scale': 0.0,
                     'oversampling': 2}
+            },
+        }
+    }),
+    
+    ('mb2', {
+        'block': ModelBlock2,
+        'params': {
+            # 'debug': True,
+            'blocksize': 1,
+            # 'inputs': {'x': {'bus': 'data/x', 'shape': (xdim, 1)}},
+            'inputs': {'x': {'bus': 'coding/x_std', 'shape': (xdim, 1)}},
+            'outputs': {},
+            # models': {'res': "reservoir"},
+            'models': {
+                'musig': {'type': 'musig', 'a1': 0.996},
             },
         }
     }),
@@ -164,14 +182,16 @@ graph = OrderedDict([
             'saveplot': False,
             'savetype': 'pdf',
             'wspace': 0.2, 'hspace': 0.2,
+            'xlim_share': False,
+            'ylim_share': False,
             'inputs': {
                 'data_x': {'bus': 'data/x', 'shape': (xdim, numsteps)},
                 'data_y': {'bus': 'data/y', 'shape': (ydim, numsteps)},
                 'data_x_mu': {'bus': 'coding/x_mu', 'shape': (xdim, numsteps)},
                 'data_x_sig': {'bus': 'coding/x_sig', 'shape': (xdim, numsteps)},
                 'data_x_std': {'bus': 'coding/x_std', 'shape': (xdim, numsteps)},
-                'data_x_res': {'bus': 'mb1/x_res', 'shape': (100, numsteps)},
-                'data_x_sig2': {'bus': 'mb1_ll0_ll0/x_sig', 'shape': (xdim, numsteps)},
+                'data_x_res': {'bus': 'mb1/x_res', 'shape': (dim_mb1_res, numsteps)},
+                'data_x_sig2': {'bus': 'mb2/x_sig', 'shape': (xdim, numsteps)},
                 'data_x_poly': {'bus': 'mb0/y', 'shape': (83, numsteps)},
              },
             'outputs': {}, # 'x': {'shape': (3, 1)}
@@ -191,7 +211,7 @@ graph = OrderedDict([
                     {'input': 'data_x_std', 'ndslice': (slice(None), slice(None)), 'shape': (xdim, numsteps), 'plot': histogram, 'title': 'std'},
                 ],
                 [
-                    {'input': 'data_x_res', 'ndslice': (slice(None), slice(None)), 'shape': (100, numsteps), 'plot': timeseries, 'title': 'res'},
+                    {'input': 'data_x_res', 'ndslice': (slice(None), slice(None)), 'shape': (dim_mb1_res, numsteps), 'plot': timeseries, 'title': 'res'},
                     {'input': 'data_x_sig2', 'ndslice': (slice(None), slice(None)), 'shape': (xdim, numsteps), 'plot': timeseries, 'title': 'res_sig'},
                 ],
             ]

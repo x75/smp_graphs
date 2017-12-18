@@ -83,8 +83,8 @@ def array_fix(a = None, col = True):
 #     return None
 
 def init_musig(ref, mref, conf, mconf):
-    # params = conf['params']
-    params = mconf
+    params = conf['params']
+    # params = mconf
     mref.a1 = mconf['a1']
     for ink, inv in params['inputs'].items():
         # print "init_musig", inv
@@ -93,6 +93,7 @@ def init_musig(ref, mref, conf, mconf):
             outk_full = "%s_%s" % (ink, outk)
             params['outputs'][outk_full] = {'shape': inv['shape']}
             setattr(mref, outk_full, np.zeros(inv['shape']))
+    logger.debug('musig.outputs = %s' % (params['outputs']))
     # return None
 
 def step_musig(ref, mref, *args, **kwargs):
@@ -100,12 +101,14 @@ def step_musig(ref, mref, *args, **kwargs):
     for ink, inv in mref.mconf['inputs'].items():
         for outk_ in ["mu", "sig"]:
             outk = "%s_%s" % (ink, outk_)
-            outv_ = getattr(ref, outk)
+            outv_ = getattr(mref, outk)
 
             if outk.endswith("mu"):
                 setattr(mref, outk, mref.a1 * outv_ + (1 - mref.a1) * inv['val'])
             elif outk.endswith("sig"):
                 setattr(mref, outk, mref.a1 * outv_ + (1 - mref.a1) * np.sqrt(np.square(inv['val'] - getattr(mref, ink + "_mu"))))
+                
+            # logger.debug('musig.output %s = %s' % (outk, getattr(mref, outk)))
 
 # model func: reservoir expansion
 def init_res(ref, mref, conf, mconf):
@@ -149,8 +152,11 @@ def init_polyexp(ref, mref, conf, mconf):
     if 'degree' not in params:
         params['degree'] = 3
     mref.polyexpnode = PolynomialExpansionNode(params['degree'])
+    mref.polyexpnode.execute(np.zeros((1, params['inputs']['x']['shape'][0])))
+    # logger.debug('init_polyexp mref.polyexpnode = %s' % (dir(mref.polyexpnode), ))
     # params['outputs']['polyexp'] = {'shape': params['inputs']['x']['shape']}
-    params['outputs']['y'] = {'shape': (83, 1)} # ??? magic number computed from expansion size with degree 3 FIXME
+    params['outputs']['y'] = {'shape': (mref.polyexpnode.get_output_dim(), 1)} # ??? magic number computed from expansion size with degree 3 FIXME
+    logger.debug('init_polyexp outputs = %s' % (params['outputs'], ))
 
 def step_polyexp(ref, mref, *args, **kwargs):
     setattr(mref, 'y', mref.polyexpnode.execute(ref.inputs['x']['val'].T).T)
