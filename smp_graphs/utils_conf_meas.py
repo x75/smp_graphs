@@ -102,7 +102,7 @@ def get_measures_block(*args, **kwargs):
                         },
                     }),
                 
-                    # m: (root) low pass filtered
+                    # m: error expansion
                     ('m_err%d_a' % (measblockid, ), {
                         # 'block': FuncBlock2,
                         # 'params': {
@@ -121,19 +121,22 @@ def get_measures_block(*args, **kwargs):
 
                         # TODO: slowness spectrum bank
                         
-                        'block': IBlock2,
+                        'block': ModelBlock2,
                         'params': {
                             'blocksize': 1,
                             'debug': True,
-                            'leak': 0.05,
-                            'inputs': {
-                                'x': {'bus': 'm_err%d/y' % (measblockid, ), 'shape': (1, 1)},
+                            # FIXME: increase parenthesis size in syntax formatting
+                            'inputs': {'x': {'bus': 'm_err%d/y' % (measblockid, ), 'shape': (1, 1)},},
+                            'outputs': {},
+                            'models': {
+                                'res': {
+                                    'type': 'res', 'N': 10, 'input_num': xdim,
+                                    'output_num': 1, 'input_scale': 1.0, 'bias_scale': 0.0,
+                                    # time delay neural network (tdnn)
+                                    'oversampling': 2, 'w_res': 'tdnn'},
+                                },
                             },
-                            'outputs': {
-                                'Ix': {'shape': (1, 1)},
-                            },
-                        },
-                    }),
+                        }),
     
                     # m: (root) mean squared error
                     ('m_rmse%d' % (measblockid, ), {

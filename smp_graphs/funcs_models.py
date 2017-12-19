@@ -29,12 +29,12 @@ from sklearn import linear_model, kernel_ridge
 
 # smp_base
 from smp_base.common import get_module_logger
-from smp_base.reservoirs import res_input_matrix_random_sparse, res_input_matrix_disjunct_proj
-from smp_base.reservoirs import Reservoir, LearningRules
+from smp_base.models_reservoirs import res_input_matrix_random_sparse, res_input_matrix_disjunct_proj
+from smp_base.models_reservoirs import Reservoir, LearningRules
 from smp_base.models import iir_fo
 from smp_base.models_actinf  import smpKNN, smpGMM, smpIGMM, smpHebbianSOM
 from smp_base.models_selforg import HK
-from smp_base.learners import smpSHL, learnerReward, Eligibility
+from smp_base.models_learners import smpSHL, learnerReward, Eligibility
 from smp_base.measures import meas as measf
 
 try:
@@ -112,6 +112,15 @@ def step_musig(ref, mref, *args, **kwargs):
 
 # model func: reservoir expansion
 def init_res(ref, mref, conf, mconf):
+    """model.expansion.res
+
+    Use an open-loop reservoir aka single hidden layer network (shln)
+    expansion. In the feed forward case this yields a kernel expansion
+    like polynomial, sin/cos, rbf, or exponential. In the recurrent
+    case this yield a kernel expansion with local memory with some
+    interesting corner cases like a linear delay bank, tdnn,
+    embedding, tapping, conv kernel.
+    """
     params = conf['params']
     mref.oversampling = mconf['oversampling']
     mref.res = Reservoir(
@@ -124,10 +133,18 @@ def init_res(ref, mref, conf, mconf):
         g = 0.99,
         tau = 0.05,
     )
-    mref.res.wi = res_input_matrix_random_sparse(mconf['input_num'], mconf['N'], density = 0.2) * mconf['input_scale']
+    if 'w_res' not in mconf:
+        mref.res.wi = res_input_matrix_random_sparse(mconf['input_num'], mconf['N'], density = 0.2) * mconf['input_scale']
+    else:
+        mref.res.wi = res_input_matrix_from_conf(mconf)
+        
     params['outputs']['x_res'] = {'shape': (mconf['N'], 1)}
 
 def step_res(ref, mref, *args, **kwargs):
+    """model.expansion.res.step
+
+    Step the shln expansion.
+    """
     # print ref.inputs['x']['val'].shape
     for i in range(mref.oversampling):
         mref.res.execute(ref.inputs['x']['val'])
