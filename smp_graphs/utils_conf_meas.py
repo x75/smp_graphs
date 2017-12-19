@@ -8,7 +8,8 @@ from collections import OrderedDict
 import numpy as np
 
 # from smp_base.measures import meas_div
-from smp_graphs.block import Block2, FuncBlock2, IBlock2
+from smp_graphs.block import Block2, FuncBlock2
+from smp_graphs.block_models import ModelBlock2
 from smp_graphs.block_meas import MomentBlock2, MeasBlock2
 from smp_graphs.block_meas_infth import MIBlock2, InfoDistBlock2
 from smp_graphs.funcs import f_sum, f_envelope, f_rootmeansquare
@@ -38,6 +39,11 @@ def get_measures_block(*args, **kwargs):
     numbins = kwargs['numbins'] # 21
     div_meas = kwargs['div_meas'] # 'pyemd'
 
+    if 'p_var_shape' in kwargs:
+        p_var_shape = kwargs['p_var_shape']
+    else:
+        p_var_shape = (1, 1)
+        
     m_hist_bins = np.linspace(-1.1, 1.1, numbins + 1)
     m_hist_bincenters = m_hist_bins[:-1] + np.mean(np.abs(np.diff(m_hist_bins)))/2.0
     
@@ -91,9 +97,9 @@ def get_measures_block(*args, **kwargs):
                             # 'debug': True,
                             'mode': 'basic',
                             'scope': 'local',
-                            'meas': 'sub',
+                            'meas': 'abs', # 'sub',
                             'inputs': {
-                                'x1': {'bus': p_vars[0], 'shape': (1, 1)},
+                                'x1': {'bus': p_vars[0], 'shape': p_var_shape},
                                 'x2': {'bus': m_vars[0], 'shape': (1, 1)},
                             },
                             'outputs': {
@@ -104,23 +110,24 @@ def get_measures_block(*args, **kwargs):
                 
                     # m: error expansion
                     ('m_err%d_a' % (measblockid, ), {
-                        # 'block': FuncBlock2,
-                        # 'params': {
-                        #     # 'id': 'm_rmse',
-                        #     'blocksize': numsteps,
-                        #     'debug': False,
-                        #     'func': f_envelope,
-                        #     'inputs': {
-                        #         'x': {'bus': 'm_err%d/y' % (measblockid, ), 'shape': (1, numsteps)},
-                        #         'c': {'val': 0.01, 'shape': (1, 1)},
-                        #     },
-                        #     'outputs': {
-                        #         'y': {'shape': (1, numsteps)},
-                        #     },
-                        # },
-
-                        # TODO: slowness spectrum bank
-                        
+                        'block': FuncBlock2,
+                        'params': {
+                            # 'id': 'm_rmse',
+                            'blocksize': numsteps,
+                            'debug': False,
+                            'func': f_envelope,
+                            'inputs': {
+                                'x': {'bus': 'm_err%d/y' % (measblockid, ), 'shape': (1, numsteps)},
+                                'c': {'val': 0.01, 'shape': (1, 1)},
+                            },
+                            'outputs': {
+                                'y': {'shape': (1, numsteps)},
+                            },
+                        },
+                    }),
+                    
+                    ('m_err%d_b' % (measblockid, ), {
+                        # slowness spectrum bank
                         'block': ModelBlock2,
                         'params': {
                             'blocksize': 1,
@@ -130,13 +137,17 @@ def get_measures_block(*args, **kwargs):
                             'outputs': {},
                             'models': {
                                 'res': {
-                                    'type': 'res', 'N': 10, 'input_num': xdim,
+                                    'type': 'res', 'N': 15, 'input_num': dim_s0,
                                     'output_num': 1, 'input_scale': 1.0, 'bias_scale': 0.0,
-                                    # time delay neural network (tdnn)
-                                    'oversampling': 2, 'w_res': 'tdnn'},
+                                    'oversampling': 2,
+                                    # # time delay neural network (tdnn)
+                                    # 'restype': 'tdnn'
+                                    # low-pass filter bank (lpfb)
+                                    'restype': 'lpfb'
                                 },
                             },
-                        }),
+                        },
+                    }),
     
                     # m: (root) mean squared error
                     ('m_rmse%d' % (measblockid, ), {

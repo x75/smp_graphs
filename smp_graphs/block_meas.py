@@ -356,7 +356,11 @@ class MeasBlock2(PrimBlock2):
         self._debug('calling %s on (x1 = %s, x2 = %s)' % (self.measures[self.meas]['func'], x1.shape, x2.shape))
         self._debug('               x1 = %s' % (x1, ))
         self._debug('               x2 = %s' % (x2, ))
-        setattr(self, 'y', self.measures[self.meas]['func'](x1, x2))
+        self.y_ = self.measures[self.meas]['func'](x1, x2)
+        self._debug('               y_ = %s' % (self.y_, ))
+        if type(self.y_) is tuple:
+            self.y_ = self.y_[0]
+        setattr(self, 'y', self.y_)
         
         self._debug('y = measures[%s](x1, x2) = %s' % (self.meas, str(self.y)[:300]))
 

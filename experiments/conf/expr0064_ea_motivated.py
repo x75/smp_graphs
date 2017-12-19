@@ -48,14 +48,14 @@ import re
 
 from smp_base.plot import table, bar
 
-from smp_graphs.block import FuncBlock2, TrigBlock2, RouteBlock2
+from smp_graphs.block import FuncBlock2, TrigBlock2, RouteBlock2, ThreshBlock2
 from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2
 from smp_graphs.block_meas import MeasBlock2, MomentBlock2
 from smp_graphs.block_meas_infth import MIBlock2, InfoDistBlock2
 from smp_graphs.block_models import ModelBlock2
 from smp_graphs.block_ols import SequencerBlock2
 from smp_graphs.block_plot import TextBlock2
-from smp_graphs.common import compose
+from smp_base.common import compose
 
 from numpy import sqrt, mean, square
 from smp_graphs.funcs import f_sin, f_motivation, f_motivation_bin, f_meansquare, f_sum, f_rootmeansquare, f_envelope
@@ -65,13 +65,13 @@ from smp_graphs.utils_conf_meas import get_measures_block
 
 # global parameters can be overwritten from the commandline
 ros = False
-numsteps = 10000/10
+numsteps = 10000/5
 numbins = 21
 recurrent = True
 debug = False
 showplot = True
 saveplot = True
-randseed = 126
+randseed = 128
 
 # predicted variables
 p_vars = ['pre_l0/pre']
@@ -106,7 +106,7 @@ lconf = {
     'sys': {
         # global
         # 'debug': True,
-        'budget': 1000/1,
+        'budget': 2000/1,
         'dim': dim_s0,
         'dims': {
             # expr0064: setting proprio lag to zero (<< environment minlag 1 resp.) models
@@ -258,24 +258,39 @@ graph = OrderedDict([
         },
     }),
 
-    # trying a new way of sequencing: the sequencer :)
+    # # trying a new way of sequencing: the sequencer :)
+    # ('seq', {
+    #     'block': SequencerBlock2,
+    #     'params': {
+    #         'blocksize': 1,
+    #         'sequences': {
+    #             'motor': {
+    #                 'shape': (1,1),
+    #                 'events': {
+    #                     0: np.ones((1,1)) * 0,
+    #                     numsteps/2: np.ones((1,1)) * 1
+    #                 }
+    #             },
+    #         }
+    #     }
+    # }),
+
+    # replace sequence with err threshold
     ('seq', {
-        'block': SequencerBlock2,
+        'block': ThreshBlock2,
         'params': {
             'blocksize': 1,
-            'sequences': {
-                'motor': {
-                    'shape': (1,1),
-                    'events': {
-                        0: np.ones((1,1)) * 0,
-                        numsteps/2: np.ones((1,1)) * 1
-                    }
-                },
+            'inputs': {
+                # 'thresh': 0.4, 'shape':
+                'thr': {'val': np.ones((1,1)) * 0.45, 'shape': (1,1)},
+                # 'thr': {},
+                'x': {'bus': 'm_err0_b/x_res', 'shape': (15, 1)}, 
+            },
+            'outputs': {
+                'trig': {'shape': (1,1)},
             }
         }
     }),
-
-    # replace sequence with err threshold
 
     # motor routing
     ('motor', {
@@ -285,7 +300,8 @@ graph = OrderedDict([
             'blocksize': 1,
             'inputs': OrderedDict([
                 # ('r', {'val': np.array([[1]])}),
-                ('r', {'bus': 'seq/motor'}),
+                # ('r', {'bus': 'seq/motor'}),
+                ('r', {'bus': 'seq/trig'}),
                 ('pre_l0', {'bus': 'pre_l0/pre', 'shape': (dim_s0, 1)}),
                 ('mdl_y2', {'bus': 'mdl1/y2'}),
             ]),
@@ -360,8 +376,8 @@ graph = OrderedDict([
                         'goalsize': 0.1, # np.power(0.01, 1.0/dim_s0), # area of goal
                         'inputs': {
                             'credit': {'bus': 'budget/credit'},
-                            'lo': {'val': -lim, 'shape': (dim_s0, 1)},
-                            'hi': {'val': lim, 'shape': (dim_s0, 1)},
+                            'lo': {'val': -lim + 0.2, 'shape': (dim_s0, 1)},
+                            'hi': {'val': lim  - 0.2, 'shape': (dim_s0, 1)},
                             # 'mdltr': {'bus': 'robot1/s0', 'shape': (dim_s0, 1)},
                             'mdltr': {'bus': m_vars[0], 'shape': (dim_s0, 1)},
                             },
@@ -413,8 +429,10 @@ graph = OrderedDict([
                         'debug': True,
                         'inputs': OrderedDict([
                             # ('r', {'val': np.array([[1]])}),
-                            ('r', {'bus': 'seq/motor'}),
+                            # ('r', {'bus': 'seq/motor'}),
+                            ('r', {'bus': 'seq/trig'}),
                             ('pre_l0', {'bus': 'delay/dy', 'shape': (dim_s0, 1)}),
+                            # ('pre_l0', {'bus': 'pre_l0/pre', 'shape': (dim_s0, 1)}),
                             # ('mdl_y2', {'bus': 'delay/dmdl_y2', 'shape': (dim_s0, 1, 1)}),
                             ('mdl_y2', {'bus': 'mdl1/y2', 'shape': (dim_s0, 1)}),
                         ]),
@@ -478,8 +496,9 @@ graph = OrderedDict([
                 'budget_max': {'bus': 'm_budget/y_max', 'shape': (1, 1)},
                 # measures / errors
                 'err_mdl_pre': {'bus': 'm_err1/y', 'shape': (1, numsteps)},
-                # 'err_mdl_pre_': {'bus': 'm_err1_a/y', 'shape': (1, numsteps)},                
-                'err_mdl_pre_': {'bus': 'm_err1_a/Ix', 'shape': (1, numsteps)},
+                'err_mdl_pre_': {'bus': 'm_err1_a/y', 'shape': (1, numsteps)},                
+                # 'err_mdl_pre_': {'bus': 'm_err1_a/Ix', 'shape': (1, numsteps)},
+                # 'err_mdl_pre_': {'bus': 'm_err1_b/x_res', 'shape': (15, numsteps)},
                 'm_rmse1': {'bus': 'm_rmse1/y', 'shape': (1, 1)},
                 'm_div1': {'bus': 'm_div1/y', 'shape': (1, numbins)},
                 'm_div1_sum': {'bus': 'm_div1_sum/y', 'shape': (1, 1)},
@@ -494,10 +513,11 @@ graph = OrderedDict([
                 },
                 'err_pre_s0': {'bus': 'm_err0/y', 'shape': (1, numsteps)},
                 # 'err_pre_s0_': {'bus': 'm_err0_a/y', 'shape': (1, numsteps)},
-                'err_pre_s0_': {'bus': 'm_err0_a/Ix', 'shape': (1, numsteps)},
+                'err_pre_s0_': {'bus': 'm_err0_b/x_res', 'shape': (15, numsteps)},
                 'm_rmse0': {'bus': 'm_rmse0/y', 'shape': (1, 1)},
                 'm_div0': {'bus': 'm_div0/y', 'shape': (1, numbins)},
                 'm_div0_sum': {'bus': 'm_div0_sum/y', 'shape': (1, 1)},
+                'learn': {'bus': 'seq/trig', 'shape': (1,numsteps)}
             },
             'desc': """is almost identical to
             \\autoref{sec:smp-expr0062-ea01} with the small but all
@@ -569,11 +589,13 @@ graph = OrderedDict([
                         'legend_loc': 'right',
                     },
                     {
-                        'input': ['err_pre_s0', 'err_pre_s0_', 'err_mdl_pre', 'err_mdl_pre_'],
+                        'input': ['err_pre_s0', 'err_pre_s0_', 'learn'],
                         'plot': [
-                            partial(timeseries, alpha = 0.33), timeseries,
-                            timeseries, partial(timeseries, alpha = 0.7)
+                            partial(timeseries, alpha = 0.33), partial(timeseries, linewidth = 0.5),
+                            timeseries,
                         ],
+                        'ndslice': [(slice(None), slice(None)), (slice(None), slice(3)), (slice(None), slice(None))],
+                        'shape': [(dim_s0, numsteps), (3, numsteps), (1, numsteps)],
                         'cmap_off': [0] * 2 + [2] * 3,
                         'title': 'error $x - y$',
                         # 'aspect': 'auto',
@@ -585,9 +607,26 @@ graph = OrderedDict([
                         'ylim': (-1.1, 1.1), # None,
                         # 'legend_loc': 'right',
                     },
+                    # {
+                    #     'input': ['err_pre_s0', 'err_pre_s0_', 'err_mdl_pre', 'err_mdl_pre_'],
+                    #     'plot': [
+                    #         partial(timeseries, alpha = 0.33), timeseries,
+                    #         timeseries, partial(timeseries, alpha = 0.7)
+                    #     ],
+                    #     'cmap_off': [0] * 2 + [2] * 3,
+                    #     'title': 'error $x - y$',
+                    #     # 'aspect': 'auto',
+                    #     # 'orientation': 'horizontal',
+                    #     'xlim': None, # 'xticks': False, # 'xticklabels': False,
+                    #     'xlabel': 'time step $k$',
+                    #     # 'yticks': False,
+                    #     # normalize to original range
+                    #     'ylim': (-1.1, 1.1), # None,
+                    #     # 'legend_loc': 'right',
+                    # },
                     {
-                        'input': ['pre_l0', 'mdl1_y'],
-                        'plot': [timeseries, partial(timeseries, linewidth = 1.0),],
+                        'input': ['pre_l0', 'mdl1_y'], # 'mdl1_y2'],
+                        'plot': [timeseries, timeseries], # timeseries],
                         'cmap_off': [0] * 1 + [2] * 2,
                         # 'cmap_idx': [0, 30, 60],
                         # 'input': ['pre_l0_del', 'mdl1_y', 'mdl1_y_del'], 'plot': timeseries,
@@ -615,17 +654,19 @@ graph = OrderedDict([
                         'ylabel': 'count $c$',
                         'legend_loc': 'right',
                     },
-                    {
-                        # changed: plot table with latex tabular
-                        # 'input': ['budget_%s' % (outk,) for outk in ['mu', 'var', 'min', 'max']] + ['m_mi', 'm_di', 'm_rmse', 'm_sum_div'],
-                        # 'shape': [(1, 1) for outk in ['mu', 'var', 'min', 'max', 'm_mi', 'm_di', 'm_rmse', 'm_sum_div']],
-                        # 'mode': 'stack',
-                        # 'title': 'measures', 'title_pos': 'bottom',
-                        # 'plot': table,
-                    },
+                    {},
+                    # {
+                    #     # changed: plot table with latex tabular
+                    #     # 'input': ['budget_%s' % (outk,) for outk in ['mu', 'var', 'min', 'max']] + ['m_mi', 'm_di', 'm_rmse', 'm_sum_div'],
+                    #     # 'shape': [(1, 1) for outk in ['mu', 'var', 'min', 'max', 'm_mi', 'm_di', 'm_rmse', 'm_sum_div']],
+                    #     # 'mode': 'stack',
+                    #     # 'title': 'measures', 'title_pos': 'bottom',
+                    #     # 'plot': table,
+                    # },
                     {},
                     {
-                        'input': ['m_div0', 'm_div1'], 'plot': bar,
+                        # 'input': ['m_div0', 'm_div1'], 'plot': bar,
+                        'input': ['m_div0'], 'plot': bar,
                         # 'input': ['m_div'], 'plot': partial(timeseries, linestyle = 'none', marker = 'o'),
                         'title': 'histogram divergence %s $h1 - h2$' % (div_meas, ),
                         'shape': (1, numbins),

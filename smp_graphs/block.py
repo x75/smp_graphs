@@ -729,6 +729,7 @@ class decStep():
                 # FIXME: for all items in output channels = [bus, log, ros, pdf, latex, ...]
                 
                 # copy data onto bus
+                # xself._info('xself.%s = %s, %s' % (k, type(getattr(xself, k)), getattr(xself, k)))
                 xself.bus[v['buskey']] = getattr(xself, k).copy()
                 
                 # if v['buskey'] == 'robot1/h':
@@ -3477,6 +3478,49 @@ class TrigBlock2(PrimBlock2):
                 setattr(self, outk, np.zeros(outv['shape']))
                 # self._debug("not triggered %s = %s" % (outk, getattr(self, outk),))
         
+class ThreshBlock2(PrimBlock2):
+    """ThreshBlock2 class
+
+    Outputs 1 when threshold 'thr' is exceeded, 0 otherwise.
+    """
+    defaults = {
+        'debug': False,
+        'outputs': {
+        },
+        'block_group': 'data',
+    }
+        
+    @decInit()
+    def __init__(self, conf = {}, paren = None, top = None):
+        PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
+                
+    @decStep()
+    def step(self, x = None):
+        """ThreshBlock step: if blocksize is 1 just copy the trigger, if bs > 1 set cnt_ to range"""
+        # outshape = self.outputs[self.outk]['shape']
+        # outshapenum = outshape[-1]
+        # # if self.blocksize > 1:
+        # if outshapenum > 1:
+        #     newcnt = np.tile(np.arange(self.cnt - outshapenum, self.cnt), outshape[:-1]).reshape(outshape)
+        #     # self.cnt_[...,-outshapenum:] = newcnt
+        #     self.cnt_ = newcnt
+        # else:
+        #     self.cnt_[...,0] = self.cnt
+        # FIXME: make that a for output items loop
+        # print "getattr self.outk", self.outk, getattr(self, self.outk), self.cnt_
+
+        thr = self.get_input('thr')
+        x = self.get_input('x')
+        outk = 'trig'
+        outv = self.outputs[outk]
+        
+        # if np.any(x > thr):
+        if x[0,0] > thr[0,0]:
+            setattr(self, outk, np.ones(outv['shape']))
+        else:
+            setattr(self, outk, np.zeros(outv['shape']))
+        # self._debug("not triggered %s = %s" % (outk, getattr(self, outk),))
+                
 class RouteBlock2(PrimBlock2):
     """RouteBlock2 class
 

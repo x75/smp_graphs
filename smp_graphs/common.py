@@ -96,24 +96,6 @@ def code_compile_and_run(code = '', gv = {}, lv = {}, return_keys = []):
     else:
         return dict([(k, lv[k]) for k in return_keys if lv.has_key(k)])
 
-# function composition
-# https://mathieularose.com/function-composition-in-python/
-def compose2(f, g):
-    """Compose two functions 'f' and 'g'
-
-    Returns:
-     - f(g(x): f return type (object)
-    """
-    return lambda x: f(g(x))
-
-# def compose(*functions):
-#     # def compose2(f, g):
-#     #     return lambda x: f(g(x))
-#     return reduce(compose2, functions, lambda x: x)
-
-def compose(*functions):
-    return reduce(lambda f, g: lambda x: f(g(x)), functions, lambda x: x)
-
 # AST rewriting
 class RewriteDict(ast.NodeTransformer):
 

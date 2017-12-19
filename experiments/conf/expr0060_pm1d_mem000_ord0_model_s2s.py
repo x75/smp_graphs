@@ -39,7 +39,7 @@ from sklearn.gaussian_process.kernels import WhiteKernel, ExpSineSquared
 
 from smp_base.plot import table
 
-from smp_graphs.common import compose
+from smp_base.common import compose
 from smp_graphs.block import FuncBlock2, TrigBlock2
 from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2
 from smp_graphs.block_models import ModelBlock2

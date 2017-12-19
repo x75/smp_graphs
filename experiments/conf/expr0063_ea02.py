@@ -48,7 +48,7 @@ from sklearn.gaussian_process.kernels import WhiteKernel, ExpSineSquared
 
 from smp_base.plot import table, bar
 
-from smp_graphs.common import compose
+from smp_base.common import compose
 from smp_graphs.block import FuncBlock2, TrigBlock2
 from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2
 from smp_graphs.block_plot import TextBlock2
@@ -64,7 +64,7 @@ from smp_graphs.utils_conf_meas import get_measures_block
 
 # global parameters can be overwritten from the commandline
 ros = False
-numsteps = 10000/10
+numsteps = 10000/5
 numbins = 21
 recurrent = True
 debug = False
@@ -186,7 +186,7 @@ lconf = {
             # target
             # 'x_tg': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
             # 'x_tg': {'bus': p_del_vars[0], 'shape': (dim_s0, numsteps)},
-            'x_tg': {'bus': p_del_vars[0], 'shape': (dim_s0, 1, 1)},
+            'x_tg': {'bus': p_del_vars[0], 'shape': (dim_s0, 1)},
             # 'x_tg': {'bus': 'mdl1_target/y', 'shape': (dim_s0, 1, 1)},
         },
         'outputs': {
@@ -362,6 +362,7 @@ graph = OrderedDict([
                         # 'debug': True,
                         'blocksize': 1,
                         # 'inputs': {'y': {'bus': 'motordiff/dy'}},
+                        'flat': True,
                         'inputs': {
                             'y': {'bus': p_vars[0], 'shape': (dim_s0, 1)},
                             'y1': {'bus': p_vars[0], 'shape': (dim_s0, 1)},
@@ -385,7 +386,7 @@ graph = OrderedDict([
 
     # measures: indirect mdlpre2meas
     get_measures_block(**{
-        'measblockid': 1, 'numsteps': numsteps, 'p_vars': ['delay/dy'], 'p_del_vars': p_del_vars,
+        'measblockid': 1, 'numsteps': numsteps, 'p_vars': ['delay/dy'], 'p_var_shape': (1, 1), 'p_del_vars': p_del_vars,
         'm_vars': ['mdl1/y'], 'dim_s0': dim_s0, 'numbins': numbins, 'div_meas': div_meas}),
         
     # plotting random_lookup influence

@@ -30,6 +30,7 @@ from sklearn import linear_model, kernel_ridge
 # smp_base
 from smp_base.common import get_module_logger
 from smp_base.models_reservoirs import res_input_matrix_random_sparse, res_input_matrix_disjunct_proj
+from smp_base.models_reservoirs import res_input_matrix_from_conf, create_matrix_sparse_from_conf
 from smp_base.models_reservoirs import Reservoir, LearningRules
 from smp_base.models import iir_fo
 from smp_base.models_actinf  import smpKNN, smpGMM, smpIGMM, smpHebbianSOM
@@ -123,6 +124,28 @@ def init_res(ref, mref, conf, mconf):
     """
     params = conf['params']
     mref.oversampling = mconf['oversampling']
+    
+    #  create input matrices
+    if 'restype' not in mconf:
+        wi = res_input_matrix_random_sparse(mconf['input_num'], mconf['N'], density = 0.2) * mconf['input_scale']
+        wres = None
+        if 'g' not in mconf: mconf['g'] = 0.99
+        if 'tau' not in mconf: mconf['tau'] = 0.1
+        if 'nonlin_func' not in mconf: mconf['nonlin_func'] = np.tanh
+        if 'theta_state' not in mconf: mconf['theta_state'] = 1e-2
+    else:
+        wi = res_input_matrix_from_conf(mconf)
+        wres = create_matrix_sparse_from_conf(mconf)
+        logger.debug('wi = %s', wi)
+        logger.debug('wres = %s', wres)
+        # tdnn config
+        if mconf['restype'] in ['tdnn', 'lpfb']:
+            mconf['g'] = 1.0
+            mconf['tau'] = 1.0
+            mconf['nonlin_func'] = lambda x: x
+            mconf['theta_state'] = 0.0
+        
+    # create reservoir
     mref.res = Reservoir(
         N = mconf['N'],
         input_num = mconf['input_num'],
@@ -130,14 +153,18 @@ def init_res(ref, mref, conf, mconf):
         input_scale = mconf['input_scale'], # 0.03,
         bias_scale = mconf['bias_scale'], # 0.0,
         feedback_scale = 0.0,
-        g = 0.99,
-        tau = 0.05,
+        g = mconf['g'],
+        tau = mconf['tau'],
+        nonlin_func = mconf['nonlin_func'],
     )
-    if 'w_res' not in mconf:
-        mref.res.wi = res_input_matrix_random_sparse(mconf['input_num'], mconf['N'], density = 0.2) * mconf['input_scale']
-    else:
-        mref.res.wi = res_input_matrix_from_conf(mconf)
-        
+    logger.debug('mref.res.M = %s', mref.res.M.shape)
+    # set input weights
+    mref.res.wi = wi
+    # set reservoir weights
+    if wres is not None:
+        mref.res.M = wres
+
+    logger.debug('mref.res.M = %s', mref.res.M.shape)
     params['outputs']['x_res'] = {'shape': (mconf['N'], 1)}
 
 def step_res(ref, mref, *args, **kwargs):
@@ -148,8 +175,7 @@ def step_res(ref, mref, *args, **kwargs):
     # print ref.inputs['x']['val'].shape
     for i in range(mref.oversampling):
         mref.res.execute(ref.inputs['x']['val'])
-    # print ref.res.r.shape
-    ref._debug('step_res  mref.res.r = %s' % (mref.res.r))
+    # ref._debug('step_res  mref.res.r = %s' % (mref.res.r))
     setattr(mref, 'x_res', mref.res.r)
 
 # TODO: model func: attractor neural network expansion (ANN-x)
