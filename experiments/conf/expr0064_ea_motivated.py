@@ -65,7 +65,7 @@ from smp_graphs.utils_conf_meas import get_measures_block
 
 # global parameters can be overwritten from the commandline
 ros = False
-numsteps = 10000/5
+numsteps = 10000/10
 numbins = 21
 recurrent = True
 debug = False

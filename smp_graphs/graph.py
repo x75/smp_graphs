@@ -736,8 +736,8 @@ def recursive_hierarchical(G, lvlx = 0, lvly = 0):
     # get a random layout for this graph level
     # layout_ = nx.random_layout(G, center = (lvlx + 0.0, lvly + 0.0))
     layout_ = nx.spring_layout(G, center = (lvlx + 0.0, lvly + 0.0))
-    xincr = 1.5
-    yincr = 1.5
+    xincr = 2.0
+    yincr = 2.0
 
     # for i, node in enumerate(G.nodes()):
     for i, node in enumerate(nxgraph_nodes_iter(G, 'enable')):
@@ -784,7 +784,7 @@ def recursive_hierarchical(G, lvlx = 0, lvly = 0):
                 
                 # check for hierarchy levels
                 # if lvlx == g2x-1 and G_.node[nodeid_]['layout']['y'] == g2y:
-                if g2x < lvlx + 2.2:
+                if g2x < (lvlx + (2 * xincr)):
                     G_.add_edge(nodeid_, g2node, type = 'hier', main = mainedge)
                     mainedge = False
                     
