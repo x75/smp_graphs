@@ -96,20 +96,20 @@ graph = OrderedDict([
         },
     }),
 
-    # slice block to split puppy sensors x into gyros x_gyr and accels x_acc
-    ('dataslice', {
-        'block': SliceBlock2,
-        'params': {
-            'id': 'dataslice',
-            # 'blocksize': overlap,
-            'blocksize': srcsize,
-            # 'debug': True,
-            # puppy sensors
-            'inputs': {'x': {'bus': 'data/x', 'shape': (xdim, srcsize)}},
-            'slices': sys_slicespec,
-            # 'slices': ,
-            }
-        }),
+    # # slice block to split puppy sensors x into gyros x_gyr and accels x_acc
+    # ('dataslice', {
+    #     'block': SliceBlock2,
+    #     'params': {
+    #         'id': 'dataslice',
+    #         # 'blocksize': overlap,
+    #         'blocksize': srcsize,
+    #         # 'debug': True,
+    #         # puppy sensors
+    #         'inputs': {'x': {'bus': 'data/x', 'shape': (xdim, srcsize)}},
+    #         'slices': sys_slicespec,
+    #         # 'slices': ,
+    #         }
+    #     }),
         
     ('coding', {
         'block': CodingBlock2,
@@ -192,7 +192,7 @@ graph = OrderedDict([
                 'data_x_std': {'bus': 'coding/x_std', 'shape': (xdim, numsteps)},
                 'data_x_res': {'bus': 'mb1/x_res', 'shape': (dim_mb1_res, numsteps)},
                 'data_x_sig2': {'bus': 'mb2/x_sig', 'shape': (xdim, numsteps)},
-                'data_x_poly': {'bus': 'mb0/y', 'shape': (83, numsteps)},
+                'data_x_poly': {'bus': 'mb0/y', 'shape': (27, numsteps)},
              },
             'outputs': {}, # 'x': {'shape': (3, 1)}
             'subplots': [
@@ -200,7 +200,7 @@ graph = OrderedDict([
                     {
                         'input': ['data_x', 'data_y'], 'ndslice': [(slice(None), slice(None)), (slice(None), slice(None))],
                         'shape': [(xdim, numsteps), (ydim, numsteps)], 'plot': timeseries, 'title': 'data/x+y'},
-                    {'input': 'data_x_poly', 'ndslice': (slice(None), slice(None)), 'shape': (83, numsteps),   'plot': timeseries, 'title': 'polyexp'},
+                    {'input': 'data_x_poly', 'ndslice': (slice(None), slice(None)), 'shape': (27, numsteps),   'plot': timeseries, 'title': 'polyexp'},
                 ],
                 [
                     {'input': 'data_x_mu', 'ndslice': (slice(None), slice(None)), 'shape': (xdim, numsteps), 'plot': timeseries, 'title': 'mu'},

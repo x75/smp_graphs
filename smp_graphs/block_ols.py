@@ -45,11 +45,10 @@ class FileBlock2(Block2):
             filetype = conf['params']['file']['filetype']
         else:
             filetype = conf['params']['type']
-        logger.info("loading %s-type data from %s" % (filetype, lfile))
 
+        logger.info("loading %s-type data from %s" % (filetype, lfile))
         self.init_load_file(filetype, lfile, conf)
         # FIXME: perform quick check of data
-        
             
         # init states
         for k, v in conf['params']['outputs'].items(): # ['x', 'y']:
@@ -78,8 +77,8 @@ class FileBlock2(Block2):
                 del conf['params']['outputs']['log']
             (self.data, self.rate, self.offset, length) = read_puppy_hk_pickles(lfile)
 
-            logger.info("init_load_file loaded puppy data, outputs = %s" % (conf['params']['outputs']))
-            logger.debug("init_load_file loaded puppy data = %s" % (self.data['x'], ))
+            logger.debug("init_load_file loaded puppy data,   outputs = %s" % (conf['params']['outputs']))
+            logger.debug("init_load_file loaded puppy data,      data = %s" % (type(self.data), ))
             
             logger.debug("init_load_file loaded puppy data, data['x'] = %s" % (self.data['x'].shape, ))
             logger.debug("init_load_file loaded puppy data, data['y'] = %s" % (self.data['y'].shape, ))
@@ -106,7 +105,7 @@ class FileBlock2(Block2):
             for k in ['x', 'y']:
                 self.data[k] = self.data[k][sl]
                 # setattr(self, 'x', self.data['x'])
-                logger.debug("    self.data = %s %s/%s" % (
+                logger.debug("    self.data[%s] = %s %s/%s" % (k,
                     self.data[k].shape,
                     np.mean(self.data[k], axis = 0),
                     np.var(self.data[k], axis = 0)))

@@ -166,9 +166,9 @@ def step_res(ref, mref, *args, **kwargs):
 # model func: polynomial expansion using mdp
 def init_polyexp(ref, mref, conf, mconf):
     params = conf['params']
-    if 'degree' not in params:
-        params['degree'] = 3
-    mref.polyexpnode = PolynomialExpansionNode(params['degree'])
+    if 'degree' not in mconf:
+        mconf['degree'] = 3
+    mref.polyexpnode = PolynomialExpansionNode(mconf['degree'])
     mref.polyexpnode.execute(np.zeros((1, params['inputs']['x']['shape'][0])))
     # logger.debug('init_polyexp mref.polyexpnode = %s' % (dir(mref.polyexpnode), ))
     # params['outputs']['polyexp'] = {'shape': params['inputs']['x']['shape']}
