@@ -626,7 +626,9 @@ class decStep():
             if v.has_key('bus'): # input item is driven by external signal (bus value)
                 # exec   blocksize of the input's source node
                 # FIXME: search once and store, recursively over nxgraph and subgraphs
-                blocksize_input     = get_blocksize_input(xself.top.nxgraph, v['bus'])
+                if 'blocksize' not in v:
+                    v['blocksize'] = get_blocksize_input(xself.top.nxgraph, v['bus'])
+                blocksize_input = v['blocksize']
                 # output blocksize of the input's source node
                 blocksize_input_bus = xself.bus[v['bus']].shape[-1]
                     
