@@ -2238,14 +2238,15 @@ class Block2(object):
             caption = "  \\caption{\\label{fig:%s}%s.}\n\\end{figure}\n" % (figv['label'], c_)
             texbuf += caption
         """
-    
+        figc = 0
         if len(output_figures) > 0:
             for figk, figv in output_figures:
                 descs = []
                 refs = []
                 figbuf = "%% figure key = {0}, label = {1}\n".format(figk, figv['label'])
                 # figbuf += "\\begin{figure}[!htbp]\n  \\centering\n"
-                figbuf += "\\begin{figure}[!htbp]\n  \\captionsetup[subfigure]{position=t}\n  \\centering\n"
+                # figbuf += "\\begin{figure}[!htbp]\n  \\captionsetup[subfigure]{position=t}\n  \\centering\n"
+                figbuf += "\\addfig{\\begin{minipage}[]{\\textwidth}\n  \\centering\n"
                 # print "                    output_figures fig key = %s, fig val = %s" % (figk, figv)
                 # if k is 'figures':
                 # if len(v) > 0:
@@ -2286,8 +2287,9 @@ class Block2(object):
                     if type(figwidth_) is float:
                         figwidth_ = '%f\\textwidth' % (figwidth_, )
                     subfigwidth_ = '0.99\\textwidth' # figwidth_
-                        
-                    figbuf += "  \subcaptionbox{{\\label{{fig:{3}}}}}{{\\includegraphics[width={0}]{{{2}}}}}\n".format(figwidth_, subfigwidth_, figfilename_, subfigref_, )
+
+                    figbuf += "  \\includegraphics[width={0}]{{{2}}}\n\\label{{fig:{3}}}\n".format(figwidth_, subfigwidth_, figfilename_, subfigref_, )
+                    # figbuf += "  \subcaptionbox{{\\label{{fig:{3}}}}}{{\\includegraphics[width={0}]{{{2}}}}}\n".format(figwidth_, subfigwidth_, figfilename_, subfigref_, )
   #                   figbuf += "  \\begin{subfigure}[]{%s}\n    \\centering\n\
   #   \\includegraphics[width=%s]{%s}\n\
   #   \\caption{\\label{fig:%s}}\n\
@@ -2297,11 +2299,14 @@ class Block2(object):
                     descs.append(figdesc_)
 
                 c_ = ', '.join(["%s \\autoref{fig:%s}" % (desc, ref) for (desc, ref) in zip(descs, refs)])
-                caption = "  \\caption{\\label{fig:%s-%s}%s %s.}\n\\end{figure}\n\n\n" % (figlabel_, figk, id_, c_)
+                caption = "  \\end{minipage}\n\\captionof{figure}{\\label{fig:%s-%s}%s %s.}}\n\n\n" % (figlabel_, figk, id_, c_)
+                # caption = "  \\caption{\\label{fig:%s-%s}%s %s.}\n\\end{figure}\n\n\n" % (figlabel_, figk, id_, c_)
                 figbuf += caption
                 
                 texbuf += figbuf
-                # texbuf += '\\newpage\n'
+                if figc > 0 and figc % 2 == 0:
+                    texbuf += '\\newpage\n'
+                figc += 1
 
         f.write(texbuf)
         f.flush()

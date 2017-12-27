@@ -129,7 +129,7 @@ loopblock = {
         # contains the subgraph specified in this config file
         'subgraph': 'conf/expr0045_pm1d_mem000_ord0_random_infodist_id.py',
         'subgraph_rewrite_id': True,
-        'subgraph_ignore_nodes': ['plot_infodist'],
+        'subgraph_ignore_nodes': ['plot'],
         'subgraphconf': {
             # 'plot/active': False
             # 'robot1/sysdim': 1,

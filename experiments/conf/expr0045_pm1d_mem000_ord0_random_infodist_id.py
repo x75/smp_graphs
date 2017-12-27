@@ -14,6 +14,7 @@ from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2
 from smp_graphs.block_models import ModelBlock2
 from smp_graphs.block_meas import MeasBlock2, MomentBlock2
 from smp_graphs.block_meas_infth import MIBlock2, InfoDistBlock2
+from smp_graphs.block_plot import TextBlock2
 
 from numpy import sqrt, mean, square
 from smp_graphs.funcs import f_sin, f_motivation, f_motivation_bin, f_meansquare, f_sum, f_rootmeansquare
@@ -39,9 +40,12 @@ function whose values over the interval [-1, 1] can be controlled by
 three groups of parameters associated with unimodal gaussian
 deformation, colored noise, and point-wise independent noise."""
 
+dim_s0 = 1
+numelem = 1001
+
 # local conf dict for looping
 lconf = {
-    'dim': 1,
+    'dim': dim_s0,
     'dt': 0.1,
     'lag': 1,
     'budget': 1000/1,
@@ -50,7 +54,7 @@ lconf = {
     'd_i': 0.0,
     'infodistgen': {
         'type': 'random_lookup',
-        'numelem': 1001,
+        'numelem': numelem,
         'l_a': 1.0,
         'd_a': 0.0,
         'd_s': 1.0,
@@ -357,17 +361,20 @@ graph = OrderedDict([
     ('m_div', {
         'block': MeasBlock2,
         'params': {
-            'id': 'm_div',
             'blocksize': numsteps,
             'debug': False,
-            'mode': 'basic',
+            'mode': 'div',
             'scope': 'local',
             'meas': div_meas, # ['chisq', 'kld'],
             # direct histo input?
             # or signal input
             'inputs': {
-                'x1': {'bus': 'm_hist/x1_p', 'shape': (1, numbins)},
-                'x2': {'bus': 'm_hist/x2_p', 'shape': (1, numbins)},
+                # 'x1': {'bus': 'm_hist/x1_p', 'shape': (1, numbins)},
+                # 'x2': {'bus': 'm_hist/x2_p', 'shape': (1, numbins)},
+                'x1_p': {'bus': 'm_hist/x1_p', 'shape': (1, numbins)},
+                'x1_x': {'bus': 'm_hist/x1_x', 'shape': (1, numbins + 1)},
+                'x2_p': {'bus': 'm_hist/x2_p', 'shape': (1, numbins)},
+                'x2_x': {'bus': 'm_hist/x2_x', 'shape': (1, numbins + 1)},
             },
             'outputs': {
                 'y': {'shape': (1, numbins)},
@@ -509,11 +516,11 @@ graph = OrderedDict([
                         'legend_loc': 'right',
                     },
                     {
-                        'input': ['budget_%s' % (outk,) for outk in ['mu', 'var', 'min', 'max']] + ['m_mi', 'm_di', 'm_rmse', 'm_sum_div'],
-                        'shape': [(1, 1) for outk in ['mu', 'var', 'min', 'max', 'm_mi', 'm_di', 'm_rmse', 'm_sum_div']],
-                        'mode': 'stack',
-                        'title': 'measures', 'title_pos': 'bottom',
-                        'plot': table,
+                        # 'input': ['budget_%s' % (outk,) for outk in ['mu', 'var', 'min', 'max']] + ['m_mi', 'm_di', 'm_rmse', 'm_sum_div'],
+                        # 'shape': [(1, 1) for outk in ['mu', 'var', 'min', 'max', 'm_mi', 'm_di', 'm_rmse', 'm_sum_div']],
+                        # 'mode': 'stack',
+                        # 'title': 'measures', 'title_pos': 'bottom',
+                        # 'plot': table,
                     },
                     {
                         'input': ['m_div'], 'plot': partial(timeseries, linestyle = 'none', marker = 'o'),
@@ -534,6 +541,46 @@ graph = OrderedDict([
         },
     }),
 
+    # results table
+    ('table', {
+        'block': TextBlock2,
+        'params': {
+            # 'debug': True,
+            'blocksize': numsteps,
+            'saveplot': saveplot,
+            'savetype': 'tex',
+            'title': 'Results expr0064 for direct and model-based predictions',
+            'desc': 'Budget statistics, information closeness / distance (mi/di), root mean squared prediction error and mean divergence.',
+            'inputs': {
+                # global budget stats
+                'budget_mu': {'bus': 'm_budget/y_mu', 'shape': (1, 1)},
+                'budget_var': {'bus': 'm_budget/y_var', 'shape': (1, 1)},
+                'budget_min': {'bus': 'm_budget/y_min', 'shape': (1, 1)},
+                'budget_max': {'bus': 'm_budget/y_max', 'shape': (1, 1)},
+                # meas0: direct pre2meas
+                'm_di': {'bus': 'm_di/infodist', 'shape': (dim_s0, 1, 1)},
+                'm_mi': {'bus': 'm_mi/mi', 'shape': (dim_s0, 1, 1)},
+                'm_rmse': {'bus': 'm_rmse/y', 'shape': (1, 1)},
+                'm_div_sum': {'bus': 'm_div_sum/y', 'shape': (1, 1)},
+            },
+            'layout': {
+                'numrows': 8,
+                'numcols': 2,
+                'rowlabels': ['Measure', 'global', 'direct'],
+                'collabels': ['budget_mu', 'budget_var', 'budget_min', 'budget_max', 'mi', 'di', 'rmse', 'div'],
+                'cells': [
+                    ['budget_mu', ] + [None] * 1,
+                    ['budget_var', ] + [None] * 1,
+                    ['budget_min', ] + [None] * 1,
+                    ['budget_max', ] + [None] * 1,
+                    [None, 'm_mi'],
+                    [None, 'm_di'],
+                    [None, 'm_rmse'],
+                    [None, 'm_div_sum'],
+                ],
+            },
+        },
+    }),
     # # plotting
     # ('plot', {
     #     'block': PlotBlock2,
