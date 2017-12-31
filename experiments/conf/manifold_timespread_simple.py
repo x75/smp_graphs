@@ -3,6 +3,7 @@
 plot the sensorimotor manifold / pointcloud, example data from andi gerken's puppy
 """
 
+from matplotlib.pyplot import hexbin
 from smp_base.plot import histogramnd
 from smp_graphs.block_plot import SnsMatrixPlotBlock2, ImgPlotBlock2
 from smp_graphs.block import dBlock2, IBlock2, SliceBlock2, DelayBlock2, StackBlock2
@@ -39,7 +40,7 @@ ppycnf2 = {
     # 'logfile': 'data/stepPickles/step_period_12_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_76_0.pickle',
     'logfile': 'data/stepPickles/step_period_26_0.pickle',
-    'numsteps': 1000,
+    'numsteps': 500,
     # 'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle',
     # 'numsteps': 5000,
     'logtype': 'puppy',
@@ -387,8 +388,9 @@ graph = OrderedDict([
         'params': {
             'id': 'motordel',
             'blocksize': numsteps,
+            'flat': True,
             # 'inputs': {'y': {'bus': 'motordiff/dy'}},
-            'inputs': {'y': {'bus': 'puppylog/y'}},
+            'inputs': {'y': {'bus': 'puppylog/y', 'shape': (ydim, numsteps)}},
             'delays': {'y': 3},
             }
         }),
@@ -537,8 +539,8 @@ graph = OrderedDict([
             'wspace': 0.5,
             'hspace': 0.5,
             'blocksize': numsteps,
-            'inputs': {'d1': {'bus': 'mimv|0/mimv', 'shape': (1, scanlen)},
-                       'd2': {'bus': 'temv|0/temv', 'shape': (1, scanlen)},
+            'inputs': {'d1': {'bus': 'mimv_ll0_ll0/mimv', 'shape': (1, scanlen)},
+                       'd2': {'bus': 'temv_ll0_ll0/temv', 'shape': (1, scanlen)},
                        'd3': {'bus': 'jh/jh', 'shape': (1, scanlen)},
                        't': {'val': np.linspace(scanstart, scanstop-1, scanlen)},},
             'outputs': {}, #'x': {'shape': (3, 1)}},
@@ -573,7 +575,7 @@ graph = OrderedDict([
             'hsapce': 0.1,
             'blocksize': numsteps,
             # 'inputs': {'d1': {'bus': 'mi_1/mi'}, 'd2': {'bus': 'infodist_1/infodist'}},
-            'inputs': {'d1': {'bus': 'mi|0/mi'}, 'd2': {'bus': 'te|0/te'}, 'd3': {'bus': 'cte|0/cte'}},
+            'inputs': {'d1': {'bus': 'mi_ll0_ll0/mi'}, 'd2': {'bus': 'te_ll0_ll0/te'}, 'd3': {'bus': 'cte_ll0_ll0/cte'}},
             'outputs': {}, #'x': {'shape': (3, 1)}},
             # 'subplots': [
             #     [
@@ -632,9 +634,11 @@ graph = OrderedDict([
         'params': {
             'id': 'plot2',
             'logging': False,
-            'debug': False,
+            'debug': True,
             'saveplot': saveplot,
             'blocksize': numsteps,
+            'plotf_diag': hexbin,
+            'plotf_offdiag': hexbin,
             'inputs': {
                 'd3': {'bus': 'puppyslice/x_gyr'},
                 # 'd3': {'bus': 'puppylog/x'},

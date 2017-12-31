@@ -1348,11 +1348,21 @@ class SnsMatrixPlotBlock2(BaseplotBlock2):
     - f_plot_matrix: off diagonal cells
     - numpy matrix of data, plot iterates over all pairs with given function
     """
-    
+    defaults = {
+        # diagonal plot function: sns.kdeplot, uniform_divergence, plt.hist, plt.hexbin, plt.plot
+        'plotf_diag':    plt.hist, # partial(uniform_divergence, f = subplotconf_plot),    # sns.kdeplot,
+        'plotf_offdiag': plt.hist2d, # partial(uniform_divergence, f = subplotconf_plot), # uniform_divergence,
+    }
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
         # self.saveplot = False
         # self.savetype = 'jpg'
+        defaults = {}
+        defaults.update(AnalysisBlock2.defaults)
+        defaults.update(BaseplotBlock2.defaults)
+        defaults.update(self.defaults)
+        self.defaults = defaults
+        
         BaseplotBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
         self.prepare_saveplot()
@@ -1423,6 +1433,8 @@ class SnsMatrixPlotBlock2(BaseplotBlock2):
         plotdata = {}
         if subplotconf['mode'] in ['stack', 'combine', 'concat']:
             # plotdata['all'] = np.hstack(ivecs)
+            for ivec in ivecs:
+                self._debug('ivec = %s', ivec.shape)
             plotdata['all'] = np.vstack(ivecs).T
 
         data = plotdata['all']
@@ -1450,16 +1462,23 @@ class SnsMatrixPlotBlock2(BaseplotBlock2):
         #     ax_diag = g.axes[i,i]
         #     # print type(ax_diag), dir(ax_diag)
         #     ax_diag.grid()
-        #     ax_diag.set_prop_cycle(histcolorcycler)
-            
+        #     ax_diag.set_prop_cycle(histcolorcycler)            
         # g.map_diag(sns.kdeplot)
-        # g.map_offdiag(plt.hexbin, cmap="gray", gridsize=40, bins="log");
+        # self.plotf_diag = sns.kdeplot # lw = 3, legend = False
+        # self.plotf_diag = subplotconf_plot[0]
+        # self.plotf_diag = partial(uniform_divergence, f = subplotconf_plot)        
+        self.plotf_diag = partial(plt.hist, histtype = 'step')
+        g.map_diag(self.plotf_diag)
+        # g.map_diag(plotf)
+
+        # g = g.map_diag(sns.kdeplot, lw=3, legend=False)
+        # g.map_offdiag(plotf) #, cmap="gray", gridsize=40, bins='log')
+        # g.map_offdiag(plt.hexbin, cmap="gray", gridsize=40, bins="log")
         # g.map_offdiag(plt.histogram2d, cmap="gray", bins=30)
         # g.map_offdiag(plt.plot, linestyle = "None", marker = "o", alpha = 0.5) # , bins="log");
-        plotf = partial(uniform_divergence, f = subplotconf_plot)
-        g.map_diag(plotf)
-        # g = g.map_diag(sns.kdeplot, lw=3, legend=False)
-        g.map_offdiag(plotf) #, cmap="gray", gridsize=40, bins='log')
+        # self.plotf_offdiag = subplotconf_plot[0]
+        self.plotf_offdiag = partial(plt.hexbin, cmap='gray', gridsize=40, bins='log')
+        g.map_offdiag(self.plotf_offdiag)
 
         # clean up figure
         self.fig = g.fig
