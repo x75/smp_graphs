@@ -1872,7 +1872,7 @@ class Block2(object):
                             for i in range(1): # 5
                                 # if i == 0: print "\n"
                                 # print "%s-%s init (pass 2) WARNING: bus %s doesn't exist yet and will possibly not be written to by any block, buskeys = %s" % (self.cname, self.id, v['bus'], self.bus.keys())
-                                self._warning("%s%s-%s init (pass 2) WARNING: nonexistent bus %s" % (self.cname, self.id, v['bus'], self.nesting_indent))
+                                self._warning("init (pass 2) WARNING: nonexistent bus %s at nesting %s" % (v['bus'], self.nesting_indent))
                                 # if not self.top.recurrent: time.sleep(1)
                                     
                             # pre-init that bus from constant

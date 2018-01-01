@@ -41,6 +41,8 @@ def get_systemblock_pm(
         'm0': {'dim': dim_s0, 'dist': 0}, # , 'mins': [-1] * dim_s0, 'maxs': [1] * dim_s0
         's0': {'dim': dim_s0, 'dist': 0},
     }
+    if dim_s1 is not None:
+        dims['s1'] = {'dim': dim_s1, 'dist': 0}
 
     # FIXME: disentangle block conf from sys conf?
     sysconf = {

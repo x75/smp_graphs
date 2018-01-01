@@ -961,7 +961,7 @@ def step_actinf(ref, mref, *args, **kwargs):
 
 ################################################################################
 # step_actinf_2
-def step_actinf_2(ref):
+def step_actinf_2(ref, mref, *args, **kwargs):
     """block_models.step_actinf_2
 
     Step the actinf model, version 2, lean tapping code
