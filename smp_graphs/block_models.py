@@ -311,8 +311,12 @@ class ModelBlock2(PrimBlock2):
 
             # copy output from model to block
             for outk, outv in self.outputs.items():
-                assert hasattr(mv['inst_'], outk), "Model %s has no attribute '%s'" % (mk, outk)
-                setattr(self, outk, getattr(mv['inst_'], outk))
+                # assert hasattr(mv['inst_'], outk), "Model %s has no attribute '%s'. Block.%s = %s" % (mk, outk, self.cname, hasattr(self, outk))
+                if not hasattr(mv['inst_'], outk):
+                    # self._warning("Model %s has no attribute '%s'. Block.%s = %s. Old model_func style?" % (mk, outk, self.cname, hasattr(self, outk)))
+                    pass
+                else:
+                    setattr(self, outk, getattr(mv['inst_'], outk))
 
         if self.block_is_finished():
             self.save()

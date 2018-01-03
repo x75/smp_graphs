@@ -8,7 +8,7 @@ saveplot = True
 recurrent = True
 
 lpzbarrelcnf = {
-    'numsteps': 1000,
+    'numsteps': 2000,
     # 'logfile': 'data/experiment_20170626_120004_actinf_m1_goal_error_ND_pd.h5', # 250
     # 'logfile': 'data/experiment_20170626_115924_actinf_m1_goal_error_ND_pd.h5', # 250
     # 'logfile': 'data/experiment_20170626_115813_actinf_m1_goal_error_ND_pd.h5', # 250
@@ -21,8 +21,9 @@ lpzbarrelcnf = {
     # learning static target
     # 'logfile': 'data/experiment_20170626_124247_actinf_m1_goal_error_ND_pd.h5', # 500
     # just stepping
-    'logfile': 'data/experiment_20170626_125226_actinf_m1_goal_error_ND_pd.h5', # 500
-    'logfile': 'data/experiment_20170626_140407_actinf_m1_goal_error_ND_pd.h5', # 1000
+    # 'logfile': 'data/experiment_20170626_125226_actinf_m1_goal_error_ND_pd.h5', # 500
+    # 'logfile': 'data/experiment_20170626_140407_actinf_m1_goal_error_ND_pd.h5', # 1000
+    'logfile': 'data/smp_dm_actinf_m1_goal_error_ND_embedding/smp_dm_actinf_m1_goal_error_ND_embedding_ffc25da6e3ef540e66b0c98e2642752a_20180103_165831_log_pd.h5',
     'xdim': 2,
     'xdim_eff': 2,
     'ydim': 2,
@@ -65,7 +66,7 @@ ppycnf2 = {
     'numsteps': 5000,
 }
 
-cnf = lpzbarrelcnf
+cnf = ppycnf2 # lpzbarrelcnf
 
 # copy params to namespace
 numsteps = cnf['numsteps']
@@ -91,10 +92,12 @@ srcsize = overlap
 
 loopblocksize = numsteps
 
-# data_x_key = 'x'
-# data_y_key = 'y'
-data_x_key = 's_proprio'
-data_y_key = 'pre'
+data_x_key = 'x'
+data_y_key = 'y'
+# data_x_key = 's_proprio'
+# data_y_key = 'pre'
+# data_x_key = 's0'
+# data_y_key = 'pre'
 
 loopblock = {
         'block': Block2,
@@ -119,7 +122,7 @@ loopblock = {
                         'file': {'filename': cnf['logfile']},
                         'outputs': {
                             'log': None,
-                            data_x_key: {'shape': (xdim, numsteps), 'storekey': '/robot1/s_proprio'},
+                            data_x_key: {'shape': (xdim, numsteps), 'storekey': '/robot1/s0'},
                             data_y_key: {'shape': (ydim, numsteps), 'storekey': '/pre_l0/pre'}},
                     },
                 }),

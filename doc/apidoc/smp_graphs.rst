@@ -140,6 +140,14 @@ smp\_graphs\.utils\_conf module
     :undoc-members:
     :show-inheritance:
 
+smp\_graphs\.utils\_conf\_meas module
+-------------------------------------
+
+.. automodule:: smp_graphs.utils_conf_meas
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 smp\_graphs\.utils\_logging module
 ----------------------------------
 

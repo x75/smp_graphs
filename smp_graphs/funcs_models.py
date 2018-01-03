@@ -951,9 +951,9 @@ def step_actinf(ref, mref, *args, **kwargs):
     tgt_[...,[-1]] = y_
 
     # publish model's internal state
-    setattr(ref, 'pre', pre_)
-    setattr(ref, 'err', err_)
-    setattr(ref, 'tgt', tgt_)
+    setattr(mref, 'pre', pre_)
+    setattr(mref, 'err', err_)
+    setattr(mref, 'tgt', tgt_)
 
     # remember stuff
     ref.pre_l1_tm2 = ref.pre_l1_tm1.copy()
