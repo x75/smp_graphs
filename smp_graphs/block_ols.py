@@ -180,7 +180,13 @@ class FileBlock2(Block2):
             del conf['params']['outputs']['log']
             # loop over log tables and create output for each table
             conf['params']['storekeys'] = {}
+            logger.debug('store keys = %s', self.store.keys())
+            if 'storekeys' in conf['params']:
+                self.storekeys = conf['params']['storekeys']
+            else:
+                self.storekeys = self.store.keys()
             for k in self.store.keys():
+                if not k in self.storekeys: continue
                 # process key from selflog format: remove the block id in the beginning of the key
                 # print "FileBlock2 selflog", conf['params']['blocksize']
                 k_ = k.lstrip("/")
@@ -197,10 +203,12 @@ class FileBlock2(Block2):
                         conf['params']['outputs'][k_] = {'shape': self.store[k].T.shape[:-1] + (conf['params']['blocksize'],)}
                     else:
                         conf['params']['outputs'][k_] = {'shape': self.store[k].T.shape}
+                    logger.debug("out %s/%s = %s", k, k_, self.store[k].shape) # conf['params']['outputs'][k_])
                 # print "out shape", k_, conf['params']['outputs'][k_]
                 # conf['params']['blocksize'] = self.store[k].shape[0]
                 # map output key to log table key
                 conf['params']['storekeys'][k_] = k
+            logger.debug('params outputs = %s', conf['params']['outputs'])
             self.step = self.step_selflog
         ############################################################
         # wav file

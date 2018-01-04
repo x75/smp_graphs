@@ -28,7 +28,11 @@ lpzbarrelcnf = {
     'xdim_eff': 2,
     'ydim': 2,
     'logtype': 'selflog',
-    'sys_slicespec': {'x': {'gyr': slice(0, 2)}}    
+    'sys_slicespec': {'x': {'gyr': slice(0, 2)}},
+    # data_x_key = 's_proprio',
+    # data_y_key = 'pre',
+    'data_x_key': 's0',
+    'data_y_key': 'pre',
 }
     
 ppycnf = {
@@ -50,6 +54,8 @@ ppycnf = {
     'xdim_eff': 3,
     'ydim': 4,
     'logtype': 'selflog',
+    'data_x_key': 'x',
+    'data_y_key': 'y',
 }
 
 ppycnf2 = {
@@ -64,9 +70,12 @@ ppycnf2 = {
     'xdim_eff': 3,
     'ydim': 4,
     'numsteps': 5000,
+    'data_x_key': 'x',
+    'data_y_key': 'y',
 }
 
-cnf = ppycnf2 # lpzbarrelcnf
+# cnf = ppycnf2
+cnf = lpzbarrelcnf
 
 # copy params to namespace
 numsteps = cnf['numsteps']
@@ -83,21 +92,16 @@ scanstop = 0
 scanlen = scanstop - scanstart
 
 # 1000/1000
-winsize = 1000
-overlap = 1000
+winsize = 2000
+overlap = 2000
 # winsize = 50
 # overlap = 50
 srcsize = overlap
 
+data_x_key = cnf['data_x_key']
+data_y_key = cnf['data_y_key']
 
 loopblocksize = numsteps
-
-data_x_key = 'x'
-data_y_key = 'y'
-# data_x_key = 's_proprio'
-# data_y_key = 'pre'
-# data_x_key = 's0'
-# data_y_key = 'pre'
 
 loopblock = {
         'block': Block2,
@@ -120,6 +124,7 @@ loopblock = {
                         'blocksize': numsteps,
                         'type': cnf['logtype'],
                         'file': {'filename': cnf['logfile']},
+                        'storekeys': ['/robot1/s0', '/robot1/s1'],
                         'outputs': {
                             'log': None,
                             data_x_key: {'shape': (xdim, numsteps), 'storekey': '/robot1/s0'},
