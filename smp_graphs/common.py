@@ -484,7 +484,7 @@ def dict_replace_idstr_recursive(d, cid, xid):
     # if cid is not None:
     # change param 'id' with loop marker and number
     d['params']['id'] = "%s%s%s" % (cid, loop_delim, xid)
-    print "dict_replace_idstr_recursive newid", d['params']['id']
+    logger.debug("dict_replace_idstr_recursive newid = %s", d['params']['id'])
 
     # change param 'inputs'
     if d['params'].has_key('inputs'):

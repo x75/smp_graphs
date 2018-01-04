@@ -16,6 +16,10 @@ randseed = 12345
 
 saveplot = False
 
+outputs = {
+    'latex': {'type': 'latex',},
+}
+
 ppycnf = {
     # 'numsteps': 27000,
     # # 'logfile': 'data/experiment_20170518_161544_puppy_process_logfiles_pd.h5',

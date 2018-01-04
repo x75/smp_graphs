@@ -475,92 +475,93 @@ loopblock_model = {
 
 # main graph
 graph = OrderedDict([
-    # sweep system
-    ("sweepsys", {
-        'debug': False,
-        'block': SeqLoopBlock2,
-        'params': {
-            'id': 'sweepsys',
-            # loop specification, check hierarchical block to completely
-            # pass on the contained in/out space?
-            'blocksize': numsteps, # execution cycle, same as global numsteps
-            'blockphase': [1],     # execute on first time step only
-            'numsteps':  numsteps,          # numsteps      / loopblocksize = looplength
-            'loopblocksize': loopblocksize, # loopblocksize * looplength    = numsteps
-            # can't do this dynamically yet without changing init passes
-            'outputs': {'meshgrid': {'shape': (dim_s0, sweepsys_input_flat)}},
-            'loop': [('none', {})], # lambda ref, i, obj: ('none', {}),
-            'loopmode': 'sequential',
-            'loopblock': loopblock,
-        },
-    }),
+    
+    # # sweep system
+    # ("sweepsys", {
+    #     'debug': False,
+    #     'block': SeqLoopBlock2,
+    #     'params': {
+    #         'id': 'sweepsys',
+    #         # loop specification, check hierarchical block to completely
+    #         # pass on the contained in/out space?
+    #         'blocksize': numsteps, # execution cycle, same as global numsteps
+    #         'blockphase': [1],     # execute on first time step only
+    #         'numsteps':  numsteps,          # numsteps      / loopblocksize = looplength
+    #         'loopblocksize': loopblocksize, # loopblocksize * looplength    = numsteps
+    #         # can't do this dynamically yet without changing init passes
+    #         'outputs': {'meshgrid': {'shape': (dim_s0, sweepsys_input_flat)}},
+    #         'loop': [('none', {})], # lambda ref, i, obj: ('none', {}),
+    #         'loopmode': 'sequential',
+    #         'loopblock': loopblock,
+    #     },
+    # }),
 
-    # plot the system sweep result
-    ('plot_sweep', {
-        'block': PlotBlock2,
-        'params': {
-            'debug': False,
-            'blocksize': numsteps, # sweepsys_input_flat,
-            'title': 'system sweep',
-            'inputs': {
-                'meshgrid': {
-                    'bus': 'sweepsys_grid/meshgrid',
-                    'shape': (dim_s0, sweepsys_input_flat)},
-                's0': {
-                    'bus': 'robot0/s0',
-                    'shape': (dim_s0, sweepsys_input_flat)},
-                's1': {
-                    'bus': 'robot0/s1',
-                    'shape': (dim_s1, sweepsys_input_flat)},
-                },
-                'hspace': 0.2,
-                'subplots': [
-                    [
-                        {'input': ['meshgrid'], 'plot': timeseries},
-                    ],
-                    [
-                        {'input': ['s0'], 'plot': timeseries},
-                    ],
-                    [
-                        {'input': ['s1'], 'plot': timeseries},
-                    ],
-                    ],
-            }
-        }),
+    # # plot the system sweep result
+    # ('plot_sweep', {
+    #     'block': PlotBlock2,
+    #     'params': {
+    #         'debug': False,
+    #         'blocksize': numsteps, # sweepsys_input_flat,
+    #         'title': 'system sweep',
+    #         'inputs': {
+    #             'meshgrid': {
+    #                 'bus': 'sweepsys_grid/meshgrid',
+    #                 'shape': (dim_s0, sweepsys_input_flat)},
+    #             's0': {
+    #                 'bus': 'robot0/s0',
+    #                 'shape': (dim_s0, sweepsys_input_flat)},
+    #             's1': {
+    #                 'bus': 'robot0/s1',
+    #                 'shape': (dim_s1, sweepsys_input_flat)},
+    #             },
+    #             'hspace': 0.2,
+    #             'subplots': [
+    #                 [
+    #                     {'input': ['meshgrid'], 'plot': timeseries},
+    #                 ],
+    #                 [
+    #                     {'input': ['s0'], 'plot': timeseries},
+    #                 ],
+    #                 [
+    #                     {'input': ['s1'], 'plot': timeseries},
+    #                 ],
+    #                 ],
+    #         }
+    #     }),
 
-    # sns matrix plot
-    ('plot2', {
-        'block': SnsMatrixPlotBlock2,
-        'params': {
-            'id': 'plot2',
-            'logging': False,
-            'debug': False,
-            'saveplot': saveplot,
-            'blocksize': numsteps,
-            'inputs': {
-                'meshgrid': {
-                    'bus': 'sweepsys_grid/meshgrid',
-                    'shape': (dim_s0, sweepsys_input_flat)},
-                's0': {
-                    'bus': 'robot0/s0',
-                    'shape': (dim_s0, sweepsys_input_flat)},
-                's1': {
-                    'bus': 'robot0/s1',
-                    'shape': (dim_s1, sweepsys_input_flat)},
-                },
-            'outputs': {},#'x': {'shape': 3, 1)}},
-            'subplots': [
-                [
-                    # stack inputs into one vector (stack, combine, concat
-                    {
-                        'input': ['meshgrid', 's0', 's1'],
-                        'mode': 'stack',
-                        'plot': histogramnd
-                    },
-                ],
-            ],
-        },
-    }),
+    # # sns matrix plot
+    # ('plot2', {
+    #     'block': SnsMatrixPlotBlock2,
+    #     'params': {
+    #         'id': 'plot2',
+    #         'logging': False,
+    #         'debug': False,
+    #         'saveplot': saveplot,
+    #         'blocksize': numsteps,
+    #         'inputs': {
+    #             'meshgrid': {
+    #                 'bus': 'sweepsys_grid/meshgrid',
+    #                 'shape': (dim_s0, sweepsys_input_flat)},
+    #             's0': {
+    #                 'bus': 'robot0/s0',
+    #                 'shape': (dim_s0, sweepsys_input_flat)},
+    #             's1': {
+    #                 'bus': 'robot0/s1',
+    #                 'shape': (dim_s1, sweepsys_input_flat)},
+    #             },
+    #         'outputs': {},#'x': {'shape': 3, 1)}},
+    #         'subplots': [
+    #             [
+    #                 # stack inputs into one vector (stack, combine, concat
+    #                 {
+    #                     'input': ['meshgrid', 's0', 's1'],
+    #                     'mode': 'stack',
+    #                     'plot': histogramnd
+    #                 },
+    #             ],
+    #         ],
+    #     },
+    # }),
         
     # system block from definition elsewhere
     ('robot1', systemblock),
@@ -569,6 +570,8 @@ graph = OrderedDict([
     ('brain_learn_proprio', {
         'block': Block2,
         'params': {
+            'numsteps': numsteps,
+            'blocksize': 1,
             'graph': OrderedDict([
 
                 # # goal sampler (motivation) sample_discrete_uniform_goal

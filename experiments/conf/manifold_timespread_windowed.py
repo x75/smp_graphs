@@ -124,7 +124,7 @@ loopblock = {
                         'blocksize': numsteps,
                         'type': cnf['logtype'],
                         'file': {'filename': cnf['logfile']},
-                        'storekeys': ['/robot1/s0', '/robot1/s1'],
+                        # 'storekeys': ['/robot1/s0', '/robot1/s1'],
                         'outputs': {
                             'log': None,
                             data_x_key: {'shape': (xdim, numsteps), 'storekey': '/robot1/s0'},

@@ -25,11 +25,13 @@ Log variables are global in smp_graphs. There are two logging mechanisms
 import numpy as np
 import tables as tb
 
+import logging
 from logging import INFO as logging_INFO
 from logging import CRITICAL as logging_CRITICAL
 from smp_base.common import get_module_logger
 
-loglevel_DEFAULT = logging_CRITICAL
+# loglevel_DEFAULT = logging_CRITICAL
+loglevel_DEFAULT = logging.DEBUG
 logger = get_module_logger(modulename = 'logging', loglevel = loglevel_DEFAULT)
 
 # declare global h5 file handle
@@ -240,16 +242,23 @@ def log_pd_store():
         log_store[k] = v
 
 def log_pd(tbl_name, data):
-    """log_pd: log to tables via pandas, local node logging
+    """log_pd
 
-Arguments:
-    tbl_name: node id storage key
-      data: the data as a dim x 1 numpy vector
-"""
+    Log data 'data' to table 'tbl_name' using pandas. Used for local
+    node logging in smp_graphs'.
+
+    Arguments:
+    - tbl_name: node id storage key
+    - data: the data as a dim x 1 numpy vector
+
+    Returns:
+    - None
+    """
     global log_lognodes, log_lognodes_idx, log_blocksize, log_logarray, log_lognodes_blockidx
     assert log_lognodes_idx.has_key(tbl_name), "Logtable %s is not in keys = %s" % (tbl_name, log_lognodes_idx.keys())
     assert len(data.shape) > 0, "Logtable %s's data has bad shape %s" % (tbl_name, data.shape)
-    # print "log_pd tbl_name = %s, data.shape = %s" % (tbl_name, data.flatten().shape), log_lognodes_idx[tbl_name]
+    # logger.debug("log_pd tbl_name = %s, data.shape = %s, tbl_idx = %s", tbl_name, data.flatten().shape, log_lognodes_idx[tbl_name])
+    # logger.debug("log_pd tbl_name = %s, data = %s", tbl_name, data)
     # infer blocksize from data
     blocksize = data.shape[-1]
     assert blocksize > 0, \
@@ -312,8 +321,7 @@ Arguments:
     
     log_logarray[tbl_name][:,sl] = tmplogdata # to copy or not to copy?
 
-    # if 'b4/' in tbl_name:
-    #     print "logging b4", tbl_name, log_logarray[tbl_name]
+    # logger.debug("logging log_logarray[tbl_name = %s] = %s, slice = %s", tbl_name, log_logarray[tbl_name].shape, sl)
 
     # if logging blocksize aligns with count
     # if cloc % log_blocksize[tbl_name] == 0:
@@ -328,7 +336,7 @@ Arguments:
         log_lognodes[tbl_name].loc[pdsl] = log_logarray[tbl_name][:,sl].T # data.flatten()
         log_lognodes_blockidx[tbl_name] += log_blocksize[tbl_name]
     # log_lognodes[tbl_name].loc[0] = 1
-    # print "log_lognodes[tbl_name]", log_lognodes[tbl_name], log_lognodes[tbl_name].loc[cloc]
+    logger.debug("log_lognodes[tbl_name = %s] = %s / %s", tbl_name, log_lognodes[tbl_name], log_lognodes[tbl_name].loc[cloc])
     log_lognodes_idx[tbl_name] += blocksize
     
     # if 'b4/' in tbl_name:

@@ -71,6 +71,7 @@ def main_list_groups(args):
     print("  Groups = %s" % (h5f.groups()))    
     
 def main_show_group(args):
+    print("show_group args = %s" % (args, ))
     h5f = load_hdf(args)
     
     # dfs['experiments'] = '/experiments'
@@ -97,7 +98,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--file',  type=str, default = 'data.h5',     help = 'Data file to load [data.h5]')
     parser.add_argument('-g', '--group', type=str, default = 'experiments', help = 'For mode \'show_group\' which group to show [experiments]')
-    parser.add_argument('-m', '--mode',  type=str, default = 'list_groups', help = 'Program exec mode [list_groups]')
+    parser.add_argument('-m', '--mode',  type=str, default = 'list_groups', help = 'Program exec mode [list_groups, show_group]')
     
     args = parser.parse_args()
 
@@ -105,4 +106,6 @@ if __name__ == '__main__':
         main_list_groups(args)
     elif args.mode == 'show_group':
         main_show_group(args)
-    
+        # sleep(-1)
+    else:
+        print("unknown mode %s" % (args.mode, ))

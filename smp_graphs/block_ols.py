@@ -173,41 +173,61 @@ class FileBlock2(Block2):
         ############################################################
         # selflog
         elif filetype == 'selflog':
-            # print "FileBlock2 selflog", conf['params']['blocksize']
+            """file type is smp_graphs hdf5 log file
+            """
+            logger.debug("FileBlock2 selflog blocksize = %d", conf['params']['blocksize'])
             assert os.path.exists(lfile), "logfile %s not found" % (lfile, )
+            # open the file
             self.store = pd.HDFStore(lfile)
-            # clean up dummy entry
+            # clean up dummy entries
             del conf['params']['outputs']['log']
             # loop over log tables and create output for each table
-            conf['params']['storekeys'] = {}
-            logger.debug('store keys = %s', self.store.keys())
-            if 'storekeys' in conf['params']:
-                self.storekeys = conf['params']['storekeys']
+
+            # 1a: make all logfile variables available as /log/orig-id_orig-name
+            # 1b: make all logfile variables available as /log/orig-name (legacy behaviour)
+            # 2: make all configured outputs available from the given storekey
+            
+            # if 'storekeys' in conf['params']:
+            #     self.storekeys = conf['params']['storekeys']
+            # else:
+            if len(conf['params']['outputs']) < 1:
+                # conf['params']['storekeys'] = {}
+                conf['params']['storekeys'] = dict(zip(self.store.keys(), self.store.keys()))
             else:
-                self.storekeys = self.store.keys()
-            for k in self.store.keys():
-                if not k in self.storekeys: continue
+                conf['params']['storekeys'] = dict([(k, v['storekey']) for k, v in conf['params']['outputs'].items() if v.has_key('storekey')])
+                
+            logger.debug('params[\'storekeys\'] = %s', conf['params']['storekeys'])
+            logger.debug('store keys = %s', self.store.keys())
+            
+            # for k in self.store.keys():
+            for k, v in conf['params']['storekeys'].items():
+                # if not k in conf['params']['storekeys']: continue
                 # process key from selflog format: remove the block id in the beginning of the key
                 # print "FileBlock2 selflog", conf['params']['blocksize']
-                k_ = k.lstrip("/")
-                if not k_.startswith('conf'):
+                if k.startswith('/conf'): continue
+                if k.startswith('/'):
+                    k_ = k.lstrip("/")
+                    
                     n_ = k_.split("/")[0]
                     # FIXME: hack
                     if n_ == 'pre_l1': continue
                     k_ = "/".join(k_.split("/")[1:])
                     # assert conf['params']['blocksize'] == self.store[k].shape[0], "numsteps (%d) needs to be set to numsteps (%s) in the file %s" % (conf['params']['blocksize'], self.store[k].shape, lfile)
+                else:
+                    k_ = k
                     
-                    # print "%s.init store_key = %s, raw key = %s, shape = %s" % (self.__class__.__name__, k, k_, self.store[k].shape)
-                    # conf['params']['outputs'][k_] = {'shape': self.store[k].T.shape[:-1]}
-                    if conf['params'].has_key('blocksize'):
-                        conf['params']['outputs'][k_] = {'shape': self.store[k].T.shape[:-1] + (conf['params']['blocksize'],)}
-                    else:
-                        conf['params']['outputs'][k_] = {'shape': self.store[k].T.shape}
-                    logger.debug("out %s/%s = %s", k, k_, self.store[k].shape) # conf['params']['outputs'][k_])
+                # print "%s.init store_key = %s, raw key = %s, shape = %s" % (self.__class__.__name__, k, k_, self.store[k].shape)
+                # conf['params']['outputs'][k_] = {'shape': self.store[k].T.shape[:-1]}
+                if conf['params'].has_key('blocksize'):
+                    conf['params']['outputs'][k_] = {'shape': self.store[v].T.shape[:-1] + (conf['params']['blocksize'],)}
+                else:
+                    conf['params']['outputs'][k_] = {'shape': self.store[v].T.shape}
+                logger.debug("out %s <- %s = %s", k_, v, self.store[v].shape) # conf['params']['outputs'][k_])
                 # print "out shape", k_, conf['params']['outputs'][k_]
                 # conf['params']['blocksize'] = self.store[k].shape[0]
                 # map output key to log table key
-                conf['params']['storekeys'][k_] = k
+                # conf['params']['storekeys'][k_] = k
+                
             logger.debug('params outputs = %s', conf['params']['outputs'])
             self.step = self.step_selflog
         ############################################################
@@ -317,14 +337,24 @@ class FileBlock2(Block2):
     @decStep()
     def step_selflog(self, x = None):
         if (self.cnt % self.blocksize) == 0:
+            # import matplotlib.pyplot as plt
+            # fig = plt.figure()
+            # ax = fig.add_subplot(1,1,1)
             for k, v in self.outputs.items():
-                # if k.startswith('conf'):
                 storek = self.storekeys[k]
-                # print "%s-%s.step[%d] key = %s, logdata.sh = %s" % (self.cname, self.id, self.cnt, k, self.store[storek].shape)
+                self._debug("step[%d] k = %s, storek = %s, val = %s" % (self.cnt, k, storek, self.store[storek].shape))
+
+                # ax.plot(self.store[storek], label = '%s - %s' % (k, storek))
+                
                 # print self.store[k].values
                 setattr(self, k, self.store[storek][self.cnt-self.blocksize:self.cnt].values.T)
                 # print self.store[k][self.cnt-self.blocksize:self.cnt].values.T
                 # print "%s-%s.step[%d] self.%s = %s" % (self.cname, self.id, self.cnt, k, getattr(self, k).shape)
+
+            # ax.legend()
+            # plt.ioff()
+            # plt.show()
+            # plt.ion()
         # for k in self.__dict__.keys(): #self.bus.keys():
             # k = k.replace("/", "_")
             # print "k", k

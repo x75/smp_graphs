@@ -2586,9 +2586,9 @@ class LoopBlock2(Block2):
     @staticmethod
     def subgraph_from_loop_unrolled(blockref, conf, paren, top):
         loopgraph_unrolled = OrderedDict()
-        print "        - nxgraph_from_smp_graph loopblock %s unroll %s" % (
+        logger.debug("nxgraph_from_smp_graph loopblock %s unroll %s",
             conf['params']['id'],
-            conf['params']['loop'],)
+            conf['params']['loop'])
         
         # construction loop
         for i, item in enumerate(conf['params']['loop']):
@@ -2663,7 +2663,7 @@ class LoopBlock2(Block2):
             """
             # copy loop items into full conf
             for (paramk, paramv) in item:
-                print "    replacing conf from loop", paramk, paramv
+                logger.debug("    replacing conf from loop paramk = %s, paramv = %s", paramk, paramv)
                 # lpconf['params'][paramk] = paramv # .copy()
                 # FIXME: include id/params syntax in loop update
                 if lpconf['params'].has_key('subgraph'):
@@ -2687,7 +2687,7 @@ class LoopBlock2(Block2):
 
         # print "        loopgraph_unrolled", loopgraph_unrolled.keys()
         for k, v in loopgraph_unrolled.items():
-            print "loop %s, params = %s" % (k, v['params'].keys())
+            logger.debug("loop %s, params = %s", k, v['params'].keys())
         # sys.exit(1)
         # conf['params']['subgraph'] = loopgraph_unrolled
         # conf['params']['graph'] = loopgraph_unrolled

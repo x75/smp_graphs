@@ -46,7 +46,7 @@ class decStepInfthPrim():
             # call step
             meas = f(xself, *args, **kwargs)
             meas = np.array(meas)
-            print "%s meas.shape = %s" % (xself.cname, meas.shape)
+            xself._debug("%s meas.shape = %s" % (xself.cname, meas.shape))
             for outk, outv in xself.outputs.items():
                 # self.jh = meas.reshape()
                 setattr(xself, outk, meas.reshape(outv['shape']))
@@ -92,11 +92,11 @@ class JHBlock2(InfthPrimBlock2):
         src = self.inputs['x']['val'].T
         dst = self.inputs['y']['val'].T
         
-        print "%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by " % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape),
+        self._debug("%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by " % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape))
         
         for i in range(self.shift[0], self.shift[1]):
-            print "%d" % (i, ),
-            sys.stdout.flush()
+            self._debug("%d" % (i, ))
+            # sys.stdout.flush()
             
             # src_ = np.roll(self.inputs['x']['val'].T, shift = i, axis = 0)
             # src_ = np.roll(src, shift = i, axis = 0)
@@ -109,7 +109,7 @@ class JHBlock2(InfthPrimBlock2):
             # jh = compute_mi_multivariate(data = {'X': st, 'Y': st}, delay = -i)
             # print "%s.step[%d] data = %s, jh = %f" % (self.cname, self.cnt, st.shape, jh)
             meas.append(jh)
-        print ""
+        # print ""
         return meas
         
 class MIBlock2(InfthPrimBlock2):
