@@ -318,25 +318,44 @@ def log_pd(tbl_name, data):
 
     # if 'b4/' in tbl_name:
     #     print "logging b4", tbl_name, sl, tmplogdata, log_logarray[tbl_name].shape
-    
+
     log_logarray[tbl_name][:,sl] = tmplogdata # to copy or not to copy?
 
-    # logger.debug("logging log_logarray[tbl_name = %s] = %s, slice = %s", tbl_name, log_logarray[tbl_name].shape, sl)
-
-    # if logging blocksize aligns with count
+    # when the aligns with the logging blocksize, copy the array into a DataFrame for storage
     # if cloc % log_blocksize[tbl_name] == 0:
     # 20171106 first data point compute vs. log
     # 20171115 just cloc after step decorator pre-increment fix
-    if (cloc + 0) % log_blocksize[tbl_name] == 0:
+    # if (cloc + 0) % log_blocksize[tbl_name] == 0:
+    if cloc == 0 or (cloc + 1) % log_blocksize[tbl_name] == 0:
+        # debugging
+        logger.debug("log_pd cnt mod log_blocksize:         tbl_name = %s,   lognode_idx = %s", tbl_name, log_lognodes_idx[tbl_name])
+        logger.debug("log_pd cnt mod log_blocksize:             cloc = %s, log_blocksize = %s", cloc, log_blocksize[tbl_name])
+        logger.debug("log_pd cnt mod log_blocksize: log_logarray[%s] = %s,         slice = %s", tbl_name, log_logarray[tbl_name], sl)
+
+        # logging-block index
         dloc = log_lognodes_blockidx[tbl_name]
-        pdsl = slice(dloc, dloc + log_blocksize[tbl_name] - 1)
+        # logarray slice
         sl = slice(dloc, dloc + log_blocksize[tbl_name])
-        # print "logging.log_pd: tbl_name = %s, log.shape at sl = %s" % (tbl_name, sl), log_lognodes[tbl_name].loc[pdsl].shape, log_logarray[tbl_name][:,sl].T.shape
+        # pandas slice
+        pdsl = slice(dloc, dloc + log_blocksize[tbl_name] - 1)
+        # debug
+        # (tbl_name, sl), log_lognodes[tbl_name].loc[pdsl].shape, log_logarray[tbl_name][:,sl].T.shape
+        logger.debug("log_pd cnt mod log_blocksize: sl = %s, pdsl = %s", sl, pdsl)
         # log_lognodes[tbl_name].loc[sl] = data.T # data.flatten()
+        
+        # copy array to dataframe
         log_lognodes[tbl_name].loc[pdsl] = log_logarray[tbl_name][:,sl].T # data.flatten()
-        log_lognodes_blockidx[tbl_name] += log_blocksize[tbl_name]
+
+        # update logging-block index
+        if cloc > 1: # FIXME: test, does it work for numsteps = 1 experiments?
+            log_lognodes_blockidx[tbl_name] += log_blocksize[tbl_name]
+        # debug
+        logger.debug(
+            "log_pd cnt mod log_blocksize: log_lognodes[tbl_name = %s] = %s, lognodes[tbl].loc[%s] = %s",
+            tbl_name, log_lognodes[tbl_name], cloc, log_lognodes[tbl_name].loc[cloc])
     # log_lognodes[tbl_name].loc[0] = 1
-    logger.debug("log_lognodes[tbl_name = %s] = %s / %s", tbl_name, log_lognodes[tbl_name], log_lognodes[tbl_name].loc[cloc])
+    
+    # update lognode index
     log_lognodes_idx[tbl_name] += blocksize
     
     # if 'b4/' in tbl_name:

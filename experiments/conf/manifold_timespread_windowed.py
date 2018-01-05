@@ -23,7 +23,8 @@ lpzbarrelcnf = {
     # just stepping
     # 'logfile': 'data/experiment_20170626_125226_actinf_m1_goal_error_ND_pd.h5', # 500
     # 'logfile': 'data/experiment_20170626_140407_actinf_m1_goal_error_ND_pd.h5', # 1000
-    'logfile': 'data/smp_dm_actinf_m1_goal_error_ND_embedding/smp_dm_actinf_m1_goal_error_ND_embedding_ffc25da6e3ef540e66b0c98e2642752a_20180103_165831_log_pd.h5',
+    # 'logfile': 'data/smp_dm_actinf_m1_goal_error_ND_embedding/smp_dm_actinf_m1_goal_error_ND_embedding_ffc25da6e3ef540e66b0c98e2642752a_20180103_165831_log_pd.h5',
+    'logfile': 'data/smp_dm_actinf_m1_goal_error_ND_embedding/smp_dm_actinf_m1_goal_error_ND_embedding_562ac39aaddd5cbabb3fc9f512176b78_20180105_154421_log_pd.h5',
     'xdim': 2,
     'xdim_eff': 2,
     'ydim': 2,

@@ -105,14 +105,15 @@ class AnalysisBlock2(PrimBlock2):
         'saveplot': False,
         'savetype': 'jpg',
         'block_group': 'measure',
-        'desc': 'Some kind of analysis'
+        'desc': 'Some kind of analysis',
+        'inputs_log': None, # True,
         }
     def __init__(self, conf = {}, paren = None, top = None):
         # use inputs from logfile even in no-cached epxeriment
-        self.inputs_log = None
+        # self.inputs_log = None
         # saving plots
-        self.saveplot = False
-        self.savetype = "jpg"
+        # self.saveplot = False
+        # self.savetype = "jpg"
 
         defaults = {}
         # defaults.update(Block2.defaults)
