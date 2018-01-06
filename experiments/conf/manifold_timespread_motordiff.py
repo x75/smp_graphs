@@ -315,7 +315,7 @@ graph = OrderedDict([
             'id': 'motordel',
             'blocksize': numsteps,
             # 'inputs': {'y': {'bus': 'puppylogdiff/dy'}},
-            'inputs': {'y': {'bus': 'puppylog/y'}},
+            'inputs': {'y': {'bus': 'puppylog/y', 'shape': (ydim, numsteps)}},
             'delays': {'y': 3},
             }
         }),

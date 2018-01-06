@@ -3225,7 +3225,7 @@ class DelayBlock2(PrimBlock2):
             # print "Adding delayed input %s / %s to delaytaps" % (k, v)
             # delay_tap = -np.array(v) - 1
             delay_tap = -np.array(v) - 0
-            assert 'shape' in self.inputs[k], "%s requires input 'shape' attribute' for input %s with attributes %s" % (self.__class__.__name__, k, v.keys())
+            assert 'shape' in self.inputs[k], "%s-%s requires input 'shape' attribute' for input %s with attributes %s" % (self.__class__.__name__, self.id, k, self.inputs[k].keys())
             blocksize_input = self.inputs[k]['shape'][-1]
             # blocksize_input = self.blocksize
             delay_tap_bs = (delay_tap - np.tile(np.array(range(blocksize_input, 0, -1)), (delay_tap.shape[0],1)).T).T
