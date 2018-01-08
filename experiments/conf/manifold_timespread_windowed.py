@@ -7,6 +7,10 @@ from smp_graphs.block_plot import ImgPlotBlock2
 saveplot = True
 recurrent = True
 
+outputs = {
+    'latex': {'type': 'latex',},
+}
+
 lpzbarrelcnf = {
     'numsteps': 2000,
     # 'logfile': 'data/experiment_20170626_120004_actinf_m1_goal_error_ND_pd.h5', # 250

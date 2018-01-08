@@ -15,6 +15,10 @@ randseed = 19482
 
 saveplot = False
 
+outputs = {
+    'latex': {'type': 'latex',},
+}
+
 # numsteps = 147000
 # numsteps = 10000
 numsteps = 2000
