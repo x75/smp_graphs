@@ -10,9 +10,10 @@ import numpy as np
 
 from smp_base.measures import meas
 from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2
-6
+
+import logging
 from smp_base.common import get_module_logger
-logger = get_module_logger(modulename = 'utils_conf', loglevel = 'info')
+logger = get_module_logger(modulename = 'utils_conf', loglevel = logging.DEBUG)
 
 """system block
  - a robot
@@ -44,6 +45,8 @@ def get_systemblock_pm(
     if dim_s1 is not None:
         dims['s1'] = {'dim': dim_s1, 'dist': 0}
 
+    # print("dims = %s" % (dims, ))
+        
     # FIXME: disentangle block conf from sys conf?
     sysconf = {
         'block': PointmassBlock2,

@@ -2304,9 +2304,12 @@ class Block2(object):
                 figbuf += caption
                 
                 texbuf += figbuf
-                if figc > 0 and figc % 2 == 0:
-                    texbuf += '\\newpage\n'
+                # if figc > 0 and figc % 2 == 0:
+                if figc % 2 == 1:
+                    texbuf += '\\mbox{}\\newpage\n'
                 figc += 1
+                
+        texbuf += '\\mbox{}\\newpage\n'
 
         f.write(texbuf)
         f.flush()

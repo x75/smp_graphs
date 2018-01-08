@@ -327,10 +327,10 @@ def log_pd(tbl_name, data):
     # 20171115 just cloc after step decorator pre-increment fix
     # if (cloc + 0) % log_blocksize[tbl_name] == 0:
     if cloc == 0 or (cloc + 1) % log_blocksize[tbl_name] == 0:
-        # debugging
-        logger.debug("log_pd cnt mod log_blocksize:         tbl_name = %s,   lognode_idx = %s", tbl_name, log_lognodes_idx[tbl_name])
-        logger.debug("log_pd cnt mod log_blocksize:             cloc = %s, log_blocksize = %s", cloc, log_blocksize[tbl_name])
-        logger.debug("log_pd cnt mod log_blocksize: log_logarray[%s] = %s,         slice = %s", tbl_name, log_logarray[tbl_name], sl)
+        # # debugging logging block misalign 2017/12 - 2018/01
+        # logger.debug("log_pd cnt mod log_blocksize:         tbl_name = %s,   lognode_idx = %s", tbl_name, log_lognodes_idx[tbl_name])
+        # logger.debug("log_pd cnt mod log_blocksize:             cloc = %s, log_blocksize = %s", cloc, log_blocksize[tbl_name])
+        # logger.debug("log_pd cnt mod log_blocksize: log_logarray[%s] = %s,         slice = %s", tbl_name, log_logarray[tbl_name], sl)
 
         # logging-block index
         dloc = log_lognodes_blockidx[tbl_name]
@@ -338,10 +338,11 @@ def log_pd(tbl_name, data):
         sl = slice(dloc, dloc + log_blocksize[tbl_name])
         # pandas slice
         pdsl = slice(dloc, dloc + log_blocksize[tbl_name] - 1)
-        # debug
-        # (tbl_name, sl), log_lognodes[tbl_name].loc[pdsl].shape, log_logarray[tbl_name][:,sl].T.shape
-        logger.debug("log_pd cnt mod log_blocksize: sl = %s, pdsl = %s", sl, pdsl)
-        # log_lognodes[tbl_name].loc[sl] = data.T # data.flatten()
+        
+        # # debug
+        # # (tbl_name, sl), log_lognodes[tbl_name].loc[pdsl].shape, log_logarray[tbl_name][:,sl].T.shape
+        # logger.debug("log_pd cnt mod log_blocksize: sl = %s, pdsl = %s", sl, pdsl)
+        # # log_lognodes[tbl_name].loc[sl] = data.T # data.flatten()
         
         # copy array to dataframe
         log_lognodes[tbl_name].loc[pdsl] = log_logarray[tbl_name][:,sl].T # data.flatten()
@@ -349,10 +350,11 @@ def log_pd(tbl_name, data):
         # update logging-block index
         if cloc > 1: # FIXME: test, does it work for numsteps = 1 experiments?
             log_lognodes_blockidx[tbl_name] += log_blocksize[tbl_name]
-        # debug
-        logger.debug(
-            "log_pd cnt mod log_blocksize: log_lognodes[tbl_name = %s] = %s, lognodes[tbl].loc[%s] = %s",
-            tbl_name, log_lognodes[tbl_name], cloc, log_lognodes[tbl_name].loc[cloc])
+            
+        # # debug
+        # logger.debug(
+        #     "log_pd cnt mod log_blocksize: log_lognodes[tbl_name = %s] = %s, lognodes[tbl].loc[%s] = %s",
+        #     tbl_name, log_lognodes[tbl_name], cloc, log_lognodes[tbl_name].loc[cloc])
     # log_lognodes[tbl_name].loc[0] = 1
     
     # update lognode index

@@ -56,6 +56,10 @@ sysname = 'pm'
 # dim = 3 # 2, 1
 # dim = 9 # bha
 
+outputs = {
+    'latex': {'type': 'latex',},
+}
+
 from smp_graphs.utils_conf import get_systemblock
 
 ################################################################################
