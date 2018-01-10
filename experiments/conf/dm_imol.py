@@ -37,6 +37,10 @@ debug = False
 showplot = True
 ros = False
 
+outputs = {
+    'latex': {'type': 'latex',},
+}
+
 # experiment
 commandline_args = ['numsteps']
 randseed = 12355
@@ -54,219 +58,221 @@ sysname = 'pm'
 """system block
  - a robot
 """
-def get_systemblock_pm(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
-    global np, PointmassBlock2, meas
-    return {
-        'block': PointmassBlock2,
-        'params': {
-            'id': 'robot1',
-            'blocksize': 1, # FIXME: make pm blocksize aware!
-            'systype': 2,
-            'sysdim': dim_s_proprio,
-            # initial state
-            'x0': np.random.uniform(-0.3, 0.3, (dim_s_proprio * 3, 1)),
-            # 'inputs': {'u': {'val': np.random.uniform(-1, 1, (3, numsteps))}},
-            'inputs': {'u': {'bus': 'pre_l0/pre'}},
-            'outputs': {
-                's_proprio': {'shape': (dim_s_proprio, 1)},
-                's_extero':  {'shape': (dim_s_extero, 1)}
-                }, # , 's_all': [(9, 1)]},
-            'statedim': dim_s_proprio * 3,
-            'dt': dt,
-            'mass': 1.0,
-            'force_max':  1.0,
-            'force_min': -1.0,
-            'friction': 0.01,
-            'sysnoise': 1e-2,
-            'debug': False,
-            'dim_s_proprio': dim_s_proprio,
-            'length_ratio': 3./2., # gain curve?
-            'm_mins': [-1.] * dim_s_proprio,
-            'm_maxs': [ 1.] * dim_s_proprio,
-            'dim_s_extero': dim_s_extero,
-            'lag': 3,
-            'order': 2,
-            'coupling_sigma': 1e-3,
-            'transfer': 0,
-            'anoise_mean': 0.0,
-            'anoise_std': 1e-2,
-            }
-        }
+from smp_graphs.utils_conf import get_systemblock
 
-def get_systemblock_sa(dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1):
-    global np, SimplearmBlock2
-    return {
-        'block': SimplearmBlock2,
-        'params': {
-            'id': 'robot1',
-            'blocksize': 1, # FIXME: make pm blocksize aware!
-            'sysdim': dim_s_proprio,
-            # initial state
-            'x0': np.random.uniform(-0.3, 0.3, (dim_s_proprio * 3, 1)),
-            # 'inputs': {'u': {'val': np.random.uniform(-1, 1, (3, numsteps))}},
-            'inputs': {'u': {'bus': 'pre_l0/pre'}},
-            'outputs': {
-                's_proprio': {'shape': (dim_s_proprio, 1)},
-                's_extero':  {'shape': (dim_s_extero,  1)}
-                }, # , 's_all': [(9, 1)]},
-            'statedim': dim_s_proprio * 3,
-            'dt': dt,
-            'mass': 1.0/3.0,
-            'force_max':  1.0,
-            'force_min': -1.0,
-            'friction': 0.001,
-            'sysnoise': 1e-2,
-            'debug': False,
-            'dim_s_proprio': dim_s_proprio,
-            'length_ratio': 3./2.0,
-            'm_mins': [-1.] * dim_s_proprio,
-            'm_maxs': [ 1.] * dim_s_proprio,
-            # 's_mins': [-1.00] * 9,
-            # 's_maxs': [ 1.00] * 9,
-            # 'm_mins': -1,
-            # 'm_maxs': 1,
-            'dim_s_extero': dim_s_extero,
-            'minlag': 1,
-            'maxlag': 2, # 5
-            }
-        }
+# def get_systemblock_pm(dim_s0 = 2, dim_s1 = 2, dt = 0.1):
+#     global np, PointmassBlock2, meas
+#     return {
+#         'block': PointmassBlock2,
+#         'params': {
+#             'id': 'robot1',
+#             'blocksize': 1, # FIXME: make pm blocksize aware!
+#             'systype': 2,
+#             'sysdim': dim_s0,
+#             # initial state
+#             'x0': np.random.uniform(-0.3, 0.3, (dim_s0 * 3, 1)),
+#             # 'inputs': {'u': {'val': np.random.uniform(-1, 1, (3, numsteps))}},
+#             'inputs': {'u': {'bus': 'pre_l0/pre'}},
+#             'outputs': {
+#                 's0': {'shape': (dim_s0, 1)},
+#                 's1':  {'shape': (dim_s1, 1)}
+#                 }, # , 's_all': [(9, 1)]},
+#             'statedim': dim_s0 * 3,
+#             'dt': dt,
+#             'mass': 1.0,
+#             'force_max':  1.0,
+#             'force_min': -1.0,
+#             'friction': 0.01,
+#             'sysnoise': 1e-2,
+#             'debug': False,
+#             'dim_s0': dim_s0,
+#             'length_ratio': 3./2., # gain curve?
+#             'm_mins': [-1.] * dim_s0,
+#             'm_maxs': [ 1.] * dim_s0,
+#             'dim_s1': dim_s1,
+#             'lag': 3,
+#             'order': 2,
+#             'coupling_sigma': 1e-3,
+#             'transfer': 0,
+#             'anoise_mean': 0.0,
+#             'anoise_std': 1e-2,
+#             }
+#         }
 
-def get_systemblock_bha(dim_s_proprio = 9, dim_s_extero = 3, dt = 0.1):
-    global np, BhasimulatedBlock2
-    return {
-        'block': BhasimulatedBlock2,
-        'params': {
-            'id': 'robot1',
-            'blocksize': 1, # FIXME: make pm blocksize aware!
-            'sysdim': dim_s_proprio,
-            # initial state
-            'x0': np.random.uniform(-0.3, 0.3, (dim_s_proprio * 3, 1)),
-            # 'inputs': {'u': {'val': np.random.uniform(-1, 1, (3, numsteps))}},
-            'inputs': {'u': {'bus': 'pre_l0/pre'}},
-            'outputs': {
-                's_proprio': {'shape': (dim_s_proprio, 1)},
-                's_extero':  {'shape': (dim_s_extero,  1)}
-                }, # , 's_all': [(9, 1)]},
-            'statedim': dim_s_proprio * 3,
-            'dt': dt,
-            'mass': 1.0/3.0,
-            'force_max':  1.0,
-            'force_min': -1.0,
-            'friction': 0.001,
-            'sysnoise': 1e-2,
-            'debug': False,
-            'dim_s_proprio': dim_s_proprio,
-            # 'length_ratio': 3./2.,
-            # 'm_mins': 0.05, # 0.1
-            # 'm_maxs': 0.4,  # 0.3
-            'dim_s_extero': 3,
-            'numsegs': 3,
-            'segradii': np.array([0.1,0.093,0.079]),
-            'm_mins': [ 0.10] * dim_s_proprio,
-            'm_maxs': [ 0.30] * dim_s_proprio,
-            's_mins': [ 0.10] * dim_s_proprio, # fixme all sensors
-            's_maxs': [ 0.30] * dim_s_proprio,
-            'doplot': False,
-            'minlag': 1,
-            'maxlag': 3 # 5
-            }
-        }
+# def get_systemblock_sa(dim_s0 = 2, dim_s1 = 2, dt = 0.1):
+#     global np, SimplearmBlock2
+#     return {
+#         'block': SimplearmBlock2,
+#         'params': {
+#             'id': 'robot1',
+#             'blocksize': 1, # FIXME: make pm blocksize aware!
+#             'sysdim': dim_s0,
+#             # initial state
+#             'x0': np.random.uniform(-0.3, 0.3, (dim_s0 * 3, 1)),
+#             # 'inputs': {'u': {'val': np.random.uniform(-1, 1, (3, numsteps))}},
+#             'inputs': {'u': {'bus': 'pre_l0/pre'}},
+#             'outputs': {
+#                 's0': {'shape': (dim_s0, 1)},
+#                 's1':  {'shape': (dim_s1,  1)}
+#                 }, # , 's_all': [(9, 1)]},
+#             'statedim': dim_s0 * 3,
+#             'dt': dt,
+#             'mass': 1.0/3.0,
+#             'force_max':  1.0,
+#             'force_min': -1.0,
+#             'friction': 0.001,
+#             'sysnoise': 1e-2,
+#             'debug': False,
+#             'dim_s0': dim_s0,
+#             'length_ratio': 3./2.0,
+#             'm_mins': [-1.] * dim_s0,
+#             'm_maxs': [ 1.] * dim_s0,
+#             # 's_mins': [-1.00] * 9,
+#             # 's_maxs': [ 1.00] * 9,
+#             # 'm_mins': -1,
+#             # 'm_maxs': 1,
+#             'dim_s1': dim_s1,
+#             'minlag': 1,
+#             'maxlag': 2, # 5
+#             }
+#         }
+
+# def get_systemblock_bha(dim_s0 = 9, dim_s1 = 3, dt = 0.1):
+#     global np, BhasimulatedBlock2
+#     return {
+#         'block': BhasimulatedBlock2,
+#         'params': {
+#             'id': 'robot1',
+#             'blocksize': 1, # FIXME: make pm blocksize aware!
+#             'sysdim': dim_s0,
+#             # initial state
+#             'x0': np.random.uniform(-0.3, 0.3, (dim_s0 * 3, 1)),
+#             # 'inputs': {'u': {'val': np.random.uniform(-1, 1, (3, numsteps))}},
+#             'inputs': {'u': {'bus': 'pre_l0/pre'}},
+#             'outputs': {
+#                 's0': {'shape': (dim_s0, 1)},
+#                 's1':  {'shape': (dim_s1,  1)}
+#                 }, # , 's_all': [(9, 1)]},
+#             'statedim': dim_s0 * 3,
+#             'dt': dt,
+#             'mass': 1.0/3.0,
+#             'force_max':  1.0,
+#             'force_min': -1.0,
+#             'friction': 0.001,
+#             'sysnoise': 1e-2,
+#             'debug': False,
+#             'dim_s0': dim_s0,
+#             # 'length_ratio': 3./2.,
+#             # 'm_mins': 0.05, # 0.1
+#             # 'm_maxs': 0.4,  # 0.3
+#             'dim_s1': 3,
+#             'numsegs': 3,
+#             'segradii': np.array([0.1,0.093,0.079]),
+#             'm_mins': [ 0.10] * dim_s0,
+#             'm_maxs': [ 0.30] * dim_s0,
+#             's_mins': [ 0.10] * dim_s0, # fixme all sensors
+#             's_maxs': [ 0.30] * dim_s0,
+#             'doplot': False,
+#             'minlag': 1,
+#             'maxlag': 3 # 5
+#             }
+#         }
     
-# ROS system STDR
-def get_systemblock_stdr(dim_s_proprio = 2, dim_s_extero = 3, dt = 0.1):
-    global np, STDRCircularBlock2
-    return {
-        'block': STDRCircularBlock2,
-        'params': {
-            'id': 'robot1',
-            'debug': False,
-            'blocksize': 1, # FIXME: make pm blocksize aware!
-            'inputs': {'u': {'bus': 'pre_l0/pre'}},
-            'outputs': {
-                's_proprio': {'shape': (dim_s_proprio, 1)},
-                's_extero': {'shape': (dim_s_extero, 1)}
-                }, # , 's_all': [(9, 1)]},
-            'ros': True,
-            'dt': dt,
-            'm_mins': [-0.3, 0], # [-0.1] * dim_s_proprio,
-            'm_maxs': [0.3, np.pi/4.0],    # [ 0.1] * dim_s_proprio,
-            'dim_s_proprio': dim_s_proprio, 
-            'dim_s_extero': dim_s_extero,   
-            'outdict': {},
-            'smdict': {},
-            'minlag': 1, # ha
-            'maxlag': 4, # 5
-            }
-        }
+# # ROS system STDR
+# def get_systemblock_stdr(dim_s0 = 2, dim_s1 = 3, dt = 0.1):
+#     global np, STDRCircularBlock2
+#     return {
+#         'block': STDRCircularBlock2,
+#         'params': {
+#             'id': 'robot1',
+#             'debug': False,
+#             'blocksize': 1, # FIXME: make pm blocksize aware!
+#             'inputs': {'u': {'bus': 'pre_l0/pre'}},
+#             'outputs': {
+#                 's0': {'shape': (dim_s0, 1)},
+#                 's1': {'shape': (dim_s1, 1)}
+#                 }, # , 's_all': [(9, 1)]},
+#             'ros': True,
+#             'dt': dt,
+#             'm_mins': [-0.3, 0], # [-0.1] * dim_s0,
+#             'm_maxs': [0.3, np.pi/4.0],    # [ 0.1] * dim_s0,
+#             'dim_s0': dim_s0, 
+#             'dim_s1': dim_s1,   
+#             'outdict': {},
+#             'smdict': {},
+#             'minlag': 1, # ha
+#             'maxlag': 4, # 5
+#             }
+#         }
 
-# ROS system using lpzrobots' roscontroller to interact with the 'Barrel'
-def get_systemblock_lpzbarrel(dim_s_proprio = 2, dim_s_extero = 1, dt = 0.01):
-    global LPZBarrelBlock2
-    systemblock_lpz = {
-        'block': LPZBarrelBlock2,
-        'params': {
-            'id': 'robot1',
-            'debug': False,
-            'blocksize': 1, # FIXME: make pm blocksize aware!
-            'inputs': {'u': {'bus': 'pre_l0/pre'}},
-            'outputs': {
-                's_proprio': {'shape': (dim_s_proprio, 1)},
-                's_extero': {'shape': (dim_s_extero, 1)}
-                }, # , 's_all': [(9, 1)]},
-            'ros': True,
-            'dt': dt,
-            'm_mins': [-1.] * dim_s_proprio,
-            'm_maxs': [ 1.] * dim_s_proprio,
-            'dim_s_proprio': dim_s_proprio, 
-            'dim_s_extero': dim_s_extero,   
-            'outdict': {},
-            'smdict': {},
-            'minlag': 2, # 1, # 5, 4
-            'maxlag': 6, # 2,
-            }
-        }
-    return systemblock_lpz
+# # ROS system using lpzrobots' roscontroller to interact with the 'Barrel'
+# def get_systemblock_lpzbarrel(dim_s0 = 2, dim_s1 = 1, dt = 0.01):
+#     global LPZBarrelBlock2
+#     systemblock_lpz = {
+#         'block': LPZBarrelBlock2,
+#         'params': {
+#             'id': 'robot1',
+#             'debug': False,
+#             'blocksize': 1, # FIXME: make pm blocksize aware!
+#             'inputs': {'u': {'bus': 'pre_l0/pre'}},
+#             'outputs': {
+#                 's0': {'shape': (dim_s0, 1)},
+#                 's1': {'shape': (dim_s1, 1)}
+#                 }, # , 's_all': [(9, 1)]},
+#             'ros': True,
+#             'dt': dt,
+#             'm_mins': [-1.] * dim_s0,
+#             'm_maxs': [ 1.] * dim_s0,
+#             'dim_s0': dim_s0, 
+#             'dim_s1': dim_s1,   
+#             'outdict': {},
+#             'smdict': {},
+#             'minlag': 2, # 1, # 5, 4
+#             'maxlag': 6, # 2,
+#             }
+#         }
+#     return systemblock_lpz
 
-# systemblock_lpzbarrel = get_systemblock_lpzbarrel(dt = dt)
+# # systemblock_lpzbarrel = get_systemblock_lpzbarrel(dt = dt)
 
-# ROS system using the Sphero
-def get_systemblock_sphero(dim_s_proprio = 2, dim_s_extero = 1, dt = 0.05):
-    global SpheroBlock2
-    systemblock_sphero = {
-        'block': SpheroBlock2,
-        'params': {
-            'id': 'robot1',
-            'debug': False,
-            'blocksize': 1, # FIXME: make pm blocksize aware!
-            'inputs': {'u': {'bus': 'pre_l0/pre'}},
-            'outputs': {
-                's_proprio': {'shape': (dim_s_proprio, 1)},
-                's_extero': {'shape': (dim_s_extero, 1)}
-                }, # , 's_all': [(9, 1)]},
-                'ros': True,
-                'dt': dt,
-            'm_mins': [-0.75] * dim_s_proprio,
-            'm_maxs': [ 0.75] * dim_s_proprio,
-            'dim_s_proprio': dim_s_proprio, 
-            'dim_s_extero': dim_s_extero,   
-            'outdict': {},
-            'smdict': {},
-            'minlag': 2, # 2, # 4, # 2
-            'maxlag': 5,
-            }
-        }
-    return systemblock_sphero
+# # ROS system using the Sphero
+# def get_systemblock_sphero(dim_s0 = 2, dim_s1 = 1, dt = 0.05):
+#     global SpheroBlock2
+#     systemblock_sphero = {
+#         'block': SpheroBlock2,
+#         'params': {
+#             'id': 'robot1',
+#             'debug': False,
+#             'blocksize': 1, # FIXME: make pm blocksize aware!
+#             'inputs': {'u': {'bus': 'pre_l0/pre'}},
+#             'outputs': {
+#                 's0': {'shape': (dim_s0, 1)},
+#                 's1': {'shape': (dim_s1, 1)}
+#                 }, # , 's_all': [(9, 1)]},
+#                 'ros': True,
+#                 'dt': dt,
+#             'm_mins': [-0.75] * dim_s0,
+#             'm_maxs': [ 0.75] * dim_s0,
+#             'dim_s0': dim_s0, 
+#             'dim_s1': dim_s1,   
+#             'outdict': {},
+#             'smdict': {},
+#             'minlag': 2, # 2, # 4, # 2
+#             'maxlag': 5,
+#             }
+#         }
+#     return systemblock_sphero
 
-# systemblock_sphero = get_systemblock_sphero()
+# # systemblock_sphero = get_systemblock_sphero()
 
-get_systemblock = {
-    'pm': partial(get_systemblock_pm, dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1),
-    'sa': partial(get_systemblock_sa, dim_s_proprio = 2, dim_s_extero = 2, dt = 0.1),
-    'bha': partial(get_systemblock_bha, dim_s_proprio = 9, dim_s_extero = 3, dt = 0.1),
-    'lpzbarrel': partial(get_systemblock_lpzbarrel, dim_s_proprio = 2, dim_s_extero = 1, dt = 1.0/12.5), # 2.0/92.0), # 0.025),
-    'stdr': partial(get_systemblock_stdr, dim_s_proprio = 2, dim_s_extero = 3, dt = 0.1),
-    'sphero': partial(get_systemblock_sphero, dim_s_proprio = 2, dim_s_extero = 1, dt = 0.0167),
-    }
+# get_systemblock = {
+#     'pm': partial(get_systemblock_pm, dim_s0 = 2, dim_s1 = 2, dt = 0.1),
+#     'sa': partial(get_systemblock_sa, dim_s0 = 2, dim_s1 = 2, dt = 0.1),
+#     'bha': partial(get_systemblock_bha, dim_s0 = 9, dim_s1 = 3, dt = 0.1),
+#     'lpzbarrel': partial(get_systemblock_lpzbarrel, dim_s0 = 2, dim_s1 = 1, dt = 1.0/12.5), # 2.0/92.0), # 0.025),
+#     'stdr': partial(get_systemblock_stdr, dim_s0 = 2, dim_s1 = 3, dt = 0.1),
+#     'sphero': partial(get_systemblock_sphero, dim_s0 = 2, dim_s1 = 1, dt = 0.0167),
+#     }
     
 
 ################################################################################
@@ -279,17 +285,17 @@ get_systemblock = {
     
 # systemblock   = systemblock_lpzbarrel
 # lag = 6 # 5, 4, 2 # 2 or 3 worked with lpzbarrel, dt = 0.05
-systemblock   = get_systemblock[sysname]()
+systemblock   = get_systemblock[sysname](lag = 2)
 # lag           = 1
 
-dim_s_proprio = systemblock['params']['dim_s_proprio']
-dim_s_extero  = systemblock['params']['dim_s_extero']
+dim_s0 = systemblock['params']['dims']['s0']['dim']
+dim_s1 = systemblock['params']['dims']['s1']['dim']
 dim_s_hidden_debug = 20
 m_mins = np.array([systemblock['params']['m_mins']]).T
 m_maxs = np.array([systemblock['params']['m_maxs']]).T
 
-minlag = systemblock['params']['minlag']
-maxlag = systemblock['params']['maxlag']
+# minlag = systemblock['params']['minlag']
+# maxlag = systemblock['params']['maxlag']
 
 dt = systemblock['params']['dt']
 
@@ -309,10 +315,22 @@ algo_inv = algo
 # lag_past   = (-1, 0)
 # lag_past   = (-2, -1)
 # lag_past   = (-3, -2)
-lag_past   = (-4, -3)
+# lag_past   = (-4, -3)
 # lag_past   = (-5, -4)
 # lag_past   = (-6, -5)
-lag_future = (-1, 0)
+# lag_future = (-1, 0)
+
+lag_future = systemblock['params']['lag_future'] # (-1, 0)
+lag_past = systemblock['params']['lag_past'] # (-1, 0)
+
+minlag = 1 # -lag_future[1]
+# maxlag = -lag_past[0] # + lag_future[1]
+maxlag = max(20, -lag_past[0])
+laglen = maxlag # - minlag
+# minlag = max(1, -max(lag_past[1], lag_future[1]))
+# maxlag = 1 - min(lag_past[0], lag_future[0])
+# maxlag_x = 120
+# laglen = maxlag - minlag
 
 # lag_past = (-11, -10)
 # lag_future = (-5, 0)
@@ -323,9 +341,9 @@ lag_future = (-1, 0)
 # lag_past = (-6, -2)
 # lag_future = (-1, 0)
 
-minlag = 1
-maxlag = 20 # -lag_past[0] + lag_future[1]
-laglen = maxlag - minlag
+# minlag = 1
+# maxlag = 20 # -lag_past[0] + lag_future[1]
+# laglen = maxlag - minlag
 
 # eta = 0.99
 # eta = 0.95
@@ -338,33 +356,34 @@ eta = 0.15
 
 def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
     global partial
-    global PlotBlock2, numsteps, timeseries, dim_s_extero, dim_s_proprio, dim_s_hidden_debug, lag_past, lag_future
+    global PlotBlock2, numsteps, timeseries, dim_s1, dim_s0, dim_s_hidden_debug, lag_past, lag_future, saveplot
     return {
     'block': PlotBlock2,
     'params': {
+        'saveplot': saveplot,
         'blocksize': min(numsteps, 1000), # blocksize, # numsteps
         'inputs': {
-            'goals': {'bus': '%s/pre' % (l1,), 'shape': (dim_s_proprio, blocksize)},
-            'pre':   {'bus': '%s/pre' % (l0,), 'shape': (dim_s_proprio, blocksize)},
-            'err':   {'bus': '%s/err' % (l0,), 'shape': (dim_s_proprio, blocksize)},
-            'tgt':   {'bus': '%s/tgt' % (l0,), 'shape': (dim_s_proprio, blocksize)},
-            's_proprio':    {'bus': 'robot1/s_proprio', 'shape': (dim_s_proprio, blocksize)},
-            's_extero':     {'bus': 'robot1/s_extero',  'shape': (dim_s_extero, blocksize)},
-            'X': {'bus': 'pre_l0/X', 'shape': (dim_s_proprio * (lag_past[1] - lag_past[0]) * 3, blocksize)},
-            'Y': {'bus': 'pre_l0/Y',  'shape': (dim_s_proprio * (lag_future[1] - lag_future[0]), blocksize)},
+            'goals': {'bus': '%s/pre' % (l1,), 'shape': (dim_s0, blocksize)},
+            'pre':   {'bus': '%s/pre' % (l0,), 'shape': (dim_s0, blocksize)},
+            'err':   {'bus': '%s/err' % (l0,), 'shape': (dim_s0, blocksize)},
+            'tgt':   {'bus': '%s/tgt' % (l0,), 'shape': (dim_s0, blocksize)},
+            's0':    {'bus': 'robot1/s0', 'shape': (dim_s0, blocksize)},
+            's1':     {'bus': 'robot1/s1',  'shape': (dim_s1, blocksize)},
+            'X': {'bus': 'pre_l0/X', 'shape': (dim_s0 * (lag_past[1] - lag_past[0]) * 3, blocksize)},
+            'Y': {'bus': 'pre_l0/Y',  'shape': (dim_s0 * (lag_future[1] - lag_future[0]), blocksize)},
             'hidden': {'bus': 'pre_l0/hidden',  'shape': (dim_s_hidden_debug, blocksize)},
             'wo_norm': {'bus': 'pre_l0/wo_norm',  'shape': (1, blocksize)},
             },
         'hspace': 0.2,
         'subplots': [
             [
-                {'input': ['goals', 's_proprio'], 'plot': partial(timeseries, marker='.')},
+                {'input': ['goals', 's0'], 'plot': partial(timeseries, marker='.')},
             ],
             [
                 {'input': ['goals', 'pre'], 'plot': partial(timeseries, marker='.')},
             ],
             # [
-            #     {'input': ['s_proprio'], 'plot': partial(timeseries, marker='.')},
+            #     {'input': ['s0'], 'plot': partial(timeseries, marker='.')},
             # ],
             # [
             #     {'input': ['pre'], 'plot': partial(timeseries, marker='.')},
@@ -400,20 +419,20 @@ sweep system subgraph
  - system block is the system we want to sweep
 """
 sweepsys_steps = 6
-sweepsys_input_flat = np.power(sweepsys_steps, dim_s_proprio)
+sweepsys_input_flat = np.power(sweepsys_steps, dim_s0)
 sweepsys = ('robot0', copy.deepcopy(systemblock))
 sweepsys[1]['params']['blocksize'] = sweepsys_input_flat
 sweepsys[1]['params']['debug'] = False
 sweepsys[1]['params']['inputs'] = {'u': {'bus': 'sweepsys_grid/meshgrid'}}
-sweepsys[1]['params']['outputs']['s_proprio']['shape'] = (dim_s_proprio, sweepsys_input_flat)
-sweepsys[1]['params']['outputs']['s_extero']['shape']  = (dim_s_extero, sweepsys_input_flat)
+sweepsys[1]['params']['outputs']['s0']['shape'] = (dim_s0, sweepsys_input_flat)
+sweepsys[1]['params']['outputs']['s1']['shape']  = (dim_s1, sweepsys_input_flat)
 
 sweepmdl_steps = 1000
-sweepmdl_input_flat = sweepmdl_steps # np.power(sweepmdl_steps, dim_s_proprio * 2)
+sweepmdl_input_flat = sweepmdl_steps # np.power(sweepmdl_steps, dim_s0 * 2)
 sweepmdl_func = f_random_uniform
 
 # sweepmdl_steps = 3
-# sweepmdl_input_flat = np.power(sweepmdl_steps, dim_s_proprio * 2)
+# sweepmdl_input_flat = np.power(sweepmdl_steps, dim_s0 * 2)
 # sweepmdl_func = f_meshgrid
 
 loopblock = {
@@ -426,7 +445,7 @@ loopblock = {
         'numsteps': sweepsys_input_flat,  # inner numsteps when used as loopblock (sideways time)
         'blocksize': 1,           # compute single steps, has to be 1 so inner cnt is correct etc
         'blockphase': [0],        # phase = 0
-        'outputs': {'meshgrid': {'shape': (dim_s_proprio, sweepsys_input_flat), 'buscopy': 'sweepsys_grid/meshgrid'}},
+        'outputs': {'meshgrid': {'shape': (dim_s0, sweepsys_input_flat), 'buscopy': 'sweepsys_grid/meshgrid'}},
         # subgraph
         'graph': OrderedDict([
             ('sweepsys_grid', {
@@ -435,10 +454,10 @@ loopblock = {
                     'debug': False,
                     'blocksize': sweepsys_input_flat,
                     'inputs': {
-                        'ranges': {'val': np.array([[-1, 1]] * dim_s_proprio)},
+                        'ranges': {'val': np.array([[-1, 1]] * dim_s0)},
                         'steps':  {'val': sweepsys_steps},
                         },
-                    'outputs': {'meshgrid': {'shape': (dim_s_proprio, sweepsys_input_flat)}},
+                    'outputs': {'meshgrid': {'shape': (dim_s0, sweepsys_input_flat)}},
                     'func': f_meshgrid
                     },
                 }),
@@ -462,7 +481,7 @@ loopblock_model = {
         'blockphase': [0],        # phase = 0
         'outputs': {
             'pre': {
-                'shape': (dim_s_proprio * 2, sweepmdl_input_flat),
+                'shape': (dim_s0 * 2, sweepmdl_input_flat),
                 'buscopy': 'sweepmdl_grid/meshgrid'}},
         # subgraph
         'graph': OrderedDict([
@@ -475,17 +494,17 @@ loopblock_model = {
                     'inputs': {
                         # 'ranges': {'val': np.array([[-1, 1], [-1e-0, 1e-0]])},
                         'ranges': {
-                            'val': np.array([[m_mins[0], m_maxs[0]]] * dim_s_proprio * 2)},
+                            'val': np.array([[m_mins[0], m_maxs[0]]] * dim_s0 * 2)},
                             # 'val': np.vstack((
-                            #     np.array([[m_mins[0], m_maxs[0]]] * dim_s_proprio),
-                            #     np.array([[-2.0,      1.0]]       * dim_s_proprio),
+                            #     np.array([[m_mins[0], m_maxs[0]]] * dim_s0),
+                            #     np.array([[-2.0,      1.0]]       * dim_s0),
                             #     ))},
                         'steps':  {'val': sweepmdl_steps},
                         },
                     'outputs': {
                         'meshgrid': {
                             'shape': (
-                                dim_s_proprio * 2,
+                                dim_s0 * 2,
                                 sweepmdl_input_flat,)}},
                     'func': sweepmdl_func,
                     },
@@ -501,7 +520,7 @@ loopblock_model = {
             #             'ranges': {'val': np.array([[-1, 1]])},
             #             'steps':  {'val': sweepmdl_steps},
             #             },
-            #         'outputs': {'pre': {'shape': (dim_s_proprio, sweepmdl_input_flat)}},
+            #         'outputs': {'pre': {'shape': (dim_s0, sweepmdl_input_flat)}},
             #         'func': f_meshgrid,
             #         },
             #     }),
@@ -516,7 +535,7 @@ loopblock_model = {
             #             'ranges': {'val': np.array([[-1e-0, 1e-0]])},
             #             'steps':  {'val': sweepmdl_steps},
             #             },
-            #         'outputs': {'pre': {'shape': (dim_s_proprio, sweepmdl_input_flat)}},
+            #         'outputs': {'pre': {'shape': (dim_s0, sweepmdl_input_flat)}},
             #         'func': f_meshgrid,
             #         },
             #     }),
@@ -530,11 +549,11 @@ loopblock_model = {
                     'inputs': {
                         'x': {
                             'bus': 'sweepmdl_grid/meshgrid',
-                            'shape': (dim_s_proprio * 2, sweepmdl_input_flat)}},
+                            'shape': (dim_s0 * 2, sweepmdl_input_flat)}},
                     'slices': {
                         'x': {
-                            'goals': slice(0, dim_s_proprio),
-                            'errs':  slice(dim_s_proprio, dim_s_proprio * 2)},
+                            'goals': slice(0, dim_s0),
+                            'errs':  slice(dim_s0, dim_s0 * 2)},
                         },
                     # 'slices': ,
                     }
@@ -554,30 +573,30 @@ loopblock_model = {
                         # descending prediction
                         'pre_l1': {
                             'bus': 'sweep_slice/x_goals',
-                            'shape': (dim_s_proprio,sweepmdl_input_flat)},
+                            'shape': (dim_s0,sweepmdl_input_flat)},
                         # ascending prediction error
                         'pre_l0': {
                             'bus': 'sweep_slice/x_errs',
-                            'shape': (dim_s_proprio, sweepmdl_input_flat)},
+                            'shape': (dim_s0, sweepmdl_input_flat)},
                         # ascending prediction error
                         'prerr_l0': {
                             'bus': 'pre_l0_test/err',
-                            'shape': (dim_s_proprio, minlag+1), 'lag': minlag},
+                            'shape': (dim_s0, minlag+1), 'lag': minlag},
                         # measurement
                         'meas_l0': {
-                            'val': np.array([[-np.inf for i in range(sweepmdl_input_flat)]] * dim_s_proprio),
-                            # 'bus': 'robot1/s_proprio',
-                            'shape': (dim_s_proprio, sweepmdl_input_flat)}},
+                            'val': np.array([[-np.inf for i in range(sweepmdl_input_flat)]] * dim_s0),
+                            # 'bus': 'robot1/s0',
+                            'shape': (dim_s0, sweepmdl_input_flat)}},
                     'outputs': {
-                        'pre': {'shape': (dim_s_proprio, sweepmdl_input_flat)},
-                        'err': {'shape': (dim_s_proprio, sweepmdl_input_flat)},
-                        'tgt': {'shape': (dim_s_proprio, sweepmdl_input_flat)},
+                        'pre': {'shape': (dim_s0, sweepmdl_input_flat)},
+                        'err': {'shape': (dim_s0, sweepmdl_input_flat)},
+                        'tgt': {'shape': (dim_s0, sweepmdl_input_flat)},
                         },
                     'models': {
-                        # 'fwd': {'type': 'actinf_m1', 'algo': algo, 'idim': dim_s_proprio * 2, 'odim': dim},
+                        # 'fwd': {'type': 'actinf_m1', 'algo': algo, 'idim': dim_s0 * 2, 'odim': dim},
                         'fwd': {
                             'type': 'actinf_m1', 'algo': 'copy',
-                            'copyid': 'pre_l0', 'idim': dim_s_proprio * 2, 'odim': dim_s_proprio},
+                            'copyid': 'pre_l0', 'idim': dim_s0 * 2, 'odim': dim_s0},
                         },
                     'rate': 1,
                     },
@@ -590,23 +609,23 @@ loopblock_model = {
                     'inputs': {
                         # 'goals': {
                         #     'bus': 'sweepmdl_grid_goal/pre',
-                        #     'shape': (dim_s_proprio, sweepmdl_input_flat),
+                        #     'shape': (dim_s0, sweepmdl_input_flat),
                         #     },
                         # 'errs':  {
                         #     'bus': 'sweepmdl_grid_err/pre',
-                        #     'shape': (dim_s_proprio, sweepmdl_input_flat),
+                        #     'shape': (dim_s0, sweepmdl_input_flat),
                         #     },
                         'goalerrs': {
                             'bus': 'sweepmdl_grid/meshgrid',
-                            'shape': (dim_s_proprio * 2, sweepmdl_input_flat),
+                            'shape': (dim_s0 * 2, sweepmdl_input_flat),
                             },
                         'pres':  {
                             'bus': 'pre_l0_test/pre',
-                            'shape': (dim_s_proprio, sweepmdl_input_flat),
+                            'shape': (dim_s0, sweepmdl_input_flat),
                             },
                         },
                     'outputs': {
-                        'y': {'shape': (dim_s_proprio * 3, sweepmdl_input_flat)}},
+                        'y': {'shape': (dim_s0 * 3, sweepmdl_input_flat)}},
                     }
                 }),
                 
@@ -629,16 +648,16 @@ loopblock_model = {
             #         'inputs': {
             #             # 'sweepin_goal': {
             #             #     'bus': 'sweepmdl_grid_goal/pre',
-            #             #     'shape': (dim_s_proprio, sweepmdl_input_flat)},
+            #             #     'shape': (dim_s0, sweepmdl_input_flat)},
             #             # 'sweepin_err':  {
             #             #     'bus': 'sweepmdl_grid_err/pre',
-            #             #     'shape': (dim_s_proprio, sweepmdl_input_flat)},
+            #             #     'shape': (dim_s0, sweepmdl_input_flat)},
             #             # 'sweepout_mdl':  {
             #             #     'bus': 'pre_l0_test/pre',
-            #             #     'shape': (dim_s_proprio, sweepmdl_input_flat)},
+            #             #     'shape': (dim_s0, sweepmdl_input_flat)},
             #             'all': {
             #                 'bus': 'pre_l0_combined/y',
-            #                 'shape': (dim_s_proprio * 3, sweepmdl_input_flat),
+            #                 'shape': (dim_s0 * 3, sweepmdl_input_flat),
             #                 },
             #             },
             #         'outputs': {},
@@ -649,7 +668,7 @@ loopblock_model = {
             #             [
             #                 {
             #                     'input': ['all'],
-            #                     'shape': (dim_s_proprio * 3, sweepmdl_input_flat),
+            #                     'shape': (dim_s0 * 3, sweepmdl_input_flat),
             #                     'ndslice': [(slice(None), slice(None))],
             #                     # 'vmin': -1.0, 'vmax': 1.0,
             #                     # 'vmin': 0.1, 'vmax': 0.3,
@@ -657,8 +676,8 @@ loopblock_model = {
             #                     'dimstack': {
             #                         'x': range(2*dim-1, dim - 1, -1),
             #                         'y': range(dim-1,   -1     , -1)},
-            #                     'digitize': {'argdims': range(0, dim_s_proprio * 2), 'valdim': 2*dim+i, 'numbins': 2},
-            #                 } for i in range(dim_s_proprio)],
+            #                     'digitize': {'argdims': range(0, dim_s0 * 2), 'valdim': 2*dim+i, 'numbins': 2},
+            #                 } for i in range(dim_s0)],
 
             #             ],
             #         },
@@ -683,7 +702,7 @@ graph = OrderedDict([
     #         'numsteps':  numsteps,          # numsteps      / loopblocksize = looplength
     #         'loopblocksize': loopblocksize, # loopblocksize * looplength    = numsteps
     #         # can't do this dynamically yet without changing init passes
-    #         'outputs': {'meshgrid': {'shape': (dim_s_proprio, sweepsys_input_flat)}},
+    #         'outputs': {'meshgrid': {'shape': (dim_s0, sweepsys_input_flat)}},
     #         'loop': [('none', {})], # lambda ref, i, obj: ('none', {}),
     #         'loopmode': 'sequential',
     #         'loopblock': loopblock,
@@ -698,9 +717,9 @@ graph = OrderedDict([
     #         'blocksize': numsteps, # sweepsys_input_flat,
     #         'title': 'system sweep',
     #         'inputs': {
-    #             'meshgrid':     {'bus': 'sweepsys_grid/meshgrid', 'shape': (dim_s_proprio, sweepsys_input_flat)},
-    #             's_proprio':    {'bus': 'robot0/s_proprio', 'shape': (dim_s_proprio, sweepsys_input_flat)},
-    #             's_extero':     {'bus': 'robot0/s_extero', 'shape': (dim_s_extero, sweepsys_input_flat)},
+    #             'meshgrid':     {'bus': 'sweepsys_grid/meshgrid', 'shape': (dim_s0, sweepsys_input_flat)},
+    #             's0':    {'bus': 'robot0/s0', 'shape': (dim_s0, sweepsys_input_flat)},
+    #             's1':     {'bus': 'robot0/s1', 'shape': (dim_s1, sweepsys_input_flat)},
     #             },
     #             'hspace': 0.2,
     #             'subplots': [
@@ -708,10 +727,10 @@ graph = OrderedDict([
     #                     {'input': ['meshgrid'], 'plot': timeseries},
     #                 ],
     #                 [
-    #                     {'input': ['s_proprio'], 'plot': timeseries},
+    #                     {'input': ['s0'], 'plot': timeseries},
     #                 ],
     #                 [
-    #                     {'input': ['s_extero'], 'plot': timeseries},
+    #                     {'input': ['s1'], 'plot': timeseries},
     #                 ],
     #                 ],
     #         }
@@ -734,10 +753,10 @@ graph = OrderedDict([
                         'blockphase': [0],
                         'ros': ros,
                         'inputs': {                        
-                            'lo': {'val': m_mins * 1.0, 'shape': (dim_s_proprio, 1)},
-                            'hi': {'val': m_maxs * 1.0, 'shape': (dim_s_proprio, 1)},
+                            'lo': {'val': m_mins * 1.0, 'shape': (dim_s0, 1)},
+                            'hi': {'val': m_maxs * 1.0, 'shape': (dim_s0, 1)},
                             },
-                        'outputs': {'pre': {'shape': (dim_s_proprio, 1)}},
+                        'outputs': {'pre': {'shape': (dim_s0, 1)}},
                         'models': {
                             'goal': {'type': 'random_uniform'}
                             },
@@ -751,7 +770,7 @@ graph = OrderedDict([
                 #         'blocksize': 1,
                 #         'debug': False,
                 #         'inputs': {},
-                #         'outputs': {'x': {'shape': (dim_s_proprio, 1)}},
+                #         'outputs': {'x': {'shape': (dim_s0, 1)}},
                 #         },
                 #     }),
 
@@ -760,7 +779,7 @@ graph = OrderedDict([
                 #     'block': FuncBlock2,
                 #     'params': {
                 #         'id': 'pre_l1',
-                #         'outputs': {'pre': {'shape': (dim_s_proprio, 1)}},
+                #         'outputs': {'pre': {'shape': (dim_s0, 1)}},
                 #         'debug': False,
                 #         'ros': ros,
                 #         'blocksize': 1,
@@ -804,7 +823,7 @@ graph = OrderedDict([
                 #             # 'f': {'val': np.array([[0.1, 0.1]]).T},
                 #             # 'f': {'val': np.array([[0.24, 0.24]]).T},
                 #             # 'sigma': {'val': np.array([[0.001, 0.002]]).T}}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
-                #             'sigma': {'val': np.random.uniform(0, 0.01, (dim_s_proprio, 1))},
+                #             'sigma': {'val': np.random.uniform(0, 0.01, (dim_s0, 1))},
                 #             'offset': {'val': m_mins + (m_maxs - m_mins)/2.0},
                 #             'amp': {'val': (m_maxs - m_mins)/2.0},
                 #         }, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
@@ -827,34 +846,34 @@ graph = OrderedDict([
                             # descending prediction
                             'pre_l1': {
                                 'bus': 'pre_l1/pre',
-                                # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag, -minlag)},
+                                # 'shape': (dim_s0, maxlag), 'lag': range(-maxlag, -minlag)},
                                 # FIXME: check correctness here
                                 # training on past goal, prediction with current goal
                                 # should be possible inside step_model to use current
                                 # goal
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(lag_past[0], lag_past[1])},
+                                'shape': (dim_s0, maxlag), 'lag': range(lag_past[0], lag_past[1])},
                             # ascending prediction error
                             'pre_l0': {
                                 'bus': 'pre_l0/pre',
-                                # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)},
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(lag_past[0] + 1, lag_past[1] + 1)},
+                                # 'shape': (dim_s0, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)},
+                                'shape': (dim_s0, maxlag), 'lag': range(lag_past[0] + 1, lag_past[1] + 1)},
                             # ascending prediction error
                             'prerr_l0': {
                                 'bus': 'pre_l0/err',
-                                # 'shape': (dim_s_proprio, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)},
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(lag_past[0] + 1, lag_past[1] + 1)},
+                                # 'shape': (dim_s0, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)},
+                                'shape': (dim_s0, maxlag), 'lag': range(lag_past[0] + 1, lag_past[1] + 1)},
                             # measurement
                             'meas_l0': {
-                                'bus': 'robot1/s_proprio',
-                                # 'shape': (dim_s_proprio, maxlag), 'lag': range(-laglen, 0)}
-                                'shape': (dim_s_proprio, maxlag), 'lag': range(lag_future[0], lag_future[1])}
+                                'bus': 'robot1/s0',
+                                # 'shape': (dim_s0, maxlag), 'lag': range(-laglen, 0)}
+                                'shape': (dim_s0, maxlag), 'lag': range(lag_future[0], lag_future[1])}
                             },
                         'outputs': {
-                            'pre': {'shape': (dim_s_proprio, 1)},
-                            'err': {'shape': (dim_s_proprio, 1)},
-                            'tgt': {'shape': (dim_s_proprio, 1)},
-                            'X': {'shape': (dim_s_proprio * (lag_past[1] - lag_past[0]) * 3, 1)},
-                            'Y': {'shape': (dim_s_proprio * (lag_future[1] - lag_future[0]), 1)},
+                            'pre': {'shape': (dim_s0, 1)},
+                            'err': {'shape': (dim_s0, 1)},
+                            'tgt': {'shape': (dim_s0, 1)},
+                            'X': {'shape': (dim_s0 * (lag_past[1] - lag_past[0]) * 3, 1)},
+                            'Y': {'shape': (dim_s0 * (lag_future[1] - lag_future[0]), 1)},
                             'hidden': {'shape': (dim_s_hidden_debug, 1)},
                             'wo_norm': {'shape': (1, 1)},
                             },
@@ -867,8 +886,8 @@ graph = OrderedDict([
                                     'algo': algo_fwd,
                                     'lag_past': lag_past,
                                     'lag_future': lag_future,
-                                    'idim': dim_s_proprio * (lag_past[1] - lag_past[0]) * 2, # laglen
-                                    'odim': dim_s_proprio * (lag_future[1] - lag_future[0]), # laglen,
+                                    'idim': dim_s0 * (lag_past[1] - lag_past[0]) * 2, # laglen
+                                    'odim': dim_s0 * (lag_future[1] - lag_future[0]), # laglen,
                                     'laglen': laglen,
                                     # 'laglen_past': lag_past[1] - lag_past[0],
                                     # 'laglen_future': lag_future[1] - lag_future[0],
@@ -879,8 +898,8 @@ graph = OrderedDict([
                                     'algo': algo_inv,
                                     'lag_past': lag_past,
                                     'lag_future': lag_future,
-                                    'idim': dim_s_proprio * (lag_past[1] - lag_past[0]) * 3, # laglen
-                                    'odim': dim_s_proprio * (lag_future[1] - lag_future[0]), # laglen,
+                                    'idim': dim_s0 * (lag_past[1] - lag_past[0]) * 3, # laglen
+                                    'odim': dim_s0 * (lag_future[1] - lag_future[0]), # laglen,
                                     'laglen': laglen,
                                     # 'laglen_past': lag_past[1] - lag_past[0],
                                     # 'laglen_future': lag_future[1] - lag_future[0],
@@ -926,13 +945,13 @@ graph = OrderedDict([
                 #         'blocksize': 1,
                 #         'blockphase': [0],
                 #         'inputs': {                        
-                #             'lo': {'val': np.array([m_mins]).T, 'shape': (dim_s_proprio, 1)},
-                #             'hi': {'val': np.array([m_maxs]).T, 'shape': (dim_s_proprio, 1)},
+                #             'lo': {'val': np.array([m_mins]).T, 'shape': (dim_s0, 1)},
+                #             'hi': {'val': np.array([m_maxs]).T, 'shape': (dim_s0, 1)},
                 #             },
                 #         'outputs': {
-                #             'pre': {'shape': (dim_s_proprio, 1)},
-                #             'err': {'val': np.zeros((dim_s_proprio, 1)), 'shape': (dim_s_proprio, 1)},
-                #             'tgt': {'val': np.zeros((dim_s_proprio, 1)), 'shape': (dim_s_proprio, 1)},
+                #             'pre': {'shape': (dim_s0, 1)},
+                #             'err': {'val': np.zeros((dim_s0, 1)), 'shape': (dim_s0, 1)},
+                #             'tgt': {'val': np.zeros((dim_s0, 1)), 'shape': (dim_s0, 1)},
                 #             },
                 #         'models': {
                 #             'goal': {'type': 'random_uniform'}
@@ -965,7 +984,7 @@ graph = OrderedDict([
     #         'numsteps':  1, # numsteps,          # numsteps      / loopblocksize = looplength
     #         'loopblocksize': 1, #loopblocksize, # loopblocksize * looplength    = numsteps
     #         # can't do this dynamically yet without changing init passes
-    #         'outputs': {'pre': {'shape': (dim_s_proprio * 2, sweepmdl_input_flat)}},
+    #         'outputs': {'pre': {'shape': (dim_s0 * 2, sweepmdl_input_flat)}},
     #         'loop': [('none', {}) for i in range(2)], # lambda ref, i, obj: ('none', {}),
     #         'loopmode': 'sequential',
     #         'loopblock': loopblock_model,

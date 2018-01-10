@@ -25,7 +25,6 @@ def get_systemblock_pm(
     Generate configuration for pointmass system block using
     :mod:`smp_sys.systems.PointmassSys` and
     :mod:`smp_sys.systems.Pointmass2Sys`
-
     """
     global np, PointmassBlock2, meas
     logger.debug("get_systemblock_pm: dim_s0 = %d, dt= %f, lag = %d, kwargs = %s" % (dim_s0, dt, lag, kwargs))
