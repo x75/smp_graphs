@@ -4,10 +4,16 @@ the config is python, so we
  - import stuff we need in the config
  - put the graph config into a dict
 """
-
 # from smp_graphs.block import FuncBlock2
 # from smp_graphs.block_models import ModelBlock2
 
+class Wumba(object):
+    def __init__(self):
+        self.name = 1
+
+    def blub(self):
+        print self.name
+    
 randseed = 24
 # reused variables
 numsteps = 8000

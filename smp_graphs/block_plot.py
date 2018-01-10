@@ -158,7 +158,9 @@ class AnalysisBlock2(PrimBlock2):
         conf = defaults
 
         # check 'plot' type
-        if type(conf['plot']) is list:
+        if 'plot' not in conf:
+            conf_plot = [self.check_plot_type_single('timeseries')]
+        elif type(conf['plot']) is list:
             # check if str or func for each single element
             conf_plot = [self.check_plot_type_single(f) for f in conf['plot']]
             # conf_plot = conf['plot'] # [j]

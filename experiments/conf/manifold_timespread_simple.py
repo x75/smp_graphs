@@ -82,6 +82,10 @@ testcnf = {
     'logtype': 'testdata1',
 }
 
+# configuration for 1D pointmass prediction-measurement delay
+pmcnf = {
+}
+    
 cnf = ppycnf2
 numsteps = cnf['numsteps']
 xdim = cnf['xdim']
