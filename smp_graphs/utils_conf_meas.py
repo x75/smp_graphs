@@ -17,6 +17,39 @@ from smp_graphs.funcs import f_sum, f_envelope, f_rootmeansquare
 from smp_base.common import get_module_logger
 logger = get_module_logger(modulename = 'utils_conf_meas', loglevel = 'info')
 
+
+def make_input_matrix(id = 'xcorr', base = 'xcorr', xdim = 1, ydim = 1, with_t = False, scan = (-1, 0)):
+    """generate input config dict for a plot block for xcorr and similar inputs
+
+    Returns single input items as arrays.
+    """
+    # import numpy as np
+    # global scanstart, scanstop, scanlen
+    (scanstart, scanstop) = scan
+    scanlen = scanstop - scanstart
+    d = {'d3_%d_%d' % (i, j): {'bus': '%s/%s_%d_%d' % (id, base, i, j)} for j in range(xdim) for i in range(ydim)}
+    if with_t:
+        d['t'] = {'val': np.linspace(scanstart, scanstop-1, scanlen)}
+    # print d
+    return d
+
+def make_input_matrix_ndim(id = 'xcorr', base = 'xcorr', xdim = 1, ydim = 1, with_t = False, scan = (-1, 0)):
+    """generate input config dict for a plot block for xcorr and similar inputs
+
+    Returns single input with tensor shape.
+    """
+    # import numpy as np
+    # global scanstart, scanstop, scanlen
+    (scanstart, scanstop) = scan
+    scanlen = scanstop - scanstart
+    # d = {'d3_%d_%d' % (i, j): {'bus': '%s/%s_%d_%d' % (id, base, i, j)} for j in range(xdim) for i in range(ydim)}
+    d = {}
+    d['d3'] = {'bus': "%s/%s" % (id, base), 'shape': (ydim, xdim, scanlen)} # 
+    if with_t:
+        d['t'] = {'val': np.linspace(scanstart, scanstop-1, scanlen)}
+    # print d
+    return d
+
 kwargs = {
     'numsteps': 1000, 
     'p_vars': ['pre_l0/pre'], 

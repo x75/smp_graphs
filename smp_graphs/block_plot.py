@@ -553,6 +553,31 @@ class FigPlotBlock2(BaseplotBlock2):
         else:
             self.debug_print("%s.step", (self.__class__.__name__,))
 
+    def get_xaxis(self, subplotconf, xslice, plotlen, idxtup = None):
+        """get the plot xaxis
+
+        If configured as an input key, that input modulo the xslice param is taken.
+        if configured but not input key, taken as literal array
+        if not configured take minimum of plotlen and xlsice
+        """
+        if idxtup is not None:
+            (i, j, k) = idxtup
+             
+        # configure x axis, default implicit number of steps
+        if subplotconf.has_key('xaxis'):
+            if type(subplotconf['xaxis']) is str and subplotconf['xaxis'] in self.inputs.keys():
+                t = self.inputs[subplotconf['xaxis']]['val'].T[xslice] # []
+            else:
+                t = subplotconf['xaxis'] # self.inputs[ink]['val'].T[xslice] # []
+                self._debug("plot_subplots pass 1 subplot[%d,%d] input[%d] = %s xaxis setting t = %s from subplotconf['xaxis']" % (
+                    i, j, k, ink, t, ))
+        else:
+            if xslice.stop > plotlen:
+                t = np.linspace(0, plotlen - 1, plotlen)
+            else:
+                t = np.linspace(xslice.start, xslice.start+plotlen-1, plotlen)[xslice]
+        return t
+                
     def plot_subplots(self):
         """FigPlotBlock2.plot_subplots
 
@@ -747,19 +772,22 @@ class PlotBlock2(FigPlotBlock2):
                     self._debug("plot_subplots pass 1 subplot[%d,%d] input[%d] = %s shape xslice = %s, plotlen = %d, plotshape = %s" % (
                         i, j, k, ink, xslice, plotlen, plotshape))
                     
-                    # configure x axis, default implicit number of steps
-                    if subplotconf.has_key('xaxis'):
-                        if type(subplotconf['xaxis']) is str and subplotconf['xaxis'] in self.inputs.keys():
-                            t = self.inputs[subplotconf['xaxis']]['val'].T[xslice] # []
-                        else:
-                            t = subplotconf['xaxis'] # self.inputs[ink]['val'].T[xslice] # []
-                            self._debug("plot_subplots pass 1 subplot[%d,%d] input[%d] = %s xaxis setting t = %s from subplotconf['xaxis']" % (
-                                i, j, k, ink, t, ))
-                    else:
-                        if xslice.stop > plotlen:
-                            t = np.linspace(0, plotlen - 1, plotlen)
-                        else:
-                            t = np.linspace(xslice.start, xslice.start+plotlen-1, plotlen)[xslice]
+                    # # configure x axis, default implicit number of steps
+                    # if subplotconf.has_key('xaxis'):
+                    #     if type(subplotconf['xaxis']) is str and subplotconf['xaxis'] in self.inputs.keys():
+                    #         t = self.inputs[subplotconf['xaxis']]['val'].T[xslice] # []
+                    #     else:
+                    #         t = subplotconf['xaxis'] # self.inputs[ink]['val'].T[xslice] # []
+                    #         self._debug("plot_subplots pass 1 subplot[%d,%d] input[%d] = %s xaxis setting t = %s from subplotconf['xaxis']" % (
+                    #             i, j, k, ink, t, ))
+                    # else:
+                    #     if xslice.stop > plotlen:
+                    #         t = np.linspace(0, plotlen - 1, plotlen)
+                    #     else:
+                    #         t = np.linspace(xslice.start, xslice.start+plotlen-1, plotlen)[xslice]
+
+                    # get t axis
+                    t = self.get_xaxis(subplotconf, xslice, plotlen, (i, j, k))
                     
                     # print "%s.plot_subplots k = %s, ink = %s" % (self.cname, k, ink)
                     # plotdata[ink] = input_ink['val'].T[xslice]
@@ -1142,6 +1170,7 @@ class ImgPlotBlock2(FigPlotBlock2):
                 extrema[0,i,j] = np.min(subplotin['val'])
                 extrema[1,i,j] = np.max(subplotin['val'])
                 # print "i", i, "j", j, vmins_sb, vmaxs_sb
+                
         self._debug("%s mins = %s" % (self.id, extrema[0], ))
         self._debug("%s maxs = %s" % (self.id, extrema[1], ))
         vmins_sb = np.array(vmins_sb)
@@ -1262,6 +1291,7 @@ class ImgPlotBlock2(FigPlotBlock2):
                         # print "%s.plot_subplots(): dimstack x = %s, y = %s" % (self.cname, subplotconf['dimstack']['x'], subplotconf['dimstack']['y'])
                     else:
                         plotdata['i_%d_%d' % (i, j)] = plotdata_cand.reshape(subplotconf['shape'][0])
+                        
                     if subplotconf.has_key('ylog'):
                         # plotdata['i_%d_%d' % (i, j)] = np.log(plotdata['i_%d_%d' % (i, j)] + 1.0)
                         # print plotdata['i_%d_%d' % (i, j)]
@@ -1296,9 +1326,11 @@ class ImgPlotBlock2(FigPlotBlock2):
                         # print "Linv.shape", Linv.shape
                         # print "Linv", np.sum(np.abs(Linv))
                         plotfunc = "pcolorfast"
-                        plot_img(ax = ax, data = Linv, plotfunc = plotfunc,
-                                     vmin = vmin, vmax = vmax, cmap = cmap,
-                                     title = title)
+                        plot_img(
+                            ax = ax, data = Linv, plotfunc = plotfunc,
+                            vmin = vmin, vmax = vmax, cmap = cmap,
+                            title = title
+                        )
         # update
         plt.draw()
         plt.pause(1e-9)

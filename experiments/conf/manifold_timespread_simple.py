@@ -5,10 +5,13 @@ plot the sensorimotor manifold / pointcloud, example data from andi gerken's pup
 
 from matplotlib.pyplot import hexbin
 from smp_base.plot import histogramnd
+from smp_graphs.utils_conf_meas import make_input_matrix, make_input_matrix_ndim
 from smp_graphs.block_plot import SnsMatrixPlotBlock2, ImgPlotBlock2
 from smp_graphs.block import dBlock2, IBlock2, SliceBlock2, DelayBlock2, StackBlock2
 from smp_graphs.block_meas import XCorrBlock2
 from smp_graphs.block_meas_infth import JHBlock2, MIBlock2, InfoDistBlock2, TEBlock2, CTEBlock2, MIMVBlock2, TEMVBlock2
+
+
 
 # showplot = False
 
@@ -100,26 +103,6 @@ scanstart = -10
 scanstop = 0
 scanlen = scanstop - scanstart
     
-def make_input_matrix(id = 'xcorr', base = 'xcorr', xdim = 1, ydim = 1, with_t = False):
-    import numpy as np
-    global scanstart, scanstop, scanlen
-    d = {'d3_%d_%d' % (i, j): {'bus': '%s/%s_%d_%d' % (id, base, i, j)} for j in range(xdim) for i in range(ydim)}
-    if with_t:
-        d['t'] = {'val': np.linspace(scanstart, scanstop-1, scanlen)}
-    # print d
-    return d
-
-def make_input_matrix_ndim(id = 'xcorr', base = 'xcorr', xdim = 1, ydim = 1, with_t = False):
-    import numpy as np
-    global scanstart, scanstop, scanlen
-    # d = {'d3_%d_%d' % (i, j): {'bus': '%s/%s_%d_%d' % (id, base, i, j)} for j in range(xdim) for i in range(ydim)}
-    d = {}
-    d['d3'] = {'bus': "%s/%s" % (id, base), 'shape': (ydim, xdim, scanlen)} # 
-    if with_t:
-        d['t'] = {'val': np.linspace(scanstart, scanstop-1, scanlen)}
-    # print d
-    return d
-
 graph = OrderedDict([
     # get the data from logfile
     ('puppylog', {
@@ -422,7 +405,7 @@ graph = OrderedDict([
     #         'id': 'puppystack',
     #         'blocksize': numsteps,
     #         # puppy sensors
-    #         'inputs': make_input_matrix('xcorr', 'xcorr', xdim = xdim, ydim = ydim),
+    #         'inputs': make_input_matrix('xcorr', 'xcorr', xdim = xdim, ydim = ydim, scan = (scanstart, scanstop))),
     #         # 'inputs': {'x': {'bus': 'puppylog/y'}},
     #         # 'slices': {'x': {'y%d' % i: slice(i, i+1) for i in range(ydim)}},
     #         'outputs': {'y': {'shape': (xdim * ydim, 1)}} # overwrite
@@ -493,7 +476,7 @@ graph = OrderedDict([
             'debug': False,
             'saveplot': saveplot,
             'blocksize': numsteps,
-            'inputs': make_input_matrix_ndim(xdim = xdim, ydim = ydim, with_t = True),
+            'inputs': make_input_matrix_ndim(xdim = xdim, ydim = ydim, with_t = True, scan = (scanstart, scanstop)),
             'outputs': {}, #'x': {'shape': (3, 1)}},
             'wspace': 0.5,
             'hspace': 0.5,
@@ -520,8 +503,8 @@ graph = OrderedDict([
             'saveplot': saveplot,
             'debug': False,
             'blocksize': numsteps,
-            # 'inputs': make_input_matrix(xdim = xdim, ydim = ydim, with_t = True),
-            'inputs': make_input_matrix_ndim(xdim = xdim, ydim = ydim, with_t = True),
+            # 'inputs': make_input_matrix(xdim = xdim, ydim = ydim, with_t = True, scan = (scanstart, scanstop)),
+            'inputs': make_input_matrix_ndim(xdim = xdim, ydim = ydim, with_t = True, scan = (scanstart, scanstop)),
             'outputs': {}, #'x': {'shape': (3, 1)}},
             'wspace': 0.5,
             'hspace': 0.5,

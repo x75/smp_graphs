@@ -48,7 +48,8 @@ logger = get_module_logger(modulename = 'block_meas', loglevel = LOGLEVEL)
 def compute_xcor_matrix_src_dst(data, dst, src, shift = (-10, 11)):
     """compute_xcor_matrix_src_dst
 
-    Compute the cross-correlation function for one source/destination pair. The destination is shifted by convention.
+    Compute the cross-correlation function for one source/destination
+    pair. The destination is shifted by convention.
     """
     # # this makes an implicit diff on the y signal
     # return np.array([
@@ -59,7 +60,7 @@ def compute_xcor_matrix_src_dst(data, dst, src, shift = (-10, 11)):
     # don't do that
     x = data['x'].T[:,dst]
     y = data['y'].T[:,src]
-    # print "corr compute_xcor_matrix_src_dst shapes", x.shape, y.shape
+    logger.debug("corr compute_xcor_matrix_src_dst shapes = %s / %s", x.shape, y.shape)
     assert len(x.shape) == 1 and len(y.shape) == 1
     # normalization
     len_inv  = 1.0/x.shape[0] # 1 / N
@@ -126,7 +127,7 @@ class XCorrBlock2(PrimBlock2):
         for k in ['x', 'y']:
             d[k] = self.inputs[k]['val']
             # print "%s.step d[%s] = %s / %s" % (self.cname, k, d[k].shape, self.inputs[k][0])
-
+        # self._debug('data d = %s' % (d,))
         # compute the entire cross-correlation matrix looping over sources (motors)
         arraytosumraw = compute_xcor_matrix(data = d, shift = self.shift, src_dim = self.ydim, dst_dim = self.xdim)
         
@@ -139,9 +140,10 @@ class XCorrBlock2(PrimBlock2):
 
         # prepare required output shape
         # print "arraytosum.sh", arraytosumraw.shape
-        print "xcorr.shape", self.xcorr.shape
+        self._debug(" pre xcorr.shape = %s" % (self.xcorr.shape,))
         self.xcorr = arraytosumraw.reshape(self.outputs['xcorr']['shape']) # + (1,))
-        print "xcorr.shape", self.xcorr.shape #, self.xcorr
+        self._debug("post xcorr.shape = %s" % (self.xcorr.shape,))
+        # self._debug("xcorr = %s" % (self.xcorr,))
         
         # # fig = makefig(self.xdim, self.ydim)
         # for i in range(self.ydim):
