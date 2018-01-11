@@ -1302,6 +1302,10 @@ class ImgPlotBlock2(FigPlotBlock2):
 
                     title = "img plot"
                     if subplotconf.has_key('title'): title = subplotconf['title']
+
+                    colorbar = False
+                    if subplotconf.has_key('colorbar'): colorbar = subplotconf['colorbar']
+                    
                     # for k, ink in enumerate(subplotconf['input']):
                     #     plotdata[ink] = input_ink[0].T[xslice]
                     #     # fix nans
@@ -1329,7 +1333,7 @@ class ImgPlotBlock2(FigPlotBlock2):
                         plot_img(
                             ax = ax, data = Linv, plotfunc = plotfunc,
                             vmin = vmin, vmax = vmax, cmap = cmap,
-                            title = title
+                            title = title, colorbar = colorbar,
                         )
         # update
         plt.draw()

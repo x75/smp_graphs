@@ -8,26 +8,19 @@ from smp_graphs.block_meas import XCorrBlock2
 numsteps = 1000
 
 robot1 = get_systemblock['pm'](dim_s0 = 1)
-robot1['params']['transfer'] = 0 # 4 # cosine
+robot1['params']['transfer'] = 4 # cosine
 dim_s0 = robot1['params']['dims']['s0']['dim']
 dim_m0 = robot1['params']['dims']['m0']['dim']
 m_mins = np.array([robot1['params']['m_mins']]).T
 m_maxs = np.array([robot1['params']['m_maxs']]).T
 
+outputs = {'latex': {'type': 'latex'}}
+desc = 'numsteps = {0}'.format(numsteps/4)
+
 # scan parameters
 scanstart = -10
 scanstop = 0
 scanlen = scanstop - scanstart
-
-outputs = {'latex': {'type': 'latex'}}
-
-desc = """The same configuration as in the previous experiment is run
-for {0} time steps. Then a cross-correlation scan is performed on the
-motor variables $m$ versus the sensor variables $s_0$. The scan
-consists of computing the cross-correlation function of $m$ and $s0$
-with the result $s0$ being incrementally shifted one time step into
-the past. The range here is from {1} to {2}""".format(numsteps,
-scanstart, scanstop)
 
 graph = OrderedDict([
     # point mass system
