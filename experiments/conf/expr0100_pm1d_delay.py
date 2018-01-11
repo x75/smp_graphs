@@ -12,6 +12,7 @@ m_mins = np.array([robot1['params']['m_mins']]).T
 m_maxs = np.array([robot1['params']['m_maxs']]).T
 
 outputs = {'latex': {'type': 'latex'}}
+desc = 'In this experiment the action consists of uniform noise sampled at intervals of {0} steps. The robot has an inherent delay from motor input to sensor feedback of 2 timesteps. An agent does not know the timing parameters a priori for all bodies, environments or tasks. The agent could be supplied with all past and multimodal information but quite often, the relevant variables are sparsely distributed within any contiguous submatrix of SMT. Knowing the sites of relevant variables greatly increases the speed of learning. In this case, the sensor reponse is linear in the motor input so the temporal offset can easily be found with cross-correlation methods.'.format(numsteps/4)
 
 graph = OrderedDict([
     # point mass system

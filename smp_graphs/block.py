@@ -2306,10 +2306,10 @@ class Block2(object):
                 texbuf += figbuf
                 # if figc > 0 and figc % 2 == 0:
                 if figc % 2 == 1:
-                    texbuf += '\\mbox{}\\newpage\n'
+                    texbuf += '\\mbox{}\\smpnewpage\n'
                 figc += 1
                 
-        texbuf += '\\mbox{}\\newpage\n'
+        texbuf += '\\mbox{}\\smpnewpage\n'
 
         f.write(texbuf)
         f.flush()
