@@ -7,6 +7,7 @@ from smp_graphs.block_meas import XCorrBlock2
 from smp_graphs.block_meas_infth import MIBlock2
 
 numsteps = 1000
+debug = True
 
 robot1 = get_systemblock['pm'](dim_s0 = 1)
 robot1['params']['transfer'] = 4 # cosine
@@ -16,7 +17,12 @@ m_mins = np.array([robot1['params']['m_mins']]).T
 m_maxs = np.array([robot1['params']['m_maxs']]).T
 
 outputs = {'latex': {'type': 'latex'}}
-desc = 'numsteps = {0}'.format(numsteps/4)
+
+desc = """If experiment 0110 is repeated using a different functional
+relationship between motor and sensor values, the cross-correlation
+method fails because it can only capture linear relationships. The
+result can be restored however by using the mutual information instead
+of cross-correlation as the point-wise dependency measure.""".format(numsteps)
 
 # scan parameters
 scanstart = -10
@@ -49,7 +55,7 @@ graph = OrderedDict([
         }),
 
     # measurement
-    ('meas_l0', {
+    ('plot0_meas_l0', {
         'block': PlotBlock2,
         'params': {
             'blocksize': numsteps,
@@ -109,7 +115,7 @@ graph = OrderedDict([
     }),
     
     # scan plot
-    ('scan_plot', {
+    ('plot1_scan', {
         'block': ImgPlotBlock2,
         'params': {
             'logging': False,
@@ -152,7 +158,7 @@ graph = OrderedDict([
     }),
 
     # plot mi matrix as image
-    ('plot_mi', {
+    ('plot2_mi', {
         'enable': False,
         'block': ImgPlotBlock2,
         'params': {

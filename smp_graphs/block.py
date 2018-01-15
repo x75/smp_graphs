@@ -2210,8 +2210,12 @@ class Block2(object):
         # copy expr description from conf
         id_base_ = '\_'.join(self.id.split('_')[0:2])
         texbuf += '\mypara{%s description}%s\n' % (id_base_, self.desc, )
-        
-        output_figures = [(k, v) for k, v in self.outputs.items() if v.has_key('type') and v['type'] in ['fig', 'plot']]
+
+        outputs_keys = self.outputs.keys()
+        outputs_keys.sort()
+        self._debug("outputs_keys = %s" % (outputs_keys, ))
+        output_figures = [(k, self.outputs[k]) for k in outputs_keys if self.outputs[k].has_key('type') and self.outputs[k]['type'] in ['fig', 'plot']]
+        # output_figures = [(k, v) for k, v in self.outputs.items() if v.has_key('type') and v['type'] in ['fig', 'plot']]
         # print "Block2.latex_close: |output_figures| = %s" % ( len(output_figures), )
 
         """
