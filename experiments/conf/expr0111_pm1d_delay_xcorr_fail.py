@@ -4,6 +4,7 @@
 from smp_graphs.utils_conf import get_systemblock
 from smp_graphs.utils_conf_meas import make_input_matrix_ndim
 from smp_graphs.block_meas import XCorrBlock2
+from smp_graphs.block_meas_infth import MIBlock2
 
 numsteps = 1000
 
@@ -76,8 +77,36 @@ graph = OrderedDict([
         }
     }),
     
-    # cross-correlation plot
-    ('xcorr_plot', {
+    # motor/sensor mutual information analysis of data
+    ('mi', {
+        'block': LoopBlock2,
+        'params': {
+            'id': 'mi',
+            'loop': [
+                (
+                    'inputs', {'y': {'bus': 'pre_l0/pre', 'shape': (dim_m0, numsteps)}, 'x': {'bus': 'robot1/s0', 'shape': (dim_s0, numsteps)}}
+                ),
+            ],
+            'loopmode': 'parallel',
+            'loopblock': {
+                'block': MIBlock2,
+                'params': {
+                    'id': 'mi',
+                    'blocksize': numsteps,
+                    'debug': True,
+                    'inputs': {'x': {'bus': 'puppyslice/x_all'}, 'y': {'bus': 'puppylog/y'}},
+                    # 'shift': (-120, 8),
+                    'shift': (scanstart, scanstop),
+                    # 'outputs': {'mi': {'shape': ((dim_s0 + xdim)**2, 1)}}
+                    # 'outputs': {'mi': {'shape': (scanlen * dim_s0 * dim_m0, 1)}}
+                    'outputs': {'mi': {'shape': (dim_s0, dim_m0, scanlen)}}
+                }
+            },
+        }
+    }),
+    
+    # scan plot
+    ('scan_plot', {
         'block': ImgPlotBlock2,
         'params': {
             'logging': False,
@@ -86,7 +115,7 @@ graph = OrderedDict([
             'blocksize': numsteps,
             # 'inputs': make_input_matrix(xdim = dim_m0, ydim = dim_s0, with_t = True),
             'inputs': make_input_matrix_ndim(xdim = dim_m0, ydim = dim_s0, with_t = True, scan = (scanstart, scanstop)),
-            'outputs': {}, #'x': {'shape': (3, 1)}},
+            # 'outputs': {}, #'x': {'shape': (3, 1)}},
             'wspace': 0.5,
             'hspace': 0.5,
             'subplots': [
@@ -102,6 +131,72 @@ graph = OrderedDict([
                         'colorbar': True,
                     } for j in range(dim_m0)] # 'seismic'
             for i in range(dim_s0)],
+        },
+    }),
+
+    # plot mi matrix as image
+    ('plot_mi', {
+        'block': ImgPlotBlock2,
+        'params': {
+            'logging': False,
+            'saveplot': saveplot,
+            # 'debug': False,
+            'wspace': 0.1,
+            'hsapce': 0.1,
+            'blocksize': numsteps,
+            # 'inputs': {'d1': {'bus': 'mi_1/mi'}, 'd2': {'bus': 'infodist_1/infodist'}},
+            'inputs': {'d1': {'bus': 'mi_ll0_ll0/mi'}}, # .update(make_input_matrix_ndim(xdim = dim_m0, ydim = dim_s0, with_t = True, scan = (scanstart, scanstop))),
+            # 'outputs': {}, #'x': {'shape': (3, 1)}},
+            # 'subplots': [
+            #     [
+            #         {'input': 'd1', 'xslice': (0, (xdim + dim_s0)**2),
+            #              'shape': (xdim+dim_s0, xdim+dim_s0), 'plot': 'bla'},
+            #         {'input': 'd2', 'xslice': (0, (xdim + dim_s0)**2),
+            #              'shape': (xdim+dim_s0, xdim+dim_s0), 'plot': 'bla'},
+            #     ],
+            # ],
+            # 'subplots': [
+            #     [
+            #         {'input': 'd1', 'xslice': (0, xdim * dim_s0),
+            #              'shape': (dim_s0, xdim), 'plot': 'bla'},
+            #         {'input': 'd2', 'xslice': (0, xdim * dim_s0),
+            #              'shape': (dim_s0, xdim), 'plot': 'bla'},
+            #     ],
+            # ],
+            'subplots': [
+                
+                [
+                    {'input': 'd1',
+                     # 'yslice': (i * dim_m0 * dim_s0, (i+1) * dim_m0 * dim_s0),
+                     # 'xslice': (0, 1),
+                     'ndslice': (i, slice(None), slice(None)),
+                     'shape': (dim_s0, dim_m0),
+                     'title': 'mi-matrix', 'cmap': 'Reds',
+                     'vaxis': 'rows',
+                     'plot': 'bla'} for i in range(scanlen)
+                ],
+                
+                # [
+                #     {'input': 'd2',
+                #      # 'yslice': (i * dim_m0 * dim_s0, (i+1) * dim_m0 * dim_s0),
+                #      # 'xslice': (0, 1),
+                #      'ndslice': (i, slice(None), slice(None)),
+                #      'title': 'te-matrix', 'cmap': 'Reds',
+                #      'vaxis': 'rows',
+                #      'shape': (dim_s0, dim_m0),
+                #      'plot': 'bla'} for i in range(scanlen)
+                # ],
+                # [
+                #     {'input': 'd3',
+                #      # 'yslice': (i * dim_m0 * dim_s0, (i+1) * dim_m0 * dim_s0),
+                #      # 'xslice': (0, 1),
+                #      'ndslice': (i, slice(None), slice(None)),
+                #      'title': 'cte-matrix', 'cmap': 'Reds',
+                #      'vaxis': 'rows',
+                #      'shape': (dim_s0, dim_m0),
+                #      'plot': 'bla'} for i in range(scanlen)
+                # ],
+            ],
         },
     }),
     
