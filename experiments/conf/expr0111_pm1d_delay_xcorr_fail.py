@@ -23,6 +23,9 @@ scanstart = -10
 scanstop = 0
 scanlen = scanstop - scanstart
 
+scan_plot_inputs = make_input_matrix_ndim(xdim = dim_m0, ydim = dim_s0, with_t = True, scan = (scanstart, scanstop))
+scan_plot_inputs['d1'] = {'bus': 'mi_ll0_ll0/mi', 'shape': (dim_s0, dim_m0, scanlen)}
+
 graph = OrderedDict([
     # point mass system
     ('robot1', robot1),
@@ -114,7 +117,7 @@ graph = OrderedDict([
             'debug': False,
             'blocksize': numsteps,
             # 'inputs': make_input_matrix(xdim = dim_m0, ydim = dim_s0, with_t = True),
-            'inputs': make_input_matrix_ndim(xdim = dim_m0, ydim = dim_s0, with_t = True, scan = (scanstart, scanstop)),
+            'inputs': scan_plot_inputs,
             # 'outputs': {}, #'x': {'shape': (3, 1)}},
             'wspace': 0.5,
             'hspace': 0.5,
@@ -122,20 +125,35 @@ graph = OrderedDict([
                 # [{'input': ['d3'], 'ndslice': (i, j, ), 'xslice': (0, scanlen), 'xaxis': 't',
                 #   'plot': partial(timeseries, linestyle="none", marker=".")} for j in range(dim_m0)]
                 # for i in range(dim_s0)],
+                # xcorr scan
                 [
                     {
-                        'input': ['d3'], 'ndslice': (slice(scanlen), i, j),
-                        'shape': (1, scanlen), 'cmap': 'RdGy', 'title': 'xcorrs',
+                        'input': ['d3'], 'ndslice': (slice(scanlen), j, i),
+                        'shape': (dim_s0, scanlen), 'cmap': 'RdGy', 'title': 'cross-correlation',
                         'vmin': -1.0, 'vmax': 1.0, 'vaxis': 'cols',
                         'xaxis': range(scanstart, scanstop),
+                        # 'colorbar': True,
+                    } for i in range(dim_m0)] # 'seismic'
+            for j in range(dim_s0)] + [
+                # mutual information scan
+                [
+                    {
+                        'input': 'd1',
+                        # 'yslice': (i * dim_m0 * dim_s0, (i+1) * dim_m0 * dim_s0),
+                        # 'xslice': (0, 1),
+                        'ndslice': (slice(scanlen), i, 0),
+                        'shape': (dim_s0, scanlen), 'cmap': 'RdGy', 'title': 'mutual information',
+                        'vmin': -1.0, 'vmax': 1.0, 'vaxis': 'cols',
                         'colorbar': True,
-                    } for j in range(dim_m0)] # 'seismic'
-            for i in range(dim_s0)],
+                    } for i in range(dim_m0)
+                ],
+            ],
         },
     }),
 
     # plot mi matrix as image
     ('plot_mi', {
+        'enable': False,
         'block': ImgPlotBlock2,
         'params': {
             'logging': False,
@@ -145,7 +163,7 @@ graph = OrderedDict([
             'hsapce': 0.1,
             'blocksize': numsteps,
             # 'inputs': {'d1': {'bus': 'mi_1/mi'}, 'd2': {'bus': 'infodist_1/infodist'}},
-            'inputs': {'d1': {'bus': 'mi_ll0_ll0/mi'}}, # .update(make_input_matrix_ndim(xdim = dim_m0, ydim = dim_s0, with_t = True, scan = (scanstart, scanstop))),
+            'inputs': {'d1': {'bus': 'mi_ll0_ll0/mi', 'shape': (dim_s0, dim_m0, scanlen)}}, # .update(make_input_matrix_ndim(xdim = dim_m0, ydim = dim_s0, with_t = True, scan = (scanstart, scanstop))),
             # 'outputs': {}, #'x': {'shape': (3, 1)}},
             # 'subplots': [
             #     [
