@@ -5,6 +5,8 @@ from smp_graphs.utils_conf import get_systemblock
 from smp_graphs.utils_conf_meas import make_input_matrix_ndim
 from smp_graphs.block_meas import XCorrBlock2
 
+from numpy import arange
+
 numsteps = 1000
 
 robot1 = get_systemblock['pm'](dim_s0 = 1)
@@ -112,7 +114,8 @@ graph = OrderedDict([
                         'input': ['d3'], 'ndslice': (slice(scanlen), i, j),
                         'shape': (1, scanlen), 'cmap': 'RdGy', 'title': 'xcorrs',
                         'vmin': -1.0, 'vmax': 1.0, 'vaxis': 'cols',
-                        'xaxis': range(scanstart, scanstop),
+                        'xticks': (arange(scanlen) + 0.5).tolist(),
+                        'xticklabels': range(scanstart, scanstop),
                         'colorbar': True,
                     } for j in range(dim_m0)] # 'seismic'
             for i in range(dim_s0)],

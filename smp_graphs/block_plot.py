@@ -569,8 +569,8 @@ class FigPlotBlock2(BaseplotBlock2):
                 t = self.inputs[subplotconf['xaxis']]['val'].T[xslice] # []
             else:
                 t = subplotconf['xaxis'] # self.inputs[ink]['val'].T[xslice] # []
-                self._debug("plot_subplots pass 1 subplot[%d,%d] input[%d] = %s xaxis setting t = %s from subplotconf['xaxis']" % (
-                    i, j, k, ink, t, ))
+                # self._debug("plot_subplots pass 1 subplot[%d,%d] input[%d] = %s xaxis setting t = %s from subplotconf['xaxis']" % (
+                #     i, j, k, ink, t, ))
         else:
             if xslice.stop > plotlen:
                 t = np.linspace(0, plotlen - 1, plotlen)
@@ -578,6 +578,18 @@ class FigPlotBlock2(BaseplotBlock2):
                 t = np.linspace(xslice.start, xslice.start+plotlen-1, plotlen)[xslice]
         return t
                 
+    def subplotconf2kwargs(self, subplotconf, i, j):
+        kwargs = {}
+        for kw in [
+                'aspect', 'orientation', 'labels',
+                'title_pos',
+                'xlabel', 'xlim', 'xticks', 'xticklabels', 'xinvert', 'xtwin',
+                'ylabel', 'ylim', 'yticks', 'yticklabels', 'yinvert', 'ytwin', ]:
+            if subplotconf.has_key(kw):
+                kwargs[kw] = subplotconf[kw]
+            self._debug("plot_subplots pass 1 subplot[%d,%d] kwargs = %s" % (i, j, kwargs))
+        return kwargs
+            
     def plot_subplots(self):
         """FigPlotBlock2.plot_subplots
 
@@ -904,15 +916,7 @@ class PlotBlock2(FigPlotBlock2):
                 # plotvar = self.inputs[subplotconf['input'][0]][2]
 
                 # transfer plot_subplot configuration keywords subplotconf to plot kwargs
-                kwargs = {}
-                for kw in [
-                        'aspect', 'orientation', 'labels',
-                        'title_pos',
-                        'xlabel', 'xlim', 'xticks', 'xticklabels', 'xinvert', 'xtwin',
-                        'ylabel', 'ylim', 'yticks', 'yticklabels', 'yinvert', 'ytwin', ]:
-                    if subplotconf.has_key(kw):
-                        kwargs[kw] = subplotconf[kw]
-                self._debug("plot_subplots pass 1 subplot[%d,%d] kwargs = %s" % (i, j, kwargs))
+                kwargs = self.subplotconf2kwargs(subplotconf, i, j)
                 
                 # prep axis
                 ax = axs['main']['ax']
@@ -1206,7 +1210,10 @@ class ImgPlotBlock2(FigPlotBlock2):
 
                     xslice = slice(None)
                     yslice = slice(None)
-                    
+
+                    # transfer plot_subplot configuration keywords subplotconf to plot kwargs
+                    kwargs = self.subplotconf2kwargs(subplotconf, i, j)
+
                     # check for slice specs
                     if subplotconf.has_key('xslice'):
                         xslice = slice(subplotconf['xslice'][0], subplotconf['xslice'][1])
@@ -1244,9 +1251,10 @@ class ImgPlotBlock2(FigPlotBlock2):
                     # print "%s plot_subplots self.inputs[subplotconf['input'][0]]['val'].shape = %s" % (self.cname, self.inputs[subplotconf['input'][0]]['val'].shape)
                     # old version
                     # plotdata_cand = self.inputs[subplotconf['input'][0]]['val'][yslice,xslice]
-
-                    ink = subplotconf['input'][0]
-                    input_ink = self.check_plot_input(ink, [i, j, 0])
+                    
+                    k = 0
+                    ink = subplotconf['input'][k]
+                    input_ink = self.check_plot_input(ink, [i, j, k])
                     if not input_ink: continue
                         
                     # FIXME completeness if input is ndim, currently only first dim is handled
@@ -1299,13 +1307,19 @@ class ImgPlotBlock2(FigPlotBlock2):
                     else:
                         yscale = 'linear'
                     plotvar = self.inputs[subplotconf['input'][0]]['bus']
+                    
+                    plotlen = input_ink['shape'][-1] # numsteps at shape[-1]
 
                     title = "img plot"
                     if subplotconf.has_key('title'): title = subplotconf['title']
 
-                    colorbar = False
-                    if subplotconf.has_key('colorbar'): colorbar = subplotconf['colorbar']
-                    
+                    # colorbar = False
+                    for kwk in ['colorbar', 'colorbar_orientation']:
+                        if subplotconf.has_key(kwk): kwargs[kwk] = subplotconf[kwk]
+
+                    # get t axis
+                    # t = self.get_xaxis(subplotconf, xslice, plotlen, (i, j, k))
+                        
                     # for k, ink in enumerate(subplotconf['input']):
                     #     plotdata[ink] = input_ink[0].T[xslice]
                     #     # fix nans
@@ -1331,10 +1345,9 @@ class ImgPlotBlock2(FigPlotBlock2):
                         # print "Linv", np.sum(np.abs(Linv))
                         plotfunc = "pcolorfast"
                         plot_img(
-                            ax = ax, data = Linv, plotfunc = plotfunc,
+                            ax = ax, data = Linv, plotfunc = plotfunc, # , ordinate = t
                             vmin = vmin, vmax = vmax, cmap = cmap,
-                            title = title, colorbar = colorbar,
-                        )
+                            title = title, **kwargs)
         # update
         plt.draw()
         plt.pause(1e-9)

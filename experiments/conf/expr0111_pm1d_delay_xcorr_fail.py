@@ -6,7 +6,7 @@ from smp_graphs.utils_conf_meas import make_input_matrix_ndim
 from smp_graphs.block_meas import XCorrBlock2
 from smp_graphs.block_meas_infth import MIBlock2
 
-numsteps = 1000
+numsteps = 2000
 debug = True
 
 robot1 = get_systemblock['pm'](dim_s0 = 1)
@@ -135,10 +135,12 @@ graph = OrderedDict([
                 [
                     {
                         'input': ['d3'], 'ndslice': (slice(scanlen), j, i),
-                        'shape': (dim_s0, scanlen), 'cmap': 'RdGy', 'title': 'cross-correlation',
+                        'shape': (dim_s0, scanlen), 'cmap': 'RdGy', 'title': 'Cross-correlation',
                         'vmin': -1.0, 'vmax': 1.0, 'vaxis': 'cols',
-                        'xaxis': range(scanstart, scanstop),
-                        # 'colorbar': True,
+                        'xticks': False,
+                        'xlabel': None,
+                        # 'xaxis': range(scanstart, scanstop),
+                        'colorbar': True, 'colorbar_orientation': 'vertical',
                     } for i in range(dim_m0)] # 'seismic'
             for j in range(dim_s0)] + [
                 # mutual information scan
@@ -148,9 +150,12 @@ graph = OrderedDict([
                         # 'yslice': (i * dim_m0 * dim_s0, (i+1) * dim_m0 * dim_s0),
                         # 'xslice': (0, 1),
                         'ndslice': (slice(scanlen), i, 0),
-                        'shape': (dim_s0, scanlen), 'cmap': 'RdGy', 'title': 'mutual information',
-                        'vmin': -1.0, 'vmax': 1.0, 'vaxis': 'cols',
-                        'colorbar': True,
+                        'shape': (dim_s0, scanlen), 'cmap': 'Greys', 'title': 'Mutual information',
+                        'vmin': 0.0, 'vmax': 1.0, 'vaxis': 'cols',
+                        'xticks': (np.arange(scanlen) + 0.5).tolist(),
+                        'xticklabels': range(scanstart, scanstop),
+                        'xlabel': 'time shift [steps]',
+                        'colorbar': True, 'colorbar_orientation': 'vertical',
                     } for i in range(dim_m0)
                 ],
             ],
