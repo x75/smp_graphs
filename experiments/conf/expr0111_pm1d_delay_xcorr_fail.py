@@ -18,11 +18,12 @@ m_maxs = np.array([robot1['params']['m_maxs']]).T
 
 outputs = {'latex': {'type': 'latex'}}
 
-desc = """If experiment 0110 is repeated using a different functional
-relationship between motor and sensor values, the cross-correlation
-method fails because it can only capture linear relationships. The
-result can be restored however by using the mutual information instead
-of cross-correlation as the point-wise dependency measure.""".format(numsteps)
+desc = """If previous experiment (expr0110) is repeated on a system
+with a nonlinear functional relationship between motor and sensor
+values, $s_0 = \\cos(m_0)$ for example, the cross-correlation method
+fails because it can only capture linear relationships. The result can
+be restored however by using the mutual information instead of
+cross-correlation as the point-wise dependency measure.""".format(numsteps)
 
 # scan parameters
 scanstart = -10
@@ -60,6 +61,13 @@ graph = OrderedDict([
         'params': {
             'blocksize': numsteps,
             'saveplot': saveplot, 'savetype': 'pdf',
+            'desc': """Timeseries of the motor values $\\hat s_0$ in
+            blue and the sensor values $s_0$ in green. The
+            motor-sensor relationship of this system, for example a
+            joint angle controlled cartesian end-effector coordinate,
+            still is systematic but not bijective anymore and the
+            sensor responses lump together in the positive
+            half-plane.""",
             'inputs': {
                 's0': {'bus': 'robot1/s0', 'shape': (dim_s0, numsteps)},
                 's0p': {'bus': 'pre_l0/pre', 'shape': (dim_m0, numsteps)},
@@ -120,6 +128,14 @@ graph = OrderedDict([
         'params': {
             'logging': False,
             'saveplot': saveplot,
+            'desc': """Results of a cross-correlation scan (top) and a
+            mutual information scan (bottom). Normalized correlation
+            coefficients take on values in the interval $[-1, 1]$. The
+            normalized mutual information has a range of $[0,
+            1]$. Cross-correlation is not able to pick up the
+            systematic dependence of $s_0$ on $\\hat s_0$ indicated by
+            values close to zero. Mutual information restores the
+            qualitative picture from the linear case.""",
             'debug': False,
             'blocksize': numsteps,
             # 'inputs': make_input_matrix(xdim = dim_m0, ydim = dim_s0, with_t = True),
@@ -137,8 +153,8 @@ graph = OrderedDict([
                         'input': ['d3'], 'ndslice': (slice(scanlen), j, i),
                         'shape': (dim_s0, scanlen), 'cmap': 'RdGy', 'title': 'Cross-correlation',
                         'vmin': -1.0, 'vmax': 1.0, 'vaxis': 'cols',
-                        'xticks': False,
-                        'xlabel': None,
+                        'xticks': False, 'xlabel': None,
+                        'yticks': False, 'ylabel': None,
                         # 'xaxis': range(scanstart, scanstop),
                         'colorbar': True, 'colorbar_orientation': 'vertical',
                     } for i in range(dim_m0)] # 'seismic'
@@ -155,6 +171,7 @@ graph = OrderedDict([
                         'xticks': (np.arange(scanlen) + 0.5).tolist(),
                         'xticklabels': range(scanstart, scanstop),
                         'xlabel': 'time shift [steps]',
+                        'yticks': False, 'ylabel': None,
                         'colorbar': True, 'colorbar_orientation': 'vertical',
                     } for i in range(dim_m0)
                 ],

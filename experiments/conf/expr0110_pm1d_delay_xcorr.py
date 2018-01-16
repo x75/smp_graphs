@@ -7,7 +7,7 @@ from smp_graphs.block_meas import XCorrBlock2
 
 from numpy import arange
 
-numsteps = 1000
+numsteps = 2000
 
 robot1 = get_systemblock['pm'](dim_s0 = 1)
 robot1['params']['transfer'] = 0 # 4 # cosine
@@ -114,6 +114,7 @@ graph = OrderedDict([
                         'input': ['d3'], 'ndslice': (slice(scanlen), i, j),
                         'shape': (1, scanlen), 'cmap': 'RdGy', 'title': 'xcorrs',
                         'vmin': -1.0, 'vmax': 1.0, 'vaxis': 'cols',
+                        'yticks': False, 'yticklabels': None, 'ylabel': None,
                         'xticks': (arange(scanlen) + 0.5).tolist(),
                         'xticklabels': range(scanstart, scanstop),
                         'colorbar': True,

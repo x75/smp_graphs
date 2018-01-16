@@ -2302,8 +2302,9 @@ class Block2(object):
                     refs.append(subfigref_)
                     descs.append(figdesc_)
 
-                c_ = ', '.join(["%s \\autoref{fig:%s}" % (desc, ref) for (desc, ref) in zip(descs, refs)])
-                caption = "  \\end{minipage}\n\\captionof{figure}{\\label{fig:%s-%s}%s %s.}}\n\n\n" % (figlabel_, figk, id_, c_)
+                # c_ = ', '.join(["%s \\autoref{fig:%s}" % (desc, ref) for (desc, ref) in zip(descs, refs)])
+                c_ = ', '.join(["%s" % (desc, ) for (desc, ref) in zip(descs, refs)])
+                caption = "  \\end{minipage}\n\\captionof{figure}{\\label{fig:%s-%s}%s %s}}\n\n\n" % (figlabel_, figk, id_, c_)
                 # caption = "  \\caption{\\label{fig:%s-%s}%s %s.}\n\\end{figure}\n\n\n" % (figlabel_, figk, id_, c_)
                 figbuf += caption
                 
