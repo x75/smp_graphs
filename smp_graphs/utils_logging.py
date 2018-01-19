@@ -237,8 +237,8 @@ def log_pd_store():
     global log_lognodes, log_store
     for k,v in log_lognodes.items():
         # if 'b4/' in k:
-        if np.any(np.isnan(v)):
-            logger.warning("storing nan values, table k = %s with data type = %s" % (k, type(v)))
+        # if np.any(np.isnan(v)):
+        #     logger.warning("storing nan values, table k = %s with data type = %s" % (k, type(v)))
         log_store[k] = v
 
 def log_pd(tbl_name, data):

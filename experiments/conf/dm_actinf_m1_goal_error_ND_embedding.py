@@ -132,11 +132,12 @@ print "dm_actinf_m1_goal_error_ND_embedding.py: dim_s0 = %s" % (dim_s0, )
 
 def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
     global partial
-    global PlotBlock2, numsteps, timeseries, algo, dim_s1, dim_s0, sysname, lag, lag_past, lag_future
+    global PlotBlock2, numsteps, timeseries, algo, dim_s1, dim_s0, sysname, lag, lag_past, lag_future, saveplot
     return {
     'block': PlotBlock2,
     'params': {
         'blocksize': blocksize,
+        'saveplot': saveplot,
         'title': '%s\nalgo %s, sys %s(d_p=%d), lag %d, tap- %s, tap+ %s' % (
             'dm actinf m1', algo, sysname, dim_s0, lag, lag_past, lag_future),
         'inputs': {
