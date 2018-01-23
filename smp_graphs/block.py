@@ -2242,7 +2242,10 @@ class Block2(object):
             caption = "  \\caption{\\label{fig:%s}%s.}\n\\end{figure}\n" % (figv['label'], c_)
             texbuf += caption
         """
+        
         figc = 0
+        figrefs = []
+        figbuf_all = ''
         if len(output_figures) > 0:
             for figk, figv in output_figures:
                 descs = []
@@ -2302,20 +2305,34 @@ class Block2(object):
                     refs.append(subfigref_)
                     descs.append(figdesc_)
 
+                # figrefs.append(figref_)
+                figrefs.append('%s-%s' % (figlabel_, figk))
+                
                 # c_ = ', '.join(["%s \\autoref{fig:%s}" % (desc, ref) for (desc, ref) in zip(descs, refs)])
                 c_ = ', '.join(["%s" % (desc, ) for (desc, ref) in zip(descs, refs)])
-                caption = "  \\end{minipage}\n\\captionof{figure}{\\label{fig:%s-%s}%s %s}}\n\n\n" % (figlabel_, figk, id_, c_)
+                caption = "  \\end{minipage}\n\\captionof{figure}{\\label{fig:%s-%s}Experiment \\ref{sec:%s}-%d %s}}\n\n\n" % (figlabel_, figk, id_, figc + 1, c_)
                 # caption = "  \\caption{\\label{fig:%s-%s}%s %s.}\n\\end{figure}\n\n\n" % (figlabel_, figk, id_, c_)
                 figbuf += caption
                 
-                texbuf += figbuf
+                figbuf_all += figbuf
                 # if figc > 0 and figc % 2 == 0:
                 if figc % 2 == 1:
-                    texbuf += '\\mbox{}\\smpnewpage\n'
+                    figbuf_all += '\\mbox{}\\smpnewpage\n'
                 figc += 1
+
+        # Compile list with references to all figures in this experiment
+        figrefsbuf = 'The results are shown in the figures ' + ', '.join(['\\ref{{fig:{0}}}.'.format(label) for label in figrefs]) + '\n'
+
+        # append figure refs to tex buffer
+        texbuf += figrefsbuf
+
+        # append figure code to tex buffer
+        texbuf += figbuf_all
                 
+        # call optional closing hooks
         texbuf += '\\mbox{}\\smpnewpage\n'
 
+        # write the text buffer and close the file
         f.write(texbuf)
         f.flush()
         f.close()
