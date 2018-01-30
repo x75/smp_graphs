@@ -130,6 +130,9 @@ class MIBlock2(InfthPrimBlock2):
         jh = self.normalize(src, dst)
         
         self._debug("%s.step[%d]-%s src.shape = %s, dst.shape = %s" % (self.cname, self.cnt, self.id, src.shape, dst.shape,))
+        # print "logger handlers", self.logger.handlers # .terminator = ''
+        # self.logger.handlers[0].terminator = ''
+        self._debug("scanning")
         
         for i in range(self.shift[0], self.shift[1]):
             self._debug("%d" % (i, ),)
@@ -145,7 +148,8 @@ class MIBlock2(InfthPrimBlock2):
             
             meas.append(mi.copy())
 
-        # print ""
+        # self.logger.handlers[0].terminator = '\n'
+        # self._debug('')
         meas = np.array(meas)
         self.mi = meas.T.copy() # * jh
         self._debug("%s-%s.mi = %s\n    mi/jh = %s/%s" % (self.cname, self.id, self.mi.shape, self.mi, jh)) # , mi.shape

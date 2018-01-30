@@ -18,7 +18,7 @@ m_maxs = np.array([robot1['params']['m_maxs']]).T
 
 outputs = {'latex': {'type': 'latex'}}
 
-desc = """If previous experiment (expr0110) is repeated on a system
+desc = """When the previous experiment (expr0110) is repeated on a system
 with a nonlinear functional relationship between motor and sensor
 values, $s_0 = \\cos(m_0)$ for example, the cross-correlation method
 fails because it can only capture linear relationships. The result can

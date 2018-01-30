@@ -1138,6 +1138,34 @@ class PlotBlock2(FigPlotBlock2):
 
 # plot a matrix via imshow/pcolor
 class ImgPlotBlock2(FigPlotBlock2):
+    """ImgPlotBlock2 class
+    
+    Block for plotting 2-dimensional data as an image (matrices, scans, ...)
+
+    Arguments:
+    - conf(dict): configuration dictionary
+    - paren(Block2): pointer to parent (graph)
+    - paren(Block2): pointer to topblock (graph)
+
+    Configuration dictionary 'conf':
+    - Global
+    -- logging:
+    -- debug:
+    -- saveplot: [False]
+    -- savetype: [pdf]
+    -- savesize: [2.5 x 1 * scale constant]
+    -- wspace:
+    -- hspace:
+    -- inputs: 
+    -- desc: Description of the plot which is put into the figure caption during latex output
+    -- subplots(list): list of lists, first axis are subplot rows, second axis are subplot columns
+
+    - Subplot configuration
+    -- input(list): list of input keys to be included in this subplot
+    -- plot(list): list of plot_func function pointers
+    -- title: the subplot title
+    -- 
+    """
     def __init__(self, conf = {}, paren = None, top = None):
         FigPlotBlock2.__init__(self, conf = conf, paren = paren, top = top)
 

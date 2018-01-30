@@ -22,12 +22,37 @@ m_maxs = np.array([robot1['params']['m_maxs']]).T
 
 outputs = {'latex': {'type': 'latex'}}
 
-desc = """If previous experiment (expr0120) is repeated on a system
-with a nonlinear functional relationship between motor and sensor
-values, $s_0 = \\cos(m_0)$ for example, the cross-correlation method
-fails because it can only capture linear relationships. The result can
-be restored however by using the mutual information instead of
-cross-correlation as the point-wise dependency measure.""".format(numsteps)
+desc = """The system used in the experiment expr0111 is extended
+further by an additional \\emph{{order}}. This means, the dimension of
+the primary motor variable at order 0 is kept the same but an
+additional variable is introduced into the system state at order 1,
+which is computed by integrating the order 0 variable. A simple
+interpretation is the relation of acceleration and velocity. Also, the
+nonlinear functional relationship between motor and sensor values at
+order 0 is being kept. The coupling between action and effect is set
+to a lag of two time steps. The raw timeseries of the full system
+state is shown in
+\\autoref{{fig:smp-expr0120-pm1d-ar1d-scan-example-plot0_meas_l0}}
+with the motor and proprioceptive signal in the top panel (order 0),
+and the velocity (order 1) in the bottom panel. The velocity is
+computed by integrating the acceleration with a dissipative term
+modelling friction. Thus, the velocity cannot grow without bounds and
+saturates close to a value of 0.55. The scan results are shown in
+\\autoref{{fig:smp-expr0120-pm1d-ar1d-scan-example-plot_xcorr}}. Four
+pairwise scans are performed in total one the pairs $(m_0, s_1), (s_1,
+s_1)$ using the cross-correlation and the mutual information measures.
+The first pair is the motor signal (order 0) and the velocity sensor
+(order 1), the second one is the self-pair of the velocity sensor. The
+system is designed so that the information in the velocity is
+determined both by a cross-modal action and an intrinsic memory. The
+memory is caused by inertia in this case. Cross-correlation fails
+again to detect the nonlinear and integral relationship between action
+and velocity, which mutual information is able to capture. The scan is
+performed over a range of 100 timesteps and the results show that
+temporal dependencies are close to the current time step and compactly
+distributed. For the given window size, the dependency measure over
+time converges, indicated by values close to zero for all measures
+starting from ten time steps into the past.""".format(numsteps)
 
 # scan parameters
 scanstart = -100
@@ -61,19 +86,21 @@ graph = OrderedDict([
             },
         }),
 
-    # measurement
+    # plot measurement: timeseries
     ('plot0_meas_l0', {
         'block': PlotBlock2,
         'params': {
             'blocksize': numsteps,
             'saveplot': saveplot, 'savetype': 'pdf',
             'desc': """Timeseries of the motor values $\\hat s_0$ in
-            blue and the sensor values $s_0$ in green. The
-            motor-sensor relationship of this system, for example a
-            joint angle controlled cartesian end-effector coordinate,
-            still is systematic but not bijective anymore and the
-            sensor responses lump together in the positive
-            half-plane.""",
+                blue and the sensor values $s_0$ in green in the top
+                panel. The bottom panel contains the graph of the
+                first order state variable, the velocity. The
+                dissipative term of the velocity (e.g. friction) keeps
+                the velocity within bounds while it is still dominated
+                by the remaining inertia. The dissipation parameter is
+                set to
+                {{{0}}}.""".format(robot1['params']['dims']['s1']['dissipation']),
             'inputs': {
                 's0': {'bus': 'robot1/s0', 'shape': (dim_s0, numsteps)},
                 's0p': {'bus': 'pre_l0/pre', 'shape': (dim_m0, numsteps)},
@@ -82,12 +109,17 @@ graph = OrderedDict([
             'subplots': [
                 [
                     {
-                        'input': ['s0p', 's0'], 'plot': [partial(timeseries, marker = 'o')] * 2,
+                        'input': ['s0p', 's0'],
+                        'plot': [partial(timeseries, marker = 'o')] * 2,
+                        'title': 'Timeseries motor and proprioception',
+                        'xticks': False,
                     },
                 ],
                 [
                     {
-                        'input': ['s1'], 'plot': [partial(timeseries, marker = 'o')] * 2,
+                        'input': ['s1'],
+                        'plot': [partial(timeseries, marker = 'o')] * 2,
+                        'title': 'Timeseries exteroception'
                     },
                 ],
             ],
@@ -155,14 +187,15 @@ graph = OrderedDict([
         'params': {
             'logging': False,
             'saveplot': saveplot,
+            #           dim       col w   s  dim      row h   s
+            'savesize': (dim_s1 * 1 * 4 * 3, dim_m0 * 4 * 1 * 3),
             'desc': """Results of a cross-correlation scan (top) and a
             mutual information scan (bottom). Normalized correlation
             coefficients take on values in the interval $[-1, 1]$. The
-            normalized mutual information has a range of $[0,
-            1]$. Cross-correlation is not able to pick up the
-            systematic dependence of $s_0$ on $\\hat s_0$ indicated by
-            values close to zero. Mutual information restores the
-            qualitative picture from the linear case.""",
+            mutual information is unnormalized in the range of $[0,
+            1.6]$. The mutual information captures the interaction
+            between action and velocity which is, by design, not the
+            case for cross-correlation.""",
             'debug': False,
             'blocksize': numsteps,
             # 'inputs': make_input_matrix(xdim = dim_m0, ydim = dim_s0, with_t = True),
@@ -178,25 +211,27 @@ graph = OrderedDict([
                 [
                     {
                         'input': ['m2s'], 'ndslice': (slice(scanlen), j, i),
-                        'shape': (dim_s0, scanlen), 'cmap': 'RdGy', 'title': 'Cross-correlation',
+                        'shape': (dim_s0, scanlen), 'cmap': 'RdGy',
+                        'title': 'Cross-correlation $m_0 \star s_1$',
                         'vmin': -1.0, 'vmax': 1.0, 'vaxis': 'cols',
                         'xticks': False, 'xlabel': None,
                         'yticks': False, 'ylabel': None,
                         # 'xaxis': range(scanstart, scanstop),
                         'colorbar': True, 'colorbar_orientation': 'vertical',
                     } for i in range(dim_m0)] # 'seismic'
-            for j in range(dim_s1)] + [
+                for j in range(dim_s1)] + [
                 [
                     {
                         'input': ['s2s'], 'ndslice': (slice(scanlen), j, i),
-                        'shape': (dim_s1, scanlen), 'cmap': 'RdGy', 'title': 'Cross-correlation',
+                        'shape': (dim_s1, scanlen), 'cmap': 'RdGy',
+                        'title': 'Auto-correlation $s_1 \star s_1$',
                         'vmin': -1.0, 'vmax': 1.0, 'vaxis': 'cols',
                         'xticks': False, 'xlabel': None,
                         'yticks': False, 'ylabel': None,
                         # 'xaxis': range(scanstart, scanstop),
                         'colorbar': True, 'colorbar_orientation': 'vertical',
                     } for i in range(dim_s1)] # 'seismic'
-            for j in range(dim_s1)] + [
+                for j in range(dim_s1)] + [
                 # mutual information scan
                 [
                     {
@@ -204,16 +239,18 @@ graph = OrderedDict([
                         # 'yslice': (i * dim_m0 * dim_s0, (i+1) * dim_m0 * dim_s0),
                         # 'xslice': (0, 1),
                         'ndslice': (slice(scanlen), i, 0),
-                        'shape': (dim_s1, scanlen), 'cmap': 'Greys', 'title': 'Mutual information',
+                        'shape': (dim_s1, scanlen), 'cmap': 'Greys',
+                        'title': 'Mutual information $I_m(m_0; s_1)$',
                         # 'vmin': 0.0, 'vmax': 1.0,
                         'vaxis': 'cols',
-                        'xticks': (np.arange(scanlen) + 0.5).tolist(),
+                        # 'xticks': (np.arange(scanlen) + 0.5).tolist(),
+                        # 'xlabel': 'time shift [steps]',
+                        'xticks': False, 'xlabel': None,
                         'xticklabels': range(scanstart, scanstop),
-                        'xlabel': 'time shift [steps]',
                         'yticks': False, 'ylabel': None,
                         'colorbar': True, 'colorbar_orientation': 'vertical',
                     } for i in range(dim_m0)]
-            for j in range(dim_s1)] + [
+                for j in range(dim_s1)] + [
                 # mutual information scan
                 [
                     {
@@ -221,17 +258,17 @@ graph = OrderedDict([
                         # 'yslice': (i * dim_m0 * dim_s0, (i+1) * dim_m0 * dim_s0),
                         # 'xslice': (0, 1),
                         'ndslice': (slice(scanlen), i, 0),
-                        'shape': (dim_s1, scanlen), 'cmap': 'Greys', 'title': 'Mutual information',
+                        'shape': (dim_s1, scanlen), 'cmap': 'Greys',
+                        'title': 'Self information $I_m(s_1; s_1)$',
                         # 'vmin': 0.0, 'vmax': 1.0,
                         'vaxis': 'cols',
-                        'xticks': (np.arange(scanlen) + 0.5).tolist(),
-                        'xticklabels': range(scanstart, scanstop),
+                        'xticks': (np.arange(0, scanlen, 5) + 0.5).tolist(),
+                        'xticklabels': range(scanstart, scanstop, 5),
                         'xlabel': 'time shift [steps]', 'ylog': True,
                         'yticks': False, 'ylabel': None,
                         'colorbar': True, 'colorbar_orientation': 'vertical',
-                    } for i in range(dim_s1)
-                ],
-            ],
+                    } for i in range(dim_s1)]
+                for j in range(dim_s1)],
         },
     }),
 
