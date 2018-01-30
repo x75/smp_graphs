@@ -133,7 +133,7 @@ class MIBlock2(InfthPrimBlock2):
         
         for i in range(self.shift[0], self.shift[1]):
             self._debug("%d" % (i, ),)
-            sys.stdout.flush()
+            # sys.stdout.flush()
 
             # # self-rolled time shift with np.roll
             # src = np.roll(self.inputs['x']['val'].T, shift = i, axis = 0)
@@ -145,9 +145,9 @@ class MIBlock2(InfthPrimBlock2):
             
             meas.append(mi.copy())
 
-        print ""
+        # print ""
         meas = np.array(meas)
-        self.mi = meas.T.copy() * jh
+        self.mi = meas.T.copy() # * jh
         self._debug("%s-%s.mi = %s\n    mi/jh = %s/%s" % (self.cname, self.id, self.mi.shape, self.mi, jh)) # , mi.shape
 
 class InfoDistBlock2(InfthPrimBlock2):

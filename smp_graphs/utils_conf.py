@@ -67,7 +67,7 @@ def get_systemblock_pm(
             # 'statedim': dim_s0 * 3,
             'dt': 0.1,
             # memory 
-            'order': 0,
+            'order': 1,
             'lag': lag,
             'mass': 1.0,
             # distortion
