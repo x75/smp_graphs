@@ -26,7 +26,8 @@ logger = get_module_logger(modulename = 'block_meas_infth', loglevel = logging_D
 ################################################################################
 # Block decorator init
 class decInitInfthPrim():
-    """!@brief PrimBlock2.init wrapper for inth blocks"""
+    """init wrapper for infth blocks
+    """
     def __call__(self, f):
         @decInit()
         def wrap(xself, *args, **kwargs):
@@ -39,7 +40,8 @@ class decInitInfthPrim():
         return wrap
 
 class decStepInfthPrim():
-    """!@brief PrimBlock2.init wrapper for inth blocks"""
+    """step wrapper for infth blocks
+    """
     def __call__(self, f):
         @decStep()
         def wrap(xself, *args, **kwargs):
@@ -113,7 +115,19 @@ class JHBlock2(InfthPrimBlock2):
         return meas
         
 class MIBlock2(InfthPrimBlock2):
-    """Compute the elementwise elementwise mutual information among all variables in the data
+    """Mutual information
+    
+    Compute the pairwise mutual information among all variables in the
+    data for all temporal shifts in 'shift'.
+
+    Args: see :class:`Block2`
+
+    Configuration::
+
+        conf = {
+            # normalize output by joint entropy
+            'norm_out': True,
+        }
     """
     @decInitInfthPrim()
     def __init__(self, conf = {}, paren = None, top = None):
@@ -151,7 +165,7 @@ class MIBlock2(InfthPrimBlock2):
         # self.logger.handlers[0].terminator = '\n'
         # self._debug('')
         meas = np.array(meas)
-        self.mi = meas.T.copy() # * jh
+        self.mi = meas.T.copy() * jh
         self._debug("%s-%s.mi = %s\n    mi/jh = %s/%s" % (self.cname, self.id, self.mi.shape, self.mi, jh)) # , mi.shape
 
 class InfoDistBlock2(InfthPrimBlock2):
@@ -216,7 +230,7 @@ class InfoDistBlock2(InfthPrimBlock2):
         self._debug("infodist block = %s/\n    id/jh = %s/%s" % (self.infodist.shape, self.infodist, jh)) # , mi.shape
         
 class TEBlock2(InfthPrimBlock2):
-    """!@brief Compute elementwise transfer entropy from src to dst variables in dataset"""
+    """Compute elementwise transfer entropy from src to dst variables in dataset"""
     @decInitInfthPrim()
     def __init__(self, conf = {}, paren = None, top = None):
         InfthPrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
@@ -252,7 +266,7 @@ class TEBlock2(InfthPrimBlock2):
         self.te = tes.T.copy() * jh
 
 class CTEBlock2(InfthPrimBlock2):
-    """!@brief Compute elementwise conditional transfer entropy from src to dst variables conditioned
+    """Compute elementwise conditional transfer entropy from src to dst variables conditioned
     on cond variables in dataset"""
     @decInitInfthPrim()
     def __init__(self, conf = {}, paren = None, top = None):
@@ -353,7 +367,7 @@ class MIMVBlock2(InfthPrimBlock2):
         self._debug("step[%d] self.mimv.shape = %s, mimv = %s, jh = %f" % (self.cnt, self.mimv.shape, self.mimv, 1.0/jh))
 
 class TEMVBlock2(InfthPrimBlock2):
-    """!@brief Compute the multivariate transfer entropy from X to Y, aka the total TE"""
+    """Compute the multivariate transfer entropy from X to Y, aka the total TE"""
     @decInitInfthPrim()
     def __init__(self, conf = {}, paren = None, top = None):
         InfthPrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
@@ -388,7 +402,7 @@ class TEMVBlock2(InfthPrimBlock2):
         self.temv[0,shiftsl] = temvs.flatten() * jh
 
 class CTEMVBlock2(InfthPrimBlock2):
-    """!@brief Compute the multivariate conditional transfer entropy from X to Y, conditioned on C, aka the total CTE (doesn't exist yet)"""
+    """Compute the multivariate conditional transfer entropy from X to Y, conditioned on C, aka the total CTE (doesn't exist yet)"""
     @decInitInfthPrim()
     def __init__(self, conf = {}, paren = None, top = None):
         InfthPrimBlock2.__init__(self, conf = conf, paren = paren, top = top)

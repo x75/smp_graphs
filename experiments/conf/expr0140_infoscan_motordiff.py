@@ -1,9 +1,11 @@
 """smp_graphs
 
-plot the sensorimotor manifold / pointcloud, example data from andi gerken's puppy
+plot the sensorimotor manifold / pointcloud, example data from andi
+gerken's puppy
 """
 
 from smp_base.plot import histogramnd
+from smp_graphs.utils_conf_meas import make_input_matrix, make_input_matrix_ndim
 from smp_graphs.block_plot import SnsMatrixPlotBlock2, ImgPlotBlock2
 from smp_graphs.block import dBlock2, IBlock2, SliceBlock2, DelayBlock2
 from smp_graphs.block_meas import XCorrBlock2
@@ -110,25 +112,25 @@ scanstart = -10
 scanstop = 1
 scanlen = scanstop - scanstart
 
-def make_input_matrix(id = 'xcorr', base = 'xcorr', xdim = 1, ydim = 1, with_t = False):
-    import numpy as np
-    global scanstart, scanstop, scanlen
-    d = {'d3_%d_%d' % (i, j): {'bus': '%s/%s_%d_%d' % (id, base, i, j)} for j in range(xdim) for i in range(ydim)}
-    if with_t:
-        d['t'] = {'val': np.linspace(scanstart, scanstop-1, scanlen)}
-    # print d
-    return d
+# def make_input_matrix(id = 'xcorr', base = 'xcorr', xdim = 1, ydim = 1, with_t = False):
+#     import numpy as np
+#     global scanstart, scanstop, scanlen
+#     d = {'d3_%d_%d' % (i, j): {'bus': '%s/%s_%d_%d' % (id, base, i, j)} for j in range(xdim) for i in range(ydim)}
+#     if with_t:
+#         d['t'] = {'val': np.linspace(scanstart, scanstop-1, scanlen)}
+#     # print d
+#     return d
 
-def make_input_matrix_ndim(id = 'xcorr', base = 'xcorr', xdim = 1, ydim = 1, with_t = False):
-    import numpy as np
-    global scanstart, scanstop, scanlen
-    # d = {'d3_%d_%d' % (i, j): {'bus': '%s/%s_%d_%d' % (id, base, i, j)} for j in range(xdim) for i in range(ydim)}
-    d = {}
-    d['d3'] = {'bus': "%s/%s" % (id, base), 'shape': (ydim, xdim, scanlen)} # 
-    if with_t:
-        d['t'] = {'val': np.linspace(scanstart, scanstop-1, scanlen)}
-    # print d
-    return d
+# def make_input_matrix_ndim(id = 'xcorr', base = 'xcorr', xdim = 1, ydim = 1, with_t = False):
+#     import numpy as np
+#     global scanstart, scanstop, scanlen
+#     # d = {'d3_%d_%d' % (i, j): {'bus': '%s/%s_%d_%d' % (id, base, i, j)} for j in range(xdim) for i in range(ydim)}
+#     d = {}
+#     d['d3'] = {'bus': "%s/%s" % (id, base), 'shape': (ydim, xdim, scanlen)} # 
+#     if with_t:
+#         d['t'] = {'val': np.linspace(scanstart, scanstop-1, scanlen)}
+#     # print d
+#     return d
 
 graph = OrderedDict([
     # get the data from logfile
@@ -365,9 +367,11 @@ graph = OrderedDict([
         'params': {
             'id': 'plot_xcor_line',
             'logging': False,
-            'debug': True,
+            # 'debug': True,
             'blocksize': numsteps,
-            'inputs': make_input_matrix_ndim(xdim = xdim, ydim = ydim, with_t = True),
+            'inputs': make_input_matrix_ndim(
+                xdim = xdim, ydim = ydim,
+                with_t = True, scan = (scanstart, scanstop)),
             'outputs': {}, #'x': {'shape': (3, 1)}},
             'subplots': [
                 [{'input': ['d3'], 'ndslice': (slice(scanlen), i, j), 'xaxis': 't',
@@ -384,25 +388,38 @@ graph = OrderedDict([
             'id': 'plot_xcor_img',
             'logging': False,
             'saveplot': saveplot,
-            'debug': False,
+            # 'debug': False,
             'blocksize': numsteps,
+            'desc':  'Plot xcorr img',
+            'title': 'Plot xcorr img',
             # 'inputs': make_input_matrix(xdim = xdim, ydim = ydim, with_t = True),
-            'inputs': make_input_matrix_ndim(xdim = xdim, ydim = ydim, with_t = True),
-            'outputs': {}, #'x': {'shape': (3, 1)}},
+            'inputs': make_input_matrix_ndim(
+                xdim = xdim, ydim = ydim,
+                with_t = True, scan = (scanstart, scanstop)),
+            # 'outputs': {}, #'x': {'shape': (3, 1)}},
             'wspace': 0.5,
             'hspace': 0.5,
             # with one subplot and reshape
             'subplots': [
-                [{'input': ['d3'],
-                      'ndslice': (slice(None), slice(None), slice(None)),
-                      'shape': (scanlen, ydim * xdim), 'cmap': 'RdGy'}],
-
-                [{'input': ['d3'],
-                      'ndslice': (slice(None), slice(None), slice(None)),
-                      'shape': (scanlen, ydim, xdim), 'cmap': 'RdGy',
-                      'dimstack': {'x': [2, 1], 'y': [0]},
-                }
+                [
+                    {
+                        'input': ['d3'],
+                        'ndslice': (slice(None), slice(None), slice(None)),
+                        'shape': (scanlen, ydim * xdim), 'cmap': 'RdGy',
+                        'vmin': -1.0, 'vmax': 1.0,
+                    }
                 ],
+
+                [
+                    {
+                        'input': ['d3'],
+                        'ndslice': (slice(None), slice(None), slice(None)),
+                        'shape': (scanlen, ydim, xdim), 'cmap': 'RdGy',
+                        'dimstack': {'x': [2, 1], 'y': [0]},
+                        'vmin': -1.0, 'vmax': 1.0,
+                    }
+                ],
+                
             ],
         },
     }),
@@ -413,16 +430,16 @@ graph = OrderedDict([
         'params': {
             'id': 'plotim',
             'logging': False,
-            'debug': False,
+            # 'debug': False,
             'wspace': 0.2,
             'hspace': 0.2,
             'blocksize': numsteps,
             # 'inputs': {'d1': {'bus': 'mi_1/mi'}, 'd2': {'bus': 'infodist_1/infodist'}},
             'inputs': {
-                'd1': {'bus': 'mi|0/mi', 'shape': (ydim, xdim, scanlen)},
-                'd11': {'bus': 'infodist|0/infodist', 'shape': (ydim, xdim, scanlen)},
-                'd2': {'bus': 'te|0/te', 'shape': (ydim, xdim, scanlen)},
-                'd3': {'bus': 'cte|0/cte', 'shape': (ydim, xdim, scanlen)}
+                'd1': {'bus': 'mi_ll0_ll0/mi', 'shape': (ydim, xdim, scanlen)},
+                'd11': {'bus': 'infodist_ll0_ll0/infodist', 'shape': (ydim, xdim, scanlen)},
+                'd2': {'bus': 'te_ll0_ll0/te', 'shape': (ydim, xdim, scanlen)},
+                'd3': {'bus': 'cte_ll0_ll0/cte', 'shape': (ydim, xdim, scanlen)}
             },
             'outputs': {}, #'x': {'shape': (3, 1)}},
             'subplots': [

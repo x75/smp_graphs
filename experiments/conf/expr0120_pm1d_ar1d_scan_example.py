@@ -170,7 +170,11 @@ graph = OrderedDict([
                     'id': 'mi',
                     'blocksize': numsteps,
                     'debug': True,
-                    'inputs': {'x': {'bus': 'puppyslice/x_all'}, 'y': {'bus': 'puppylog/y'}},
+                    'norm_out': False,
+                    'inputs': {
+                        'x': {'bus': 'puppyslice/x_all'},
+                        'y': {'bus': 'puppylog/y'}
+                    },
                     # 'shift': (-120, 8),
                     'shift': (scanstart, scanstop),
                     # 'outputs': {'mi': {'shape': ((dim_s0 + xdim)**2, 1)}}
@@ -187,6 +191,7 @@ graph = OrderedDict([
         'params': {
             'logging': False,
             'saveplot': saveplot,
+            'debug': False,
             #           dim       col w   s  dim      row h   s
             'savesize': (dim_s1 * 1 * 4 * 3, dim_m0 * 4 * 1 * 3),
             'desc': """Results of a cross-correlation scan (top) and a
@@ -196,7 +201,6 @@ graph = OrderedDict([
             1.6]$. The mutual information captures the interaction
             between action and velocity which is, by design, not the
             case for cross-correlation.""",
-            'debug': False,
             'blocksize': numsteps,
             # 'inputs': make_input_matrix(xdim = dim_m0, ydim = dim_s0, with_t = True),
             'inputs': scan_plot_inputs,

@@ -1,6 +1,7 @@
 """smp_graphs config
 
-plot the sensorimotor manifold / pointcloud, example data from andi gerken's puppy
+plot the sensorimotor manifold / pointcloud, example data from andi
+gerken's puppy
 """
 
 from matplotlib.pyplot import hexbin
@@ -11,18 +12,17 @@ from smp_graphs.block import dBlock2, IBlock2, SliceBlock2, DelayBlock2, StackBl
 from smp_graphs.block_meas import XCorrBlock2
 from smp_graphs.block_meas_infth import JHBlock2, MIBlock2, InfoDistBlock2, TEBlock2, CTEBlock2, MIMVBlock2, TEMVBlock2
 
-
-
-# showplot = False
-
+# global config
+showplot = True
 randseed = 12345
-
 saveplot = False
 
+# add latex output
 outputs = {
     'latex': {'type': 'latex',},
 }
 
+# datafiles and dependent params: puppy type 1
 ppycnf = {
     # 'numsteps': 27000,
     # # 'logfile': 'data/experiment_20170518_161544_puppy_process_logfiles_pd.h5',
@@ -41,13 +41,14 @@ ppycnf = {
     'logtype': 'selflog',
 }
 
+# datafiles and dependent params: puppy type 2
 ppycnf2 = {
     # 'logfile': 'data/stepPickles/step_period_4_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_10_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_12_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_76_0.pickle',
     'logfile': 'data/stepPickles/step_period_26_0.pickle',
-    'numsteps': 500,
+    'numsteps': 1000,
     # 'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle',
     # 'numsteps': 5000,
     'logtype': 'puppy',
@@ -56,6 +57,7 @@ ppycnf2 = {
     'ydim': 4,
 }
     
+# datafiles and dependent params: sinewave and noise toy example
 testcnfsin = {
     'numsteps': 1000,
     'xdim': 1,
@@ -65,6 +67,7 @@ testcnfsin = {
     'logtype': 'selflog',
 }
 
+# datafiles and dependent params: sphero data
 sphrcnf = {
 	'numsteps': 5000,
 	'xdim': 2,
@@ -75,7 +78,8 @@ sphrcnf = {
     # 'logfile': '../../smp_infth/sphero_res_learner_1D/log-learner-20150313-224329.npz',
     'sys_slicespec': {'x': {'gyr': slice(0, 1)}},
 }
-    
+
+# datafiles and dependent params: additional testdata
 testcnf = {
     'numsteps': 1000,
     'xdim': 6,
@@ -85,24 +89,36 @@ testcnf = {
     'logtype': 'testdata1',
 }
 
-# configuration for 1D pointmass prediction-measurement delay
+# configuration for 1D pointmass prediction-measurement delay [wip]
 pmcnf = {
 }
-    
+
+# assign an option to the actual configuration 
 cnf = ppycnf2
 numsteps = cnf['numsteps']
 xdim = cnf['xdim']
 ydim = cnf['ydim']
 xdim_eff = cnf['xdim_eff']
+
+# slice out gyro data from imu group
 if cnf.has_key('sys_slicespec'):
     sys_slicespec = cnf['sys_slicespec']
 else:
     sys_slicespec = {'x': {'acc': slice(0, 3), 'gyr': slice(3, xdim)}}
 
-scanstart = -10
+# configure the scan range
+scanstart = -20
 scanstop = 0
 scanlen = scanstop - scanstart
-    
+
+desc = """A real world robot example is the Puppy robot, initially
+proposed by \\parencite{{iida_cheap_2004}}. There exist several
+proposed modifications of the original design. Here, a soft legged
+design by Andreas Gerken and described in more detail in
+\\parencite{{gerken_behavioral_2017}} is used. The original question
+was, what is the motor-sensor delay of this robot.""".format()
+
+# smp graph
 graph = OrderedDict([
     # get the data from logfile
     ('puppylog', {
@@ -179,8 +195,7 @@ graph = OrderedDict([
             },
         }),
     
-    # cross correlation analysis of data
-    # do this with loopblock :)
+    # cross correlation
     ('xcorr', {
         'block': XCorrBlock2,
         'params': {
@@ -209,7 +224,9 @@ graph = OrderedDict([
     # multivariate mutual information analysis of data I(X^n ; Y^m)
     ('mimv', {
         'block': LoopBlock2,
+        'enable': False,
         'params': {
+            'debug': False,
             'id': 'mimv',
             'loop': [('inputs', {'x': {'bus': 'puppyslice/x_gyr'}, 'y': {'bus': 'puppylog/y'}}),
                      # ('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/r'}}),
@@ -235,6 +252,7 @@ graph = OrderedDict([
     # multivariate mutual information analysis of data I(X^n ; Y^m)
     ('temv', {
         'block': LoopBlock2,
+        'enable': False,
         'params': {
             'id': 'temv',
             'loop': [('inputs', {'x': {'bus': 'puppyslice/x_gyr'}, 'y': {'bus': 'puppylog/y'}}),
@@ -287,9 +305,15 @@ graph = OrderedDict([
         'block': LoopBlock2,
         'params': {
             'id': 'mi',
-            'loop': [('inputs', {'x': {'bus': 'puppyslice/x_gyr'}, 'y': {'bus': 'puppylog/y'}}),
-                     # ('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/r'}}),
-                     # ('inputs', {'x': {'bus': 'puppylog/y'}, 'y': {'bus': 'puppylog/r'}}),
+            'loop': [
+                (
+                    'inputs', {
+                        'x': {'bus': 'puppyslice/x_gyr'},
+                        'y': {'bus': 'puppylog/y'}
+                    }
+                ),
+                # ('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/r'}}),
+                # ('inputs', {'x': {'bus': 'puppylog/y'}, 'y': {'bus': 'puppylog/r'}}),
             ],
             'loopmode': 'parallel',
             'loopblock': {
@@ -297,8 +321,11 @@ graph = OrderedDict([
                 'params': {
                     'id': 'mi',
                     'blocksize': numsteps,
-                    'debug': False,
-                    'inputs': {'x': {'bus': 'puppyslice/x_gyr'}, 'y': {'bus': 'puppylog/y'}},
+                    'debug': True,
+                    'inputs': {
+                        'x': {'bus': 'puppyslice/x_gyr'},
+                        'y': {'bus': 'puppylog/y'}
+                    },
                     # 'shift': (-120, 8),
                     'shift': (scanstart, scanstop),
                     # 'outputs': {'mi': {'shape': ((ydim + xdim)**2, 1)}}
@@ -470,22 +497,30 @@ graph = OrderedDict([
     # plot cross-correlation matrix
     ('plot_xcor_line', {
         'block': PlotBlock2,
+        'enable': False,
         'params': {
             'id': 'plot_xcor_line',
             'logging': False,
             'debug': False,
             'saveplot': saveplot,
             'blocksize': numsteps,
-            'inputs': make_input_matrix_ndim(xdim = xdim, ydim = ydim, with_t = True, scan = (scanstart, scanstop)),
+            'inputs': make_input_matrix_ndim(
+                xdim = xdim, ydim = ydim,
+                with_t = True, scan = (scanstart, scanstop)),
             'outputs': {}, #'x': {'shape': (3, 1)}},
             'wspace': 0.5,
             'hspace': 0.5,
             # 'xslice': (0, scanlen), 
             'subplots': [
-                [{'input': ['d3'], 'ndslice': (slice(scanlen), i, j), 'xaxis': 't',
-                      'shape': (1, scanlen),
-                  'plot': partial(timeseries, linestyle="-", marker=".")} for j in range(xdim)]
-                for i in range(ydim)],
+                [
+                    {
+                        'input': ['d3'], 'ndslice': (slice(scanlen), i, j),
+                        'xaxis': 't',
+                        'shape': (1, scanlen),
+                        'plot': partial(timeseries, linestyle="-", marker=".")
+                    } for j in range(xdim)
+                ] for i in range(ydim)
+            ],
                 
             #     [{'input': 'd3_%d_%d' % (i, j), 'xslice': (0, scanlen), 'xaxis': 't',
             #       'plot': partial(timeseries, linestyle="none", marker=".")} for j in range(xdim)]
@@ -495,33 +530,48 @@ graph = OrderedDict([
     }),
 
     # plot cross-correlation matrix
-    ('plot_xcor_img', {
+    ('plot_xcorr_scan', {
         'block': ImgPlotBlock2,
         'params': {
             'id': 'plot_xcor_img',
             'logging': False,
             'saveplot': saveplot,
             'debug': False,
+            'desc': 'Cross-correlation scan for the %s dataset' % (cnf['logfile']),
+            'title': 'Cross-correlation scan for the %s dataset' % (cnf['logfile']),
             'blocksize': numsteps,
             # 'inputs': make_input_matrix(xdim = xdim, ydim = ydim, with_t = True, scan = (scanstart, scanstop)),
             'inputs': make_input_matrix_ndim(xdim = xdim, ydim = ydim, with_t = True, scan = (scanstart, scanstop)),
-            'outputs': {}, #'x': {'shape': (3, 1)}},
+            # 'outputs': {}, #'x': {'shape': (3, 1)}},
             'wspace': 0.5,
             'hspace': 0.5,
             'subplots': [
                 # [{'input': ['d3'], 'ndslice': (i, j, ), 'xslice': (0, scanlen), 'xaxis': 't',
                 #   'plot': partial(timeseries, linestyle="none", marker=".")} for j in range(xdim)]
                 # for i in range(ydim)],
-                [{'input': ['d3'], 'ndslice': (slice(scanlen), i, j),
-                  'shape': (1, scanlen), 'cmap': 'RdGy', 'title': 'xcorrs',
-                              'vmin': -1.0, 'vmax': 1.0, 'vaxis': 'cols',} for j in range(xdim)] # 'seismic'
-            for i in range(ydim)],
+                [
+                    {
+                        'input': ['d3'],
+                        'ndslice': (slice(scanlen), i, j),
+                        'shape': (1, scanlen), 'cmap': 'RdGy',
+                        'title': 'xcorr s-%d/s-%d' % (i, j),
+                        'vmin': -1.0, 'vmax': 1.0,
+                        'vaxis': 'cols',
+                        'xlabel': False,
+                        'xticks': i == (ydim - 1), # False,
+                        'ylabel': None,
+                        'yticks': False,
+                        'colorbar': j == (xdim - 1), 'colorbar_orientation': 'vertical',
+                    } for j in range(xdim)
+                ] for i in range(ydim)
+            ],
         },
     }),
     
     # plot multivariate (global) mutual information over timeshifts
     ('plot_jh_mimv_temv', {
         'block': ImgPlotBlock2,
+        'enable': False,
         'params': {
             'id': 'plot_jh_mimv_temv',
             'logging': False,
@@ -557,6 +607,7 @@ graph = OrderedDict([
     # plot mi matrix as image
     ('plot_mi_te', {
         'block': ImgPlotBlock2,
+        # 'enable': False,
         'params': {
             'id': 'plot_mi_te',
             'logging': False,
@@ -620,8 +671,9 @@ graph = OrderedDict([
     }),
     
     # sns matrix plot
-    ('plot2', {
+    ('plot_snsmat', {
         'block': SnsMatrixPlotBlock2,
+        'enable': False,
         'params': {
             'id': 'plot2',
             'logging': False,

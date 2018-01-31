@@ -153,7 +153,7 @@ from logging import INFO as logging_INFO
 from logging import DEBUG as logging_DEBUG
 # import logging
 loglevel_DEFAULT = logging_INFO
-logger = get_module_logger(modulename = 'block', loglevel = logging_DEBUG)
+logger = get_module_logger(modulename = 'block', loglevel = logging_INFO)
 
 # finally, ros
 # import rospy
@@ -3166,7 +3166,12 @@ class dBlock2(PrimBlock2):
             din = np.diff(tmp_[:,tmp_sl], axis = 1) * self.d
             # which should be same shape is input
             assert din.shape == self.inputs[ink]['val'].shape
-            print "dBlock2.step", self.id, self.cnt, getattr(self, outk)[:,[-1]].shape, self.inputs[ink]['val'].shape, din.shape
+            self._debug("step[%d] id = %s, outk %s = %s, ink %s = %s, din = %s" % (
+                self.cnt, self.id,
+                outk, getattr(self, outk)[:,[-1]].shape,
+                ink, self.inputs[ink]['val'].shape,
+                din.shape)
+            )
             setattr(self, outk, din)
             # store current input
             setattr(self, ink_, self.inputs[ink]['val'].copy())

@@ -42,7 +42,7 @@ from smp_base.common import get_module_logger
 
 from smp_graphs.block import decInit, decStep, Block2, PrimBlock2
 
-from logging import DEBUG as LOGLEVEL
+from logging import INFO as LOGLEVEL
 logger = get_module_logger(modulename = 'block_meas', loglevel = LOGLEVEL)
 
 def compute_xcor_matrix_src_dst(data, dst, src, shift = (-10, 11)):

@@ -15,7 +15,7 @@ from smp_base.common import set_attr_from_dict
 from smp_base.common import get_module_logger
 from smp_graphs.utils import print_dict
 
-logger = get_module_logger(modulename = 'common', loglevel = logging.DEBUG)
+logger = get_module_logger(modulename = 'common', loglevel = logging.INFO)
 
 ################################################################################
 # static config templates
