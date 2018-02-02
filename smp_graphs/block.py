@@ -3188,7 +3188,8 @@ class DelayBlock2(PrimBlock2):
     FIXME: consolidate / merge with tappings, im2col, conv, ...
     """
     defaults = {
-        'flat': False, # flatten output
+        'flat': False, # flatten output - [2, 5, 2000] 2 x 10000
+        'flat2': False, # flatten output differently - [2, 5, 2000] 10 x 2000
         'full': False, # full contiguous output up to delay_max
         'outputs': {},
     }
@@ -3234,7 +3235,8 @@ class DelayBlock2(PrimBlock2):
             # params['outputs']["d%s" % ink] = {'shape': getattr(self, '%s_' % ink).shape}
             # FIXME: output modifiers: struct/flat, dense/sparse, ...
             if params['flat']:
-                outshape = (inshape[0], inshape[1] * delay_num )
+                # outshape = (inshape[0], inshape[1] * delay_num )
+                outshape = (inshape[0] * delay_num, inshape[1])
             else:
                 outshape = (inshape[0], delay_num, inshape[1] )
             params['outputs']["d%s" % ink] = {'shape': outshape}
@@ -3259,7 +3261,7 @@ class DelayBlock2(PrimBlock2):
             blocksize_input = self.inputs[k]['shape'][-1]
             # blocksize_input = self.blocksize
             delay_tap_bs = (delay_tap - np.tile(np.array(range(blocksize_input, 0, -1)), (delay_tap.shape[0],1)).T).T
-            if self.flat:
+            if self.flat or self.flat2:
                 delay_tap_bs = delay_tap_bs.flatten()
             self.delaytaps[k] = delay_tap_bs.copy()
             self._debug('delay %s with taps %s added delaytaps_bs = %s' % (k, v, self.delaytaps[k]))
@@ -3325,11 +3327,18 @@ class DelayBlock2(PrimBlock2):
             delaytap = self.delaytaps[ink]
             # print "delaytap", delaytap.shape, delaytap, self.blocksize
             self._debug('input %s delaytap = %s' % (ink, delaytap))            
-            setattr(self, outk, inv_[...,delaytap])
+            if self.flat:
+                setattr(self, outk, inv_[...,delaytap])
+            elif self.flat2:
+                setattr(self, outk, inv_[...,delaytap].reshape((-1, self.blocksize)))
+            else:
+                setattr(self, outk, inv_[...,delaytap])
+                
+            self._debug('output %s = %s' % (outk, getattr(self, outk).shape))
             
             # setattr(self, outk, inv_[...,slice(0, self.blocksize)])
 
-            # print "DelayBlock2 outk %s shape" %(outk,), self.inputs[ink]['val'].shape, getattr(self, ink_).shape, getattr(self, outk) # [...,[-1]].shape, self.inputs[ink]['val'].shape #, din.shape
+            # self._debug("DelayBlock2 outk %s shape" %(outk,), self.inputs[ink]['val'].shape, getattr(self, ink_).shape, getattr(self, outk) # [...,[-1]].shape, self.inputs[ink]['val'].shape #, din.shape
             
             # # delay current input for blocksize steps
             # setattr(self, ink_, np.roll(inv_, shift = -self.blocksize, axis = -1))

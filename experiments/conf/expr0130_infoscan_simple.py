@@ -10,7 +10,9 @@ from smp_graphs.utils_conf_meas import make_input_matrix, make_input_matrix_ndim
 from smp_graphs.block_plot import SnsMatrixPlotBlock2, ImgPlotBlock2
 from smp_graphs.block import dBlock2, IBlock2, SliceBlock2, DelayBlock2, StackBlock2
 from smp_graphs.block_meas import XCorrBlock2
-from smp_graphs.block_meas_infth import JHBlock2, MIBlock2, InfoDistBlock2, TEBlock2, CTEBlock2, MIMVBlock2, TEMVBlock2
+from smp_graphs.block_meas_infth import JHBlock2, MIBlock2, InfoDistBlock2, TEBlock2, CTEBlock2
+from smp_graphs.block_meas_infth import MIMVBlock2, CMIMVBlock2, TEMVBlock2
+from smp_graphs.block_models import ModelBlock2
 
 # global config
 showplot = True
@@ -46,11 +48,14 @@ ppycnf2 = {
     # 'logfile': 'data/stepPickles/step_period_4_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_10_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_12_0.pickle',
+    # 'logfile': 'data/stepPickles/step_period_26_0.pickle',
+    # 'logfile': 'data/stepPickles/step_period_72_0.pickle',
+    # 'logfile': 'data/stepPickles/step_period_72_1.pickle',
     # 'logfile': 'data/stepPickles/step_period_76_0.pickle',
-    'logfile': 'data/stepPickles/step_period_26_0.pickle',
     'numsteps': 1000,
-    # 'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle',
-    # 'numsteps': 5000,
+    'ydim_eff': 1,
+    'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle',
+    # 'numsteps': 1000,
     'logtype': 'puppy',
     'xdim': 6,
     'xdim_eff': 3,
@@ -99,6 +104,11 @@ numsteps = cnf['numsteps']
 xdim = cnf['xdim']
 ydim = cnf['ydim']
 xdim_eff = cnf['xdim_eff']
+if 'ydim_eff' in cnf:
+    ydim_eff = cnf['ydim_eff']
+else:
+    ydim_eff = ydim
+
 
 # slice out gyro data from imu group
 if cnf.has_key('sys_slicespec'):
@@ -107,16 +117,18 @@ else:
     sys_slicespec = {'x': {'acc': slice(0, 3), 'gyr': slice(3, xdim)}}
 
 # configure the scan range
-scanstart = -20
-scanstop = 0
+scanstart = 0  # -100
+scanstop = 20 # 101 #    1
 scanlen = scanstop - scanstart
+delay_embed_len = 1
 
 desc = """A real world robot example is the Puppy robot, initially
 proposed by \\parencite{{iida_cheap_2004}}. There exist several
 proposed modifications of the original design. Here, a soft legged
 design by Andreas Gerken and described in more detail in
-\\parencite{{gerken_behavioral_2017}} is used. The original question
-was, what is the motor-sensor delay of this robot.""".format()
+\\parencite{{gerken_behavioral_2017}} is used. The initial question
+is, what is the motor-sensor delay of this robot measured in time
+steps.""".format()
 
 # smp graph
 graph = OrderedDict([
@@ -182,6 +194,18 @@ graph = OrderedDict([
             }
         }),
             
+    # slice block to split puppy motors y into single channels
+    ('puppyslice_y', {
+        'block': SliceBlock2,
+        'params': {
+            'blocksize': numsteps,
+            # puppy sensors
+            'inputs': {'y': {'bus': 'puppylog/y', 'shape': (ydim, numsteps)}},
+            'slices': {'y': dict([('c%d' % i, [i]) for i in range(ydim)])}, # sys_slicespec,
+            # 'slices': ,
+        }
+    }),
+        
     # puppy process data block: integrate acc, diff motors
     ('motordiff', {
         'block': dBlock2,
@@ -195,26 +219,68 @@ graph = OrderedDict([
             },
         }),
     
+    # puppy process data block: delay motors by lag to align with their sensory effects
+    ('motordel', {
+        'block': DelayBlock2,
+        'params': {
+            'debug': True,
+            'blocksize': numsteps,
+            'flat2': True,
+            # 'inputs': {'y': {'bus': 'motordiff/dy'}},
+            'inputs': {
+                'x': {'bus': 'puppylog/x', 'shape': (xdim, numsteps)},
+                'y': {'bus': 'puppylog/y', 'shape': (ydim, numsteps)}
+            },
+            'delays': {
+                'x': range(1, delay_embed_len+1), # [1],
+                # 'y': range(1, delay_embed_len+1), # [1, 0, -1, -2, -3], # * delay_embed_len, # [1],
+                'y': range(0, delay_embed_len), # [1, 0, -1, -2, -3], # * delay_embed_len, # [1],
+            },
+        }
+    }),
+
+    # stack delay x and y together as condition for m -> s mi
+    ('motorstack', {
+        'block': StackBlock2,
+        'params': {
+            'blocksize': numsteps,
+            # puppy sensors
+            'inputs': {
+                'x': {'bus': 'motordel/dx'},# 'shape': (xdim, )},
+                'y': {'bus': 'motordel/dy'},
+            },
+            # 'inputs': {'x': {'bus': 'puppylog/y'}},
+            # 'slices': {'x': {'y%d' % i: slice(i, i+1) for i in range(ydim)}},
+            'outputs': {'y': {'shape': (
+                xdim * delay_embed_len + ydim * delay_embed_len, numsteps
+            )}} # overwrite
+        }
+    }),
+    
     # cross correlation
     ('xcorr', {
         'block': XCorrBlock2,
+        'enable': False,
         'params': {
             'id': 'xcorr',
             'blocksize': numsteps,
-            'inputs': {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/y'}},
+            # 'inputs': {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/y'}},
+            'inputs': {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppyslice_y/y_c0'}},
             'shift': (scanstart, scanstop),
-            'outputs': {'xcorr': {'shape': (ydim, xdim, scanlen)}},
+            'outputs': {'xcorr': {'shape': (ydim_eff, xdim, scanlen)}},
             }
         }),
 
-    # joint entropy analysis
+    # joint entropy
     ('jh', {
         'block': JHBlock2,
+        'enable': False,
         'params': {
             'id': 'jh',
             'blocksize': numsteps,
             'debug': False,
-            'inputs': {'x': {'bus': 'puppyslice/x_gyr'}, 'y': {'bus': 'puppylog/y'}},
+            # 'inputs': {'x': {'bus': 'puppyslice/x_gyr'}, 'y': {'bus': 'puppylog/y'}},
+            'inputs': {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/y'}},
             'shift': (scanstart, scanstop),
             # 'outputs': {'mi': [((ydim + xdim)**2, 1)}}
             'outputs': {'jh': {'shape': (1, scanlen)}}
@@ -224,13 +290,32 @@ graph = OrderedDict([
     # multivariate mutual information analysis of data I(X^n ; Y^m)
     ('mimv', {
         'block': LoopBlock2,
-        'enable': False,
+        # 'enable': False,
         'params': {
             'debug': False,
             'id': 'mimv',
-            'loop': [('inputs', {'x': {'bus': 'puppyslice/x_gyr'}, 'y': {'bus': 'puppylog/y'}}),
-                     # ('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/r'}}),
-                     # ('inputs', {'x': {'bus': 'puppylog/y'}, 'y': {'bus': 'puppylog/r'}}),
+            'loop': [
+                (
+                    'inputs', {
+                        'x': {'bus': 'puppylog/x'},
+                        'y': {'bus': 'puppylog/y'}
+                    }
+                ),
+                
+                # (
+                #     'inputs', {
+                #         'x': {'bus': 'puppyslice/x_gyr'},
+                #         'y': {'bus': 'puppylog/y'}
+                #     }
+                # ),
+                
+                # (
+                #     'inputs', {
+                #         'x': {'bus': 'puppyslice/x_acc'},
+                #         'y': {'bus': 'puppylog/y'}
+                #     }
+                # ),
+                
             ],
             'loopmode': 'parallel',
             'loopblock': {
@@ -239,6 +324,7 @@ graph = OrderedDict([
                     'id': 'mimv',
                     'blocksize': numsteps,
                     'debug': False,
+                    # 'norm_out': False,
                     'inputs': {'x': {'bus': 'puppyslice/x_gyr'}, 'y': {'bus': 'puppylog/y'}},
                     # 'shift': (-120, 8),
                     'shift': (scanstart, scanstop), # len 21
@@ -250,14 +336,88 @@ graph = OrderedDict([
     }),
     
     # multivariate mutual information analysis of data I(X^n ; Y^m)
+    ('cmimv', {
+        'block': LoopBlock2,
+        # 'enable': False,
+        'params': {
+            'debug': False,
+            'loop': [
+                (
+                    'inputs', {
+                        'x': {'bus': 'puppylog/x'},
+                        # 'y': {'bus': 'puppylog/y'},
+                        'y': {'bus': 'motordel/dy'},
+                        # 'cond': {'bus': 'motorstack/y'},
+                        # 'cond': {'bus': 'motordel/dy'},
+                        'cond_delay': {'bus': 'motordel/dx'},
+                    }
+                ),
+                
+                # (
+                #     'inputs', {
+                #         'x': {'bus': 'puppyslice/x_gyr'},
+                #         'y': {'bus': 'puppylog/y'}
+                #     }
+                # ),
+                
+                # (
+                #     'inputs', {
+                #         'x': {'bus': 'puppyslice/x_acc'},
+                #         'y': {'bus': 'puppylog/y'}
+                #     }
+                # ),
+                
+            ],
+            'loopmode': 'parallel',
+            'loopblock': {
+                'block': CMIMVBlock2,
+                'params': {
+                    # 'id': 'mimv',
+                    'blocksize': numsteps,
+                    'debug': False,
+                    # 'norm_out': False,
+                    'inputs': {
+                        'x': {'bus': 'puppyslice/x_gyr'},
+                        'y': {'bus': 'puppylog/y'},
+                        'cond': {'bus': 'motordel/dy'}
+                    },
+                    # 'shift': (-120, 8),
+                    'shift': (scanstart, scanstop), # len 21
+                    # 'outputs': {'mi': {'shape': ((ydim + xdim)**2, 1)}}
+                    'outputs': {'cmimv': {'shape': (1, scanlen)}}
+                }
+            },
+        }
+    }),
+    
+    # multivariate mutual information analysis of data I(X^n ; Y^m)
     ('temv', {
         'block': LoopBlock2,
-        'enable': False,
+        # 'enable': False,
         'params': {
             'id': 'temv',
-            'loop': [('inputs', {'x': {'bus': 'puppyslice/x_gyr'}, 'y': {'bus': 'puppylog/y'}}),
-                     # ('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/r'}}),
-                     # ('inputs', {'x': {'bus': 'puppylog/y'}, 'y': {'bus': 'puppylog/r'}}),
+            'loop': [
+                (
+                    'inputs', {
+                        'x': {'bus': 'puppylog/x'},
+                        'y': {'bus': 'puppylog/y'}
+                    }
+                ),
+                
+                # (
+                #     'inputs', {
+                #         'x': {'bus': 'puppyslice/x_gyr'},
+                #         'y': {'bus': 'puppylog/y'}
+                #     }
+                # ),
+                
+                # (
+                #     'inputs', {
+                #         'x': {'bus': 'puppyslice/x_acc'},
+                #         'y': {'bus': 'puppylog/y'}
+                #     }
+                # ),
+
             ],
             'loopmode': 'parallel',
             'loopblock': {
@@ -266,6 +426,7 @@ graph = OrderedDict([
                     'id': 'temv',
                     'blocksize': numsteps,
                     'debug': False,
+                    'k': delay_embed_len, 'l': delay_embed_len,
                     'inputs': {'x': {'bus': 'puppyslice/x_gyr'}, 'y': {'bus': 'puppylog/y'}},
                     # 'shift': (-120, 8),
                     'shift': (scanstart, scanstop), # len 21
@@ -275,7 +436,7 @@ graph = OrderedDict([
             },
         }
     }),
-    
+
     # # mutual information analysis of data
     # ('infodist', {
     #     'block': LoopBlock2,
@@ -299,10 +460,124 @@ graph = OrderedDict([
     #         },
     #     }
     # }),
+
+    # scan to tap
+    ('tap', {
+        'block': LoopBlock2,
+        # 'enable': False,
+        'params': {
+            'loop': [
+
+                (
+                    'inputs', {
+                        'qtap': {'bus': 'mimv_ll0_ll0/mimv'},
+                    }
+                ),
+                
+                (
+                    'inputs', {
+                        'qtap': {'bus': 'cmimv_ll0_ll0/cmimv'},
+                    }
+                ),
+                
+                (
+                    'inputs', {
+                        'qtap': {'bus': 'temv_ll0_ll0/temv'},
+                    }
+                ),
+                # ('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/r'}}),
+                # ('inputs', {'x': {'bus': 'puppylog/y'}, 'y': {'bus': 'puppylog/r'}}),
+            ],
+            'loopmode': 'parallel',
+            'loopblock': {
+                'block': ModelBlock2,
+                'params': {
+                    'debug': True,
+                    'blocksize': numsteps,
+                    'inputs': {
+                        'qtap': {'bus': 'mimv_ll0_ll0/mimv'},
+                    },
+                    'outputs': {
+                        'tap_x': {'shape': (1, scanlen)},
+                        'tap_y': {'shape': (1, scanlen)},
+                    },
+                    'models': {
+                        'tap': {
+                            'type': 'qtap',
+                        }
+                    },
+                },
+            },
+        },
+    }),
+    
+    # linear regression probe
+    ('lrp', {
+        'block': LoopBlock2,
+        # 'enable': False,
+        'params': {
+            'loop': [
+                (
+                    'inputs', {
+                        'tap': {'val': np.arange(0, scanlen)},
+                        'x': {'bus': 'puppylog/y'},
+                        'y': {'bus': 'puppylog/x'},
+                    }
+                ),
+
+                (
+                    'inputs', {
+                        'tap': {'bus': 'tap_ll0_ll0/tap_x'},
+                        'x': {'bus': 'puppylog/y'},
+                        'y': {'bus': 'puppylog/x'},
+                    }
+                ),
+
+                (
+                    'inputs', {
+                        'tap': {'bus': 'tap_ll1_ll0/tap_x'},
+                        'x': {'bus': 'puppylog/y'},
+                        'y': {'bus': 'puppylog/x'},
+                    }
+                ),
+                
+                (
+                    'inputs', {
+                        'tap': {'bus': 'tap_ll2_ll0/tap_x'},
+                        'x': {'bus': 'puppylog/y'},
+                        'y': {'bus': 'puppylog/x'},
+                    }
+                ),
+                # ('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/r'}}),
+                # ('inputs', {'x': {'bus': 'puppylog/y'}, 'y': {'bus': 'puppylog/r'}}),
+            ],
+            'loopmode': 'parallel',
+            'loopblock': {
+                'block': ModelBlock2,
+                'params': {
+                    'debug': True,
+                    'blocksize': numsteps,
+                    'inputs': {
+                        'tap': {'bus': 'tap/tap_x'},
+                        'x': {'bus': 'puppylog/y'},
+                        'y': {'bus': 'puppylog/x'},
+                    },
+                    'outputs': {
+                        'y': {'shape': (xdim,numsteps)},
+                        'y_res': {'shape': (1,1)},
+                    },
+                    'models': {
+                        'lrp': {'type': 'linear_regression_probe'}
+                    },
+                },
+            },
+        },
+    }),
     
     # motor/sensor mutual information analysis of data
     ('mi', {
         'block': LoopBlock2,
+        'enable': False,
         'params': {
             'id': 'mi',
             'loop': [
@@ -339,6 +614,7 @@ graph = OrderedDict([
     # motor/sensor transfer entropy analysis of data
     ('te', {
         'block': LoopBlock2,
+        'enable': False,
         'params': {
             'id': 'te',
             'loopmode': 'parallel',
@@ -363,6 +639,7 @@ graph = OrderedDict([
     # motor/sensor cond motor_i!=j conditional transfer entropy analysis of data
     ('cte', {
         'block': LoopBlock2,
+        'enable': False,
         'params': {
             'id': 'cte',
             'loop': [('inputs', {'x': {'bus': 'puppyslice/x_gyr'}, 'y': {'bus': 'puppylog/y'}, 'cond': {'bus': 'puppylog/y'}}),
@@ -399,19 +676,6 @@ graph = OrderedDict([
     # #         'leak': 0.01,
     # #         },
     # #     }),
-    
-    # puppy process data block: delay motors by lag to align with their sensory effects
-    ('motordel', {
-        'block': DelayBlock2,
-        'params': {
-            'id': 'motordel',
-            'blocksize': numsteps,
-            'flat': True,
-            # 'inputs': {'y': {'bus': 'motordiff/dy'}},
-            'inputs': {'y': {'bus': 'puppylog/y', 'shape': (ydim, numsteps)}},
-            'delays': {'y': 3},
-            }
-        }),
     
     # # slice block to split puppy sensors x into gyros x_gyr and accels x_acc
     # ('puppyslicem', {
@@ -470,11 +734,15 @@ graph = OrderedDict([
                 # 'd5': {'bus': 'motordel/dy'}, # 'puppylog/y'}
                 # 'd6': {'bus': 'puppyslicem/x_y0'}, # /t
                 # 'd7': {'bus': 'puppyslicemd/x_y0'}, # /t
+                'lrp0': {'bus': 'lrp_ll0_ll0/y'},
+                'lrp1': {'bus': 'lrp_ll1_ll0/y'},
+                'lrp2': {'bus': 'lrp_ll1_ll0/y'},
+                'lrp3': {'bus': 'lrp_ll1_ll0/y'},
             },
             'outputs': {},#'x': {'shape': (3, 1)}},
             'subplots': [
                 [
-                    {'input': ['d3'], 'plot': timeseries},
+                    {'input': ['d3', 'lrp0', 'lrp1'], 'plot': timeseries},
                     {'input': 'd3', 'plot': histogram, 'title': 'Sensor histogram'},
                 ],
                 [
@@ -532,6 +800,7 @@ graph = OrderedDict([
     # plot cross-correlation matrix
     ('plot_xcorr_scan', {
         'block': ImgPlotBlock2,
+        'enable': False,
         'params': {
             'id': 'plot_xcor_img',
             'logging': False,
@@ -540,15 +809,11 @@ graph = OrderedDict([
             'desc': 'Cross-correlation scan for the %s dataset' % (cnf['logfile']),
             'title': 'Cross-correlation scan for the %s dataset' % (cnf['logfile']),
             'blocksize': numsteps,
-            # 'inputs': make_input_matrix(xdim = xdim, ydim = ydim, with_t = True, scan = (scanstart, scanstop)),
-            'inputs': make_input_matrix_ndim(xdim = xdim, ydim = ydim, with_t = True, scan = (scanstart, scanstop)),
-            # 'outputs': {}, #'x': {'shape': (3, 1)}},
+            'inputs': make_input_matrix_ndim(xdim = xdim, ydim = ydim_eff, with_t = True, scan = (scanstart, scanstop)),
             'wspace': 0.5,
             'hspace': 0.5,
             'subplots': [
-                # [{'input': ['d3'], 'ndslice': (i, j, ), 'xslice': (0, scanlen), 'xaxis': 't',
-                #   'plot': partial(timeseries, linestyle="none", marker=".")} for j in range(xdim)]
-                # for i in range(ydim)],
+                
                 [
                     {
                         'input': ['d3'],
@@ -563,42 +828,87 @@ graph = OrderedDict([
                         'yticks': False,
                         'colorbar': j == (xdim - 1), 'colorbar_orientation': 'vertical',
                     } for j in range(xdim)
-                ] for i in range(ydim)
+                ] for i in range(ydim_eff)
+                
             ],
+            
         },
     }),
     
     # plot multivariate (global) mutual information over timeshifts
-    ('plot_jh_mimv_temv', {
+    ('plot_mimv_scan', {
         'block': ImgPlotBlock2,
-        'enable': False,
+        # 'enable': False,
         'params': {
-            'id': 'plot_jh_mimv_temv',
             'logging': False,
             'saveplot': saveplot,
+            'savesize': (3 * 3),
             'debug': False,
             'wspace': 0.5,
             'hspace': 0.5,
             'blocksize': numsteps,
-            'inputs': {'d1': {'bus': 'mimv_ll0_ll0/mimv', 'shape': (1, scanlen)},
-                       'd2': {'bus': 'temv_ll0_ll0/temv', 'shape': (1, scanlen)},
-                       'd3': {'bus': 'jh/jh', 'shape': (1, scanlen)},
-                       't': {'val': np.linspace(scanstart, scanstop-1, scanlen)},},
+            'desc':  'Mutual information, conditional MI and TE scan for dataset %s' % (cnf['logfile']),
+            'title': 'Mutual information, conditional MI and TE scan for dataset %s' % (cnf['logfile']),
+            'inputs': {
+                'd1': {'bus': 'mimv_ll0_ll0/mimv', 'shape': (1, scanlen)},
+                'd3': {'bus': 'cmimv_ll0_ll0/cmimv', 'shape': (1, scanlen)},
+                'd2': {'bus': 'temv_ll0_ll0/temv', 'shape': (1, scanlen)},
+                # 'd3': {'bus': 'jh/jh', 'shape': (1, scanlen)},
+                't': {'val': np.linspace(scanstart, scanstop-1, scanlen)},
+            },
             'outputs': {}, #'x': {'shape': (3, 1)}},
             'subplots': [
                 [
-                    {'input': 'd3', 'xslice': (0, scanlen), 'yslice': (0, 1), 'xaxis': 't',
-                     'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
-                    'title': 'Joint entropy H(X_1,...,X_n,Y_1,...,Y_n) for time shifts [0, ..., 20]',
-                    'shape': (1, scanlen)},
-                    {'input': 'd1', 'xslice': (0, scanlen), 'yslice': (0, 1), 'xaxis': 't',
-                     'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
-                    'title': 'Multivariate mutual information I(X;Y) for time shifts [0, ..., 20]',
-                    'shape': (1, scanlen)},
-                    {'input': 'd2', 'xslice': (0, scanlen), 'yslice': (0, 1), 'xaxis': 't',
-                     'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
-                    'title': 'Multivariate transfer entropy TE(Y;X;X^-) for time shifts [0, ..., 20]',
-                    'shape': (1, scanlen)}
+                    # {
+                    #     'input': 'd3',
+                    #     'xslice': (0, scanlen), 'yslice': (0, 1), 'xaxis': 't',
+                    #     'plot': partial(timeseries, linestyle="none", marker="o"),
+                    #     'cmap': 'Reds',
+                    #     'title': 'Joint entropy H(X_1,...,X_n,Y_1,...,Y_n) for time shifts [0, ..., 20]',
+                    #     'shape': (1, scanlen)
+                    # },
+                    
+                    {
+                        'input': 'd1', 'xslice': (0, scanlen),
+                        'xticks': range(0, scanlen, 5),
+                        'xticklabels': range(scanstart*1, scanstop*1, 5*1),
+                        'xlabel': 'Lag [n]',
+                        'yslice': (0, 1),
+                        'ylabel': None,
+                        'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
+                        'title': 'Mutual information $I(X;Y)$',
+                        'colorbar': True, 'colorbar_orientation': 'vertical',
+                        'shape': (1, scanlen)
+                    },
+                    
+                    {
+                        'input': 'd3',
+                        'xslice': (0, scanlen),
+                        'xticks': range(0, scanlen, 5),
+                        'xticklabels': range(scanstart*1, scanstop*1, 5*1),
+                        'xlabel': 'Lag [n]',
+                        'yslice': (0, 1),
+                        'ylabel': None,
+                        'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
+                        'title': 'Cond. MI $CMI(Y;X;C)$',
+                        'colorbar': True, 'colorbar_orientation': 'vertical',
+                        'shape': (1, scanlen)
+                    },
+                    
+                    {
+                        'input': 'd2',
+                        'xslice': (0, scanlen),
+                        'xticks': range(0, scanlen, 5),
+                        'xticklabels': range(scanstart*1, scanstop*1, 5*1),
+                        'xlabel': 'Lag [n]',
+                        'yslice': (0, 1),
+                        'ylabel': None,
+                        'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
+                        'title': 'Transfer entropy $TE(Y;X;X^-)$',
+                        'colorbar': True, 'colorbar_orientation': 'vertical',
+                        'shape': (1, scanlen)
+                    }
+                    
                 ],
             ]
         },
@@ -607,7 +917,7 @@ graph = OrderedDict([
     # plot mi matrix as image
     ('plot_mi_te', {
         'block': ImgPlotBlock2,
-        # 'enable': False,
+        'enable': False,
         'params': {
             'id': 'plot_mi_te',
             'logging': False,

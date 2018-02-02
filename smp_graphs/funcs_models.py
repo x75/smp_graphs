@@ -37,6 +37,7 @@ from smp_base.models_actinf  import smpKNN, smpGMM, smpIGMM, smpHebbianSOM
 from smp_base.models_selforg import HK
 from smp_base.models_learners import smpSHL, learnerReward, Eligibility
 from smp_base.measures import meas as measf
+from smp_base.measures_probes import meas_linear_regression_probe
 
 try:
     from smp_base.models_actinf import smpOTLModel, smpSOESGP, smpSTORKGP
@@ -2022,6 +2023,64 @@ def trig_smpmodel_h(ref, mref, *args, **kwargs):
     ref.h = mref.h
     # logger.debug('mref.h = %s', mref.h)
     # logger.debug(' ref.h = %s',  ref.h)
+
+def init_qtap(ref, mref, conf, mconf):
+    """qtap - quantitative tapping
+
+    Compute binary tapping from continuous valued scan.
+    """
+    mref.thr = 0.5
+    
+def step_qtap(ref, mref, *args, **kwargs):
+    """qtap step
+
+    qtap's computation step
+    """
+    qtap = np.atleast_2d(ref.get_input('qtap')).T
+    qtap_idx_sorted = np.argsort(qtap, axis = 0)[::-1]
+    qtap_sorted_cumsum = np.cumsum(qtap[qtap_idx_sorted])/np.sum(qtap)
+    # print "qtap", qtap
+    # print "qtap_idx_sorted", qtap_idx_sorted
+    # print "qtap_sorted_cumsum", qtap_sorted_cumsum
+    thr_idx = np.searchsorted(qtap_sorted_cumsum, mref.thr)
+    tap = qtap_idx_sorted.copy()
+    tap[thr_idx:] = -1.
+    # print "tap", tap
+    # tap.sort(axis=0)
+    print "tap", tap.T
+    mref.tap_x = tap.T
+    mref.tap_y = tap.T
+    
+def init_linear_regression_probe(ref, mref, conf, mconf):
+    """linear_regression_probe - quantitative tapping
+
+    Compute binary tapping from continuous valued scan.
+    """
+    mref.thr = 0.5
+    
+def step_linear_regression_probe(ref, mref, *args, **kwargs):
+    """linear_regression_probe step
+
+    linear_regression_probe's computation step
+    """
+    tap_raw = np.atleast_2d(ref.get_input('tap')).T
+    # print "tap_raw", tap_raw
+    x = np.atleast_2d(ref.get_input('x')).T
+    y = np.atleast_2d(ref.get_input('y')).T
+    idx_base = np.arange(x.shape[0])
+    tap_clean = tap_raw[...,tap_raw>=0,np.newaxis]
+    # print "tap_clean", tap_clean
+    idx_tap = (idx_base + (tap_clean * -1)).T
+    print "idx_tap", idx_tap.shape
+    # print "idx_tap", idx_tap
+    x_ = np.vstack((np.zeros((tap_raw.shape[0], x.shape[1])), x))
+    x_tapped = x[idx_tap].reshape((x.shape[0], -1))
+    print "x_tapped", x_tapped.shape
+    # print "x_tapped", x_tapped
+    y_, y_res = meas_linear_regression_probe(data={'X': x_tapped, 'Y': y}, alpha = 2.0)
+    mref.y     = y_.T.copy()
+    mref.y_res = np.array([[y_res.copy()]])
+    print "lrp.y_res = %s" % (mref.y_res)
     
 class model(object):
     """model class
@@ -2059,6 +2118,7 @@ class model(object):
             'init': init_random_uniform_pi_2, 'step': step_random_uniform_pi_2},
         'random_uniform_modulated': {
             'init': init_random_uniform_modulated, 'step': step_random_uniform_modulated},
+        # smp model
         'smpmodel': {'init': init_smpmodel, 'step': step_smpmodel},
         # closed-loop models
         # active inference
@@ -2066,13 +2126,20 @@ class model(object):
         'actinf_m2': {'init': init_actinf, 'step': step_actinf},
         'actinf_m3': {'init': init_actinf, 'step': step_actinf},
         'e2p':       {'init': init_e2p,    'step': step_e2p},
-        'sklearn':   {'init': init_sklearn,    'step': step_sklearn, 'save': save_sklearn, 'load': load_sklearn},
+        'sklearn':   {
+            'init': init_sklearn, 'step': step_sklearn,
+            'save': save_sklearn, 'load': load_sklearn},
         # direct forward/inverse model pair learning
         'imol': {'init': init_imol, 'step': step_imol},
         # reward based learning
         'eh':        {'init': init_eh,     'step': step_eh},
         # self-organization of behaviour: hk, pimax/tipi, infth_pi, infth_ais, ...
         'homeokinesis': {'init': init_homoekinesis, 'step': step_homeokinesis},
+
+        # unspervised
+        'qtap': {'init': init_qtap, 'step': step_qtap},
+        'linear_regression_probe': {
+            'init': init_linear_regression_probe, 'step': step_linear_regression_probe},
     }
 
     def __init__(self, ref, conf, mref = None, mconf = {}):

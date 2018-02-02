@@ -1263,7 +1263,7 @@ class ImgPlotBlock2(FigPlotBlock2):
                             
                     vmin = np.min(extrema[0], axis = axis)[aidx]
                     vmax = np.max(extrema[1], axis = axis)[aidx]
-                    print "i, j, vmins, vmaxs", i, j, vmins, vmaxs
+                    # print "i, j, vmins, vmaxs", i, j, vmins, vmaxs
                     # vmin = vmins[sbidx]
                     # vmax = vmaxs[sbidx]
                     # vmin = extrema[0]

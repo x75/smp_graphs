@@ -11,7 +11,9 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 
-from smp_base.measures_infth import measMI, measH, compute_mutual_information, infth_mi_multivariate, compute_information_distance, compute_transfer_entropy, compute_conditional_transfer_entropy, compute_mi_multivariate, compute_transfer_entropy_multivariate, compute_entropy_multivariate
+from smp_base.measures_infth import compute_mutual_information, compute_information_distance, compute_mi_multivariate, compute_entropy_multivariate
+from smp_base.measures_infth import compute_cond_mi_multivariate
+from smp_base.measures_infth import compute_transfer_entropy, compute_conditional_transfer_entropy, compute_transfer_entropy_multivariate
 from smp_base.common import get_module_logger
 
 from smp_graphs.block import decInit, decStep, Block2, PrimBlock2
@@ -82,7 +84,14 @@ class InfthPrimBlock2(PrimBlock2):
         return jhinv
 
 class JHBlock2(InfthPrimBlock2):
-    """Compute the global scalar joint entropy of multivariate data
+    """Joint entropy block
+
+    Compute the global (scalar) joint entropy of multivariate data.
+    
+    Expected inputs: 'x' (src), 'y' (dst)
+
+    Configuration:
+     - 'shift': tuple of start- and endpoints for scan
     """
     @decInitInfthPrim()
     def __init__(self, conf = {}, paren = None, top = None):
@@ -94,10 +103,11 @@ class JHBlock2(InfthPrimBlock2):
         src = self.inputs['x']['val'].T
         dst = self.inputs['y']['val'].T
         
-        self._debug("%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by " % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape))
-        
+        self._debug("step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by " % (self.cnt, self.id, self.inputs['x']['val'].T.shape))
+
+        # i going from -scanstart to scanstop-1
         for i in range(self.shift[0], self.shift[1]):
-            self._debug("%d" % (i, ))
+            # self._debug("%d" % (i, ))
             # sys.stdout.flush()
             
             # src_ = np.roll(self.inputs['x']['val'].T, shift = i, axis = 0)
@@ -107,8 +117,8 @@ class JHBlock2(InfthPrimBlock2):
             # jh = compute_mi_multivariate(data = {'X': st, 'Y': st})
 
             # use jidt's delay param
-            jh = compute_entropy_multivariate((src, dst), delay = -i)
-            # jh = compute_mi_multivariate(data = {'X': st, 'Y': st}, delay = -i)
+            jh = compute_entropy_multivariate((src, dst), delay = i)
+            # jh = compute_mi_multivariate(data = {'X': st, 'Y': st}, delay = i)
             # print "%s.step[%d] data = %s, jh = %f" % (self.cname, self.cnt, st.shape, jh)
             meas.append(jh)
         # print ""
@@ -157,7 +167,7 @@ class MIBlock2(InfthPrimBlock2):
             # dst = self.inputs['y']['val'].T
             # mi = self.compute_mutual_information(src, dst)
             
-            mi = compute_mutual_information(src, dst, delay = -i, norm_in = True)
+            mi = compute_mutual_information(src, dst, delay = i, norm_in = True)
             # print "mi", mi
             
             meas.append(mi.copy())
@@ -208,7 +218,7 @@ class InfoDistBlock2(InfthPrimBlock2):
             # dst = self.inputs['y']['val'].T
             # mi = compute_information_distance(src, dst)
 
-            mi = compute_information_distance(src, dst, delay = -i, normalize = jh)
+            mi = compute_information_distance(src, dst, delay = i, normalize = jh)
             mis.append(mi)
             
             # if src eq dst 
@@ -256,7 +266,7 @@ class TEBlock2(InfthPrimBlock2):
             # st = np.hstack((src, dst))
             
             # te = compute_transfer_entropy(dst, src)
-            te = compute_transfer_entropy(dst, src, delay = -i)
+            te = compute_transfer_entropy(dst, src, delay = i)
             tes.append(te.copy())
         # print ""
 
@@ -296,7 +306,7 @@ class CTEBlock2(InfthPrimBlock2):
             # st = np.hstack((src, dst))
             
             # cte = compute_conditional_transfer_entropy(dst, src, cond)
-            cte = compute_conditional_transfer_entropy(src, dst, cond, delay = -i, xcond = self.xcond)
+            cte = compute_conditional_transfer_entropy(src, dst, cond, delay = i, xcond = self.xcond)
             ctes.append(cte.copy())
         print ""
 
@@ -333,26 +343,26 @@ class MIMVBlock2(InfthPrimBlock2):
         # normalize
         jh = self.normalize(src, dst)
         
+        print "%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by" % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape),
+        
         for i in range(self.shift[0], self.shift[1]):
-            # print "%d" % (i, ),
-            # sys.stdout.flush()
+            print "%d" % (i, ),
+            sys.stdout.flush()
             
             # print "self.inputs['x']['val'].T.shape", self.inputs['x']['val'].T.shape
             # dst_ = np.roll(dst, shift = i, axis = 0)
             
             # st = np.hstack((src, dst))
-            # jh = self.measH.step(st)
-            # mi = self.meas.step(st, st)
 
             if self.embeddingscan == "src":
                 self.inputs['y']['embedding'] = (i - self.shift[0]) + 1
                 src_ = self.get_input('y').T
                 mi = compute_mi_multivariate(data = {'X': src_, 'Y': dst}, estimator = "kraskov2", normalize = True)
             else: # delayscan
-                mi = compute_mi_multivariate(data = {'X': src, 'Y': dst}, estimator = "kraskov2", normalize = True, delay = -i)
+                mi = compute_mi_multivariate(data = {'X': src, 'Y': dst}, estimator = "kraskov2", normalize = True, delay = i)
             # print "mimv = %s" % mi
             mimvs.append(mi)
-        # print ""
+        print ""
         mimvs = np.array(mimvs)
         # print "@%d mimvs.shape = %s" % (self.cnt, mimvs.shape, )
         # print "@%d mimvs       = %s" % (self.cnt, mimvs, )
@@ -366,8 +376,85 @@ class MIMVBlock2(InfthPrimBlock2):
         self.mimv[0,shiftsl] = mimvs.flatten() * jh # /maxjh
         self._debug("step[%d] self.mimv.shape = %s, mimv = %s, jh = %f" % (self.cnt, self.mimv.shape, self.mimv, 1.0/jh))
 
+
+class CMIMVBlock2(InfthPrimBlock2):
+    """Conditional mutual information block
+
+    Compute the multivariate (MV) conditional mutual information (CMI) from X to
+    Y, conditioned on C, aka the total CMI.
+    """
+    @decInitInfthPrim()
+    def __init__(self, conf = {}, paren = None, top = None):
+        InfthPrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
+        
+    @decStep()
+    def step(self, x = None):
+        cmis = []
+        shiftsl = slice(None, (self.shift[1] - self.shift[0]))
+        # source (e.g. motor command)
+        src = self.inputs['y']['val'].T
+        # destination (e.g. sensor response)
+        dst = self.inputs['x']['val'].T
+        
+        # condition part 1 which is kept fixed with respect to scan position
+        if 'cond' in self.inputs:
+            cond = self.inputs['cond']['val'].T
+        else:
+            cond = None
+            
+        # condition part 2 which is moved along with scan position
+        if 'cond_delay' in self.inputs:
+            cond_delay = self.inputs['cond_delay']['val'].T
+        else:
+            cond_delay = None # np.array(())
+
+        # debug src, dst, cond, cond_delay shapes
+        self._debug("step[%d] src = %s" % (self.cnt, src.shape))
+        self._debug("step[%d] dst = %s" % (self.cnt, dst.shape))
+        
+        if cond is not None:
+            self._debug("step[%d] cond = %s" % (self.cnt, cond.shape))
+            
+        if cond_delay is not None:
+            self._debug("step[%d] cond_delay = %s" % (self.cnt, cond_delay.shape))
+
+        # legacy debug
+        print "%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by" % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape),
+
+        # norm
+        jh = self.normalize(src, dst)
+        
+        for i in range(self.shift[0], self.shift[1]):
+            print "%d" % (i, ),
+            sys.stdout.flush()
+            
+            dst_ = np.roll(dst, shift = -i, axis = 0)
+
+            if cond is not None and cond_delay is not None:
+                cond_delay_ = np.roll(cond_delay, shift = -i, axis = 0)
+                cond_combined = np.hstack((cond, cond_delay_))
+            elif cond_delay is not None:
+                cond_combined = np.roll(cond_delay, shift = -i, axis = 0)
+            else:
+                cond_combined = cond
+                
+            # st = np.hstack((src, dst))
+            
+            mi = compute_cond_mi_multivariate({'X': src, 'Y': dst_, 'C': cond_combined}, delay = 0)
+            cmis.append(mi)
+        print ""
+        cmis = np.array(cmis)
+        # self.temv[0,shiftsl] = cmis.flatten()
+        self.cmimv[0,shiftsl] = cmis.flatten() * jh
+                
 class TEMVBlock2(InfthPrimBlock2):
     """Compute the multivariate transfer entropy from X to Y, aka the total TE"""
+    defaults = {
+        'k': 1,
+        'k_tau': 1,
+        'l': 1,
+        'l_tau': 1,
+    }
     @decInitInfthPrim()
     def __init__(self, conf = {}, paren = None, top = None):
         InfthPrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
@@ -376,7 +463,6 @@ class TEMVBlock2(InfthPrimBlock2):
     def step(self, x = None):
         temvs = []
         shiftsl = slice(None, (self.shift[1] - self.shift[0]))
-        # jh = self.measH.step(st)
         src = self.inputs['y']['val'].T
         dst = self.inputs['x']['val'].T
         
@@ -394,7 +480,10 @@ class TEMVBlock2(InfthPrimBlock2):
             # st = np.hstack((src, dst))
             
             # mi = compute_transfer_entropy_multivariate(src, dst, delay = -self.shift[0]+i)
-            mi = compute_transfer_entropy_multivariate(src, dst, delay = -i)
+            mi = compute_transfer_entropy_multivariate(
+                src, dst, delay = i,
+                k = self.k, k_tau=self.k_tau, l=self.l, l_tau=self.l_tau
+            )
             temvs.append(mi)
         print ""
         temvs = np.array(temvs)
