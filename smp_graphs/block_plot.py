@@ -8,7 +8,7 @@ Available blocks: :class:`AnalysisBlock2`, :class:`BaseplotBlock2`,
 :class:`FigPlotBlock2`, :class:`PlotBlock2`, :class:`ImgPlotBlock2`,
 :class:`MatrixPlotBlock2`, :class:`SnsMatrixPlotBlock2`
 """
-import re
+import re, time
 from collections import OrderedDict
 from functools import partial
 
@@ -451,6 +451,10 @@ class FigPlotBlock2(BaseplotBlock2):
         # self.fig.tight_layout(pad = 1.0)
         # self.debug_print("fig.axes = %s", (self.fig.axes, ))
 
+        # paint timestamp into plot
+        if len(self.fig.axes) > 0:
+            self.fig.axes[0].text(-0.05, 1.05, time.strftime('%Y%m%d-%H%M%S'), alpha = 0.5, transform=self.fig.axes[0].transAxes)
+        
         self.prepare_saveplot()
         
         # FIXME: too special

@@ -114,7 +114,7 @@ else:
 if cnf.has_key('sys_slicespec'):
     sys_slicespec = cnf['sys_slicespec']
 else:
-    sys_slicespec = {'x': {'acc': slice(0, 3), 'gyr': slice(3, xdim)}}
+    sys_slicespec = {'x': {'acc': slice(0, xdim/2), 'gyr': slice(xdim/2, xdim)}}
 
 # configure the scan range
 scanstart = 0  # -100
@@ -190,7 +190,6 @@ graph = OrderedDict([
             # puppy sensors
             'inputs': {'x': {'bus': 'puppylog/x', 'shape': (xdim, numsteps)}},
             'slices': sys_slicespec,
-            # 'slices': ,
             }
         }),
             
@@ -201,8 +200,7 @@ graph = OrderedDict([
             'blocksize': numsteps,
             # puppy sensors
             'inputs': {'y': {'bus': 'puppylog/y', 'shape': (ydim, numsteps)}},
-            'slices': {'y': dict([('c%d' % i, [i]) for i in range(ydim)])}, # sys_slicespec,
-            # 'slices': ,
+            'slices': {'y': dict([('c%d' % i, [i]) for i in range(ydim)])},
         }
     }),
         
@@ -223,7 +221,7 @@ graph = OrderedDict([
     ('motordel', {
         'block': DelayBlock2,
         'params': {
-            'debug': True,
+            # 'debug': True,
             'blocksize': numsteps,
             'flat2': True,
             # 'inputs': {'y': {'bus': 'motordiff/dy'}},
@@ -249,8 +247,6 @@ graph = OrderedDict([
                 'x': {'bus': 'motordel/dx'},# 'shape': (xdim, )},
                 'y': {'bus': 'motordel/dy'},
             },
-            # 'inputs': {'x': {'bus': 'puppylog/y'}},
-            # 'slices': {'x': {'y%d' % i: slice(i, i+1) for i in range(ydim)}},
             'outputs': {'y': {'shape': (
                 xdim * delay_embed_len + ydim * delay_embed_len, numsteps
             )}} # overwrite
@@ -469,21 +465,15 @@ graph = OrderedDict([
             'loop': [
 
                 (
-                    'inputs', {
-                        'qtap': {'bus': 'mimv_ll0_ll0/mimv'},
-                    }
+                    'inputs', {'qtap': {'bus': 'mimv_ll0_ll0/mimv'}}
                 ),
                 
                 (
-                    'inputs', {
-                        'qtap': {'bus': 'cmimv_ll0_ll0/cmimv'},
-                    }
+                    'inputs', {'qtap': {'bus': 'cmimv_ll0_ll0/cmimv'}}
                 ),
                 
                 (
-                    'inputs', {
-                        'qtap': {'bus': 'temv_ll0_ll0/temv'},
-                    }
+                    'inputs', {'qtap': {'bus': 'temv_ll0_ll0/temv'}}
                 ),
                 # ('inputs', {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/r'}}),
                 # ('inputs', {'x': {'bus': 'puppylog/y'}, 'y': {'bus': 'puppylog/r'}}),
@@ -502,9 +492,7 @@ graph = OrderedDict([
                         'tap_y': {'shape': (1, scanlen)},
                     },
                     'models': {
-                        'tap': {
-                            'type': 'qtap',
-                        }
+                        'tap': {'type': 'qtap', 'thr': 0.2,}
                     },
                 },
             },
@@ -565,10 +553,37 @@ graph = OrderedDict([
                     'outputs': {
                         'y': {'shape': (xdim,numsteps)},
                         'y_res': {'shape': (1,1)},
+                        'y_idx': {'shape': (1,numsteps)},
                     },
                     'models': {
-                        'lrp': {'type': 'linear_regression_probe'}
+                        'lrp': {'type': 'linear_regression_probe', 'alpha': 0.1}
                     },
+                },
+            },
+        },
+    }),
+
+
+    # slice block to split puppy motors y into single channels
+    ('lrpslice', {
+        'block': LoopBlock2,
+        # 'enable': False,
+        'params': {
+            'loop': [
+                (
+                    'inputs', {
+                        'y': {'bus': 'lrp_ll%d_ll0/y' % i, 'shape': (xdim, numsteps)},
+                    }
+                ) for i in range(4)],
+            'loopmode': 'parallel',
+            'loopblock': {
+                'block': SliceBlock2,
+                'params': {
+                    # 'debug': True,
+                    'blocksize': numsteps,
+                    # puppy sensor predictions
+                    'inputs': {},
+                    'slices': {'y': {'acc': slice(0, xdim/2), 'gyr': slice(xdim/2, xdim)}},
                 },
             },
         },
@@ -727,9 +742,10 @@ graph = OrderedDict([
             'hspace': 0.5,
             'saveplot': saveplot,
             'inputs': {
-                'd3': {'bus': 'puppyslice/x_gyr'},
+                'x_gyr': {'bus': 'puppyslice/x_gyr'},
+                'x_acc': {'bus': 'puppyslice/x_acc'},
                 # 'd4': {'bus': 'accint/Ix_acc'}, # 'puppylog/y'}
-                # 'd3': {'bus': 'puppylog/x'},
+                # 'x_gyr': {'bus': 'puppylog/x'},
                 'd4': {'bus': 'puppylog/y'}, # 'puppylog/y'}
                 # 'd5': {'bus': 'motordel/dy'}, # 'puppylog/y'}
                 # 'd6': {'bus': 'puppyslicem/x_y0'}, # /t
@@ -738,16 +754,32 @@ graph = OrderedDict([
                 'lrp1': {'bus': 'lrp_ll1_ll0/y'},
                 'lrp2': {'bus': 'lrp_ll1_ll0/y'},
                 'lrp3': {'bus': 'lrp_ll1_ll0/y'},
+                'lrp_y_acc_0': {'bus': 'lrpslice_ll0_ll0/y_acc'},
+                'lrp_y_acc_1': {'bus': 'lrpslice_ll1_ll0/y_acc'},
+                'lrp_y_acc_2': {'bus': 'lrpslice_ll2_ll0/y_acc'},
+                'lrp_y_acc_3': {'bus': 'lrpslice_ll3_ll0/y_acc'},
+                'lrp_y_gyr_0': {'bus': 'lrpslice_ll0_ll0/y_gyr'},
+                'lrp_y_gyr_1': {'bus': 'lrpslice_ll1_ll0/y_gyr'},
+                'lrp_y_gyr_2': {'bus': 'lrpslice_ll2_ll0/y_gyr'},
+                'lrp_y_gyr_3': {'bus': 'lrpslice_ll3_ll0/y_gyr'},
             },
             'outputs': {},#'x': {'shape': (3, 1)}},
             'subplots': [
                 [
-                    {'input': ['d3', 'lrp0', 'lrp1'], 'plot': timeseries},
-                    {'input': 'd3', 'plot': histogram, 'title': 'Sensor histogram'},
+                    {
+                        'input': ['x_gyr'] + ['lrp_y_gyr_%i' % i for i in range(4)],
+                        'plot': timeseries,
+                        'title': 'Gyros',
+                    },
+                    {'input': ['x_gyr'], 'plot': histogram, 'title': 'Sensor histogram'},
+                ],
+                [
+                    {'input': ['x_acc'] + ['lrp_y_acc_%i' % i for i in range(4)], 'plot': timeseries},
+                    {'input': ['x_acc'], 'plot': histogram, 'title': 'Sensor histogram'},
                 ],
                 [
                     {'input': ['d4'], 'plot': timeseries},
-                    {'input': 'd4', 'plot': histogram, 'title': 'Motor histogram'},
+                    {'input': ['d4'], 'plot': histogram, 'title': 'Motor histogram'},
                 ],
                 # [
                 #     {'input': ['d5'], 'plot': timeseries},
@@ -842,7 +874,7 @@ graph = OrderedDict([
         'params': {
             'logging': False,
             'saveplot': saveplot,
-            'savesize': (3 * 3),
+            'savesize': (3 * 3, 3),
             'debug': False,
             'wspace': 0.5,
             'hspace': 0.5,
@@ -853,20 +885,15 @@ graph = OrderedDict([
                 'd1': {'bus': 'mimv_ll0_ll0/mimv', 'shape': (1, scanlen)},
                 'd3': {'bus': 'cmimv_ll0_ll0/cmimv', 'shape': (1, scanlen)},
                 'd2': {'bus': 'temv_ll0_ll0/temv', 'shape': (1, scanlen)},
+                # 'tap1': {'bus': 'tap_ll1_ll0/tap_x', 'shape': (1, scanlen)},
+                # 'tap2': {'bus': 'tap_ll2_ll0/tap_x', 'shape': (1, scanlen)},
+                # 'tap3': {'bus': 'tap_ll3_ll0/tap_x', 'shape': (1, scanlen)},
                 # 'd3': {'bus': 'jh/jh', 'shape': (1, scanlen)},
                 't': {'val': np.linspace(scanstart, scanstop-1, scanlen)},
             },
             'outputs': {}, #'x': {'shape': (3, 1)}},
             'subplots': [
                 [
-                    # {
-                    #     'input': 'd3',
-                    #     'xslice': (0, scanlen), 'yslice': (0, 1), 'xaxis': 't',
-                    #     'plot': partial(timeseries, linestyle="none", marker="o"),
-                    #     'cmap': 'Reds',
-                    #     'title': 'Joint entropy H(X_1,...,X_n,Y_1,...,Y_n) for time shifts [0, ..., 20]',
-                    #     'shape': (1, scanlen)
-                    # },
                     
                     {
                         'input': 'd1', 'xslice': (0, scanlen),
@@ -910,8 +937,138 @@ graph = OrderedDict([
                     }
                     
                 ],
+                
             ]
         },
+    }),
+    
+    # plot multivariate (global) mutual information over timeshifts
+    ('plot_mimv_scan2', {
+        'block': ImgPlotBlock2,
+        # 'enable': False,
+        'params': {
+            'logging': False,
+            'saveplot': saveplot,
+            'savesize': (3 * 3, 3 * 1),
+            'debug': False,
+            'wspace': 0.5,
+            'hspace': 0.5,
+            'blocksize': numsteps,
+            'desc':  'Taps from info scan for dataset %s' % (cnf['logfile']),
+            'title': 'Taps from info scan for dataset %s' % (cnf['logfile']),
+            'inputs': {
+                'd1': {'bus': 'mimv_ll0_ll0/mimv', 'shape': (1, scanlen)},
+                'd3': {'bus': 'cmimv_ll0_ll0/cmimv', 'shape': (1, scanlen)},
+                'd2': {'bus': 'temv_ll0_ll0/temv', 'shape': (1, scanlen)},
+
+                # 'tap1': {'bus': 'tap_ll1_ll0/tap_x', 'shape': (1, scanlen)},
+                # 'tap2': {'bus': 'tap_ll2_ll0/tap_x', 'shape': (1, scanlen)},
+                # 'tap3': {'bus': 'tap_ll3_ll0/tap_x', 'shape': (1, scanlen)},
+
+                'tap1': {'bus': 'lrp_ll1_ll0/y_idx', 'shape': (1, scanlen)},
+                'tap2': {'bus': 'lrp_ll2_ll0/y_idx', 'shape': (1, scanlen)},
+                'tap3': {'bus': 'lrp_ll3_ll0/y_idx', 'shape': (1, scanlen)},
+                # 'd3': {'bus': 'jh/jh', 'shape': (1, scanlen)},
+                't': {'val': np.linspace(scanstart, scanstop-1, scanlen)},
+            },
+            'outputs': {}, #'x': {'shape': (3, 1)}},
+            'subplots': [
+
+                [
+                    
+                    {
+                        'input': 'd1', 'xslice': (0, scanlen),
+                        'xticks': range(0, scanlen, 5),
+                        'xticklabels': range(scanstart*1, scanstop*1, 5*1),
+                        'xlabel': 'Lag [n]',
+                        'yslice': (0, 1),
+                        'ylabel': None,
+                        'vmin': 0, 'vmax': 0.1,
+                        'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
+                        'title': 'Mutual information $I(X;Y)$',
+                        'colorbar': True, 'colorbar_orientation': 'vertical',
+                        'shape': (1, scanlen)
+                    },
+                    
+                    {
+                        'input': 'd3',
+                        'xslice': (0, scanlen),
+                        'xticks': range(0, scanlen, 5),
+                        'xticklabels': range(scanstart*1, scanstop*1, 5*1),
+                        'xlabel': 'Lag [n]',
+                        'yslice': (0, 1),
+                        'ylabel': None,
+                        'vmin': 0, 'vmax': 0.1,
+                        'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
+                        'title': 'Cond. MI $CMI(Y;X;C)$',
+                        'colorbar': True, 'colorbar_orientation': 'vertical',
+                        'shape': (1, scanlen)
+                    },
+                    
+                    {
+                        'input': 'd2',
+                        'xslice': (0, scanlen),
+                        'xticks': range(0, scanlen, 5),
+                        'xticklabels': range(scanstart*1, scanstop*1, 5*1),
+                        'xlabel': 'Lag [n]',
+                        'yslice': (0, 1),
+                        'ylabel': None,
+                        'vmin': 0, 'vmax': 0.1,
+                        'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
+                        'title': 'Transfer entropy $TE(Y;X;X^-)$',
+                        'colorbar': True, 'colorbar_orientation': 'vertical',
+                        'shape': (1, scanlen)
+                    }
+                    
+                ],
+                
+                [
+                    
+                    {
+                        'input': 'tap1', 'xslice': (0, scanlen),
+                        'xticks': range(0, scanlen, 5),
+                        'xticklabels': range(scanstart*1, scanstop*1, 5*1),
+                        'xlabel': 'Lag [n]',
+                        'yslice': (0, 1),
+                        'ylabel': None,
+                        'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
+                        'title': 'Mutual information $I(X;Y)$',
+                        'colorbar': True, 'colorbar_orientation': 'vertical',
+                        'shape': (1, scanlen)
+                    },
+                    
+                    {
+                        'input': 'tap3',
+                        'xslice': (0, scanlen),
+                        'xticks': range(0, scanlen, 5),
+                        'xticklabels': range(scanstart*1, scanstop*1, 5*1),
+                        'xlabel': 'Lag [n]',
+                        'yslice': (0, 1),
+                        'ylabel': None,
+                        'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
+                        'title': 'Cond. MI $CMI(Y;X;C)$',
+                        'colorbar': True, 'colorbar_orientation': 'vertical',
+                        'shape': (1, scanlen)
+                    },
+                    
+                    {
+                        'input': 'tap2',
+                        'xslice': (0, scanlen),
+                        'xticks': range(0, scanlen, 5),
+                        'xticklabels': range(scanstart*1, scanstop*1, 5*1),
+                        'xlabel': 'Lag [n]',
+                        'yslice': (0, 1),
+                        'ylabel': None,
+                        'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
+                        'title': 'Transfer entropy $TE(Y;X;X^-)$',
+                        'colorbar': True, 'colorbar_orientation': 'vertical',
+                        'shape': (1, scanlen)
+                    }
+                    
+                ],
+                
+            ] 
+       },
     }),
     
     # plot mi matrix as image

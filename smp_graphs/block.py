@@ -1905,7 +1905,7 @@ class Block2(object):
                         # check if key exists or not. if it doesn't, that means this is a block inside dynamical graph construction
                         # print "\nplotblock", self.bus.keys()
 
-                        assert self.bus.has_key(v['bus']), "Requested by %s-%s, bus item %s is not in buskeys %s" % (self.cname, self.id, v['bus'], self.bus.keys())
+                        assert self.bus.has_key(v['bus']), "%s-%s requested bus item = %s which is not in bus = %s" % (self.cname, self.id, v['bus'], self.bus.keys())
                     
                         # enforce bus blocksize smaller than local blocksize, tackle later
                         # CHECK
@@ -3361,9 +3361,10 @@ class SliceBlock2(PrimBlock2):
             
         for k, v in params['inputs'].items():
             slicespec = params['slices'][k]
+            assert 'shape' in v, 'SliceBlock2 needs input shape spec at configuration time but only has %s' % (v.keys(),)
             # print slicespec
             for slk, slv in slicespec.items():
-                # print "%s.init inkeys %s, slicekey = %s" % (self.__class__.__name__, k, slk)
+                logger.debug('init ink = %s, slicekey = %s, sliceval = %s', k, slk, slv)
                 # really use the specified output shape, not execution blocksize
                 oblocksize = v['shape'][-1]
                 outk = "%s_%s" % (k, slk)
@@ -3379,13 +3380,14 @@ class SliceBlock2(PrimBlock2):
     @decStep()
     def step(self, x = None):
         for ink in self.inputs.keys():
-            # print "%s-%s[%d] ink = %s, inv = %s" % (self.cname, self.id, self.cnt,
-            #                                             ink, self.inputs[ink])
+            self._debug('step[%d] ink = %s, inv = %s' % (
+                self.cnt, ink, self.inputs[ink]))
+                
             slicespec = self.slices[ink]
             for slk, slv in slicespec.items():
                 outk = "%s_%s" % (ink, slk)
                 setattr(self, outk, self.inputs[ink]['val'][slv])
-                # print "%s-%s.step[%d] outk = %s, outsh = %s, out = %s" % (self.cname, self.id, self.cnt, outk, getattr(self, outk).shape, getattr(self, outk))
+                self._debug('step[%d] outk = %s, outsh = %s, out = %s' % (self.cnt, outk, getattr(self, outk).shape, getattr(self, outk)))
 
 class StackBlock2(PrimBlock2):
     """StackBlock2 class

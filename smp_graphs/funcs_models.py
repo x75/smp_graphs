@@ -2030,6 +2030,8 @@ def init_qtap(ref, mref, conf, mconf):
     Compute binary tapping from continuous valued scan.
     """
     mref.thr = 0.5
+    if 'thr' in mconf:
+        mref.thr = mconf['thr']
     
 def step_qtap(ref, mref, *args, **kwargs):
     """qtap step
@@ -2039,15 +2041,15 @@ def step_qtap(ref, mref, *args, **kwargs):
     qtap = np.atleast_2d(ref.get_input('qtap')).T
     qtap_idx_sorted = np.argsort(qtap, axis = 0)[::-1]
     qtap_sorted_cumsum = np.cumsum(qtap[qtap_idx_sorted])/np.sum(qtap)
-    # print "qtap", qtap
-    # print "qtap_idx_sorted", qtap_idx_sorted
-    # print "qtap_sorted_cumsum", qtap_sorted_cumsum
+    # ref._debug("qtap = %s" % qtap)
+    # ref._debug("qtap_idx_sorted = %s" %( qtap_idx_sorted))
+    # ref._debug("qtap_sorted_cumsum = %s" %( qtap_sorted_cumsum))
     thr_idx = np.searchsorted(qtap_sorted_cumsum, mref.thr)
     tap = qtap_idx_sorted.copy()
     tap[thr_idx:] = -1.
-    # print "tap", tap
     # tap.sort(axis=0)
-    print "tap", tap.T
+    ref._debug("thr = %s" % (mref.thr,))
+    ref._debug("tap = %s" % (tap.T, ))
     mref.tap_x = tap.T
     mref.tap_y = tap.T
     
@@ -2056,31 +2058,38 @@ def init_linear_regression_probe(ref, mref, conf, mconf):
 
     Compute binary tapping from continuous valued scan.
     """
-    mref.thr = 0.5
-    
+    mref.alpha = 1e-2
+    if 'alpha' in mconf:
+        mref.alpha = mconf['alpha']
+
 def step_linear_regression_probe(ref, mref, *args, **kwargs):
     """linear_regression_probe step
 
     linear_regression_probe's computation step
     """
     tap_raw = np.atleast_2d(ref.get_input('tap')).T
-    # print "tap_raw", tap_raw
+    # ref._debug("tap_raw", tap_raw)
     x = np.atleast_2d(ref.get_input('x')).T
     y = np.atleast_2d(ref.get_input('y')).T
     idx_base = np.arange(x.shape[0])
     tap_clean = tap_raw[...,tap_raw>=0,np.newaxis]
-    # print "tap_clean", tap_clean
+    # ref._debug("tap_clean", tap_clean)
     idx_tap = (idx_base + (tap_clean * -1)).T
-    print "idx_tap", idx_tap.shape
-    # print "idx_tap", idx_tap
+    ref._debug("idx_tap = %s" % ( idx_tap.shape,))
+    # ref._debug("idx_tap", idx_tap)
     x_ = np.vstack((np.zeros((tap_raw.shape[0], x.shape[1])), x))
     x_tapped = x[idx_tap].reshape((x.shape[0], -1))
-    print "x_tapped", x_tapped.shape
-    # print "x_tapped", x_tapped
-    y_, y_res = meas_linear_regression_probe(data={'X': x_tapped, 'Y': y}, alpha = 2.0)
+    ref._debug("x_tapped = %s" % (x_tapped.shape,))
+    # ref._debug("x_tapped = %s" %(x_tapped))
+    y_, y_res = meas_linear_regression_probe(data={'X': x_tapped, 'Y': y}, alpha = mref.alpha)
     mref.y     = y_.T.copy()
     mref.y_res = np.array([[y_res.copy()]])
-    print "lrp.y_res = %s" % (mref.y_res)
+    x__ = np.zeros((1, tap_raw.shape[0]))
+    x__[0,tap_clean[:,0]] = 1
+    ref._debug('x__ = %s' % (x__,))
+    ref._debug('tap_clean.T = %s' % (tap_clean.T,))
+    mref.y_idx = x__ * 1.
+    ref._debug("lrp.y_res = %s" % (mref.y_res))
     
 class model(object):
     """model class
