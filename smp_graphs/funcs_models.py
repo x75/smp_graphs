@@ -2068,7 +2068,7 @@ def step_linear_regression_probe(ref, mref, *args, **kwargs):
     linear_regression_probe's computation step
     """
     tap_raw = np.atleast_2d(ref.get_input('tap')).T
-    # ref._debug("tap_raw", tap_raw)
+    ref._debug('tap_raw = %s' % (tap_raw.T, ))
     x = np.atleast_2d(ref.get_input('x')).T
     y = np.atleast_2d(ref.get_input('y')).T
     idx_base = np.arange(x.shape[0])
@@ -2081,7 +2081,7 @@ def step_linear_regression_probe(ref, mref, *args, **kwargs):
     x_tapped = x[idx_tap].reshape((x.shape[0], -1))
     ref._debug("x_tapped = %s" % (x_tapped.shape,))
     # ref._debug("x_tapped = %s" %(x_tapped))
-    y_, y_res = meas_linear_regression_probe(data={'X': x_tapped, 'Y': y}, alpha = mref.alpha)
+    y_, y_res, w_norm, i_norm = meas_linear_regression_probe(data={'X': x_tapped, 'Y': y}, alpha = mref.alpha)
     mref.y     = y_.T.copy()
     mref.y_res = np.array([[y_res.copy()]])
     x__ = np.zeros((1, tap_raw.shape[0]))
@@ -2089,7 +2089,9 @@ def step_linear_regression_probe(ref, mref, *args, **kwargs):
     ref._debug('x__ = %s' % (x__,))
     ref._debug('tap_clean.T = %s' % (tap_clean.T,))
     mref.y_idx = x__ * 1.
-    ref._debug("lrp.y_res = %s" % (mref.y_res))
+    ref._debug("lrp.y_res = %s" % (mref.y_res,))
+    mref.w_norm = np.array([[w_norm]])
+    mref.b_norm = np.array([[i_norm]])
     
 class model(object):
     """model class

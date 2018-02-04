@@ -1340,7 +1340,10 @@ class ImgPlotBlock2(FigPlotBlock2):
                         yscale = 'log'
                     else:
                         yscale = 'linear'
-                    plotvar = self.inputs[subplotconf['input'][0]]['bus']
+                    if 'bus' in self.inputs[subplotconf['input'][0]]:
+                        plotvar = self.inputs[subplotconf['input'][0]]['bus']
+                    else:
+                        plotvar = input_ink # 'const%d-%d' % ()
                     
                     plotlen = input_ink['shape'][-1] # numsteps at shape[-1]
 

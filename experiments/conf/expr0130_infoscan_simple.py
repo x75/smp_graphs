@@ -7,7 +7,7 @@ gerken's puppy
 from matplotlib.pyplot import hexbin
 from smp_base.plot import histogramnd
 from smp_graphs.utils_conf_meas import make_input_matrix, make_input_matrix_ndim
-from smp_graphs.block_plot import SnsMatrixPlotBlock2, ImgPlotBlock2
+from smp_graphs.block_plot import SnsMatrixPlotBlock2, ImgPlotBlock2, TextBlock2
 from smp_graphs.block import dBlock2, IBlock2, SliceBlock2, DelayBlock2, StackBlock2
 from smp_graphs.block_meas import XCorrBlock2
 from smp_graphs.block_meas_infth import JHBlock2, MIBlock2, InfoDistBlock2, TEBlock2, CTEBlock2
@@ -553,7 +553,9 @@ graph = OrderedDict([
                     'outputs': {
                         'y': {'shape': (xdim,numsteps)},
                         'y_res': {'shape': (1,1)},
-                        'y_idx': {'shape': (1,numsteps)},
+                        'y_idx': {'shape': (1,scanlen)},
+                        'w_norm': {'shape': (1,1)},
+                        'b_norm': {'shape': (1,1)},
                     },
                     'models': {
                         'lrp': {'type': 'linear_regression_probe', 'alpha': 0.1}
@@ -870,7 +872,7 @@ graph = OrderedDict([
     # plot multivariate (global) mutual information over timeshifts
     ('plot_mimv_scan', {
         'block': ImgPlotBlock2,
-        # 'enable': False,
+        'enable': False,
         'params': {
             'logging': False,
             'saveplot': saveplot,
@@ -957,6 +959,7 @@ graph = OrderedDict([
             'desc':  'Taps from info scan for dataset %s' % (cnf['logfile']),
             'title': 'Taps from info scan for dataset %s' % (cnf['logfile']),
             'inputs': {
+                'duniform': {'val': np.ones((1, scanlen)) * 0.01},
                 'd1': {'bus': 'mimv_ll0_ll0/mimv', 'shape': (1, scanlen)},
                 'd3': {'bus': 'cmimv_ll0_ll0/cmimv', 'shape': (1, scanlen)},
                 'd2': {'bus': 'temv_ll0_ll0/temv', 'shape': (1, scanlen)},
@@ -965,6 +968,7 @@ graph = OrderedDict([
                 # 'tap2': {'bus': 'tap_ll2_ll0/tap_x', 'shape': (1, scanlen)},
                 # 'tap3': {'bus': 'tap_ll3_ll0/tap_x', 'shape': (1, scanlen)},
 
+                'tap0': {'bus': 'lrp_ll0_ll0/y_idx', 'shape': (1, scanlen)},
                 'tap1': {'bus': 'lrp_ll1_ll0/y_idx', 'shape': (1, scanlen)},
                 'tap2': {'bus': 'lrp_ll2_ll0/y_idx', 'shape': (1, scanlen)},
                 'tap3': {'bus': 'lrp_ll3_ll0/y_idx', 'shape': (1, scanlen)},
@@ -975,6 +979,20 @@ graph = OrderedDict([
             'subplots': [
 
                 [
+                    
+                    {
+                        'input': 'duniform', 'xslice': (0, scanlen),
+                        'xticks': range(0, scanlen, 5),
+                        'xticklabels': range(scanstart*1, scanstop*1, 5*1),
+                        'xlabel': 'Lag [n]',
+                        'yslice': (0, 1),
+                        'ylabel': None,
+                        'vmin': 0, 'vmax': 0.1,
+                        'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
+                        'title': 'Uniform baseline',
+                        'colorbar': True, 'colorbar_orientation': 'vertical',
+                        'shape': (1, scanlen)
+                    },
                     
                     {
                         'input': 'd1', 'xslice': (0, scanlen),
@@ -1021,8 +1039,22 @@ graph = OrderedDict([
                     }
                     
                 ],
-                
+
+                # tapping row
                 [
+                    
+                    {
+                        'input': ['tap0'], 'xslice': (0, scanlen),
+                        'xticks': range(0, scanlen, 5),
+                        'xticklabels': range(scanstart*1, scanstop*1, 5*1),
+                        'xlabel': 'Lag [n]',
+                        'yslice': (0, 1),
+                        'ylabel': None,
+                        'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
+                        'title': 'Uniform tapping',
+                        'colorbar': True, 'colorbar_orientation': 'vertical',
+                        'shape': (1, scanlen)
+                    },
                     
                     {
                         'input': 'tap1', 'xslice': (0, scanlen),
@@ -1032,7 +1064,7 @@ graph = OrderedDict([
                         'yslice': (0, 1),
                         'ylabel': None,
                         'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
-                        'title': 'Mutual information $I(X;Y)$',
+                        'title': 'Computed tapping (MI)',
                         'colorbar': True, 'colorbar_orientation': 'vertical',
                         'shape': (1, scanlen)
                     },
@@ -1046,7 +1078,7 @@ graph = OrderedDict([
                         'yslice': (0, 1),
                         'ylabel': None,
                         'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
-                        'title': 'Cond. MI $CMI(Y;X;C)$',
+                        'title': 'Computed tapping (CMI)',
                         'colorbar': True, 'colorbar_orientation': 'vertical',
                         'shape': (1, scanlen)
                     },
@@ -1060,7 +1092,7 @@ graph = OrderedDict([
                         'yslice': (0, 1),
                         'ylabel': None,
                         'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
-                        'title': 'Transfer entropy $TE(Y;X;X^-)$',
+                        'title': 'Computed tapping (TE)',
                         'colorbar': True, 'colorbar_orientation': 'vertical',
                         'shape': (1, scanlen)
                     }
@@ -1071,6 +1103,49 @@ graph = OrderedDict([
        },
     }),
     
+    # results table
+    ('table', {
+        'block': TextBlock2,
+        'params': {
+            # 'debug': True,
+            'blocksize': numsteps,
+            'saveplot': saveplot,
+            'savetype': 'tex',
+            'title': 'Results expr0130 for uniformly tapped and info-tapped prediction probes',
+            'desc': 'Residual MSE, predictor weight norm, bias norm',
+            'inputs': {
+                # baseline
+                'lrp0_res': {'bus': 'lrp_ll0_ll0/y_res', 'shape': (1, 1)},
+                'lrp0_w_norm': {'bus': 'lrp_ll0_ll0/w_norm', 'shape': (1, 1)},
+                'lrp0_b_norm': {'bus': 'lrp_ll0_ll0/w_norm', 'shape': (1, 1)},
+                # baseline
+                'lrp1_res': {'bus': 'lrp_ll1_ll0/y_res', 'shape': (1, 1)},
+                'lrp1_w_norm': {'bus': 'lrp_ll1_ll0/w_norm', 'shape': (1, 1)},
+                'lrp1_b_norm': {'bus': 'lrp_ll1_ll0/w_norm', 'shape': (1, 1)},
+                # baseline
+                'lrp2_res': {'bus': 'lrp_ll2_ll0/y_res', 'shape': (1, 1)},
+                'lrp2_w_norm': {'bus': 'lrp_ll2_ll0/w_norm', 'shape': (1, 1)},
+                'lrp2_b_norm': {'bus': 'lrp_ll2_ll0/w_norm', 'shape': (1, 1)},
+                # baseline
+                'lrp3_res': {'bus': 'lrp_ll3_ll0/y_res', 'shape': (1, 1)},
+                'lrp3_w_norm': {'bus': 'lrp_ll3_ll0/w_norm', 'shape': (1, 1)},
+                'lrp3_b_norm': {'bus': 'lrp_ll3_ll0/w_norm', 'shape': (1, 1)},
+            },
+            'layout': {
+                'numrows': 4,
+                'numcols': 3,
+                'collabels': ['Baseline', 'MI', 'CMI', 'TE'],
+                'rowlabels': ['Tapping', 'Res. MSE', '|W|', '|b|'],
+                'cells': [
+                    ['lrp0_res', 'lrp0_w_norm', 'lrp0_b_norm'],
+                    ['lrp1_res', 'lrp1_w_norm', 'lrp1_b_norm'],
+                    ['lrp2_res', 'lrp2_w_norm', 'lrp2_b_norm'],
+                    ['lrp3_res', 'lrp3_w_norm', 'lrp3_b_norm'],
+                ],
+            },
+        },
+    }),
+
     # plot mi matrix as image
     ('plot_mi_te', {
         'block': ImgPlotBlock2,
