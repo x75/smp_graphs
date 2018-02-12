@@ -591,6 +591,9 @@ class FigPlotBlock2(BaseplotBlock2):
                 'ylabel', 'ylim', 'yticks', 'yticklabels', 'yinvert', 'ytwin', ]:
             if subplotconf.has_key(kw):
                 kwargs[kw] = subplotconf[kw]
+            elif hasattr(self, kw):
+                kwargs[kw] = getattr(self, kw)
+                
             self._debug("plot_subplots pass 1 subplot[%d,%d] kwargs = %s" % (i, j, kwargs))
         return kwargs
             

@@ -307,8 +307,8 @@ def nxgraph_get_layout(G, layout_type):
         lvly = {-1: 0}
         lvln = {}
         y_ = -1
-        snodes = G.nodes()
-        snodes.sort()
+        snodes = sorted(G.nodes())
+        # snodes.sort()
         print "snodes", snodes
         for node in snodes:
             lvl = int(node[1:2])
@@ -352,7 +352,10 @@ def nxgraph_get_layout(G, layout_type):
                 # print "has outgoing edge?", node, G.edge[node].keys()
                 lvly[lvl] += 1
                 
-                numedges = len(G.edge[node].keys())
+                # numedges = len(G.edge[node].keys())
+                Gedges = G.edges(node, data=True, keys=True)
+                print "Gedges for node %s = %s, %s" % (node, type(Gedges), Gedges)
+                numedges = len(Gedges)
                 y_ = lvly[lvl]
                 if numedges > 0:
                     lvly[lvl+1] = lvly[lvl] - 1
@@ -748,8 +751,8 @@ def recursive_hierarchical(G, lvlx = 0, lvly = 0):
         G.node[node]['layout']['x'] = layout_[node][0] # lvlx + (i * xincr) # + (random.normal() * 0.1)
         G.node[node]['layout']['y'] = layout_[node][1] # lvly # + (random.normal() * 0.1)
         
-        # G.node[node]['layout']['x'] = lvlx + (i * xincr) # + (random.normal() * 0.1)
-        # G.node[node]['layout']['y'] = lvly # + (random.normal() * 0.1)
+        G.node[node]['layout']['x'] = lvlx + (i * xincr) # + (random.normal() * 0.1)
+        G.node[node]['layout']['y'] = lvly # + (random.normal() * 0.1)
         
         # G_.add_node('l%d_%s_%s' % (lvl, node, G.node[node]['block_'].id), G.node[node])
         nodeid_ = 'l%d_%s' % (lvlx, G.node[node]['block_'].id)

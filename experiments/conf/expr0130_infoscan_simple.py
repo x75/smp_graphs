@@ -52,11 +52,11 @@ ppycnf2 = {
     # 'logfile': 'data/stepPickles/step_period_26_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_72_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_72_1.pickle',
-    # 'logfile': 'data/stepPickles/step_period_76_0.pickle',
+    'logfile': 'data/stepPickles/step_period_76_0.pickle',
     'numsteps': 1000,
     'ydim_eff': 1,
-    'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle',
-    # 'numsteps': 1000,
+    # 'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle',
+    # 'numsteps': 5000,
     'logtype': 'puppy',
     'xdim': 6,
     'xdim_eff': 3,
@@ -119,19 +119,36 @@ else:
 
 # configure the scan range
 scanstart = 0  # -100
-scanstop = 20 # 101 #    1
+scanstop = 101 # 21 # 51 #    1
 scanlen = scanstop - scanstart
 delay_embed_len = 1
 
 datasetname = escape_backslash(cnf['logfile'])
 
 desc = """A real world robot example is the Puppy robot, initially
-proposed by \\parencite{{iida_cheap_2004}}. There exist several
-proposed modifications of the original design. Here, a soft legged
-design by Andreas Gerken and described in more detail in
-\\parencite{{gerken_behavioral_2017}} is used. The initial question
-is, what is the motor-sensor delay of this robot measured in time
-steps.""".format()
+proposed in \\cite{{iida_cheap_2004}}. There exist several proposals
+for modifications of the original design. Here, a soft legged design
+by Andreas Gerken is used, which is described in more detail in
+\\parencite{{gerken_behavioral_2017}}. The initial question was, what
+is the motor-sensor delay of this robot, measured in units of
+sensorimotor loop steps. The answer is that at the given loop
+frequency there is no single global delay but rather a set of delays
+spread out in time. This is caused by differences in speed of
+information propagation through the robot body. In particular,
+propagation speed is frequency dependent. The experiment consists of a
+data source and a maximum window size prior. Three scans are performed
+with three types of multivariate \\emph{{global}} measures that differ
+in how they account for multiple channels of coupling. Global means
+that all source- and destination variables are each lumped together to
+compute the shared information. The scan result is a one-dimensional
+series with one scalar dependency measurement for each time shift. The
+learned tappings are compared with a complete window baseline with
+linear regression probes \parencite{{alain_understanding_2016}}. If the
+coupling is sparse within the window, the tapped input outperforms the
+baseline probe measured via the mean squared prediction error. In
+addition the sparsely tapped probes have significantly lower parameter
+norms when the regularization parameter $\\lambda$ is set to a low
+value.""".format()
 
 # smp graph
 graph = OrderedDict([
@@ -561,7 +578,7 @@ graph = OrderedDict([
                         'b_norm': {'shape': (1,1)},
                     },
                     'models': {
-                        'lrp': {'type': 'linear_regression_probe', 'alpha': 0.1}
+                        'lrp': {'type': 'linear_regression_probe', 'alpha': 0.01}
                     },
                 },
             },
@@ -746,6 +763,7 @@ graph = OrderedDict([
             'wspace': 0.5,
             'hspace': 0.5,
             'saveplot': saveplot,
+            'title_pos': 'top_out',
             'inputs': {
                 'x_gyr': {'bus': 'puppyslice/x_gyr'},
                 'x_acc': {'bus': 'puppyslice/x_acc'},
@@ -776,15 +794,32 @@ graph = OrderedDict([
                         'plot': timeseries,
                         'title': 'Gyros',
                     },
-                    {'input': ['x_gyr'], 'plot': histogram, 'title': 'Sensor histogram'},
+                    {
+                        'input': ['x_gyr'],
+                        'plot': histogram,
+                        'title': 'Gyros histogram'},
                 ],
                 [
-                    {'input': ['x_acc'] + ['lrp_y_acc_%i' % i for i in range(4)], 'plot': timeseries},
-                    {'input': ['x_acc'], 'plot': histogram, 'title': 'Sensor histogram'},
+                    {
+                        'input': ['x_acc'] + ['lrp_y_acc_%i' % i for i in range(4)],
+                        'plot': timeseries,
+                        'title': 'Accelerometers',
+                    },
+                    {
+                        'input': ['x_acc'],
+                        'plot': histogram,
+                        'title': 'Accelerometers histogram'},
                 ],
                 [
-                    {'input': ['d4'], 'plot': timeseries},
-                    {'input': ['d4'], 'plot': histogram, 'title': 'Motor histogram'},
+                    {
+                        'input': ['d4'],
+                        'plot': timeseries,
+                        'title': 'Motor',
+                    },
+                    {
+                        'input': ['d4'],
+                        'plot': histogram,
+                        'title': 'Motor histogram'},
                 ],
                 # [
                 #     {'input': ['d5'], 'plot': timeseries},
@@ -958,10 +993,11 @@ graph = OrderedDict([
             'savetype': 'pdf',
             'debug': False,
             'wspace': 0.2,
-            'hspace': 0.2,
+            'hspace': 0.45,
             'blocksize': numsteps,
             'desc':  'Taps from info scan for dataset %s' % (datasetname),
-            'title': 'Taps from info scan for dataset %s' % (datasetname),
+            'title': 'Taps from info scan for dataset %s' % (cnf['logfile']),
+            'title_pos': 'top_out',
             'inputs': {
                 'duniform': {'val': np.ones((1, scanlen)) * 0.01},
                 'd1': {'bus': 'mimv_ll0_ll0/mimv', 'shape': (1, scanlen)},
@@ -988,9 +1024,10 @@ graph = OrderedDict([
                         'input': 'duniform', 'xslice': (0, scanlen),
                         'xticks': range(0, scanlen, 5),
                         'xticklabels': range(scanstart*1, scanstop*1, 5*1),
-                        'xlabel': 'Lag [n]',
+                        'xlabel': False, # 'Lag [n]',
                         'yslice': (0, 1),
                         'ylabel': False,
+                        'yticks': False,
                         'vmin': 0, 'vmax': 0.1,
                         'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
                         'title': 'Uniform baseline',
@@ -1002,8 +1039,9 @@ graph = OrderedDict([
                         'input': 'd1', 'xslice': (0, scanlen),
                         'xticks': range(0, scanlen, 5),
                         'xticklabels': range(scanstart*1, scanstop*1, 5*1),
-                        'xlabel': 'Lag [n]',
+                        'xlabel': False, # 'Lag [n]',
                         'yslice': (0, 1),
+                        'yticks': False,
                         'ylabel': False,
                         'vmin': 0, 'vmax': 0.1,
                         'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
@@ -1017,8 +1055,9 @@ graph = OrderedDict([
                         'xslice': (0, scanlen),
                         'xticks': range(0, scanlen, 5),
                         'xticklabels': range(scanstart*1, scanstop*1, 5*1),
-                        'xlabel': 'Lag [n]',
+                        'xlabel': False, # 'Lag [n]',
                         'yslice': (0, 1),
+                        'yticks': False,
                         'ylabel': False,
                         'vmin': 0, 'vmax': 0.1,
                         'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
@@ -1032,9 +1071,10 @@ graph = OrderedDict([
                         'xslice': (0, scanlen),
                         'xticks': range(0, scanlen, 5),
                         'xticklabels': range(scanstart*1, scanstop*1, 5*1),
-                        'xlabel': 'Lag [n]',
+                        'xlabel': False, # 'Lag [n]',
                         'yslice': (0, 1),
                         'ylabel': False,
+                        'yticks': False,
                         'vmin': 0, 'vmax': 0.1,
                         'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
                         'title': 'Transfer entropy $TE(Y;X;X^-)$',
@@ -1054,6 +1094,7 @@ graph = OrderedDict([
                         'xlabel': 'Lag [n]',
                         'yslice': (0, 1),
                         'ylabel': False,
+                        'yticks': False,
                         'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
                         'title': 'Uniform tapping',
                         'colorbar': True, 'colorbar_orientation': 'vertical',
@@ -1067,6 +1108,7 @@ graph = OrderedDict([
                         'xlabel': 'Lag [n]',
                         'yslice': (0, 1),
                         'ylabel': False,
+                        'yticks': False,
                         'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
                         'title': 'Computed tapping (MI)',
                         'colorbar': True, 'colorbar_orientation': 'vertical',
@@ -1081,6 +1123,7 @@ graph = OrderedDict([
                         'xlabel': 'Lag [n]',
                         'yslice': (0, 1),
                         'ylabel': False,
+                        'yticks': False,
                         'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
                         'title': 'Computed tapping (CMI)',
                         'colorbar': True, 'colorbar_orientation': 'vertical',
@@ -1095,6 +1138,7 @@ graph = OrderedDict([
                         'xlabel': 'Lag [n]',
                         'yslice': (0, 1),
                         'ylabel': False,
+                        'yticks': False,
                         'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
                         'title': 'Computed tapping (TE)',
                         'colorbar': True, 'colorbar_orientation': 'vertical',
