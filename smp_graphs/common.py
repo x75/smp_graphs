@@ -664,8 +664,6 @@ def conf_strip_variables(conf, omits = ['PlotBlock2']):
             
     return conf_
         
-
-
 def read_puppy_hk_pickles(lfile, key = None):
     """smp_graphs.common.read pickled log dicts from andi's puppy experiments"""
     d = pickle.load(open(lfile, 'rb'))
@@ -734,6 +732,9 @@ def check_datadir(conf = {}):
     # print "r datadir_expr", r
 
     return r
+
+def escape_backslash(s):
+    return re.sub(r'_', r'\\_', s)
 
 if __name__ == '__main__':
 

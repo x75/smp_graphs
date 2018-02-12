@@ -6,6 +6,7 @@ gerken's puppy
 
 from matplotlib.pyplot import hexbin
 from smp_base.plot import histogramnd
+from smp_graphs.common import escape_backslash
 from smp_graphs.utils_conf_meas import make_input_matrix, make_input_matrix_ndim
 from smp_graphs.block_plot import SnsMatrixPlotBlock2, ImgPlotBlock2, TextBlock2
 from smp_graphs.block import dBlock2, IBlock2, SliceBlock2, DelayBlock2, StackBlock2
@@ -121,6 +122,8 @@ scanstart = 0  # -100
 scanstop = 20 # 101 #    1
 scanlen = scanstop - scanstart
 delay_embed_len = 1
+
+datasetname = escape_backslash(cnf['logfile'])
 
 desc = """A real world robot example is the Puppy robot, initially
 proposed by \\parencite{{iida_cheap_2004}}. There exist several
@@ -840,8 +843,8 @@ graph = OrderedDict([
             'logging': False,
             'saveplot': saveplot,
             'debug': False,
-            'desc': 'Cross-correlation scan for the %s dataset' % (cnf['logfile']),
-            'title': 'Cross-correlation scan for the %s dataset' % (cnf['logfile']),
+            'desc': 'Cross-correlation scan for the %s dataset' % (datasetname),
+            'title': 'Cross-correlation scan for the %s dataset' % (datasetname),
             'blocksize': numsteps,
             'inputs': make_input_matrix_ndim(xdim = xdim, ydim = ydim_eff, with_t = True, scan = (scanstart, scanstop)),
             'wspace': 0.5,
@@ -881,8 +884,8 @@ graph = OrderedDict([
             'wspace': 0.5,
             'hspace': 0.5,
             'blocksize': numsteps,
-            'desc':  'Mutual information, conditional MI and TE scan for dataset %s' % (cnf['logfile']),
-            'title': 'Mutual information, conditional MI and TE scan for dataset %s' % (cnf['logfile']),
+            'desc':  'Mutual information, conditional MI and TE scan for dataset %s' % (datasetname),
+            'title': 'Mutual information, conditional MI and TE scan for dataset %s' % (datasetname),
             'inputs': {
                 'd1': {'bus': 'mimv_ll0_ll0/mimv', 'shape': (1, scanlen)},
                 'd3': {'bus': 'cmimv_ll0_ll0/cmimv', 'shape': (1, scanlen)},
@@ -951,13 +954,14 @@ graph = OrderedDict([
         'params': {
             'logging': False,
             'saveplot': saveplot,
-            'savesize': (3 * 3, 3 * 1),
+            'savesize': (4 * 3, 4 * 1),
+            'savetype': 'pdf',
             'debug': False,
-            'wspace': 0.5,
-            'hspace': 0.5,
+            'wspace': 0.2,
+            'hspace': 0.2,
             'blocksize': numsteps,
-            'desc':  'Taps from info scan for dataset %s' % (cnf['logfile']),
-            'title': 'Taps from info scan for dataset %s' % (cnf['logfile']),
+            'desc':  'Taps from info scan for dataset %s' % (datasetname),
+            'title': 'Taps from info scan for dataset %s' % (datasetname),
             'inputs': {
                 'duniform': {'val': np.ones((1, scanlen)) * 0.01},
                 'd1': {'bus': 'mimv_ll0_ll0/mimv', 'shape': (1, scanlen)},
@@ -986,7 +990,7 @@ graph = OrderedDict([
                         'xticklabels': range(scanstart*1, scanstop*1, 5*1),
                         'xlabel': 'Lag [n]',
                         'yslice': (0, 1),
-                        'ylabel': None,
+                        'ylabel': False,
                         'vmin': 0, 'vmax': 0.1,
                         'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
                         'title': 'Uniform baseline',
@@ -1000,7 +1004,7 @@ graph = OrderedDict([
                         'xticklabels': range(scanstart*1, scanstop*1, 5*1),
                         'xlabel': 'Lag [n]',
                         'yslice': (0, 1),
-                        'ylabel': None,
+                        'ylabel': False,
                         'vmin': 0, 'vmax': 0.1,
                         'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
                         'title': 'Mutual information $I(X;Y)$',
@@ -1015,7 +1019,7 @@ graph = OrderedDict([
                         'xticklabels': range(scanstart*1, scanstop*1, 5*1),
                         'xlabel': 'Lag [n]',
                         'yslice': (0, 1),
-                        'ylabel': None,
+                        'ylabel': False,
                         'vmin': 0, 'vmax': 0.1,
                         'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
                         'title': 'Cond. MI $CMI(Y;X;C)$',
@@ -1030,7 +1034,7 @@ graph = OrderedDict([
                         'xticklabels': range(scanstart*1, scanstop*1, 5*1),
                         'xlabel': 'Lag [n]',
                         'yslice': (0, 1),
-                        'ylabel': None,
+                        'ylabel': False,
                         'vmin': 0, 'vmax': 0.1,
                         'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
                         'title': 'Transfer entropy $TE(Y;X;X^-)$',
@@ -1049,7 +1053,7 @@ graph = OrderedDict([
                         'xticklabels': range(scanstart*1, scanstop*1, 5*1),
                         'xlabel': 'Lag [n]',
                         'yslice': (0, 1),
-                        'ylabel': None,
+                        'ylabel': False,
                         'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
                         'title': 'Uniform tapping',
                         'colorbar': True, 'colorbar_orientation': 'vertical',
@@ -1062,7 +1066,7 @@ graph = OrderedDict([
                         'xticklabels': range(scanstart*1, scanstop*1, 5*1),
                         'xlabel': 'Lag [n]',
                         'yslice': (0, 1),
-                        'ylabel': None,
+                        'ylabel': False,
                         'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
                         'title': 'Computed tapping (MI)',
                         'colorbar': True, 'colorbar_orientation': 'vertical',
@@ -1076,7 +1080,7 @@ graph = OrderedDict([
                         'xticklabels': range(scanstart*1, scanstop*1, 5*1),
                         'xlabel': 'Lag [n]',
                         'yslice': (0, 1),
-                        'ylabel': None,
+                        'ylabel': False,
                         'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
                         'title': 'Computed tapping (CMI)',
                         'colorbar': True, 'colorbar_orientation': 'vertical',
@@ -1090,7 +1094,7 @@ graph = OrderedDict([
                         'xticklabels': range(scanstart*1, scanstop*1, 5*1),
                         'xlabel': 'Lag [n]',
                         'yslice': (0, 1),
-                        'ylabel': None,
+                        'ylabel': False,
                         'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
                         'title': 'Computed tapping (TE)',
                         'colorbar': True, 'colorbar_orientation': 'vertical',
