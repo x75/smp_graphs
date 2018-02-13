@@ -11,7 +11,7 @@ from smp_graphs.block  import Block2, decInit, decStep
 from smp_graphs.block  import PrimBlock2
 
 import logging
-logger = get_module_logger(modulename = 'block_ols', loglevel = logging.DEBUG)
+logger = get_module_logger(modulename = 'block_ols', loglevel = logging.INFO)
 
 class FileBlock2(Block2):
     """!@brief File block: read some log or data file and output blocksize lines each step"""

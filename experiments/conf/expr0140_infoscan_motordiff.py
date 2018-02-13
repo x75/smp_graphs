@@ -67,6 +67,7 @@ ppycnf2 = {
     'xdim': 6,
     'xdim_eff': 3,
     'ydim': 4,
+    'ydim_eff': 1,
 }
     
 testcnfsin = {
@@ -415,7 +416,7 @@ graph = OrderedDict([
                         'input': ['d3'],
                         'ndslice': (slice(None), slice(None), slice(None)),
                         'shape': (scanlen, ydim, xdim), 'cmap': 'RdGy',
-                        'dimstack': {'x': [2, 1], 'y': [0]},
+                        'dimstack': {'x': [1, 2], 'y': [0]},
                         'vmin': -1.0, 'vmax': 1.0,
                     }
                 ],

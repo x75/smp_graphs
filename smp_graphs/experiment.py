@@ -104,7 +104,7 @@ def get_args():
     parser.add_argument("-n", "--numsteps",   type=int, default=default_numsteps, help="Number of outer loop steps [%s]" % default_numsteps)
     parser.add_argument("-s", "--randseed",   type=int, default=None,             help="Random seed [None], if None, seed is taken from config file")
     parser.add_argument("-pg",   "--plotgraph", dest="plotgraph", action="store_true", default = False, help = "Enable plot of smp graph [False]")
-    parser.add_argument("-pgl",  "--plotgraph-layout", dest="plotgraph_layout", default = 'linear_hierarchical', help = "Layout to use for graph plotting [linear_hierarchical]")
+    parser.add_argument("-pgl",  "--plotgraph-layout", dest="plotgraph_layout", default = None, help = "Layout to use for graph plotting [None]")
     parser.add_argument("-pgt",  "--plotgraph-tikz", dest="plotgraph_tikz", action="store_true", default = False, help = "Enable plot of smp graph with tikz [False]")
     parser.add_argument("-shp",  "--showplot",     dest="showplot",  action="store_true", default = None, help = "Show plots at all? [None]")
     parser.add_argument("-nshp", "--no-showplot",     dest="showplot",  action="store_false", default = None, help = "Show plots at all? [None]")
@@ -133,6 +133,9 @@ def set_config_defaults(conf):
     if not conf['params'].has_key('desc'):
         conf['params']['desc'] = conf['params']['id']
         
+    if not conf['params'].has_key('plotgraph_layout'):
+        conf['params']['plotgraph_layout'] = 'linear_hierarchical'
+        
     # if conf['params'].has_key('lconf'):
     #     print "set_config_defaults", conf['params']['lconf']
     return conf
@@ -144,7 +147,11 @@ def set_config_commandline_args(conf, args):
     """
     # for commandline_arg in conf['params'].has_key("numsteps"):
     #     conf['params']['numsteps'] = 100
-    gparams = ['numsteps', 'randseed', 'ros', 'docache', 'saveplot', 'showplot', 'cache_clear', 'do_pdb', 'plotgraph', 'plotgraph_tikz', 'plotgraph_layout']
+    gparams = [
+        'numsteps', 'randseed', 'ros', 'docache', 'saveplot',
+        'showplot', 'cache_clear', 'do_pdb', 'plotgraph',
+        'plotgraph_tikz', 'plotgraph_layout'
+    ]
     for clarg in gparams:
         if getattr(args, clarg) is not None:
             conf['params'][clarg] = getattr(args, clarg)
@@ -284,7 +291,7 @@ class Experiment(object):
         logger.info("experiment.Experiment init with conf = %s" % (self.conf.keys(), ))
         
         # topblock outputs: new types in addition to np.ndarray signals: 'text', 'plot', ...
-        for paramkey in ['outputs', 'desc']:
+        for paramkey in ['outputs', 'desc', 'plotgraph_layout']:
             if self.conf_vars.has_key(paramkey):
                 self.conf['params'][paramkey] = self.conf_vars[paramkey]
                 logger.debug("    vars -> params found %s, %s" % (paramkey, self.conf['params'][paramkey], ))
@@ -374,8 +381,10 @@ class Experiment(object):
 
     def init_plotgraph(self, args):
         # self.plotgraph_flag = args.plotgraph
-        self.plotgraph_layout = args.plotgraph_layout
-        
+        # self.plotgraph_layout = args.plotgraph_layout
+        self.plotgraph_layout = self.conf['params']['plotgraph_layout']
+
+        logger.debug("init_plotgraph plotgraph_layout = %s", self.plotgraph_layout)
         if self.conf['params']['plotgraph']:
             self.plotgraph_figures = {}
 
@@ -806,6 +815,7 @@ class Experiment(object):
         # layout_type = 'linear_hierarchical'
         # layout_type = 'random_hierarchical'
         # layout_type = 'spring_hierarchical'
+        logger.debug("run plotgraph_layout = %s", self.plotgraph_layout)
             
         # initial run, no cached data: store the graph
         if self.conf['params']['docache'] and not self.cache_loaded:

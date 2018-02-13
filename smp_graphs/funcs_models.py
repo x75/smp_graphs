@@ -85,6 +85,14 @@ def array_fix(a = None, col = True):
 #     return None
 
 def init_musig(ref, mref, conf, mconf):
+    """model.expansion.mu-sigma
+
+    Expand the input into the components: mu, sigma
+
+    .. note::
+
+    Single time step incremental iir estimator.
+    """
     params = conf['params']
     # params = mconf
     mref.a1 = mconf['a1']
@@ -110,6 +118,41 @@ def step_musig(ref, mref, *args, **kwargs):
             elif outk.endswith("sig"):
                 setattr(mref, outk, mref.a1 * outv_ + (1 - mref.a1) * np.sqrt(np.square(inv['val'] - getattr(mref, ink + "_mu"))))
                 
+            # logger.debug('musig.output %s = %s' % (outk, getattr(mref, outk)))
+
+def init_msr(ref, mref, conf, mconf):
+    """model.expansion.mu-sigma-residual
+
+    Expand the input into the components: mu, sigma, residual
+    """
+    params = conf['params']
+    # params = mconf
+    # expansion spec: mu, sigma, residual
+    axis = -1
+    mref.expansion = dict(zip(['m', 's', 'r'], [
+        lambda x: np.mean(x, axis=axis, keepdims=True) + np.zeros_like(x),
+        lambda x: np.std(x, axis=axis, keepdims=True) + np.zeros_like(x),
+        lambda x: x - np.mean(x, axis=axis, keepdims=True),
+    ]))
+    
+    # for each input
+    for ink, inv in params['inputs'].items():
+        # compute msr
+        for outk in mref.expansion:
+            # outk_full = "%s/%s_%s" % (mref.modelkey, ink, outk)
+            outk_full = "%s_%s" % (ink, outk)
+            params['outputs'][outk_full] = {'shape': inv['shape']}
+            setattr(mref, outk_full, np.zeros(inv['shape']))
+            
+    logger.debug('msr.outputs = %s' % (params['outputs']))
+    # return None
+
+def step_msr(ref, mref, *args, **kwargs):
+    # for ink, inv in ref.inputs.items():
+    for ink, inv in mref.mconf['inputs'].items():
+        for outk_ in mref.expansion:
+            outk = "%s_%s" % (ink, outk_)
+            setattr(mref, outk, mref.expansion[outk_](inv['val']))
             # logger.debug('musig.output %s = %s' % (outk, getattr(mref, outk)))
 
 # model func: reservoir expansion
@@ -2135,6 +2178,7 @@ class model(object):
         # 'identity': {'init': init_identity, 'step': step_identity},
         # expansions
         'musig': {'init': init_musig, 'step': step_musig},
+        'msr': {'init': init_msr, 'step': step_msr},
         'res': {'init': init_res, 'step': step_res},
         'polyexp': {'init': init_polyexp, 'step': step_polyexp},
         'random_lookup': {'init': init_random_lookup, 'step': step_random_lookup},

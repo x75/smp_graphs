@@ -1110,8 +1110,19 @@ class PlotBlock2(FigPlotBlock2):
                     
                 # twin axes headache
                 if len(sb['p1_axs']) == 1:
+                    if 'legend' in sb:
+                        assert type(sb['legend']) is dict, 'Legend param needs to be a dict = {\'label\': [ax handles, ...]}'
+                        labels = sb['legend'].keys()
+                        # artists
+                        lines = list(sb['p1_axs']['main']['ax'].get_lines())
+                        handles = [lines[l] for l in sb['legend'].values()]
+                    else:
+                        labels = sb['p1_plotlabels']
+                        handles = None
+                    
                     custom_legend(
-                        labels = sb['p1_plotlabels'],
+                        labels = labels,
+                        handles = handles,
                         ax = ax, resize_by = 0.9,
                         loc = loc)
                     ax_set_aspect(ax, **subplotconf)
@@ -1158,28 +1169,60 @@ class ImgPlotBlock2(FigPlotBlock2):
     Returns:
      - None
 
-    Configuration dictionary 'conf':
-     - Global
-      - logging:
-      - debug:
-      - saveplot: [False]
-      - savetype: [pdf]
-      - savesize: [2.5 x 1 * scale constant]
-      - wspace:
-      - hspace:
-      - inputs: 
-      - desc: Description of the plot which is put into the figure caption during latex output
-      - subplots(list): list of lists, first axis are subplot rows, second axis are subplot columns
-     - Subplot configuration
-      - input(list): list of input keys to be included in this subplot
-      - plot(list): list of plot_func function pointers
-      - title: the subplot title
-      - ...
+    An example configuration snippet for :class:`ImgPlotBlock2`
+
+.. code:: python
+
+    (
+        'blockid', # freestyle string from [A-Za-z0-9_\-]
+        {
+            'block': ImgPlotBlock2,
+            'params': {
+                'blocksize': numsteps,
+                'saveplot': False,
+                'savetype': 'pdf',
+                'savesize': (width x height) * scale constant,
+                'wspace': width pad,
+                'hspace': height pad,
+                'desc': Description of the plot which is put into the figure caption during latex output,
+                'vlim_share': True, # share pixel value limits over entire figure?
+                'inputs': {
+                    'datain': {'bus': 'data/x', 'shape': (32, 32)},
+                    # ...
+                },
+                # subplots is a list of lists, first axis are subplot rows, second axis are subplot columns
+                'subplots': [
+
+                    [
+                        {
+                            'input': ['datain'],
+                            'vlim_share': True, # share pixel value limits over FIXME
+                            'plot': [plotfunc],
+                            'title': 'subplot title',
+                            # x/y-label, lim, ticks, see also PlotBlock2
+                        }
+                    ],
+
+                ],
+                'logging': False,
+                'debug': False,
+            }
+        }
+    )
     """
+    defaults = {
+        'vlim_share': True, # globally share pixel value limits over subplots
+    }
+        
     def __init__(self, conf = {}, paren = None, top = None):
         FigPlotBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
     def plot_subplots(self):
+        """ImgPlotBlock2 worker func
+
+        Iterate subplots and translate config to matplotlib img
+        plotting using pcolor.
+        """
         self._debug("plot_subplots self.inputs = %s" % (self.inputs, ))
         
         # subplots pass 0: preprocessing
@@ -1285,9 +1328,22 @@ class ImgPlotBlock2(FigPlotBlock2):
                             axis = 1
                             aidx = i
 
-                    # get subplot item vmin, vmax from global plot extrema
-                    vmin = np.min(extrema[0], axis = axis)[aidx]
-                    vmax = np.max(extrema[1], axis = axis)[aidx]
+                    vmin = None
+                    vmax = None
+                            
+                    if type(self.vlim_share) is bool and self.vlim_share:
+                        # get subplot item vmin, vmax from global plot extrema
+                        vmin = np.min(extrema[0], axis = axis)[aidx]
+                        vmax = np.max(extrema[1], axis = axis)[aidx]
+                    elif type(self.vlim_share) is list and self.vlim_share[i,j]:
+                        vmin = np.min(extrema[0], axis = axis)[aidx]
+                        vmax = np.max(extrema[1], axis = axis)[aidx]
+                        
+                    # override subplot item vmin, vmax from subplotconf
+                    if subplotconf.has_key('vmin'):
+                        vmin = subplotconf['vmin']
+                    if subplotconf.has_key('vmax'):
+                        vmax = subplotconf['vmax']
                     
                     self._debug('subplot vlim default: i = %d, j = %d, vmin = %s, vmax = %s' % (i, j, vmin, vmax))
                     self._debug('subplot vlim extrama = %s' % (extrema))
@@ -1295,12 +1351,7 @@ class ImgPlotBlock2(FigPlotBlock2):
                     # vmax = vmaxs[sbidx]
                     # vmin = extrema[0]
 
-                    # override subplot item vmin, vmax from subplotconf
-                    if subplotconf.has_key('vmin'):
-                        vmin = subplotconf['vmin']
-                    if subplotconf.has_key('vmax'):
-                        vmax = subplotconf['vmax']
-                    self._debug('subplot vlim override: i = %d, j = %d, vmin = %s, vmax = %s' % (i, j, vmin, vmax))
+                    # self._debug('subplot vlim override: i = %d, j = %d, vmin = %s, vmax = %s' % (i, j, vmin, vmax))
                         
                     # plotdata_cand = self.inputs[subplotconf['input']][0][:,0]
                     # plotdata_cand = self.inputs[subplotconf['input']][0][xslice,0]
