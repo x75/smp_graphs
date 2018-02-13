@@ -104,6 +104,7 @@ def get_args():
     parser.add_argument("-n", "--numsteps",   type=int, default=default_numsteps, help="Number of outer loop steps [%s]" % default_numsteps)
     parser.add_argument("-s", "--randseed",   type=int, default=None,             help="Random seed [None], if None, seed is taken from config file")
     parser.add_argument("-pg",   "--plotgraph", dest="plotgraph", action="store_true", default = False, help = "Enable plot of smp graph [False]")
+    parser.add_argument("-pgl",  "--plotgraph-layout", dest="plotgraph_layout", default = 'linear_hierarchical', help = "Layout to use for graph plotting [linear_hierarchical]")
     parser.add_argument("-pgt",  "--plotgraph-tikz", dest="plotgraph_tikz", action="store_true", default = False, help = "Enable plot of smp graph with tikz [False]")
     parser.add_argument("-shp",  "--showplot",     dest="showplot",  action="store_true", default = None, help = "Show plots at all? [None]")
     parser.add_argument("-nshp", "--no-showplot",     dest="showplot",  action="store_false", default = None, help = "Show plots at all? [None]")
@@ -143,7 +144,7 @@ def set_config_commandline_args(conf, args):
     """
     # for commandline_arg in conf['params'].has_key("numsteps"):
     #     conf['params']['numsteps'] = 100
-    gparams = ['numsteps', 'randseed', 'ros', 'docache', 'saveplot', 'showplot', 'cache_clear', 'do_pdb', 'plotgraph', 'plotgraph_tikz']
+    gparams = ['numsteps', 'randseed', 'ros', 'docache', 'saveplot', 'showplot', 'cache_clear', 'do_pdb', 'plotgraph', 'plotgraph_tikz', 'plotgraph_layout']
     for clarg in gparams:
         if getattr(args, clarg) is not None:
             conf['params'][clarg] = getattr(args, clarg)
@@ -373,6 +374,7 @@ class Experiment(object):
 
     def init_plotgraph(self, args):
         # self.plotgraph_flag = args.plotgraph
+        self.plotgraph_layout = args.plotgraph_layout
         
         if self.conf['params']['plotgraph']:
             self.plotgraph_figures = {}
@@ -801,7 +803,7 @@ class Experiment(object):
         # final writes: log store, experiment/block store?, graphics, models
         # self.top.bus.plot(fig_nxgr.axes[3])
 
-        layout_type = 'linear_hierarchical'
+        # layout_type = 'linear_hierarchical'
         # layout_type = 'random_hierarchical'
         # layout_type = 'spring_hierarchical'
             
@@ -809,7 +811,7 @@ class Experiment(object):
         if self.conf['params']['docache'] and not self.cache_loaded:
             logger.info("experiment cache: storing final top level nxgraph = %s", self.top.nxgraph)
             # store the full dynamically expanded state of the toplevel nxgraph
-            nxgraph_store(conf = self.conf['params'], G = self.top.nxgraph, layout_type=layout_type)
+            nxgraph_store(conf = self.conf['params'], G = self.top.nxgraph, layout_type=self.plotgraph_layout)
             self.top.bus.store_pickle(conf = self.conf['params'])
             
             # filename = "data/%s_%s.yaml" % (self.top.id, 'nxgraph',)
@@ -837,7 +839,7 @@ class Experiment(object):
             # G = self.top.nxgraph # nx.read_yaml(self.cache['topblock_nxgraph'])
             # Gbus = self.top.bus
         else:
-            G, G_number_of_nodes_total = recursive_hierarchical(G=self.top.nxgraph, layout_type=layout_type)
+            G, G_number_of_nodes_total = recursive_hierarchical(G=self.top.nxgraph, layout_type=self.plotgraph_layout)
             Gbus = self.top.bus
 
         # self.printgraph(G = G)
@@ -845,7 +847,7 @@ class Experiment(object):
         # plot the computation graph and the bus
         set_interactive(True)
         if self.conf['params']['plotgraph']:
-            self.plotgraph(G = G, Gbus = Gbus, layout_type=layout_type)
+            self.plotgraph(G = G, Gbus = Gbus, layout_type=self.plotgraph_layout)
 
         # logger.debug("args to conf? plotgraph_tikz = %s", self.conf['params']['plotgraph_tikz'],)
         if self.conf['params']['plotgraph_tikz']:

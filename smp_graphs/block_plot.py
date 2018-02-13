@@ -1048,15 +1048,16 @@ class PlotBlock2(FigPlotBlock2):
                 # [subplotconf['slice'][0]:subplotconf['slice'][1]].T)
         # subplots pass 1: done
 
+        # check for and run pass 2
         if not self.plot_subplots_pass_2_flag:
             self.plot_subplots_pass_2(cols_xlim_max, rows_ylim_max)
             self.plot_subplots_pass_2_flag = True
 
         self._debug("plot_subplots len fig.axes = %d" % (len(self.fig.axes)))
-            
+
+        # plt mechanics
         plt.draw()
         plt.pause(1e-9)
-
 
     def plot_subplots_pass_2(self, cols_xlim_max, rows_ylim_max):
         ################################################################################
@@ -1180,30 +1181,40 @@ class ImgPlotBlock2(FigPlotBlock2):
 
     def plot_subplots(self):
         self._debug("plot_subplots self.inputs = %s" % (self.inputs, ))
+        
+        # subplots pass 0: preprocessing
+        # - compute value ranges and limits, e.g. for shared normalization
+
+        # get outer geometry from subplots list
         numrows = len(self.subplots)
         numcols = len(self.subplots[0])
 
+        # alloc extrema
         extrema = np.zeros((2, numrows, numcols))
-        
+
+        # value min/max for subplot columns
         vmins_sb = [[] for i in range(numcols)]
         vmaxs_sb = [[] for i in range(numcols)]
 
+        # value min/max for subplot columns
         vmins = [None for i in range(numcols)]
         vmaxs = [None for i in range(numcols)]
+        # value min/max for subplot rows
         vmins_r = [None for i in range(numrows)]
         vmaxs_r = [None for i in range(numrows)]
-                
+
+        # iterate subplots
         for i, subplot in enumerate(self.subplots): # rows
             for j, subplotconf in enumerate(subplot): # cols
                 # check conditions
-                assert subplotconf.has_key('shape'), "image plot needs shape spec"
+                assert subplotconf.has_key('shape'), "image plot needs 'shape' entry in subplotconf but only has %s" % (subplotconf.keys(),)
                 
                 # make it a list if it isn't
                 for input_spec_key in ['input', 'ndslice', 'shape']:
                     if subplotconf.has_key(input_spec_key):
                         subplotconf[input_spec_key] = subplot_input_fix(subplotconf[input_spec_key])
                         
-                # for img plot use only first input item
+                # for img plot use only first input item (FIXME: mixing?)
                 subplotin = self.inputs[subplotconf['input'][0]]
                 # print "subplotin[%d,%d].shape = %s / %s" % (i, j, subplotin['val'].shape, subplotin['shape'])
                 vmins_sb[j].append(np.min(subplotin['val']))
@@ -1211,16 +1222,21 @@ class ImgPlotBlock2(FigPlotBlock2):
                 extrema[0,i,j] = np.min(subplotin['val'])
                 extrema[1,i,j] = np.max(subplotin['val'])
                 # print "i", i, "j", j, vmins_sb, vmaxs_sb
-                
+
+        # debugging
         self._debug("%s mins = %s" % (self.id, extrema[0], ))
         self._debug("%s maxs = %s" % (self.id, extrema[1], ))
+        # convert to ndarray
         vmins_sb = np.array(vmins_sb)
         vmaxs_sb = np.array(vmaxs_sb)
         # print "vmins_sb, vmaxs_sb", i, j, vmins_sb.shape, vmaxs_sb.shape
 
+        # iterate columns
         for i in range(numcols):
+            # row min is min over all cols
             vmins[i] = np.min(vmins_sb[i])
             # vmins[1] = np.min(vmins_sb[1])
+            # row max is max over all cols
             vmaxs[i] = np.max(vmaxs_sb[i])
             # vmaxs[1] = np.max(vmaxs_sb[1])
 
@@ -1229,13 +1245,14 @@ class ImgPlotBlock2(FigPlotBlock2):
         #     # vmins[1] = np.min(vmins_sb[1])
         #     vmaxs_r[i] = np.max(vmaxs_sb[i])
         #     # vmaxs[1] = np.max(vmaxs_sb[1])
-            
-        rowmins = np.min(extrema[0], axis = 0) 
-        rowmaxs = np.max(extrema[1], axis = 0) 
-        colmins = np.min(extrema[0], axis = 1) 
-        colmaxs = np.max(extrema[1], axis = 1)
+
+        # # get extrema
+        # rowmins = np.min(extrema[0], axis = 0) 
+        # rowmaxs = np.max(extrema[1], axis = 0) 
+        # colmins = np.min(extrema[0], axis = 1) 
+        # colmaxs = np.max(extrema[1], axis = 1)
         
-        self._debug("plot_subplots rowmins = %s, rowmaxs = %s, colmins = %s, colmaxs = %s" % (rowmins, rowmaxs, colmins, colmaxs))
+        # self._debug("plot_subplots rowmins = %s, rowmaxs = %s, colmins = %s, colmaxs = %s" % (rowmins, rowmaxs, colmins, colmaxs))
         
         if True:
             for i, subplot in enumerate(self.subplots): # rows
@@ -1267,19 +1284,23 @@ class ImgPlotBlock2(FigPlotBlock2):
                         if subplotconf['vaxis'] == 'rows':
                             axis = 1
                             aidx = i
-                            
+
+                    # get subplot item vmin, vmax from global plot extrema
                     vmin = np.min(extrema[0], axis = axis)[aidx]
                     vmax = np.max(extrema[1], axis = axis)[aidx]
-                    # print "i, j, vmins, vmaxs", i, j, vmins, vmaxs
+                    
+                    self._debug('subplot vlim default: i = %d, j = %d, vmin = %s, vmax = %s' % (i, j, vmin, vmax))
+                    self._debug('subplot vlim extrama = %s' % (extrema))
                     # vmin = vmins[sbidx]
                     # vmax = vmaxs[sbidx]
                     # vmin = extrema[0]
 
-                    # print "vmin", vmin, "vmax", vmax
+                    # override subplot item vmin, vmax from subplotconf
                     if subplotconf.has_key('vmin'):
                         vmin = subplotconf['vmin']
                     if subplotconf.has_key('vmax'):
                         vmax = subplotconf['vmax']
+                    self._debug('subplot vlim override: i = %d, j = %d, vmin = %s, vmax = %s' % (i, j, vmin, vmax))
                         
                     # plotdata_cand = self.inputs[subplotconf['input']][0][:,0]
                     # plotdata_cand = self.inputs[subplotconf['input']][0][xslice,0]

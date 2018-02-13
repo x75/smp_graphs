@@ -19,6 +19,7 @@ from smp_graphs.block_models import ModelBlock2
 showplot = True
 randseed = 12345
 saveplot = False
+plotgraph_layout = 'spring_hierarchical'
 
 # add latex output
 outputs = {
@@ -119,7 +120,7 @@ else:
 
 # configure the scan range
 scanstart = 0  # -100
-scanstop = 76*2+1 # 11 # 21 # 51 #    1
+scanstop = 11 # 76*2+1 # 21 # 51 #    1
 scanlen = scanstop - scanstart
 delay_embed_len = 1
 
@@ -142,22 +143,33 @@ sensorimotor loop steps. The answer is that at the given loop
 frequency there is no single global delay but rather a set of delays
 spread out in time. This is caused by differences in speed of
 information propagation through the robot body. In particular,
-propagation speed is frequency dependent. The experiment consists of a
-data source and a maximum window size prior. Three scans are performed
-with three types of multivariate \\emph{{global}} measures that differ
-in how they account for multiple channels of coupling. Global means
-that all source- and destination variables are each lumped together to
-compute the shared information. The scan result is a vector
-$\text{{scan}}$ with each scalar element $\text{{scan}}_i$ being a
-dependency measurement for the corresponding time shift of $-i$ of the
-destination with respect to the source. The learned tappings are
-compared with a rectangular window baseline using linear regression
-probes \parencite{{alain_understanding_2016}}. If the effective coupling is
+propagation speed is frequency dependent.
+
+\\par{{The experiment consists of a data source and a maximum window
+size prior. Three scans are performed with three types of multivariate
+\\emph{{global}} measures that differ in how they account for multiple
+channels of coupling. Global means that all source- and destination
+variables are each lumped together to compute the shared
+information. The scan result is a vector $\text{{scan}}$ with each
+scalar element $\text{{scan}}_i$ being a dependency measurement for
+the corresponding time shift of $-i$ of the destination with respect
+to the source. The learned tappings are compared with a rectangular
+window baseline using linear regression probes
+\parencite{{alain_understanding_2016}}. If the effective coupling is
 sparse within the window, the tapped input outperforms the baseline
 probe measured via the mean squared prediction error. In addition the
 sparsely tapped probes have significantly lower parameter norms when
 the regularization parameter is set to a low value, e.g. here $\\alpha
-= {0}$.""".format(lrp_alpha)
+= {0}$.}}
+
+\\par{{In this run, the same signal is sent to all four motors of
+Puppy. The signal consists of a square wave with an amplitude range of
+$[-0.2, 0.2] and a period of 76 time steps. The scan length is set to
+twice the period length. The periodicity is clearly visible in the
+mutual information measurement, which is causally spurious but
+statistically correct precicely due to the strict periodicity of the
+source.$}}
+""".format(lrp_alpha)
 
 # smp graph
 graph = OrderedDict([
@@ -998,11 +1010,11 @@ graph = OrderedDict([
         'block': ImgPlotBlock2,
         # 'enable': False,
         'params': {
-            'logging': False,
+            # 'logging': False,
             'saveplot': saveplot,
             'savesize': (4 * 3, 4 * 1),
             'savetype': 'pdf',
-            'debug': False,
+            'debug': True,
             'wspace': 0.2,
             'hspace': 0.45,
             'blocksize': numsteps,
@@ -1039,7 +1051,7 @@ graph = OrderedDict([
                         'yslice': (0, 1),
                         'ylabel': False,
                         'yticks': False,
-                        'vmin': 0, 'vmax': 0.1,
+                        # 'vmin': 0, 'vmax': 0.1,
                         'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
                         'title': 'Uniform baseline',
                         'colorbar': True, 'colorbar_orientation': 'vertical',
@@ -1054,7 +1066,7 @@ graph = OrderedDict([
                         'yslice': (0, 1),
                         'yticks': False,
                         'ylabel': False,
-                        'vmin': 0, 'vmax': 0.1,
+                        # 'vmin': 0, 'vmax': 0.1,
                         'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
                         'title': 'Mutual information $I(X;Y)$',
                         'colorbar': True, 'colorbar_orientation': 'vertical',
@@ -1070,7 +1082,7 @@ graph = OrderedDict([
                         'yslice': (0, 1),
                         'yticks': False,
                         'ylabel': False,
-                        'vmin': 0, 'vmax': 0.1,
+                        # 'vmin': 0, 'vmax': 0.1,
                         'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
                         'title': 'Cond. MI $CMI(Y;X;C)$',
                         'colorbar': True, 'colorbar_orientation': 'vertical',
@@ -1086,7 +1098,7 @@ graph = OrderedDict([
                         'yslice': (0, 1),
                         'ylabel': False,
                         'yticks': False,
-                        'vmin': 0, 'vmax': 0.1,
+                        # 'vmin': 0, 'vmax': 0.1,
                         'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
                         'title': 'Transfer entropy $TE(Y;X;X^-)$',
                         'colorbar': True, 'colorbar_orientation': 'vertical',
