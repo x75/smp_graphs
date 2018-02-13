@@ -123,6 +123,13 @@ scanstop = 76*2+1 # 11 # 21 # 51 #    1
 scanlen = scanstop - scanstart
 delay_embed_len = 1
 
+# prepare scan plot xticks depending on input size
+plot_mimv_scan_xticks_step = scanlen // 5
+plot_mimv_scan_xticks = range(0, scanlen, plot_mimv_scan_xticks_step)
+plot_mimv_scan_xticklabels = range(scanstart*1, scanstop*1, plot_mimv_scan_xticks_step*1)
+
+lrp_alpha = 0.01
+
 datasetname = escape_backslash(cnf['logfile'])
 
 desc = """A real world robot example is the Puppy robot, initially
@@ -140,15 +147,17 @@ data source and a maximum window size prior. Three scans are performed
 with three types of multivariate \\emph{{global}} measures that differ
 in how they account for multiple channels of coupling. Global means
 that all source- and destination variables are each lumped together to
-compute the shared information. The scan result is a one-dimensional
-series with one scalar dependency measurement for each time shift. The
-learned tappings are compared with a complete window baseline with
-linear regression probes \parencite{{alain_understanding_2016}}. If the
-coupling is sparse within the window, the tapped input outperforms the
-baseline probe measured via the mean squared prediction error. In
-addition the sparsely tapped probes have significantly lower parameter
-norms when the regularization parameter $\\lambda$ is set to a low
-value.""".format()
+compute the shared information. The scan result is a vector
+$\text{{scan}}$ with each scalar element $\text{{scan}}_i$ being a
+dependency measurement for the corresponding time shift of $-i$ of the
+destination with respect to the source. The learned tappings are
+compared with a rectangular window baseline using linear regression
+probes \parencite{{alain_understanding_2016}}. If the effective coupling is
+sparse within the window, the tapped input outperforms the baseline
+probe measured via the mean squared prediction error. In addition the
+sparsely tapped probes have significantly lower parameter norms when
+the regularization parameter is set to a low value, e.g. here $\\alpha
+= {0}$.""".format(lrp_alpha)
 
 # smp graph
 graph = OrderedDict([
@@ -578,7 +587,7 @@ graph = OrderedDict([
                         'b_norm': {'shape': (1,1)},
                     },
                     'models': {
-                        'lrp': {'type': 'linear_regression_probe', 'alpha': 0.01}
+                        'lrp': {'type': 'linear_regression_probe', 'alpha': lrp_alpha, 'meas': 'rmse'}
                     },
                 },
             },
@@ -906,6 +915,8 @@ graph = OrderedDict([
             
         },
     }),
+
+
     
     # plot multivariate (global) mutual information over timeshifts
     ('plot_mimv_scan', {
@@ -1022,8 +1033,8 @@ graph = OrderedDict([
                     
                     {
                         'input': 'duniform', 'xslice': (0, scanlen),
-                        'xticks': range(0, scanlen, 5),
-                        'xticklabels': range(scanstart*1, scanstop*1, 5*1),
+                        'xticks': plot_mimv_scan_xticks,
+                        'xticklabels': plot_mimv_scan_xticklabels,
                         'xlabel': False, # 'Lag [n]',
                         'yslice': (0, 1),
                         'ylabel': False,
@@ -1037,8 +1048,8 @@ graph = OrderedDict([
                     
                     {
                         'input': 'd1', 'xslice': (0, scanlen),
-                        'xticks': range(0, scanlen, 5),
-                        'xticklabels': range(scanstart*1, scanstop*1, 5*1),
+                        'xticks': plot_mimv_scan_xticks,
+                        'xticklabels': plot_mimv_scan_xticklabels,
                         'xlabel': False, # 'Lag [n]',
                         'yslice': (0, 1),
                         'yticks': False,
@@ -1053,8 +1064,8 @@ graph = OrderedDict([
                     {
                         'input': 'd3',
                         'xslice': (0, scanlen),
-                        'xticks': range(0, scanlen, 5),
-                        'xticklabels': range(scanstart*1, scanstop*1, 5*1),
+                        'xticks': plot_mimv_scan_xticks,
+                        'xticklabels': plot_mimv_scan_xticklabels,
                         'xlabel': False, # 'Lag [n]',
                         'yslice': (0, 1),
                         'yticks': False,
@@ -1069,8 +1080,8 @@ graph = OrderedDict([
                     {
                         'input': 'd2',
                         'xslice': (0, scanlen),
-                        'xticks': range(0, scanlen, 5),
-                        'xticklabels': range(scanstart*1, scanstop*1, 5*1),
+                        'xticks': plot_mimv_scan_xticks,
+                        'xticklabels': plot_mimv_scan_xticklabels,
                         'xlabel': False, # 'Lag [n]',
                         'yslice': (0, 1),
                         'ylabel': False,
@@ -1089,8 +1100,8 @@ graph = OrderedDict([
                     
                     {
                         'input': ['tap0'], 'xslice': (0, scanlen),
-                        'xticks': range(0, scanlen, 5),
-                        'xticklabels': range(scanstart*1, scanstop*1, 5*1),
+                        'xticks': plot_mimv_scan_xticks,
+                        'xticklabels': plot_mimv_scan_xticklabels,
                         'xlabel': 'Lag [n]',
                         'yslice': (0, 1),
                         'ylabel': False,
@@ -1103,8 +1114,8 @@ graph = OrderedDict([
                     
                     {
                         'input': 'tap1', 'xslice': (0, scanlen),
-                        'xticks': range(0, scanlen, 5),
-                        'xticklabels': range(scanstart*1, scanstop*1, 5*1),
+                        'xticks': plot_mimv_scan_xticks,
+                        'xticklabels': plot_mimv_scan_xticklabels,
                         'xlabel': 'Lag [n]',
                         'yslice': (0, 1),
                         'ylabel': False,
@@ -1118,8 +1129,8 @@ graph = OrderedDict([
                     {
                         'input': 'tap3',
                         'xslice': (0, scanlen),
-                        'xticks': range(0, scanlen, 5),
-                        'xticklabels': range(scanstart*1, scanstop*1, 5*1),
+                        'xticks': plot_mimv_scan_xticks,
+                        'xticklabels': plot_mimv_scan_xticklabels,
                         'xlabel': 'Lag [n]',
                         'yslice': (0, 1),
                         'ylabel': False,
@@ -1133,8 +1144,8 @@ graph = OrderedDict([
                     {
                         'input': 'tap2',
                         'xslice': (0, scanlen),
-                        'xticks': range(0, scanlen, 5),
-                        'xticklabels': range(scanstart*1, scanstop*1, 5*1),
+                        'xticks': plot_mimv_scan_xticks,
+                        'xticklabels': plot_mimv_scan_xticklabels,
                         'xlabel': 'Lag [n]',
                         'yslice': (0, 1),
                         'ylabel': False,

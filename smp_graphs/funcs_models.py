@@ -2062,36 +2062,57 @@ def init_linear_regression_probe(ref, mref, conf, mconf):
     if 'alpha' in mconf:
         mref.alpha = mconf['alpha']
 
+    mref.meas = 'mse'
+    if 'meas' in mconf:
+        mref.meas = mconf['meas']
+
 def step_linear_regression_probe(ref, mref, *args, **kwargs):
     """linear_regression_probe step
 
-    linear_regression_probe's computation step
+    `linear_regression_probe`'s computation step:
+    
     """
+    # get raw tapping input from qtap model with shape (-1, scanlen)
     tap_raw = np.atleast_2d(ref.get_input('tap')).T
     ref._debug('tap_raw = %s' % (tap_raw.T, ))
+    # get input x
     x = np.atleast_2d(ref.get_input('x')).T
+    # get target y
     y = np.atleast_2d(ref.get_input('y')).T
+    # get base index running through raw tapping length
     idx_base = np.arange(x.shape[0])
+    # get the selected time shifts with effective contributions
     tap_clean = tap_raw[...,tap_raw>=0,np.newaxis]
     # ref._debug("tap_clean", tap_clean)
+    # compute input tapping index from base index and effective taps
     idx_tap = (idx_base + (tap_clean * -1)).T
     ref._debug("idx_tap = %s" % ( idx_tap.shape,))
     # ref._debug("idx_tap", idx_tap)
+    # do zero padding in the beginning to handle negative indices (FIXME: not used?)
     x_ = np.vstack((np.zeros((tap_raw.shape[0], x.shape[1])), x))
+    # tap the values from the raw input (FIXME: use x_?)
     x_tapped = x[idx_tap].reshape((x.shape[0], -1))
     ref._debug("x_tapped = %s" % (x_tapped.shape,))
     # ref._debug("x_tapped = %s" %(x_tapped))
-    y_, y_res, w_norm, i_norm = meas_linear_regression_probe(data={'X': x_tapped, 'Y': y}, alpha = mref.alpha)
+    # compute regression probe
+    # - fit linear model to data x/y and l2 regularization parameter $\alpha$
+    # - return prediction, prediction error, post fit parameter norm
+    y_, y_res, w_norm, i_norm = meas_linear_regression_probe(data={'X': x_tapped, 'Y': y}, alpha = mref.alpha, meas = mref.meas)
+    # data bookkeeping
     mref.y     = y_.T.copy()
     mref.y_res = np.array([[y_res.copy()]])
+    # prepare effective tapping index for output as binary mask
     x__ = np.zeros((1, tap_raw.shape[0]))
     x__[0,tap_clean[:,0]] = 1
     ref._debug('x__ = %s' % (x__,))
     ref._debug('tap_clean.T = %s' % (tap_clean.T,))
+    # compute effective tapping index for output converting bool to numeric
     mref.y_idx = x__ * 1.
     ref._debug("lrp.y_res = %s" % (mref.y_res,))
+    # set model parameter norm outputs
     mref.w_norm = np.array([[w_norm]])
     mref.b_norm = np.array([[i_norm]])
+    # done
     
 class model(object):
     """model class
