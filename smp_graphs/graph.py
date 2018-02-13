@@ -266,6 +266,7 @@ def nxgraph_from_smp_graph(conf):
 def nxgraph_get_layout(G, layout_type):
     """get an nx.graph layout from a config string
     """
+    print "nxgraph_get_layout layout_type = %s" % (layout_type)
     if layout_type == "spring":
         # spring
         layout = nx.spring_layout(G)
@@ -292,7 +293,7 @@ def nxgraph_get_layout(G, layout_type):
     elif layout_type == "random":
         layout = nx.random_layout(G)
     # FIXME: include custom nested layout
-    elif layout_type == "linear_hierarchical":
+    elif layout_type.endswith('_hierarchical'):
         # print 'G.nodes', G.nodes()
         pos = {}
         for node in G.nodes():
@@ -723,36 +724,54 @@ def nxgraph_plot2(G):
     # plt.draw()
     # plt.pause(0)
             
-def recursive_hierarchical(G, lvlx = 0, lvly = 0):
+def recursive_hierarchical(G, lvlx = 0, lvly = 0, layout_type = 'linear_hierarchical'):
     """another recursive graph drawing func
 
     1) draw the hierarchy without scaling of subgraphs (like printgraph)
     2) construct flattened graph during draw recursion
     3) draw edges across hierarchy boundaries
     """
-    layout_type = 'random_hierarchical' # 'linear_hierarchical' # shell, pygraphviz, random
+    # layout_type = 'random_hierarchical'
+    # layout_type = 'linear_hierarchical' # shell, pygraphviz, random
 
+    print "recursive_hierarchical layout_type = %s" % (layout_type)
+    
     G_ = nx.MultiDiGraph()
 
-    xincr = 0.4/float(G.number_of_nodes() + 1)
-
-    # get a random layout for this graph level
-    # layout_ = nx.random_layout(G, center = (lvlx + 0.0, lvly + 0.0))
-    layout_ = nx.spring_layout(G, center = (lvlx + 0.0, lvly + 0.0))
-    xincr = 2.0
-    yincr = 2.0
+    if layout_type == 'linear_hierarchical':
+        layout_ = None
+        # xincr = 0.5/float(G.number_of_nodes() + 1)
+        xincr = 0.02
+        #  xincr_rec = xincr
+        yincr = 0.5
+        lvly_incr = 5.0
+    elif layout_type == 'random_hierarchical':
+        # get a random layout for this graph level
+        layout_ = nx.random_layout(G, center = (lvlx + 0.0, lvly + 0.0))
+        xincr = 1.0
+        # xincr_rec = xincr
+        yincr = 0.1
+        lvly_incr = 0.1
+    elif layout_type == 'spring_hierarchical':
+        # get a spring layout for this graph level
+        layout_ = nx.spring_layout(G, center = (lvlx + 0.0, lvly + 0.0))
+        xincr = 1.0
+        yincr = 0.5
+        lvly_incr = 0.5
 
     # for i, node in enumerate(G.nodes()):
     for i, node in enumerate(nxgraph_nodes_iter(G, 'enable')):
         G.node[node]['layout'] = {}
         G.node[node]['layout']['level'] = lvlx
 
-        
-        G.node[node]['layout']['x'] = layout_[node][0] # lvlx + (i * xincr) # + (random.normal() * 0.1)
-        G.node[node]['layout']['y'] = layout_[node][1] # lvly # + (random.normal() * 0.1)
-        
-        G.node[node]['layout']['x'] = lvlx + (i * xincr) # + (random.normal() * 0.1)
-        G.node[node]['layout']['y'] = lvly # + (random.normal() * 0.1)
+        if layout_ is not None:
+            G.node[node]['layout']['x'] = layout_[node][0] # lvlx + (i * xincr) # + (random.normal() * 0.1)
+            G.node[node]['layout']['y'] = layout_[node][1] # lvly # + (random.normal() * 0.1)
+            lvlx_incr = xincr
+        else:
+            G.node[node]['layout']['x'] = lvlx + (i + 0) * xincr # + (random.normal() * 0.1)
+            G.node[node]['layout']['y'] = lvly # + (random.normal() * 0.1)
+            lvlx_incr = (i + 1) * xincr
         
         # G_.add_node('l%d_%s_%s' % (lvl, node, G.node[node]['block_'].id), G.node[node])
         nodeid_ = 'l%d_%s' % (lvlx, G.node[node]['block_'].id)
@@ -768,13 +787,18 @@ def recursive_hierarchical(G, lvlx = 0, lvly = 0):
         # descend into subgraph
         if hasattr(G.node[node]['block_'], 'nxgraph'):
             # print "node.nxgraph:", G.node[node]['block_'].nxgraph
-            # lvlx += 1
-            G2, G2_number_of_nodes_total = recursive_hierarchical(G.node[node]['block_'].nxgraph, lvlx = lvlx + xincr, lvly = lvly)
+            # lvlx += 1, (i + 1) * xincr
+            G2, G2_number_of_nodes_total = recursive_hierarchical(
+                G.node[node]['block_'].nxgraph, lvlx = lvlx + lvlx_incr, lvly = lvly,
+                layout_type=layout_type
+            )
 
-            # # linear_hierarchical
-            # lvly += G2_number_of_nodes_total # G2.number_of_nodes()
-            # random
-            lvly += yincr
+            # linear_hierarchical
+            if layout_ is not None:
+                # random, spring, ...
+                lvly += lvly_incr
+            else:
+                lvly += G2_number_of_nodes_total * lvly_incr # G2.number_of_nodes()
 
             # print "G2", G2.nodes()
             G_ = nx.compose(G2, G_)
@@ -798,8 +822,7 @@ def recursive_hierarchical(G, lvlx = 0, lvly = 0):
                 
             # print "G_", G_.nodes(), G_.edges()
         else:
-            # lvly += 1
-            lvly += 0
+            lvly += yincr
 
     if lvlx == 0:
         G_.name = G.name
@@ -881,7 +904,7 @@ graph_io_funcs = {
     'yaml': {'read': nx.read_yaml, 'write': nx.write_yaml},
 }
         
-def nxgraph_store(conf = None, G = None):
+def nxgraph_store(conf = None, G = None, layout_type='linear_hierarchical'):
     """serialization and store an nxgraph
 
     Arguments:
@@ -894,6 +917,7 @@ def nxgraph_store(conf = None, G = None):
       "nxgraph_store bad_argument: needs valid configuration dict 'conf' with 'datadir', 'datadir_expr', and 'datafile_expr' entries"
     assert G is not None, "nxgraph_store bad_argument: needs a graph G to store"
     # graph_io = {(k, {'read': graph_io_funcs[k]['read'], 'read': graph_io_funcs[k]['write']}) for i, k in enumerate(graph_io_funcs.keys())}
+    print "nxgraph_store layout_type = %s" % (layout_type, )
     print "nxgraph_store graph_io_funcs = %s" % (graph_io_funcs, )
     graph_filetype = 'pickle' # 'gml' # , 'json', 'yaml'
     graph_filename = '%s_%s.%s' % (conf['datafile_md5'], 'nxgraph', graph_filetype)
@@ -909,7 +933,7 @@ def nxgraph_store(conf = None, G = None):
         
     # print "nxgraph_nodes_iter_recursive", nxgraph_nodes_iter_recursive(G = G, filt = None, data = True, level = 0, iterfunc = iterfunc)
 
-    G_, G_number_of_nodes_total = recursive_hierarchical(G)
+    G_, G_number_of_nodes_total = recursive_hierarchical(G, layout_type=layout_type)
 
     G_cols_ = nxgraph_get_node_colors(G_)
 

@@ -544,7 +544,7 @@ class Experiment(object):
         # return the hash
         return xid
         
-    def plotgraph(self, G = None, Gbus = None, G_cols = None):
+    def plotgraph(self, G = None, Gbus = None, G_cols = None, layout_type='spring_hierarchical'):
         """Experiment.plotgraph
 
         Show a visualization of the initialized top graph defining the
@@ -592,9 +592,17 @@ class Experiment(object):
 
         if G_cols is None:
             G_cols = nxgraph_get_node_colors(G_)
-            
         # print "G_cols", G_cols
-        nxgraph_plot(G_, ax = fig_nxgr.axes[axi], layout_type = "linear_hierarchical", node_color = G_cols, node_size = 1000)
+
+        if layout_type == 'linear_hierarchical':
+            node_size = 250
+        else:
+            node_size = 1000
+
+        print "layout_type = %s" % (layout_type)
+            
+        nxgraph_plot(G_, ax = fig_nxgr.axes[axi], layout_type=layout_type, node_color = G_cols, node_size=node_size)
+        
         # nxgraph_plot(G_, ax = fig_nxgr.axes[axi], layout_type = "spring", node_color = G_cols, node_size = 300)
         # fig_nxgr.axes[axi].set_aspect(1)
         axi += 1
@@ -793,11 +801,15 @@ class Experiment(object):
         # final writes: log store, experiment/block store?, graphics, models
         # self.top.bus.plot(fig_nxgr.axes[3])
 
+        layout_type = 'linear_hierarchical'
+        # layout_type = 'random_hierarchical'
+        # layout_type = 'spring_hierarchical'
+            
         # initial run, no cached data: store the graph
         if self.conf['params']['docache'] and not self.cache_loaded:
             logger.info("experiment cache: storing final top level nxgraph = %s", self.top.nxgraph)
             # store the full dynamically expanded state of the toplevel nxgraph
-            nxgraph_store(conf = self.conf['params'], G = self.top.nxgraph)
+            nxgraph_store(conf = self.conf['params'], G = self.top.nxgraph, layout_type=layout_type)
             self.top.bus.store_pickle(conf = self.conf['params'])
             
             # filename = "data/%s_%s.yaml" % (self.top.id, 'nxgraph',)
@@ -825,7 +837,7 @@ class Experiment(object):
             # G = self.top.nxgraph # nx.read_yaml(self.cache['topblock_nxgraph'])
             # Gbus = self.top.bus
         else:
-            G, G_number_of_nodes_total = recursive_hierarchical(self.top.nxgraph)
+            G, G_number_of_nodes_total = recursive_hierarchical(G=self.top.nxgraph, layout_type=layout_type)
             Gbus = self.top.bus
 
         # self.printgraph(G = G)
@@ -833,7 +845,7 @@ class Experiment(object):
         # plot the computation graph and the bus
         set_interactive(True)
         if self.conf['params']['plotgraph']:
-            self.plotgraph(G = G, Gbus = Gbus)
+            self.plotgraph(G = G, Gbus = Gbus, layout_type=layout_type)
 
         # logger.debug("args to conf? plotgraph_tikz = %s", self.conf['params']['plotgraph_tikz'],)
         if self.conf['params']['plotgraph_tikz']:

@@ -119,7 +119,7 @@ else:
 
 # configure the scan range
 scanstart = 0  # -100
-scanstop = 101 # 21 # 51 #    1
+scanstop = 76*2+1 # 11 # 21 # 51 #    1
 scanlen = scanstop - scanstart
 delay_embed_len = 1
 
