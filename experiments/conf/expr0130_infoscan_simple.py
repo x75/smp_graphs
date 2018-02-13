@@ -631,8 +631,10 @@ graph = OrderedDict([
             },
         },
     }),
-    
-    # motor/sensor mutual information analysis of data
+
+    ################################################################################
+    # elementwise measures
+    # mutual information
     ('mi', {
         'block': LoopBlock2,
         'enable': False,
@@ -669,7 +671,7 @@ graph = OrderedDict([
         }
     }),
     
-    # motor/sensor transfer entropy analysis of data
+    # transfer entropy
     ('te', {
         'block': LoopBlock2,
         'enable': False,
@@ -694,7 +696,7 @@ graph = OrderedDict([
         }
     }),
     
-    # motor/sensor cond motor_i!=j conditional transfer entropy analysis of data
+    # cond motor_i!=j conditional transfer entropy
     ('cte', {
         'block': LoopBlock2,
         'enable': False,

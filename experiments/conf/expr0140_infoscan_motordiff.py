@@ -1,7 +1,9 @@
-"""smp_graphs
+"""sensorimotor manifolds: element-wise / motordiff
 
-plot the sensorimotor manifold / pointcloud, example data from andi
+Plot the sensorimotor manifold / pointcloud, example data from andi
 gerken's puppy
+
+Perform element-wise information scan instead of lumped multivariate.
 """
 
 from smp_base.plot import histogramnd
@@ -12,9 +14,7 @@ from smp_graphs.block_meas import XCorrBlock2
 from smp_graphs.block_meas_infth import JHBlock2, MIBlock2, InfoDistBlock2, TEBlock2, CTEBlock2, MIMVBlock2, TEMVBlock2
 
 # showplot = False
-
 randseed = 19482
-
 saveplot = False
 
 outputs = {
@@ -108,8 +108,8 @@ if cnf.has_key('sys_slicespec'):
 else:
     sys_slicespec = {'x': {'acc': slice(0, 3), 'gyr': slice(3, xdim)}}
 
-scanstart = -10
-scanstop = 1
+scanstart = 0
+scanstop = 10 # -10
 scanlen = scanstop - scanstart
 
 # def make_input_matrix(id = 'xcorr', base = 'xcorr', xdim = 1, ydim = 1, with_t = False):

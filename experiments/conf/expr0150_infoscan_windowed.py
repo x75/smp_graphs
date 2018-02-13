@@ -1,6 +1,9 @@
-"""smp_graphs perform windowed short time mutual info scan"""
+"""smp_graphs
 
-from smp_graphs.block_meas_infth import MIMVBlock2, JHBlock2, TEMVBlock2
+perform windowed short time mutual info scan
+"""
+
+from smp_graphs.block_meas_infth import MIMVBlock2, CMIMVBlock2, JHBlock2, TEMVBlock2
 from smp_graphs.block import SliceBlock2, SeqLoopBlock2
 from smp_graphs.block_plot import ImgPlotBlock2
 
@@ -27,8 +30,8 @@ lpzbarrelcnf = {
     # just stepping
     # 'logfile': 'data/experiment_20170626_125226_actinf_m1_goal_error_ND_pd.h5', # 500
     # 'logfile': 'data/experiment_20170626_140407_actinf_m1_goal_error_ND_pd.h5', # 1000
-    # 'logfile': 'data/smp_dm_actinf_m1_goal_error_ND_embedding/smp_dm_actinf_m1_goal_error_ND_embedding_ffc25da6e3ef540e66b0c98e2642752a_20180103_165831_log_pd.h5',
-    'logfile': 'data/smp_dm_actinf_m1_goal_error_ND_embedding/smp_dm_actinf_m1_goal_error_ND_embedding_562ac39aaddd5cbabb3fc9f512176b78_20180105_154421_log_pd.h5',
+    'logfile': 'data/smp_dm_actinf_m1_goal_error_ND_embedding/smp_dm_actinf_m1_goal_error_ND_embedding_ffc25da6e3ef540e66b0c98e2642752a_20180103_165831_log_pd.h5',
+    # 'logfile': 'data/smp_dm_actinf_m1_goal_error_ND_embedding/smp_dm_actinf_m1_goal_error_ND_embedding_562ac39aaddd5cbabb3fc9f512176b78_20180105_154421_log_pd.h5',
     'xdim': 2,
     'xdim_eff': 2,
     'ydim': 2,
@@ -92,13 +95,15 @@ if cnf.has_key('sys_slicespec'):
 else:
     sys_slicespec = {'x': {'acc': slice(0, 3), 'gyr': slice(3, xdim)}}
 
-scanstart = -30
-scanstop = 0
+scanstart = 0
+scanstop = 30 # -30
 scanlen = scanstop - scanstart
 
 # 1000/1000
-winsize = 2000
-overlap = 2000
+# winsize = 2000
+# overlap = 2000
+winsize = 500
+overlap = 500
 # winsize = 50
 # overlap = 50
 srcsize = overlap
@@ -226,14 +231,16 @@ graph = OrderedDict([
             'id': 'mimvl',
             'blocksize': overlap,
             'debug': False,
-            'loop': [('inputs', {'x': {'bus': 'ldataslice/x_acc', 'shape': (xdim_eff, winsize)},
-                                 'y': {'bus': 'ldata/%s' % data_y_key, 'shape': (ydim, winsize)},
-                                 'norm': {'bus': 'jhloop/jh', 'shape': (1, 1)},
-                                 # 'norm': {'val': np.array([[7.0]]), 'shape': (1, 1)},
-                                 }),
-                          # ('inputs', {'x': {'bus': 'dataslice/x_gyr'}, 'y': {'bus': 'data/y'}}),
-                     # ('inputs', {'x': {'bus': 'data/x'}, 'y': {'bus': 'data/r'}}),
-                     # ('inputs', {'x': {'bus': 'data/y'}, 'y': {'bus': 'data/r'}}),
+            'loop': [
+                ('inputs', {
+                    'x': {'bus': 'ldataslice/x_acc', 'shape': (xdim_eff, winsize)},
+                    'y': {'bus': 'ldata/%s' % data_y_key, 'shape': (ydim, winsize)},
+                    'norm': {'bus': 'jhloop/jh', 'shape': (1, 1)},
+                    # 'norm': {'val': np.array([[7.0]]), 'shape': (1, 1)},
+                }),
+                # ('inputs', {'x': {'bus': 'dataslice/x_gyr'}, 'y': {'bus': 'data/y'}}),
+                # ('inputs', {'x': {'bus': 'data/x'}, 'y': {'bus': 'data/r'}}),
+                # ('inputs', {'x': {'bus': 'data/y'}, 'y': {'bus': 'data/r'}}),
             ],
             'loopmode': 'parallel',
             'loopblock': {
@@ -261,15 +268,40 @@ graph = OrderedDict([
             'id': 'mimv',
             'blocksize': overlap,
             'debug': False,
-            'inputs': {'x': {'bus': 'ldataslice/x_gyr', 'shape': (xdim_eff, winsize)},
-                           'y': {'bus': 'ldata/%s' % data_y_key, 'shape': (ydim, winsize)},
-                                 'norm': {'bus': 'jhloop/jh', 'shape': (1, 1)},
-                           },
+            'inputs': {
+                'x': {'bus': 'ldataslice/x_gyr', 'shape': (xdim_eff, winsize)},
+                'y': {'bus': 'ldata/%s' % data_y_key, 'shape': (ydim, winsize)},
+                'norm': {'bus': 'jhloop/jh', 'shape': (1, 1)},
+            },
             # 'shift': (-120, 8),
             'shift': (scanstart, scanstop), # len 21
             # 'outputs': {'mi': {'shape': ((ydim + xdim)**2, 1)}}
             'outputs': {'mimv': {'shape': (1, scanlen)}}
         }
+    }),
+    
+    # multivariate mutual information analysis of data I(X^n ; Y^m)
+    ('cmimv', {
+        'block': CMIMVBlock2,
+        'params': {
+            'blocksize': overlap,
+            'debug': False,
+            # 'norm_out': False,
+            'inputs': {
+                'x': {'bus': 'ldataslice/x_gyr', 'shape': (xdim_eff, winsize)},
+                'y': {'bus': 'ldata/%s' % (data_y_key, ), 'shape': (ydim, winsize)},
+                # 'x': {'bus': 'puppylog/x'},
+                # # 'y': {'bus': 'puppylog/y'},
+                # 'y': {'bus': 'motordel/dy'},
+                # 'cond': {'bus': 'motorstack/y'},
+                # 'cond': {'bus': 'motordel/dy'},
+                'cond_delay': {'bus': 'motordel/dx'},
+            },
+            # 'shift': (-120, 8),
+            'shift': (scanstart, scanstop), # len 21
+            # 'outputs': {'mi': {'shape': ((ydim + xdim)**2, 1)}}
+            'outputs': {'cmimv': {'shape': (1, scanlen)}}
+        },
     }),
     
     ('temv', {
@@ -278,10 +310,11 @@ graph = OrderedDict([
             'id': 'temv',
             'blocksize': overlap,
             'debug': False,
-            'inputs': {'x': {'bus': 'ldataslice/x_gyr', 'shape': (xdim_eff, winsize)},
-                           'y': {'bus': 'ldata/%s' % (data_y_key, ), 'shape': (ydim, winsize)},
-                                 'norm': {'bus': 'jhloop/jh', 'shape': (1, 1)},
-                           },
+            'inputs': {
+                'x': {'bus': 'ldataslice/x_gyr', 'shape': (xdim_eff, winsize)},
+                'y': {'bus': 'ldata/%s' % (data_y_key, ), 'shape': (ydim, winsize)},
+                'norm': {'bus': 'jhloop/jh', 'shape': (1, 1)},
+            },
             # 'shift': (-120, 8),
             'shift': (scanstart, scanstop), # len 21
             'outputs': {'temv': {'shape': (1, scanlen)},}
@@ -326,31 +359,41 @@ graph = OrderedDict([
             'blocksize': overlap, # numsteps,
             'inputs': {
                 'd1': {'bus': 'mimv/mimv', 'shape': (1, scanlen * numsteps/overlap)},
-                'd2': {'bus': 'mimvl|0/mimv', 'shape': (1, scanlen * numsteps/overlap)},
+                # 'd2': {'bus': 'mimvl|0/mimv', 'shape': (1, scanlen * numsteps/overlap)},
+                'd2': {'bus': 'cmimv/cmimv', 'shape': (1, scanlen * numsteps/overlap)},
                 'd3': {'bus': 'temv/temv', 'shape': (1, scanlen * numsteps/overlap)},                
                 't': {'val': np.linspace(scanstart, scanstop-1, scanlen)},},
             'outputs': {}, #'x': {'shape': (3, 1)}},
             'subplots': [
                 [
-                    {'input': 'd1', 
-                         'cmap': 'Reds',
-                    'title': 'Multivariate mutual information I(X;Y) for time shifts [0, ..., 20]',
-                    'ndslice': (slice(None), slice(None)),
-                    # 'dimstack': {'x': [0], 'y': [1]},
-                    'shape': (numsteps/overlap, scanlen)},
                     
-                    {'input': 'd2', 
-                    'cmap': 'Reds',
-                    'title': 'Multivariate mutual information I(X;Y) for time shifts [0, ..., 20]',
-                    'ndslice': (slice(None), slice(None)),
-                    # 'dimstack': {'x': [0], 'y': [1]},
-                    'shape': (numsteps/overlap, scanlen)},
                     {
-                    'input': 'd3',
-                    'ndslice': (slice(None), slice(None)),
-                    # 'dimstack': {'x': [2, 1], 'y': [0]},
-                    'shape': (numsteps/overlap, scanlen),
-                    'cmap': 'Reds'},
+                        'input': 'd1', 
+                        'cmap': 'Reds',
+                        'title': 'Mutual information',
+                        'ndslice': (slice(None), slice(None)),
+                        # 'dimstack': {'x': [0], 'y': [1]},
+                        'shape': (numsteps/overlap, scanlen)
+                    },
+                    
+                    {
+                        'input': 'd2', 
+                        'cmap': 'Reds',
+                        'title': 'Cond. mutual information ',
+                        'ndslice': (slice(None), slice(None)),
+                        # 'dimstack': {'x': [0], 'y': [1]},
+                        'shape': (numsteps/overlap, scanlen)
+                    },
+                    
+                    {
+                        'input': 'd3',
+                        'cmap': 'Reds',
+                        'title': 'Transfer entropy',
+                        'ndslice': (slice(None), slice(None)),
+                        # 'dimstack': {'x': [2, 1], 'y': [0]},
+                        'shape': (numsteps/overlap, scanlen),
+                    },
+                    
                 ],
             ]
         },
