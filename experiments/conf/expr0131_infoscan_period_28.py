@@ -11,13 +11,15 @@ outputs = {
 # local configuration
 cnf = {
     'ydim_eff': 1,
-    'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle',
+    'logfile': 'data/stepPickles/step_period_26_0.pickle',
     'numsteps': 1000, # 5000
     'logtype': 'puppy',
     'xdim': 6,
     'xdim_eff': 3,
     'ydim': 4,
 }
+
+desc = "Repeating expr0130 with a higher frequency motor oscillation."
 
 numsteps = cnf['numsteps']
 lconf = {}

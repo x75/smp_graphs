@@ -22,6 +22,8 @@ cnf = {
 numsteps = cnf['numsteps']
 lconf = {}
 
+desc = "Repeating expr0130 with a frequency swept sinusoid motor signal."
+
 # graph
 graph = OrderedDict([
     ("reuser", {
