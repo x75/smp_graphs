@@ -1,6 +1,11 @@
 experiments package
 ===================
 
+.. automodule:: experiments
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Submodules
 ----------
 
@@ -21,10 +26,3 @@ experiments\.logdump module
     :show-inheritance:
 
 
-Module contents
----------------
-
-.. automodule:: experiments
-    :members:
-    :undoc-members:
-    :show-inheritance:

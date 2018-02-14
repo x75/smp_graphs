@@ -1,6 +1,11 @@
 smp\_graphs package
 ===================
 
+.. automodule:: smp_graphs
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Submodules
 ----------
 
@@ -157,10 +162,3 @@ smp\_graphs\.utils\_logging module
     :show-inheritance:
 
 
-Module contents
----------------
-
-.. automodule:: smp_graphs
-    :members:
-    :undoc-members:
-    :show-inheritance:

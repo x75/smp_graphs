@@ -33,6 +33,22 @@ outputs = {
     'latex': {'type': 'latex',},
 }
 
+################################################################################
+# legacy
+# all files 147000
+# 'data/experiment_20170510_155432_puppy_process_logfiles_pd.h5',
+# medium version 10000
+# 'data/experiment_20170511_145725_puppy_process_logfiles_pd.h5',
+# short version 2000
+# 'data/experiment_20170510_173800_puppy_process_logfiles_pd.h5',
+# test data
+# 'data/experiment_20170512_171352_generate_sin_noise_pd.h5',
+# 'data/experiment_20170512_170835_generate_sin_noise_pd.h5',
+# 'data/experiment_20170512_153409_generate_sin_noise_pd.h5',
+# '../../smp_infth/sphero_res_learner_1D/log-learner-20150315-223835-eta-0.001000-theta-0.200000-g-0.999000-target-sine.npz',
+# '../../smp_infth/sphero_res_learner_1D/log-learner-20150313-224329.npz',
+# 'data/testlog3.npz',
+
 # datafiles and dependent params: puppy type 1
 ppycnf = {
     # 'numsteps': 27000,
@@ -107,6 +123,8 @@ testcnf = {
 pmcnf = {
 }
 
+lconf = {}
+    
 # assign an option to the actual configuration 
 cnf = ppycnf2
 numsteps = cnf['numsteps']
@@ -118,7 +136,6 @@ if 'ydim_eff' in cnf:
 else:
     ydim_eff = ydim
 
-
 # slice out gyro data from imu group
 if cnf.has_key('sys_slicespec'):
     sys_slicespec = cnf['sys_slicespec']
@@ -127,7 +144,7 @@ else:
 
 # configure the scan range
 scanstart = 0  # -100
-scanstop = 21 # int(76*1+1) # 11 # 21 # 51 #    1
+scanstop = int(76*1+1) # 11 # 21 # 51 #    1
 scanlen = scanstop - scanstart
 delay_embed_len = 1
 
@@ -193,23 +210,7 @@ graph = OrderedDict([
             # 'type': 'testdata1',
             'type': cnf['logtype'],
             'blocksize': numsteps,
-            'file': {'filename':
-                cnf['logfile'],
-                # all files 147000
-                # 'data/experiment_20170510_155432_puppy_process_logfiles_pd.h5',
-                # medium version 10000
-                # 'data/experiment_20170511_145725_puppy_process_logfiles_pd.h5',
-                # short version 2000
-                # 'data/experiment_20170510_173800_puppy_process_logfiles_pd.h5',
-                # test data
-                # 'data/experiment_20170512_171352_generate_sin_noise_pd.h5',
-                # 'data/experiment_20170512_170835_generate_sin_noise_pd.h5',
-                # 'data/experiment_20170512_153409_generate_sin_noise_pd.h5',
-                # '../../smp_infth/sphero_res_learner_1D/log-learner-20150315-223835-eta-0.001000-theta-0.200000-g-0.999000-target-sine.npz',
-                # '../../smp_infth/sphero_res_learner_1D/log-learner-20150313-224329.npz',
-                # 'data/testlog3.npz',
-            },
-            'blocksize': numsteps,
+            'file': {'filename': cnf['logfile']},
             'outputs': {
                 'log': {'shape': None},
                 'x': {'shape': (xdim, numsteps)}, 'y': {'shape': (ydim, numsteps)}

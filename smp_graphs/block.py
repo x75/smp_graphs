@@ -1,116 +1,11 @@
-"""Basic computation blocks and support structure for smp_graphs (block.py)
+"""Block2 is the basic computation block and implements *smp_graphs*
+support structure.
 
 .. moduleauthor:: 2017 Oswald Berthold
 
-The Base class is :class:`Block2` supported by decorators
-:class:`decInit` and :class:`decStep` and the :class:`Bus` class. 
-
-Blocks are the fundamental functional building blocks and define the
-computation of each node in the graph. Blocks are instantiated using a
-configuration dictionary :data:`conf`. The items of the configuration
-dict are copied into the Block's attributes on initialization. Blocks
-need to provide a :func:`step` member function which is called at
-every time step. Blocks come as *primitive* blocks, which provide
-their own :func:`step` method and *composite* blocks which contain
-subgraphs. Subgraphs can be specified explicitly as an OrderedDict or
-a standard dict, or implicitly by loading an entire separate
-configuration file from the configured path.
-
-Common block attributes and, by correspondence, configuration items are shown below in a pseudo configuration notation.
-
-.. code:: python
-
-    (
-        'blockid',
-        {
-            'block': Block2,
-            'params': {
-                'id': 'blockid,
-                'debug': False,
-                'blocksize': int,
-                'blockphase': list, 
-               'inputs': {
-                    'input-key-1': {'val': np.ndarray,          'shape': (idim-1, input-bufsize-1)},
-                    'input-key-2': {'bus': 'nodeid/output-key', 'shape': (idim-busref, input-bufsize-2)},
-                    # ...
-                },
-                'outputs': {
-                    'output-key-1': {'shape': (odim-1, input-bufsize-1)},
-                    'output-key-2': {'shape': (odim-2, input-bufsize-2)},
-                    # ...
-                },
-            }
-        }
-    )
-
-
-An experiment consists of a top block which is composite and contains
-the top-level nxgraph which is constructed from the configuration file
-provided on the command line. The config file is a plain python
-file. During graph initialization the file is loaded, possibly
-modified on the text level, compiled, possibly modified again at the
-:mod:`ast` level and returned as a full runtime configuration
-dict. The dict is used to construct a :mod:`networkx.Graph` whose
-nodes' data includes the node block's class attribute in the 'block'
-item, its configuration in 'params' item and the resulting live block
-instance in the 'block_' item.
-
-The top block's :func:`step` is called :data:`numsteps` times by the
-:mod:`smp_graphs.experiment` shell. A composite block's step function,
-which is the case for the top block, just iterates its subgraph and
-calls each node's step function. Blocks schedule themselves for
-execution with the :data:`blocksize` and :data:`blockphase`
-attributes. The current :data:`cnt` is taken modulo the blocksize and
-step is actually executed if the result is in the blockphase list of
-integers. The default configuration is `'blocksize': 1, 'blockphase': [0]`
-resulting in single time step execution.
-
-The top block also has a `bus` member which is a dictionary
-whose keys are 'buskeys' and whose values are np.ndarrays and which is
-globally available to all blocks. By convention, the block's
-instantaneous outputs are computed by simply looping over the outputs
-dict and copying the block attribute `block.output-key` to the bus
-using the `buskey = 'block-id/output-key'. Block inputs can be
-directly provided in the configuration as np.ndarrays when they are
-constant, but more interestingly, the inputs can be assigned from any
-bus item, including the block's own outputs with the 'bus': 'buskey'
-config entry.
-
-
-.. note::
-
-    The bus item values can be multidimensional arrays (tensors) allowing to pass around complex data types like data batches, images, and so on. By convention, the last dimension of a bus item refers to time. This allows blocks to process input chunks and produce output chunks which have shapes different from their own blocksize.
-
-
-.. note::
-
-    This model has some consequences that might need to be considered when designing a graph. smp graphs are ordered dictionaries and this order is the verbatim execution order of the nodes. This means that a block's inputs, which refer to a block's output further down the graph order, will be dalyed by one time step. This is also the case for self-feedback connections.
-
-Loop blocks: besides the basic composite blocks containing a subgraph
-specification there are two special composite blocks which have
-special powers to modify the graph itself. The :class:`LoopBlock2`
-does so at initialization time and the :class:`SeqLoopBlock2` does so
-at run time. The configuration mechanism is the same for both. Each
-takes its subgraph (historically called 'loopblock') and applies
-variable substitutions to the subgraph configuration using the `loop`
-attribute which can be a list of tuples like `[('config-key',
-'config-value'), ...]` or a pointer to a function yielding such tuples
-on each consecutive call.
-
-The set of standard blocks includes :class:`FuncBlock2`,
-:class:`LoopBlock2`, :class:`SeqLoopBlock2`, :class:`PrimBlock2`,
-:class:`IBlock2`, :class:`dBlock2`, :class:`DelayBlock2`,
-:class:`SliceBlock2`, :class:`StackBlock2`, :class:`ConstBlock2`,
-:class:`CountBlock2`, :class:`UniformRandomBlock2`
-
-There is a growing set of fancy blocks for doing complex I/O, reading
-file input, talking to realtime systems, numerical multivariate
-analysis, and plotting.
-
-.. seealso::
-
- - the experiments/conf/example_*.py files each demonstrate in a
-   minimal fashion most of the basic features.
+The Base class :class:`Block2` is supported by two decorators,
+:class:`decInit` and :class:`decStep`, and by the :class:`Bus` class
+which extends a `dict` with signal routing semantics.
 """
 
 import pdb
@@ -1082,7 +977,7 @@ class Block2(object):
              - cloneblock: we are cloning another subgraph referenced by existing
                nodeid
             """
-            self._debug("%s%s-%s.init_block composite" % (self.nesting_indent, self.cname, self.id))
+            self._debug('init_block composite')
             # print "%s   with attrs = %s" % (self.nesting_indent, self.__dict__.keys())
             # for k,v in self.__dict__.items():
             #     print "%s-%s k = %s, v = %s" % (self.cname, self.id, k, v)
@@ -1488,11 +1383,11 @@ class Block2(object):
         to a graph which is specified directly as a dictionary.
         """
 
-        # print "lconf", self.lconf
+        # self._debug('lconf = %s' % (self.lconf))
 
-        # subgraph dictionary / orderdeddict
-        
+        # subgraph is dict / OrderdedDict
         if type(self.subgraph) is OrderedDict:
+            # print "subgraph is OrderedDict", self.subgraph
             subconfk = 'bla'
             subconf_ = OrderedDict([
                 ('%s' % (subconfk, ), {
@@ -1506,16 +1401,29 @@ class Block2(object):
             ])
             subconf = subconf_[subconfk]
             
-        # subgraph file containing the OrderedDict
+        # subgraph is a path pointing to an smp_graph config
         else:
-            # print "init_subgraph config globals", self.top.conf_vars.keys()
+            # print "subgraph is type = %s" % (type(self.subgraph))
+            # for k,v in self.top.conf_vars.items():
+            #     print "subgraph conf_vars[%s] = %s" % (k, v)
+
+            # local configuration
             if hasattr(self, 'lconf'):
+                # print("using lconf = %s" % (self.lconf, ))
                 self._debug("using lconf = %s" % (self.lconf, ))
                 subconf_vars = get_config_raw(conf = self.subgraph, confvar = None, lconf = self.lconf)
                 # print "init_subgraph %s returning localvars = %s" % (self.id, subconf_vars.keys())
                 subconf = subconf_vars['conf']
+            # no local configuration
             else:
-                subconf_vars = get_config_raw(self.subgraph, confvar = None, lconf = self.top.conf_vars) # 'graph')
+                # print "subgraph is single block, no lconf, using topblock config"
+                lconf = {}
+                # lconf.update(self.top.conf_vars)
+                # for k in ['graph', 'IBlock2', 'Model']:
+                #     del lconf[k]
+                for k in ['numsteps', 'recurrent', 'cnf']:
+                    lconf[k] = self.top.conf_vars[k]
+                subconf_vars = get_config_raw(self.subgraph, confvar = None, lconf = lconf) # 'graph')
                 subconf = subconf_vars['conf']
                 
         assert subconf is not None, "Block2.init_subgraph subconf not initialized"
@@ -1547,25 +1455,31 @@ class Block2(object):
                 confnode = dict_search_recursive(self.conf['params']['graph'], confk_id)
                 # return on fail
                 if confnode is None: continue
-                print "subgraphconf node = %s" % (confnode['block'], )
-                print "               param = %s" % (confk_param, )
-                print "               val_bare = %s" % (confv, )
-                print "               val_old = %s" % (confnode['params'][confk_param], )
+
+                # debug info
+                self._debug('subgraphconf node = %s' % (confnode['block'], ))
+                self._debug('               param = %s' % (confk_param, ))
+                self._debug('               val_bare = %s' % (confv, ))
+                self._debug('               val_old = %s' % (confnode['params'][confk_param], ))
                 # overwrite param dict
                 # tmp = {}
                 # tmp.update(confnode['params'][confk_param], **confv)
                 if type(confv) is dict:
+                    # fetch existing dict
                     tmp_ = copy.copy(confnode['params'][confk_param])
+                    # update existing dict with subgraphconf replacement
                     tmp_.update(**confv)
-                    print "               val_new = %s, tmp_ = %s" % (confnode['params'][confk_param], tmp_)
+                    # write dict back to reconfigured node's params
+                    confnode['params'][confk_param].update(tmp_)
+                    self._debug('               val_new = %s, tmp_ = %s' % (confnode['params'][confk_param], tmp_))
                 else:
-                    print "               val_new = %s" % (confv, )
+                    self._debug('               val_new = %s' % (confv, ))
                     confnode['params'][confk_param] = confv
                     
                 # print "               val_new = %s, val_old = %s" % (confv, confnode['params'][confk_param])
                 # debug print
                 for paramk, paramv in confnode['params'].items():
-                    print "    %s = %s" % (paramk, paramv)
+                    self._debug('    %s = %s' % (paramk, paramv))
         # # debug
         # print self.conf['params']['graph']['brain_learn_proprio']['params']['graph'][confk_id]
 
