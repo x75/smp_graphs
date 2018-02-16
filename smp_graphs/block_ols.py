@@ -14,7 +14,13 @@ import logging
 logger = get_module_logger(modulename = 'block_ols', loglevel = logging.INFO)
 
 class FileBlock2(Block2):
-    """!@brief File block: read some log or data file and output blocksize lines each step"""
+    """FileBlock2 class
+
+    File block: read data from file (data file, logfile, rosbag, ...)
+    and output blocksize lines each step.
+
+    Known filetypes: hdf5, npy, puppylog, wav, ...
+    """
     defaults = {
         'block_group': 'data',
     }
@@ -290,7 +296,7 @@ class FileBlock2(Block2):
         
     @decStep()
     def step_puppy(self, x = None):
-        self.debug_print("%s.step_puppy: x = %s, bus = %s", (self.__class__.__name__, self.x, self.bus))
+        self._debug("step_puppy: x = %s, bus = %s" % (self.x.shape, self.bus))
         # self.x = np.atleast_2d(self.data[[self.cnt]]).T #?
         # self.debug_print("self.x = %s", (self.x,))
         if (self.cnt % self.blocksize) == 0: # (self.blocksize - 1):

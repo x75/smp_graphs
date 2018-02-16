@@ -1426,7 +1426,7 @@ class ImgPlotBlock2(FigPlotBlock2):
                     if subplotconf.has_key('title'): title = subplotconf['title']
 
                     # colorbar = False
-                    for kwk in ['colorbar', 'colorbar_orientation']:
+                    for kwk in ['colorbar', 'colorbar_orientation', 'cax']:
                         if subplotconf.has_key(kwk): kwargs[kwk] = subplotconf[kwk]
 
                     # get t axis
@@ -1456,10 +1456,17 @@ class ImgPlotBlock2(FigPlotBlock2):
                         # print "Linv.shape", Linv.shape
                         # print "Linv", np.sum(np.abs(Linv))
                         plotfunc = "pcolorfast"
-                        plot_img(
+                        kwargs_ = plot_img(
                             ax = ax, data = Linv, plotfunc = plotfunc, # , ordinate = t
                             vmin = vmin, vmax = vmax, cmap = cmap,
                             title = title, **kwargs)
+
+                    # remember stuff for subplot
+                    # self.subplots[i][j].update()
+                    # self.subplots[i][j]['ax'] = kwargs_['ax']
+                    if 'cax' in kwargs_:
+                        self.subplots[i][j]['cax'] = kwargs_['cax']
+                    
         # update
         plt.draw()
         plt.pause(1e-9)

@@ -20,7 +20,9 @@ cnf = {
 }
 
 numsteps = cnf['numsteps']
-lconf = {}
+lconf = {
+    'delay_embed_len': 1,
+}
 
 desc = "Repeating expr0130 with a frequency swept sinusoid motor signal."
 
@@ -32,7 +34,7 @@ graph = OrderedDict([
             # 'debug': True,
             'topblock': False,
             'numsteps': 1,
-            # 'lconf': lconf,
+            'lconf': lconf,
             # points to config file containing the subgraph specification
             'subgraph': graphconf,
             # dynamic id rewriting on instantiation

@@ -1805,8 +1805,8 @@ class Block2(object):
                                 sl = slice(sls, sle) #
                                 
                                 v['val'] = self.bus[v['bus']][...,sl].copy()
-                                print "#" * 80
-                                print "sl", sl, v['val']
+                                # print "#" * 80
+                                # print "sl", sl, v['val']
                             else:
                                 # print "\nsetting", self.cname, v
                                 assert v['shape'][0] == self.bus[v['bus']].shape[0], "%s-%s's input buffer and input bus shapes need to agree (besides blocksize) for input %s, buf: %s, bus: %s/%s" % (self.cname, self.id, k, v['shape'], v['bus'], self.bus[v['bus']].shape)
@@ -1819,7 +1819,7 @@ class Block2(object):
                         # check if key exists or not. if it doesn't, that means this is a block inside dynamical graph construction
                         # print "\nplotblock", self.bus.keys()
 
-                        assert self.bus.has_key(v['bus']), "%s-%s requested bus item = %s which is not in bus = %s" % (self.cname, self.id, v['bus'], self.bus.keys())
+                        assert self.bus.has_key(v['bus']), "%s-%s requested bus item = %s which is not in bus = %s.\n    Cannot infer shape. Add shape to input %s of block %s?" % (self.cname, self.id, v['bus'], self.bus.keys(), k, self.id)
                     
                         # enforce bus blocksize smaller than local blocksize, tackle later
                         # CHECK
@@ -3052,7 +3052,12 @@ class dBlock2(PrimBlock2):
             
         for ink in conf['params']['inputs'].keys():
             # get input shape
-            inshape = top.bus[conf['params']['inputs'][ink]['bus']].shape
+            buskey = conf['params']['inputs'][ink]['bus']
+            if buskey in top.bus:
+                inshape = top.bus[buskey].shape
+            else:
+                inshape = conf['params']['inputs'][ink]['shape']
+                
             # inshape = conf['params']['inputs'][ink]['shape']
             # print "inshape", inshape
             # alloc copy of previous input block 
@@ -3094,7 +3099,8 @@ class dBlock2(PrimBlock2):
 class DelayBlock2(PrimBlock2):
     """DelayBlock2 class
 
-    Delay block: delay signal with internal ringbuffer delay line.
+    Delay block: delay input 'input-key' by delays 'input-key' with an
+    internal ringbuffer delay line.
 
     Params: inputs, delay in steps / shift
 

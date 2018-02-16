@@ -2,13 +2,9 @@
 
 explore the sensorimotor manifold / pointcloud
 
-originally for andi gerken's puppy data, extended to several datasets
-/ robots
-
 perform shared information scan for a motor source and a sensory
 destination by shifting the destination back in time with respect to
-the source. measures are global over the multivariate measurements
-(simple)
+the source. measures are pointwise over pairs of variables at times t.
 """
 
 from matplotlib.pyplot import hexbin
@@ -123,9 +119,7 @@ testcnf = {
 pmcnf = {
 }
 
-lconf = {
-    'delay_embed_len': 1,
-}
+lconf = {}
     
 # assign an option to the actual configuration 
 cnf = ppycnf2
@@ -148,12 +142,12 @@ else:
 scanstart = 0  # -100
 scanstop = int(76*1+1) # 11 # 21 # 51 #    1
 scanlen = scanstop - scanstart
-delay_embed_len = lconf['delay_embed_len']
+delay_embed_len = 1
 
 # prepare scan plot xticks depending on input size
-plot_infoscan_xticks_step = scanlen // 5
-plot_infoscan_xticks = range(0, scanlen, plot_infoscan_xticks_step)
-plot_infoscan_xticklabels = range(scanstart*1, scanstop*1, plot_infoscan_xticks_step*1)
+plot_mimv_scan_xticks_step = scanlen // 5
+plot_mimv_scan_xticks = range(0, scanlen, plot_mimv_scan_xticks_step)
+plot_mimv_scan_xticklabels = range(scanstart*1, scanstop*1, plot_mimv_scan_xticks_step*1)
 
 lrp_alpha = 0.01
 tap_thr = 0.3
@@ -968,7 +962,7 @@ graph = OrderedDict([
 
     
     # plot multivariate (global) mutual information over timeshifts
-    ('plot_infoscan', {
+    ('plot_mimv_scan', {
         'block': ImgPlotBlock2,
         'enable': False,
         'params': {
@@ -1043,7 +1037,7 @@ graph = OrderedDict([
     }),
     
     # plot multivariate (global) mutual information over timeshifts
-    ('plot_infoscan2', {
+    ('plot_mimv_scan2', {
         'block': ImgPlotBlock2,
         # 'enable': False,
         'params': {
@@ -1083,8 +1077,8 @@ graph = OrderedDict([
                     
                     {
                         'input': 'duniform', 'xslice': (0, scanlen),
-                        'xticks': plot_infoscan_xticks,
-                        'xticklabels': plot_infoscan_xticklabels,
+                        'xticks': plot_mimv_scan_xticks,
+                        'xticklabels': plot_mimv_scan_xticklabels,
                         'xlabel': False, # 'Lag [n]',
                         'yslice': (0, 1),
                         'ylabel': False,
@@ -1099,8 +1093,8 @@ graph = OrderedDict([
                     
                     {
                         'input': 'd1', 'xslice': (0, scanlen),
-                        'xticks': plot_infoscan_xticks,
-                        'xticklabels': plot_infoscan_xticklabels,
+                        'xticks': plot_mimv_scan_xticks,
+                        'xticklabels': plot_mimv_scan_xticklabels,
                         'xlabel': False, # 'Lag [n]',
                         'yslice': (0, 1),
                         'yticks': False,
@@ -1116,8 +1110,8 @@ graph = OrderedDict([
                     {
                         'input': 'd3',
                         'xslice': (0, scanlen),
-                        'xticks': plot_infoscan_xticks,
-                        'xticklabels': plot_infoscan_xticklabels,
+                        'xticks': plot_mimv_scan_xticks,
+                        'xticklabels': plot_mimv_scan_xticklabels,
                         'xlabel': False, # 'Lag [n]',
                         'yslice': (0, 1),
                         'yticks': False,
@@ -1133,8 +1127,8 @@ graph = OrderedDict([
                     {
                         'input': 'd2',
                         'xslice': (0, scanlen),
-                        'xticks': plot_infoscan_xticks,
-                        'xticklabels': plot_infoscan_xticklabels,
+                        'xticks': plot_mimv_scan_xticks,
+                        'xticklabels': plot_mimv_scan_xticklabels,
                         'xlabel': False, # 'Lag [n]',
                         'yslice': (0, 1),
                         'ylabel': False,
@@ -1154,8 +1148,8 @@ graph = OrderedDict([
                     
                     {
                         'input': ['tap0'], 'xslice': (0, scanlen),
-                        'xticks': plot_infoscan_xticks,
-                        'xticklabels': plot_infoscan_xticklabels,
+                        'xticks': plot_mimv_scan_xticks,
+                        'xticklabels': plot_mimv_scan_xticklabels,
                         'xlabel': 'Lag [n]',
                         'yslice': (0, 1),
                         'ylabel': False,
@@ -1169,8 +1163,8 @@ graph = OrderedDict([
                     
                     {
                         'input': 'tap1', 'xslice': (0, scanlen),
-                        'xticks': plot_infoscan_xticks,
-                        'xticklabels': plot_infoscan_xticklabels,
+                        'xticks': plot_mimv_scan_xticks,
+                        'xticklabels': plot_mimv_scan_xticklabels,
                         'xlabel': 'Lag [n]',
                         'yslice': (0, 1),
                         'ylabel': False,
@@ -1185,8 +1179,8 @@ graph = OrderedDict([
                     {
                         'input': 'tap3',
                         'xslice': (0, scanlen),
-                        'xticks': plot_infoscan_xticks,
-                        'xticklabels': plot_infoscan_xticklabels,
+                        'xticks': plot_mimv_scan_xticks,
+                        'xticklabels': plot_mimv_scan_xticklabels,
                         'xlabel': 'Lag [n]',
                         'yslice': (0, 1),
                         'ylabel': False,
@@ -1201,8 +1195,8 @@ graph = OrderedDict([
                     {
                         'input': 'tap2',
                         'xslice': (0, scanlen),
-                        'xticks': plot_infoscan_xticks,
-                        'xticklabels': plot_infoscan_xticklabels,
+                        'xticks': plot_mimv_scan_xticks,
+                        'xticklabels': plot_mimv_scan_xticklabels,
                         'xlabel': 'Lag [n]',
                         'yslice': (0, 1),
                         'ylabel': False,
