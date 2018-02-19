@@ -131,10 +131,21 @@ data_x_key = cnf['data_x_key']
 data_y_key = cnf['data_y_key']
 datasetname = escape_backslash(cnf['logfile'])
 
-desc = """This experiment consists of repeated information scans
-applied to a sliding window over the entire dataset and demonstrates
-that the information propagation delays in the puppy robot are highly
-frequency dependent."""
+desc = """This experiment consists of an open-loop exploration dataset
+of {0} time steps. Information scans are applied repeatedly on a
+window sliding over the dataset with a step size equal to the window
+size. The experiment is meant to highlight the fact that the
+information propagation delays in moderately complex robot bodies,
+like Puppy, can be time dependent. In the experiment, the motor
+frequency sweep ties together time and frequency and each window's
+measurement is in direct correspondence with the frequency range swept
+within its window. The experiment does not need to account for
+hysteresis effects because such effects would on average only increase
+the effect. This is in support of the hypothesis, that an agent's
+predictive models can gain benefit not only from precise time-modality
+tappings but also from a temporal hierarchy of dependency feature
+detectors. The episode is explained in detail in the figure
+cpation.""".format(numsteps)
 
 loopblocksize = numsteps
 
@@ -454,7 +465,12 @@ graph = OrderedDict([
             'savetype': 'pdf',
             'wspace': 0.2, 'hspace': 0.2,
             'title_pos': 'top_out',
-            'desc': 'Timeseries of motors and sensors for an open-loop frequency swept sinusoid motor episode.',
+            'desc': """Timeseries plot of motor (bottom) and sensor
+                (top) measurements during an episode of open-loop,
+                frequency-swept sinusoid motor exploration. The episode
+                duration in time steps is {0} time steps. The sweep is
+                linear in frequency with ($f_{{\text{{start}}}} = 0 Hz,
+                f_{{\text{{stop}}}} = 6.4 Hz$)""".format(numsteps, ),
             'inputs': {
                 'd1': {'bus': data_x, 'shape': (xdim, numsteps)},
                 'd2': {'bus': data_y, 'shape': (ydim, numsteps)}
@@ -500,9 +516,22 @@ graph = OrderedDict([
             'wspace': 0.2,
             'hspace': 0.2,
             'blocksize': overlap, # numsteps,
-            'desc':  'Multiple windowed info scans for dataset %s' % (datasetname),
+            'desc': """Multiple windowed info scans for dataset
+            {0}. The measures used in the scan from left to right are
+            mutual information (MI), transfer entropy (TE) and
+            conditional transfer entropy (CTE). The condition for the
+            CTE is the motor past. The mutual information cannot
+            distinguish between the action's effect and the body's
+            dynamic memory, or external entropy. Nonetheless the MI
+            seems to be consistent with the more localized
+            measurements TE and CTE via an integrating relation. This
+            suggests differentiated versions of a conditional mutual
+            information CMI with conditions
+            $\\textnormal{{sensor}}^{{-}}$ and $\\text{{motor}}^{{-}}$
+            with $\cdot^{{-}}$ meaning
+            past-of-variable.""".format(datasetname),
             'title': 'Multiple windowed info scans for dataset %s' % (cnf['logfile']),
-            'title_pos': 'top_out',
+            'title_pos': 'top_in',
             'inputs': {
                 'd1': {'bus': 'mimv/mimv', 'shape': (1, scanlen * numwins)},
                 # 'd2': {'bus': 'mimvl|0/mimv', 'shape': (1, scanlen * numwins)},
@@ -525,6 +554,7 @@ graph = OrderedDict([
                         'ylabel': 'Time [n]',
                         'yticks': plot_infoscan_yticks,
                         'yticklabels': plot_infoscan_yticklabels,
+                        'vmin': 0.0,
                     },
                     
                     {
@@ -538,6 +568,7 @@ graph = OrderedDict([
                         'xlabel': 'Lag [n]',
                         'ylabel': False,
                         'yticks': False,
+                        'vmin': 0.0,
                     },
                     
                     {
@@ -551,6 +582,7 @@ graph = OrderedDict([
                         'xlabel': 'Lag [n]',
                         'ylabel': False,
                         'yticks': False,
+                        'vmin': 0.0,
                     },
                     
                 ],

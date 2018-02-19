@@ -116,7 +116,7 @@ else:
     sys_slicespec = {'x': {'acc': slice(0, 3), 'gyr': slice(3, xdim)}}
 
 scanstart = 0
-scanstop = 76 + 1 # 20 # -10
+scanstop = 12 # 76 + 1 # 20 # -10
 scanlen = scanstop - scanstart
 
 delay_embed_len = lconf['delay_embed_len']
@@ -541,7 +541,7 @@ graph = OrderedDict([
                         'dimstack': {'x': [0], 'y': [2, 1]},
                         'cmap': 'Reds',
                         'xlabel': 'Lag [n]',
-                        'yticks': np.arange(xdim) * ydim + ydim/2,
+                        'yticks': False, # np.arange(xdim) * ydim + ydim/2,
                         'ylabel': False,
                         'colorbar': True, 'colorbar_orientation': 'vertical',
                     },
@@ -554,7 +554,7 @@ graph = OrderedDict([
                         'shape': (scanlen, ydim, xdim),
                         'cmap': 'Reds',
                         'xlabel': 'Lag [n]',
-                        'yticks': np.arange(xdim) * ydim + ydim/2,
+                        'yticks': False, # np.arange(xdim) * ydim + ydim/2,
                         'ylabel': False,
                         'colorbar': True, 'colorbar_orientation': 'vertical',
                     },
