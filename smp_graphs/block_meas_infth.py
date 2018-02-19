@@ -43,11 +43,14 @@ class decInitInfthPrim():
 
 class decStepInfthPrim():
     """step wrapper for infth blocks
+
+    FIXME: doesn't seem to be fully integrated
     """
     def __call__(self, f):
         @decStep()
         def wrap(xself, *args, **kwargs):
-            # call step
+            xself._debug('calling step with shift = %s' % (xself.shift,))
+            # eval step func
             meas = f(xself, *args, **kwargs)
             meas = np.array(meas)
             xself._debug("%s meas.shape = %s" % (xself.cname, meas.shape))
@@ -153,13 +156,13 @@ class MIBlock2(InfthPrimBlock2):
         # compute norm factor
         jh = self.normalize(src, dst)
         
-        self._debug("%s.step[%d]-%s src.shape = %s, dst.shape = %s" % (self.cname, self.cnt, self.id, src.shape, dst.shape,))
+        self._debug("step[%d] src.shape = %s, dst.shape = %s" % (self.cnt, src.shape, dst.shape,))
         # print "logger handlers", self.logger.handlers # .terminator = ''
         # self.logger.handlers[0].terminator = ''
         self._debug("scanning")
         
         for i in range(self.shift[0], self.shift[1]):
-            self._debug("%d" % (i, ),)
+            if i % 10 == 0: self._debug("    shift = %d" % (i, ),)
             # sys.stdout.flush()
 
             # # self-rolled time shift with np.roll
@@ -176,7 +179,9 @@ class MIBlock2(InfthPrimBlock2):
         # self._debug('')
         meas = np.array(meas)
         self.mi = meas.T.copy() * jh
-        self._debug("%s-%s.mi = %s\n    mi/jh = %s/%s" % (self.cname, self.id, self.mi.shape, self.mi, jh)) # , mi.shape
+        self._debug('jh = %s' % (jh))
+        self._debug("mi.shape = %s" % (self.mi.shape,))
+        # self._debug('mi = %s' % (self.mi))
 
 class InfoDistBlock2(InfthPrimBlock2):
     """Compute the information distance between to variables
@@ -251,14 +256,16 @@ class TEBlock2(InfthPrimBlock2):
         src = self.inputs['x']['val'].T
         dst = self.inputs['y']['val'].T
         
-        print "%s.step[%d]-%s src.shape = %s, dst.shape = %s" % (self.cname, self.cnt, self.id, src.shape, dst.shape,),
+        self._debug('step[%d] src.shape = %s, dst.shape = %s' % (self.cnt, src.shape, dst.shape,))
 
         # norm
         jh = self.normalize(src, dst)
         
+        self._debug('scanning')
+        
         for i in range(self.shift[0], self.shift[1]):
-            self._debug("%d" % (i, ),)
-            sys.stdout.flush()
+            self._debug('    shift = %d' % i)
+            # sys.stdout.flush()
             
             # src = np.roll(self.inputs['x']['val'].T, shift = i, axis = 0)
             # dst = self.inputs['y']['val'].T
@@ -291,14 +298,16 @@ class CTEBlock2(InfthPrimBlock2):
         src  = self.inputs['y']['val'].T
         cond = self.inputs['cond']['val'].T
         
-        print "%s.step[%d]-%s src.shape = %s, dst.shape = %s, cond.shape = %s" % (self.cname, self.cnt, self.id, src.shape, dst.shape, cond.shape),
+        self._debug('step[%d] src.shape = %s, dst.shape = %s, cond.shape = %s' % (self.cnt, src.shape, dst.shape, cond.shape))
 
         # norm
         jh = self.normalize(src, dst, cond)
 
+        self._debug('scanning')
+        
         for i in range(self.shift[0], self.shift[1]):
-            print "%d" % (i, ),
-            sys.stdout.flush()
+            self._debug('    shift = %d' % i)
+            # sys.stdout.flush()
             
             # src  = np.roll(self.inputs['x']['val'].T, shift = i, axis = 0)
             # dst  = self.inputs['y']['val'].T

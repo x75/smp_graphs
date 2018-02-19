@@ -17,6 +17,7 @@ from smp_graphs.block_meas_infth import JHBlock2, MIBlock2, InfoDistBlock2, TEBl
 # showplot = False
 randseed = 19482
 saveplot = False
+plotgraph_layout = 'linear_hierarchical'
 
 outputs = {
     'latex': {'type': 'latex',},
@@ -115,7 +116,7 @@ else:
     sys_slicespec = {'x': {'acc': slice(0, 3), 'gyr': slice(3, xdim)}}
 
 scanstart = 0
-scanstop = 20 # -10
+scanstop = 76 + 1 # 20 # -10
 scanlen = scanstop - scanstart
 
 delay_embed_len = lconf['delay_embed_len']
@@ -160,11 +161,10 @@ graph = OrderedDict([
     ('puppylog', {
         'block': FileBlock2,
         'params': {
-            'id': 'puppylog',
+            'blocksize': numsteps,
             'inputs': {},
             'type': cnf['logtype'],
-            'file': [
-                cnf['logfile'],
+            'file': {'filename': cnf['logfile'],
                 # all files 147000
                 # 'data/experiment_20170510_155432_puppy_process_logfiles_pd.h5',
                 # medium version 10000
@@ -177,8 +177,7 @@ graph = OrderedDict([
                 # 'data/experiment_20170512_153409_generate_sin_noise_pd.h5',
                 # '../../smp_infth/sphero_res_learner_1D/log-learner-20150315-223835-eta-0.001000-theta-0.200000-g-0.999000-target-sine.npz',
                 # '../../smp_infth/sphero_res_learner_1D/log-learner-20150313-224329.npz',
-            ],
-            'blocksize': numsteps,
+            },
             'outputs': {
                 'log': {'shape': None},
                 'x': {'shape': (xdim, numsteps)}, 'y': {'shape': (ydim, numsteps)}
@@ -245,7 +244,7 @@ graph = OrderedDict([
                 'params': {
                     'id': 'mi',
                     'blocksize': numsteps,
-                    'debug': False,
+                    'debug': True,
                     'inputs': {'x': {'bus': data_x}, 'y': {'bus': 'puppylog/y'}},
                     # 'shift': (-120, 8),
                     'shift': (scanstart, scanstop),
@@ -295,9 +294,8 @@ graph = OrderedDict([
             'loopblock': {
                 'block': TEBlock2,
                 'params': {
-                    'id': 'te',
+                    'debug': True,
                     'blocksize': numsteps,
-                    # 'debug': True,
                     'inputs': {'x': {'bus': data_x}, 'y': {'bus': 'puppylog/y'}},
                     'shift': (scanstart, scanstop),
                     'outputs': {'te': {'shape': (ydim, xdim, scanlen)}}
@@ -319,11 +317,14 @@ graph = OrderedDict([
             'loopblock': {
                 'block': CTEBlock2,
                 'params': {
-                    'id': 'cte',
+                    'debug': True,
                     'blocksize': numsteps,
-                    # 'debug': True,
                     'xcond': True,
-                    'inputs': {'x': {'bus': data_x}, 'y': {'bus': 'puppylog/y'}, 'cond': {'bus': 'puppylog/y'}},
+                    'inputs': {
+                        'x': {'bus': data_x},
+                        'y': {'bus': 'puppylog/y'},
+                        'cond': {'bus': 'puppylog/y'}
+                    },
                     'shift': (scanstart, scanstop),
                     'outputs': {'cte': {'shape': (ydim, xdim, scanlen)}}
                 }
@@ -373,9 +374,12 @@ graph = OrderedDict([
         'block': PlotBlock2,
         'params': {
             # 'debug': True,
+            'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'pdf',
-            'blocksize': numsteps,
+            'wspace': 0.5,
+            'hspace': 0.5,
+            'title_pos': 'top_out',
             'inputs': {
                 # 'd3': {'bus': 'puppyslice/x_gyr'},
                 # 'd4': {'bus': 'accint/Ix_acc'}, # 'puppylog/y'}
@@ -390,19 +394,25 @@ graph = OrderedDict([
                 [
                     {
                         'input': 'd3', 'plot': timeseries,
-                        'ylim': (-1., 1.),
+                        'ylim': (-0.5, 0.5),
+                        'title': 'Sensors (gyro + acc) timeseries',
+                        'legend': {'acc-meas': 0, 'gyr-meas': 3},
                     },
                     {
                         'input': 'd3', 'plot': histogram,
-                        'ylim': (-1., 1.),
+                        'ylim': (-0.5, 0.5),
+                        'title': 'Sensors (gyro + acc) histogram',
+                        # 'legend': {'acc-meas': 0, 'gyr-meas': 3},
                     },
                 ],
                 [
                     {
                         'input': 'd4', 'plot': timeseries,
+                        'title': 'Motors timeseries',
                     },
                     {
                         'input': 'd4', 'plot': histogram,
+                        'title': 'Motors histogram',
                     },
                 ],
                 # [
@@ -511,6 +521,7 @@ graph = OrderedDict([
                     'ylabel': 'sensor channel [i]',
                     'yticks': np.arange(xdim) * ydim + ydim/2,
                     'yticklabels': ['acc_x','acc_y','acc_z','gyr_x','gyr_y','gyr_z'],
+                        'colorbar': True, 'colorbar_orientation': 'vertical',
                     },
                     
                     # {
@@ -523,25 +534,29 @@ graph = OrderedDict([
                     # },
                     
                     {
-                    'input': 'd2',
-                    'title': 'TE',
-                    'ndslice': (slice(None), slice(None), slice(None)),
-                    'shape': (scanlen, ydim, xdim),
-                    'dimstack': {'x': [0], 'y': [2, 1]},
-                    'cmap': 'Reds',
+                        'input': 'd2',
+                        'title': 'TE',
+                        'ndslice': (slice(None), slice(None), slice(None)),
+                        'shape': (scanlen, ydim, xdim),
+                        'dimstack': {'x': [0], 'y': [2, 1]},
+                        'cmap': 'Reds',
                         'xlabel': 'Lag [n]',
-                    'yticks': np.arange(xdim) * ydim + ydim/2,
+                        'yticks': np.arange(xdim) * ydim + ydim/2,
+                        'ylabel': False,
+                        'colorbar': True, 'colorbar_orientation': 'vertical',
                     },
                     
                     {
-                    'input': 'd3',
-                    'title': 'CTE',
-                    'ndslice': (slice(None), slice(None), slice(None)),
-                    'dimstack': {'x': [0], 'y': [2, 1]},
-                    'shape': (scanlen, ydim, xdim),
-                    'cmap': 'Reds',
+                        'input': 'd3',
+                        'title': 'CTE',
+                        'ndslice': (slice(None), slice(None), slice(None)),
+                        'dimstack': {'x': [0], 'y': [2, 1]},
+                        'shape': (scanlen, ydim, xdim),
+                        'cmap': 'Reds',
                         'xlabel': 'Lag [n]',
-                    'yticks': np.arange(xdim) * ydim + ydim/2,
+                        'yticks': np.arange(xdim) * ydim + ydim/2,
+                        'ylabel': False,
+                        'colorbar': True, 'colorbar_orientation': 'vertical',
                     },
                 ]
             ],
