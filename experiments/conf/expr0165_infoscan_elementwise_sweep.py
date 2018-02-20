@@ -20,7 +20,7 @@ cnf = {
 }
 
 desc = """Repeating the elementwise scan of expr0161 in
-\\ref{{sec:smp-expr0161-infoscan-elementwise}} with a the sweep
+\\ref{{sec:smp-expr0161-infoscan-elementwise}} with the sweep
 exploration signal already used in expr0132\\_infoscan\\_sweep and
 expr0150\\_infoscan\\_windowed brings out additional details about the
 motor-sensor couplings of the Puppy robot. First, the low-frequency
@@ -32,7 +32,7 @@ compact packet instead of the intermittent response to the square
 pulses. This is again a clear demonstration that an agent's
 action-delay expectation, or by extension its body schema, is a
 dynamic entity with a potentially important role for both
-introspective (self-state) as well as predictive functions."""
+introspective (self-state) as well as predictive functions.""".format()
 
 numsteps = cnf['numsteps']
 lconf = {
