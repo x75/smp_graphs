@@ -283,8 +283,11 @@ class TEBlock2(InfthPrimBlock2):
         self.te = tes.T.copy() * jh
 
 class CTEBlock2(InfthPrimBlock2):
-    """Compute elementwise conditional transfer entropy from src to dst variables conditioned
-    on cond variables in dataset"""
+    """Conditional transfer entropy (CTE) block
+
+    Compute the elementwise conditional transfer entropy from src to
+    dst variables, additionally conditioned on the 'cond' variable.
+    """
     @decInitInfthPrim()
     def __init__(self, conf = {}, paren = None, top = None):
         # set fedaults

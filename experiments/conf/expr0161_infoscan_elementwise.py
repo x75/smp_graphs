@@ -116,7 +116,7 @@ else:
     sys_slicespec = {'x': {'acc': slice(0, 3), 'gyr': slice(3, xdim)}}
 
 scanstart = 0
-scanstop = 12 # 76 + 1 # 20 # -10
+scanstop = 76 + 1 # generous estimate
 scanlen = scanstop - scanstart
 
 delay_embed_len = lconf['delay_embed_len']
@@ -133,8 +133,18 @@ datasetname = escape_backslash(cnf['logfile'])
 data_x = 'puppyzero/x_r'
 data_y = 'puppylog/y'
 
-desc = """Complete pairwise infoscan for each motor / sensor pair of
-variables."""
+desc = """A complete infoscan is performed over all motor/sensor
+variable pairs and over time shifts from {0} up to {1} for each
+pair. The result is a tensor of shape $(d_\\text{{motor}},
+d_\\text{{sensor}}, d_\\text{{lag}})$ which is embedded for
+visualization in a matrix with $\\text{{lag}}$ columns and motor
+$\\times$ sensor rows. This reveals that the MI (left image) is
+dominated by the longitudinal acceleration sensor, which turns out to
+spurious with respect to the actual motor coupling. This is seen in
+the measurements conditioned on the destination and source variable's
+own pasts in the middle and right hand image in
+\\autoref{{fig:smp-expr0161-infoscan-elementwise-plot_infoscan}}.""".format(scanstart,
+scanstop)
 
 # def make_input_matrix(id = 'xcorr', base = 'xcorr', xdim = 1, ydim = 1, with_t = False):
 #     import numpy as np
@@ -319,7 +329,7 @@ graph = OrderedDict([
                 'params': {
                     'debug': True,
                     'blocksize': numsteps,
-                    'xcond': True,
+                    'xcond': True, # src + cond are the same
                     'inputs': {
                         'x': {'bus': data_x},
                         'y': {'bus': 'puppylog/y'},
@@ -380,6 +390,9 @@ graph = OrderedDict([
             'wspace': 0.5,
             'hspace': 0.5,
             'title_pos': 'top_out',
+            'desc': """Timeseries and histogram plots of the sensor
+            and motor variables in the {0}
+            dataset.""".format(datasetname),
             'inputs': {
                 # 'd3': {'bus': 'puppyslice/x_gyr'},
                 # 'd4': {'bus': 'accint/Ix_acc'}, # 'puppylog/y'}
@@ -500,6 +513,14 @@ graph = OrderedDict([
             'saveplot': saveplot,
             'savetype': 'pdf',
             'savesize': (4 * 3, 1.5 * 3),
+            'desc': """Pairwise infoscans for each of three dependency
+            measures, the MI, TE, and CTE. The large MI in the
+            leftmost plot is caused by body or sensor resonances from
+            the low-frequency component of the motor signal and not by
+            the momentary action. This is accounted for by the
+            conditional measurement variants TE (conditioned on the
+            destination\'s past) and the CTE (additionally conditioned
+            on the remaining three motor signals.).""",
             # 'inputs': {'d1': {'bus': 'mi_1/mi'}, 'd2': {'bus': 'infodist_1/infodist'}},
             'inputs': {
                 'd1': {'bus': 'mi_ll0_ll0/mi', 'shape': (ydim, xdim, scanlen)},
