@@ -1,12 +1,9 @@
-"""dm_imol (developmental model using internal model online learning
+"""dm_imol - developmental model (dm) using internal model online learning (imol)
 
-smp_graphs config for experiment
+smp_graphs config, converted from smp/imol
 
-    imol
-
-from smp/imol 
-
-Embedding: implement embedding at block boundaries
+TODO:
+- Embedding: implement embedding at block boundaries
 """
 
 import copy
@@ -56,7 +53,6 @@ sysname = 'pm'
 # dim = 9 # bha
 
 """system block
- - a robot
 """
 from smp_graphs.utils_conf import get_systemblock
 
@@ -356,12 +352,16 @@ eta = 0.15
 
 def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
     global partial
-    global PlotBlock2, numsteps, timeseries, dim_s1, dim_s0, dim_s_hidden_debug, lag_past, lag_future, saveplot
+    global PlotBlock2
+    global numsteps, timeseries, dim_s1, dim_s0, dim_s_hidden_debug, lag_past, lag_future, saveplot
+    global sysname
     return {
     'block': PlotBlock2,
     'params': {
         'saveplot': saveplot,
         'blocksize': min(numsteps, 1000), # blocksize, # numsteps
+        'title': 'Learning episode timeseries with model imol, system %s' % (sysname),
+        'desc': 'An agent learning to control a %d-dimensional %s system.' % (dim_s0, sysname),
         'inputs': {
             'goals': {'bus': '%s/pre' % (l1,), 'shape': (dim_s0, blocksize)},
             'pre':   {'bus': '%s/pre' % (l0,), 'shape': (dim_s0, blocksize)},
@@ -376,38 +376,62 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             },
         'hspace': 0.2,
         'subplots': [
+            
             [
-                {'input': ['goals', 's0'], 'plot': partial(timeseries, marker='.')},
+                {
+                    'input': ['goals', 's0'], 'plot': partial(timeseries, marker='.'),
+                    'title': 'Goal and state',
+                    'legend': {'Goal': 0, 'State': dim_s0},
+                    'xticks': False,
+                },
             ],
+            
             [
-                {'input': ['goals', 'pre'], 'plot': partial(timeseries, marker='.')},
+                {
+                    'input': ['goals', 'pre'], 'plot': partial(timeseries, marker='.'),
+                    'title': 'Goal and prediction',
+                    'xticks': False,
+                },
             ],
-            # [
-            #     {'input': ['s0'], 'plot': partial(timeseries, marker='.')},
-            # ],
-            # [
-            #     {'input': ['pre'], 'plot': partial(timeseries, marker='.')},
-            # ],
-            # [
-            #     {'input': ['pre'], 'plot': timeseries},
-            # ],
+                        
             [
-                {'input': ['err', 'tgt',], 'plot': partial(timeseries, marker='.')},
+                {
+                    'input': ['err', 'tgt',], 'plot': partial(timeseries, marker='.'),
+                    'title': 'Error and training target',
+                    'xticks': False,
+                },
             ],
-            # [
-            #     {'input': ['tgt'], 'plot': partial(timeseries, marker='.')},
-            # ],
+            
             [
-                {'input': ['X'], 'plot': partial(timeseries, marker = '.')},
+                {
+                    'input': ['X'], 'plot': partial(timeseries, marker = '.'),
+                    'title': 'Raw model input $\mathbf{X}$',
+                    'xticks': False,
+                },
             ],
+            
             [
-                {'input': ['Y'], 'plot': partial(timeseries, marker = '.')},
+                {
+                    'input': ['Y'], 'plot': partial(timeseries, marker = '.'),
+                    'title': 'Raw model input $\mathbf{Y}$',
+                    'xticks': False,
+                },
             ],
+            
             [
-                {'input': ['hidden'], 'plot': partial(timeseries, marker = '.')},
+                {
+                    'input': ['hidden'], 'plot': partial(timeseries, marker = '.'),
+                    'title': 'Hidden activation',
+                    'legend': {'hidden': 0},
+                    'xticks': False,
+                },
             ],
+            
             [
-                {'input': ['wo_norm'], 'plot': partial(timeseries, marker = '.')},
+                {
+                    'input': ['wo_norm'], 'plot': partial(timeseries, marker = '.'),
+                    'title': 'Model parameter norm (adaptation)',
+                },
             ],
             ]
         }

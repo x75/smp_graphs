@@ -1530,11 +1530,15 @@ def init_imol(ref, mref, conf, mconf):
         ref.recurrent = False
             
 def step_imol(ref, mref, *args, **kwargs):
-    # tap data
-    # (fit old / predict new forward)
-    # fit old inverse with current feedback
-    # predict new inverse with current state
-    # return new (inverse) prediction (command)
+    """developmental model imol step func
+
+    - tap data
+    - fit old forward with current feedback
+    - predict new forward after update
+    - fit old inverse with current feedback
+    - predict new inverse with current state
+    - return new (inverse) prediction (command)
+    """
     
     # tapping
     if ref.recurrent:
@@ -1636,6 +1640,9 @@ def step_imol(ref, mref, *args, **kwargs):
             ref.mdl_inv.fit(X = X_fit_inv.T, y = Y_fit_inv.T)
         # model prediction
         pre_l0 = ref.mdl_inv.predict(X = X_pre_inv.T)
+        # output weights
+        logger.debug("model params = %s", ref.mdl_inv.get_params())
+        # setattr(ref, 'wo_norm', ref.mdl_inv.get_params())
 
     # output sampling
     if isinstance(ref.mdl_inv, smpOTLModel):

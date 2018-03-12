@@ -24,7 +24,7 @@ import seaborn as sns
 import colorcet as cc
 
 from smp_base.common     import get_module_logger
-from smp_base.plot_utils import custom_legend, put_legend_out_right, put_legend_out_top
+from smp_base.plot_utils import custom_legend, put_legend_out_right, put_legend_out_top, set_latex_header
 from smp_base.dimstack   import dimensional_stacking, digitize_pointcloud
 from smp_base.plot       import makefig, timeseries, histogram, plot_img, plotfuncs, uniform_divergence
 from smp_base.plot       import get_colorcycler, fig_interaction
@@ -78,6 +78,13 @@ rcParams['figure.subplot.bottom'] = 0.12 # 0.11
 rcParams['figure.subplot.left'] = 0.1 # 0.125
 rcParams['figure.subplot.right'] = 0.9
 rcParams['figure.subplot.top'] = 0.88 # 0.88
+
+# rcParams['text.usetex'] = True
+# rcParams["text.latex.preamble"] = [ r'\usepackage{amsmath}',
+#     r'\usepackage{amsfonts}', r'\usepackage{amssymb}',
+#     r'\usepackage{latexsym}', r'\usepackage{bm}']
+
+# set_latex_header()
 
 # f = open("rcparams.txt", "w")
 # f.write("rcParams = %s" % (rcParams, ))
