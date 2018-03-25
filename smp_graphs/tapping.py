@@ -120,6 +120,7 @@ def tapping_imol_pre_fwd(ref):
     """
     mk = 'fwd'
     rate = 1
+    
     # most recent top-down prediction on the input
     pre_l1 = ref.inputs['pre_l1']['val'][
         ...,

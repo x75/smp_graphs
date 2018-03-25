@@ -1508,7 +1508,10 @@ def step_imol_fwd(ref, mref, *args, **kwargs):
 
     # debugging
     if ref.cnt % 100 == 0:
-        logger.debug('%s.step_imol[%d] prerr_avg = %s', ref.__class__.__name__, ref.cnt, ref.mdl['fwd']['prerr_fwd_rms_avg'])
+        logger.debug(
+            '%s.step_imol[%d] prerr_avg_fwd = %s',
+            ref.__class__.__name__, ref.cnt,
+            ref.mdl['fwd']['prerr_fwd_rms_avg'])
 
     # check n-step prediction
     pre_l0_, tgt_ = step_imol_nstep(ref, 'fwd')
@@ -1573,7 +1576,7 @@ def step_imol_inv(ref, mref, *args, **kwargs):
 
     # debugging
     if ref.cnt % 100 == 0:
-        logger.debug('%s.step_imol[%d] prerr_avg = %s', ref.__class__.__name__, ref.cnt, ref.mdl['inv']['prerr_rms_avg'])
+        logger.debug('%s.step_imol[%d] prerr_avg_inv = %s', ref.__class__.__name__, ref.cnt, ref.mdl['inv']['prerr_rms_avg'])
 
     # check n-step prediction
     pre_l0_, tgt_ = step_imol_nstep(ref, 'inv')
