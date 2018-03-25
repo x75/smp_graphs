@@ -96,28 +96,27 @@ def tap_imol_fwd_time(ref):
 def tap_imol_fwd_modality(tap_pre_fwd, tap_fit_fwd):
     # collated fit and predict input tensors from tapped data
     X_fit_fwd = np.vstack((
-        tap_fit_fwd['pre_l1_flat'],
-        tap_fit_fwd['meas_l0_flat'],
-        tap_fit_fwd['prerr_l0_flat'],
+        tap_fit_fwd['pre_l0_flat'],  # state.1: motor
+        tap_fit_fwd['meas_l0_flat'], # state.2: measurement
+        tap_fit_fwd['prerr_l0_flat'],# state.3: last error
     ))
     
     Y_fit_fwd = np.vstack((
-        tap_fit_fwd['pre_l0_flat'],
+        tap_fit_fwd['pre_l1_flat'], # state.2: next measurement
     ))
     
     X_pre_fwd = np.vstack((
-        tap_pre_fwd['pre_l0_flat'],
-        tap_pre_fwd['meas_l0_flat'],
-        tap_pre_fwd['prerr_l0_flat'],
+        tap_pre_fwd['pre_l0_flat'],   # state.1: motor
+        tap_pre_fwd['meas_l0_flat'],  # state.2: measurement
+        tap_pre_fwd['prerr_l0_flat'], # state.3: last error
     ))
     return X_fit_fwd, Y_fit_fwd, X_pre_fwd
 
 def tapping_imol_pre_fwd(ref):
     """tapping for imol inverse prediction
 
-    state: pre_l0_{t-1} # meas
     state: pre_l0_{t}   # pre_l0
-
+    state: pre_l0_{t-1} # meas
     """
     mk = 'fwd'
     rate = 1
@@ -138,16 +137,24 @@ def tapping_imol_pre_fwd(ref):
     # most 1-recent pre_l1/meas_l0 errors
     prerr_l0 = ref.inputs['prerr_l0']['val'][
         ...,
-        range(ref.mdl[mk]['lag_past'][0] + ref.mdl[mk]['lag_off_f2p'], ref.mdl[mk]['lag_past'][1] + ref.mdl[mk]['lag_off_f2p'])].copy()
+        range(ref.mdl[mk]['lag_past'][0] + ref.mdl[mk]['lag_off_f2p'],
+              ref.mdl[mk]['lag_past'][1] + ref.mdl[mk]['lag_off_f2p'])].copy()
+    
     # momentary pre_l1/meas_l0 error
     prerr_l0 = np.roll(prerr_l0, -1, axis = -1)
-    # FIXME: get full tapping
-    prerr_l0[...,[-1]] = ref.inputs['pre_l1']['val'][...,[-ref.mdl[mk]['lag_off_f2p']]] - meas_l0[...,[-1]]
+    # FIXME: get my own prediction from that time
+    prerr_l0[...,[-1]] = ref.inputs['pre_fwd_l0']['val'][...,[-ref.mdl[mk]['lag_off_f2p']]] - meas_l0[...,[-1]]
 
     # corresponding output k steps in the past, 1-delay for recurrent
     pre_l0 = ref.inputs['pre_l0']['val'][
         ...,
-        range(ref.mdl[mk]['lag_future'][0] - ref.mdl[mk]['lag_off_f2p'] + rate, ref.mdl[mk]['lag_future'][1] - ref.mdl[mk]['lag_off_f2p'] + rate)].copy()
+        range(
+            ref.mdl[mk]['lag_past'][0] + ref.mdl[mk]['lag_off_f2p'] - rate,
+            ref.mdl[mk]['lag_past'][1] + ref.mdl[mk]['lag_off_f2p'] - rate)].copy()
+    
+    pre_l0 = np.roll(pre_l0, -1, axis = -1)
+    # prerr_l0[...,[-1]] = ref.inputs['pre_l1']['val'][...,[-ref.mdl[mk]['lag_off_f2p']]] - meas_l0[...,[-1]]
+    pre_l0[...,[-1]] = ref.mdl['inv']['pre_l0']
     
     return {
         'pre_l1': pre_l1,
@@ -163,35 +170,44 @@ def tapping_imol_pre_fwd(ref):
 def tapping_imol_fit_fwd(ref):
     mk = 'fwd'
     rate = 1
-    # X
-    # last goal prediction with measurement    
-    # most recent goal top-down prediction as input
+    # Y
+    # Y.1: most recent measurement
     pre_l1 = ref.inputs['meas_l0']['val'][
         ...,
-        range(ref.mdl[mk]['lag_past'][0] + ref.mdl[mk]['lag_off_f2p'], ref.mdl[mk]['lag_past'][1] + ref.mdl[mk]['lag_off_f2p'])].copy()
-    # corresponding starting state k steps in the past
+        range(
+            ref.mdl[mk]['lag_future'][0] + 0,
+            ref.mdl[mk]['lag_future'][1] + 0
+        )].copy()
+
+    # X
+    # X.2 corresponding starting state k steps in the past
     meas_l0 = ref.inputs['meas_l0']['val'][
         ...,
         range(ref.mdl[mk]['lag_past'][0], ref.mdl[mk]['lag_past'][1])].copy()
-    # corresponding error k steps in the past, 1-delay for recurrent
+    
+    # X.3: corresponding error k steps in the past, 1-delay for recurrent connection
     prerr_l0 = ref.inputs['prerr_l0']['val'][
         ...,
         range(ref.mdl[mk]['lag_past'][0] + rate, ref.mdl[mk]['lag_past'][1] + rate)].copy()
-    # Y
-    # corresponding output k steps in the past, 1-delay for recurrent
+    
+    # X.1: corresponding output k steps in the past, 1-delay for recurrent
     pre_l0 = ref.inputs['pre_l0']['val'][
         ...,
-        range(ref.mdl[mk]['lag_future'][0] - ref.mdl[mk]['lag_off_f2p'] + rate, ref.mdl[mk]['lag_future'][1] - ref.mdl[mk]['lag_off_f2p'] + rate)].copy()
+        range(
+            ref.mdl[mk]['lag_past'][0] - 0 + rate,
+            ref.mdl[mk]['lag_past'][1] - 0 + rate
+        )].copy()
+    
     # range(ref.mdl[mk]['lag_future'][0], ref.mdl[mk]['lag_future'][1])].copy()
     
     return {
-        # 'pre_l1': pre_l1,
-        # 'meas_l0': meas_l0,
+        'pre_l1': pre_l1,
+        'meas_l0': meas_l0,
         'prerr_l0': prerr_l0,
-        # 'pre_l0': pre_l0,
+        'pre_l0': pre_l0,
         'pre_l1_flat': pre_l1.T.reshape((-1, 1)),
         'meas_l0_flat': meas_l0.T.reshape((-1, 1)),
-        'prerr_l0_flat': prerr_l0.T.reshape((-1, 1)) * 0.0,
+        'prerr_l0_flat': prerr_l0.T.reshape((-1, 1)) * 1.0,
         'pre_l0_flat': pre_l0.T.reshape((-1, 1)),
     }
 

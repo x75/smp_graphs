@@ -358,7 +358,7 @@ inverse internal model pair (fiimp) with online learning (imol). The
 low-level learning algorithm is {{0}}""".format(algo)
 
 def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
-    global partial
+    global partial, OrderedDict
     global PlotBlock2
     global numsteps, timeseries, dim_s1, dim_s0, dim_s_hidden_debug, lag_past, lag_future, saveplot
     global sysname
@@ -380,16 +380,17 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             'Y': {'bus': 'pre_l0/Y',  'shape': (dim_s0 * (lag_future[1] - lag_future[0]), blocksize)},
             'hidden': {'bus': 'pre_l0/hidden',  'shape': (dim_s_hidden_debug, blocksize)},
             'wo_norm': {'bus': 'pre_l0/wo_norm',  'shape': (1, blocksize)},
-            'pre_fwd': {'bus': '%s/pre_fwd' % (l0,), 'shape': (dim_s0, blocksize)},
+            'pre_fwd': {'bus': '%s/pre_fwd' % (l0,), 'shape': (dim_s0 * (lag_future[1] - lag_future[0]) * 1, blocksize)},
             },
         'hspace': 0.2,
         'subplots': [
             
             [
                 {
-                    'input': ['pre_fwd'], 'plot': partial(timeseries, marker='.'),
+                    'input': ['s0', 'pre_fwd'], 'plot': partial(timeseries, marker='.'),
                     'title': 'forward prediction',
-                    'legend': {'pre_fwd': 0},
+                    # 'legend': OrderedDict([('State', 0), ('State_p', dim_s0)]),
+                    'legend': {'State': 0, 'State_p': dim_s0},
                     'xticks': False,
                 },
             ],
@@ -786,91 +787,91 @@ graph = OrderedDict([
         'params': {
             'graph': OrderedDict([
 
-                # goal sampler (motivation) sample_discrete_uniform_goal
-                ('pre_l1', {
-                    'block': ModelBlock2,
-                    'params': {
-                        'blocksize': 1,
-                        'blockphase': [0],
-                        'ros': ros,
-                        'inputs': {                        
-                            'lo': {'val': m_mins * 1.0, 'shape': (dim_s0, 1)},
-                            'hi': {'val': m_maxs * 1.0, 'shape': (dim_s0, 1)},
-                            },
-                        'outputs': {'pre': {'shape': (dim_s0, 1)}},
-                        'models': {
-                            'goal': {'type': 'random_uniform'}
-                            },
-                        'rate': 40,
-                        },
-                    }),
-
-                # ('cnt', {
-                #     'block': CountBlock2,
+                # # goal sampler (motivation) sample_discrete_uniform_goal
+                # ('pre_l1', {
+                #     'block': ModelBlock2,
                 #     'params': {
                 #         'blocksize': 1,
-                #         'debug': False,
-                #         'inputs': {},
-                #         'outputs': {'x': {'shape': (dim_s0, 1)}},
+                #         'blockphase': [0],
+                #         'ros': ros,
+                #         'inputs': {                        
+                #             'lo': {'val': m_mins * 1.0, 'shape': (dim_s0, 1)},
+                #             'hi': {'val': m_maxs * 1.0, 'shape': (dim_s0, 1)},
+                #             },
+                #         'outputs': {'pre': {'shape': (dim_s0, 1)}},
+                #         'models': {
+                #             'goal': {'type': 'random_uniform'}
+                #             },
+                #         'rate': 40,
                 #         },
                 #     }),
 
-                # # a random number generator, mapping const input to hi
-                # ('pre_l1', {
-                #     'block': FuncBlock2,
-                #     'params': {
-                #         'id': 'pre_l1',
-                #         'outputs': {'pre': {'shape': (dim_s0, 1)}},
-                #         'debug': False,
-                #         'ros': ros,
-                #         'blocksize': 1,
-                #         # 'inputs': {'lo': [0, (3, 1)], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
-                #         # recurrent connection
-                #         'inputs': {
-                #             'x': {'bus': 'cnt/x'},
-                #             # 'f': {'val': np.array([[0.2355, 0.2355]]).T * 1.0}, # good with knn and eta = 0.3
-                #             # 'f': {'val': np.array([[0.23538, 0.23538]]).T * 1.0}, # good with soesgp and eta = 0.7
-                #             # 'f': {'val': np.array([[0.45]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
-                #             # 'f': {'val': np.array([[0.225]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
+                ('cnt', {
+                    'block': CountBlock2,
+                    'params': {
+                        'blocksize': 1,
+                        'debug': False,
+                        'inputs': {},
+                        'outputs': {'x': {'shape': (dim_s0, 1)}},
+                        },
+                    }),
 
-                #             # barrel
-                #             # 'f': {'val': np.array([[0.23539]]).T * 10.0 * dt}, # good with soesgp and eta = 0.7
-                #             # 'f': {'val': np.array([[0.23539]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
-                #             # 'f': {'val': np.array([[0.23539]]).T * 7.23 * dt}, # good with soesgp and eta = 0.7
-                #             # 'f': {'val': np.array([[0.23539]]).T * 3.2 * dt}, # good with soesgp and eta = 0.7
-                #             # 'f': {'val': np.array([[0.23539]]).T * 2.9 * dt}, # good with soesgp and eta = 0.7
-                #             # 'f': {'val': np.array([[0.23539]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
+                # a random number generator, mapping const input to hi
+                ('pre_l1', {
+                    'block': FuncBlock2,
+                    'params': {
+                        'id': 'pre_l1',
+                        'outputs': {'pre': {'shape': (dim_s0, 1)}},
+                        'debug': False,
+                        'ros': ros,
+                        'blocksize': 1,
+                        # 'inputs': {'lo': [0, (3, 1)], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+                        # recurrent connection
+                        'inputs': {
+                            'x': {'bus': 'cnt/x'},
+                            # 'f': {'val': np.array([[0.2355, 0.2355]]).T * 1.0}, # good with knn and eta = 0.3
+                            # 'f': {'val': np.array([[0.23538, 0.23538]]).T * 1.0}, # good with soesgp and eta = 0.7
+                            # 'f': {'val': np.array([[0.45]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
+                            # 'f': {'val': np.array([[0.225]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
+
+                            # barrel
+                            # 'f': {'val': np.array([[0.23539]]).T * 10.0 * dt}, # good with soesgp and eta = 0.7
+                            # 'f': {'val': np.array([[0.23539]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
+                            # 'f': {'val': np.array([[0.23539]]).T * 7.23 * dt}, # good with soesgp and eta = 0.7
+                            # 'f': {'val': np.array([[0.23539]]).T * 3.2 * dt}, # good with soesgp and eta = 0.7
+                            # 'f': {'val': np.array([[0.23539]]).T * 2.9 * dt}, # good with soesgp and eta = 0.7
+                            # 'f': {'val': np.array([[0.23539]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
                             
-                #             # 'f': {'val': np.array([[0.23539]]).T * 0.2 * dt}, # good with soesgp and eta = 0.7
-                #             'f': {'val': np.array([[0.23539]]).T * 0.05 * dt}, # good with soesgp and eta = 0.7
+                            'f': {'val': np.array([[0.23539]]).T * 0.2 * dt}, # good with soesgp and eta = 0.7
+                            # 'f': {'val': np.array([[0.23539]]).T * 0.05 * dt}, # good with soesgp and eta = 0.7
                             
-                #             # 'f': {'val': np.array([[0.23539, 0.2348, 0.14]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
-                #             # 'f': {'val': np.array([[0.14, 0.14]]).T * 1.0},
-                #             # 'f': {'val': np.array([[0.82, 0.82]]).T},
-                #             # 'f': {'val': np.array([[0.745, 0.745]]).T},
-                #             # 'f': {'val': np.array([[0.7, 0.7]]).T},
-                #             # 'f': {'val': np.array([[0.65, 0.65]]).T},
-                #             # 'f': {'val': np.array([[0.39, 0.39]]).T},
-                #             # 'f': {'val': np.array([[0.37, 0.37]]).T},
-                #             # 'f': {'val': np.array([[0.325, 0.325]]).T},
-                #             # 'f': {'val': np.array([[0.31, 0.31]]).T},
-                #             # 'f': {'val': np.array([[0.19, 0.19]]).T},
-                #             # 'f': {'val': np.array([[0.18, 0.181]]).T},
-                #             # 'f': {'val': np.array([[0.171, 0.171]]).T},
-                #             # 'f': {'val': np.array([[0.161, 0.161]]).T},
-                #             # 'f': {'val': np.array([[0.151, 0.151]]).T},
-                #             # 'f': {'val': np.array([[0.141, 0.141]]).T},
-                #             # stay in place
-                #             # 'f': {'val': np.array([[0.1, 0.1]]).T},
-                #             # 'f': {'val': np.array([[0.24, 0.24]]).T},
-                #             # 'sigma': {'val': np.array([[0.001, 0.002]]).T}}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
-                #             'sigma': {'val': np.random.uniform(0, 0.01, (dim_s0, 1))},
-                #             'offset': {'val': m_mins + (m_maxs - m_mins)/2.0},
-                #             'amp': {'val': (m_maxs - m_mins)/2.0},
-                #         }, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
-                #         'func': f_sin_noise,
-                #     },
-                # }),
+                            # 'f': {'val': np.array([[0.23539, 0.2348, 0.14]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
+                            # 'f': {'val': np.array([[0.14, 0.14]]).T * 1.0},
+                            # 'f': {'val': np.array([[0.82, 0.82]]).T},
+                            # 'f': {'val': np.array([[0.745, 0.745]]).T},
+                            # 'f': {'val': np.array([[0.7, 0.7]]).T},
+                            # 'f': {'val': np.array([[0.65, 0.65]]).T},
+                            # 'f': {'val': np.array([[0.39, 0.39]]).T},
+                            # 'f': {'val': np.array([[0.37, 0.37]]).T},
+                            # 'f': {'val': np.array([[0.325, 0.325]]).T},
+                            # 'f': {'val': np.array([[0.31, 0.31]]).T},
+                            # 'f': {'val': np.array([[0.19, 0.19]]).T},
+                            # 'f': {'val': np.array([[0.18, 0.181]]).T},
+                            # 'f': {'val': np.array([[0.171, 0.171]]).T},
+                            # 'f': {'val': np.array([[0.161, 0.161]]).T},
+                            # 'f': {'val': np.array([[0.151, 0.151]]).T},
+                            # 'f': {'val': np.array([[0.141, 0.141]]).T},
+                            # stay in place
+                            # 'f': {'val': np.array([[0.1, 0.1]]).T},
+                            # 'f': {'val': np.array([[0.24, 0.24]]).T},
+                            # 'sigma': {'val': np.array([[0.001, 0.002]]).T}}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+                            'sigma': {'val': np.random.uniform(0, 0.01, (dim_s0, 1))},
+                            'offset': {'val': m_mins + (m_maxs - m_mins)/2.0},
+                            'amp': {'val': (m_maxs - m_mins)/2.0},
+                        }, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+                        'func': f_sin_noise,
+                    },
+                }),
                 
                 # dev model actinf_m1: learner is basic actinf predictor proprio space learn_proprio_base_0
                 ('pre_l0', {
@@ -908,8 +909,14 @@ graph = OrderedDict([
                             'meas_l0': {
                                 'bus': 'robot1/s0',
                                 # 'shape': (dim_s0, maxlag), 'lag': range(-laglen, 0)}
-                                'shape': (dim_s0, maxlag), 'lag': range(lag_future[0], lag_future[1])}
+                                'shape': (dim_s0, maxlag), 'lag': range(lag_future[0], lag_future[1])
                             },
+                            'pre_fwd_l0': {
+                                'bus': 'pre_l0/pre_fwd',
+                                'shape': (dim_s0, maxlag),
+                                'lag': range(lag_past[0] + 1, lag_past[1] + 1),
+                            },
+                        },
                         'outputs': {
                             # official
                             'pre': {'shape': (dim_s0, 1)},
@@ -920,7 +927,7 @@ graph = OrderedDict([
                             'hidden': {'shape': (dim_s_hidden_debug, 1)},
                             'wo_norm': {'shape': (1, 1)},
                             # submodel sidechannel
-                            'pre_fwd': {'shape': (dim_s0, 1)},
+                            'pre_fwd': {'shape': (dim_s0 * (lag_future[1] - lag_future[0]), 1)},
                         },
                         'models': {
                             'imol': {
