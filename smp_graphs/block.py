@@ -404,6 +404,16 @@ class decInit():
                 
             f(xself, *args, **kwargs)
 
+            if xself.debug_trace_callgraph:
+                from pycallgraph import PyCallGraph
+                from pycallgraph import Config
+                from pycallgraph.output import GraphvizOutput
+                
+                config = Config()
+                graphviz = GraphvizOutput()
+                
+                graphviz.output_file = '%s.png' % xself.id
+                xself.pcg = PyCallGraph(config=config, output=graphviz)
             # print "decInit", xself.id, xself.inputs.keys()
         return wrap
 
@@ -448,7 +458,11 @@ class decStep():
 
         Bypass of wrap_l0_pdb
         """
-        return self.wrap_l1(xself, f, args, kwargs)
+        if xself.debug_trace_callgraph:
+            with xself.pcg:
+                return self.wrap_l1(xself, f, args, kwargs)
+        else:
+            return self.wrap_l1(xself, f, args, kwargs)
     
     def wrap_l0_pdb(self, xself, f, *args, **kwargs):
         """Block2.step decorator (decStep) wrapper level 0 with pdb fallback
@@ -773,6 +787,7 @@ class Block2(object):
     defaults = {
         'id': None,
         'debug': False,
+        'debug_trace_callgraph': False, # special debug option: build and save block callgraph
         'topblock': False,
         'ibuf': 1, # input  buffer size
         'obuf': 1, # output buffer size

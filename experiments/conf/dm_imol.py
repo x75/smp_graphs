@@ -350,6 +350,13 @@ eta = 0.15
 # eta = 0.1
 # eta = 0.05
 
+
+################################################################################
+# experiment description after all configurables have been set
+desc = """This is the most stripped down version of the forward /
+inverse internal model pair (fiimp) with online learning (imol). The
+low-level learning algorithm is {{0}}""".format(algo)
+
 def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
     global partial
     global PlotBlock2
@@ -373,9 +380,19 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             'Y': {'bus': 'pre_l0/Y',  'shape': (dim_s0 * (lag_future[1] - lag_future[0]), blocksize)},
             'hidden': {'bus': 'pre_l0/hidden',  'shape': (dim_s_hidden_debug, blocksize)},
             'wo_norm': {'bus': 'pre_l0/wo_norm',  'shape': (1, blocksize)},
+            'pre_fwd': {'bus': '%s/pre_fwd' % (l0,), 'shape': (dim_s0, blocksize)},
             },
         'hspace': 0.2,
         'subplots': [
+            
+            [
+                {
+                    'input': ['pre_fwd'], 'plot': partial(timeseries, marker='.'),
+                    'title': 'forward prediction',
+                    'legend': {'pre_fwd': 0},
+                    'xticks': False,
+                },
+            ],
             
             [
                 {
@@ -862,6 +879,7 @@ graph = OrderedDict([
                         'blocksize': 1,
                         'blockphase': [0],
                         'debug': False,
+                        # 'debug_trace_callgraph': True,
                         'lag': minlag,
                         'eta': eta, # 3.7,
                         'ros': ros,
@@ -893,6 +911,7 @@ graph = OrderedDict([
                                 'shape': (dim_s0, maxlag), 'lag': range(lag_future[0], lag_future[1])}
                             },
                         'outputs': {
+                            # official
                             'pre': {'shape': (dim_s0, 1)},
                             'err': {'shape': (dim_s0, 1)},
                             'tgt': {'shape': (dim_s0, 1)},
@@ -900,7 +919,9 @@ graph = OrderedDict([
                             'Y': {'shape': (dim_s0 * (lag_future[1] - lag_future[0]), 1)},
                             'hidden': {'shape': (dim_s_hidden_debug, 1)},
                             'wo_norm': {'shape': (1, 1)},
-                            },
+                            # submodel sidechannel
+                            'pre_fwd': {'shape': (dim_s0, 1)},
+                        },
                         'models': {
                             'imol': {
                                 'type': 'imol',
@@ -910,7 +931,7 @@ graph = OrderedDict([
                                     'algo': algo_fwd,
                                     'lag_past': lag_past,
                                     'lag_future': lag_future,
-                                    'idim': dim_s0 * (lag_past[1] - lag_past[0]) * 2, # laglen
+                                    'idim': dim_s0 * (lag_past[1] - lag_past[0]) * 3, # laglen
                                     'odim': dim_s0 * (lag_future[1] - lag_future[0]), # laglen,
                                     'laglen': laglen,
                                     # 'laglen_past': lag_past[1] - lag_past[0],
@@ -1018,4 +1039,4 @@ graph = OrderedDict([
     # plot timeseries
     ('plot_ts', plot_timeseries_block(l0 = 'pre_l0', blocksize = numsteps)),
     
-    ])
+])

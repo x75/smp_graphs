@@ -1,6 +1,6 @@
 """**Model blocks**: blocks that contain a model
 
-.. moduleauthor:: Oswald Berthold 2012-2017
+.. moduleauthor:: Oswald Berthold 2012-2018
 
 Most often models are adaptive models which are trained with data like
 a neural network, a kernel machine, mixture models, and so on. More
@@ -50,6 +50,11 @@ from functools import partial
 import pickle, joblib
 
 import numpy as np
+
+# call graph foo / temp
+from pycallgraph import PyCallGraph
+from pycallgraph import Config
+from pycallgraph.output import GraphvizOutput
 
 from smp_base.common import get_module_logger
 
@@ -159,12 +164,14 @@ class ModelBlock2(PrimBlock2):
         # initialize model
         self.nummodels = len(params['models'])
 
+        # model pool / more than one model given in block config?
         if self.nummodels > 1:
             conf['params']['subgraph'] = self.subgraph_from_models_unrolled(conf, paren, top)
             # check for numsteps
             if not conf['params'].has_key('numsteps'):
                 conf['params']['numsteps'] = top.numsteps
             Block2.__init__(self, conf = conf, paren = paren, top = top)
+        # single model
         else:
             self.init_single(conf, paren, top)
 
@@ -184,8 +191,14 @@ class ModelBlock2(PrimBlock2):
                 mref.load(self)
 
             # self._debug('init: outputs = %s' % (self.outputs, ))
-            
+
+        # # call graph foo
+        # self.cg_graphviz = GraphvizOutput()
+        # self.cg_graphviz.output_file = 'cg_ModelBlock2.png'
+                
     def subgraph_from_models_unrolled(self, conf, paren, top):
+        """transform multiple model configuration into subgraph
+        """
         # models_unrolled = OrderedDict()
         conf['params']['loop'] = [('models', {k: v}) for k, v in conf['params']['models'].items()]
         logger.debug('Model %s\'s models to loop yields loop = %s' % (conf['params']['id'], conf['params']['loop'], ))

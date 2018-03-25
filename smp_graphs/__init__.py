@@ -1,16 +1,20 @@
-"""The smp_graphs package is a framework, or *scientific workflow
-system*, designed for quick and systematic creation, modification and
-execution of computational experiments that involve dynamic
-closed-loop processes, mostly learning agents and robots,
-reinforcement learning, etc. The intention is to enable and facilitate
-reuse of functions, components, and design patterns within this
-particular domain of computational modelling. The approach consists in
-strict separation of function implementation and experiment
-description. Experiments are described as graphs whose nodes are
-existing functional blocks. Different types of interaction among the
-blocks are modelled as edges. The graphs can also be nested which
-means that a node in a graph at one level can either be a *primitive*
-function or a *composite* function implemented as a graph itself.
+"""The smp_graphs package is a framework designed for quick and
+systematic creation, modification and execution of computational
+experiments that involve dynamic closed-loop processes, mostly
+learning agents and robots, reinforcement learning, etc. The intention
+is to enable and facilitate fast reuse of functions, components, and
+design patterns within this particular domain of computational
+modelling for rapid prototyping and scientific
+experimentation. Framework alternatively means `little
+language <http://legacy.python.org/workshops/1998-11/proceedings/papers/aycock-little/aycock-little.html>`_,
+`scientific workflow system <https://en.wikipedia.org/wiki/Scientific_workflow_system>`_,
+*brain lego*, etc. The approach consists in strict separation of
+function implementation and experiment description. Experiments are
+described as graphs whose nodes are existing functional
+blocks. Different types of interaction among the blocks are modelled
+as edges. The graphs can also be nested which means that a node in a
+graph at one level can either be a *primitive* function or a
+*composite* function implemented as a graph itself.
 
 Block basics
 ------------
@@ -73,10 +77,10 @@ calls each node's step function. Blocks schedule themselves for
 execution with the :data:`blocksize` and :data:`blockphase`
 attributes. The current :data:`cnt` is taken modulo the blocksize and
 step is actually executed if the result is in the blockphase list of
-integers. The default configuration is `'blocksize': 1, 'blockphase': [0]`
-resulting in single time step execution.
+integers. The default configuration is `{'blocksize': 1, 'blockphase':
+[0]}` resulting in single time step execution.
 
-The top block also has a `bus` member which is a dictionary
+The top block also has a :class:`smp_graphs.block.Bus` member which is a dictionary
 whose keys are 'buskeys' and whose values are np.ndarrays and which is
 globally available to all blocks. By convention, the block's
 instantaneous outputs are computed by simply looping over the outputs
