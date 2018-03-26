@@ -49,9 +49,9 @@ except ImportError, e:
 # merge with embedding code and move to smp_base
 from smp_graphs.common  import code_compile_and_run, get_input
 from smp_graphs.tapping import tap_tupoff, tap, tap_flat, tap_unflat
-from smp_graphs.tapping import tap_imol_fwd, tap_imol_fwd_time, tap_imol_fwd_modality
-from smp_graphs.tapping import tap_imol_fwd_2, tap_stack
-from smp_graphs.tapping import tap_imol_inv, tap_imol_inv_time, tap_imol_inv_modality
+# from smp_graphs.tapping import tap_imol_fwd, tap_imol_fwd_time, tap_imol_fwd_modality
+from smp_graphs.tapping import tap_imol_fwd, tap_stack
+from smp_graphs.tapping import tap_imol_inv, tap_imol_inv_old, tap_imol_inv_time, tap_imol_inv_modality
 
 from logging import DEBUG as LOGLEVEL
 logger = get_module_logger(modulename = 'funcs_models', loglevel = LOGLEVEL - 0)
@@ -1505,14 +1505,14 @@ def step_imol_fwd(ref, mref, *args, **kwargs):
     # ref.mdl['fwd']['Y_fit_fwd'] = Y_fit_fwd
     # ref.mdl['fwd']['X_pre_fwd'] = X_pre_fwd
     
-    tap_fit_fwd_X = tap_imol_fwd_2(ref, ['pre_l0', 'meas_l0', 'prerr_l0'], ['lag_past'] * 3, [1, 0, 1])
+    tap_fit_fwd_X = tap_imol_fwd(ref, ['pre_l0', 'meas_l0', 'prerr_l0'], ['lag_past'] * 3, [1, 0, 1])
     ref.mdl['fwd']['X_fit_fwd'] = tap_fit_fwd_X['X'] # tap_stack(tap_fit_fwd_X, ['meas_l0', 'prerr_l0', 'pre_l0'])
 
-    tap_fit_fwd_Y = tap_imol_fwd_2(ref, ['meas_l0'], ['lag_future'], [0])
+    tap_fit_fwd_Y = tap_imol_fwd(ref, ['meas_l0'], ['lag_future'], [0])
     ref.mdl['fwd']['Y_fit_fwd'] = tap_fit_fwd_Y['X'] # tap_stack(tap_fit_fwd_Y, ['meas_l0'])
 
-    tap_pre_fwd_X = tap_imol_fwd_2(
-        ref, ['pre_l0', 'meas_l0', 'prerr_l0'],
+    tap_pre_fwd_X = tap_imol_fwd(
+        ref, ['pre_l0', 'meas_l0', 'prerr_fwd_l0'],
         ['lag_past'] * 3,
         [ref.mdl['fwd']['lag_off_f2p'] - 1] + [ref.mdl['fwd']['lag_off_f2p']] * 2
     )
@@ -1524,29 +1524,28 @@ def step_imol_fwd(ref, mref, *args, **kwargs):
     # update motor with most recent inverse prediction
     tmp_[...,[-1]] = ref.mdl['inv']['pre_l0']
     tap_pre_fwd_X['pre_l0'] = tmp_.copy()
-    # recompute the input stack
-    ref.mdl['fwd']['X_pre_fwd'] = tap_stack(tap_pre_fwd_X, ['pre_l0', 'meas_l0', 'prerr_l0'])
     
-    # # compactify 2->1 oben
-    # ref.mdl['fwd']['X_fit_fwd'] = tap_imol_fwd_2(ref, ['pre_l0', 'meas_l0', 'prerr_l0'], ['lag_past'] * 3, [1, 0, 1])['X']
-    # ref.mdl['fwd']['Y_fit_fwd'] = tap_imol_fwd_2(ref, ['meas_l0'], ['lag_future'], [0])['X']
-    # ref.mdl['fwd']['X_pre_fwd'] = tap_imol_fwd_2(
-    #     ref, ['pre_l0', 'meas_l0', 'prerr_l0'],
-    #     ['lag_past'] * 3,
-    #     [ref.mdl['fwd']['lag_off_f2p'], ref.mdl['fwd']['lag_off_f2p'], ref.mdl['fwd']['lag_off_f2p'] - 1]
-    # )['X']
-
-    
-    # do computations outside of tappings
     # prediction error forward model
     # ref.mdl['fwd']['prerr_l0_pre'] = tap_pre_fwd_X['prerr_l0'][...,[-1]]
     # ref.mdl['fwd']['prerr_l0_fit'] = tap_fit_fwd_X['prerr_l0'][...,[-1]]
     
-    tmp_ = tap_imol_fwd_2( # 'pre_fwd_l0', 
+    tmp_ = tap_imol_fwd( # 'pre_fwd_l0', 
         ref, ['prerr_fwd_l0', 'meas_l0'],
         ['lag_past'] * 2, [ref.mdl['fwd']['lag_off_f2p']] * 2)
-    ref.mdl['fwd']['prerr_l0'] = np.roll(tmp_['prerr_fwd_l0'], shift=-1, axis=-1)
-    ref.mdl['fwd']['prerr_l0'][...,[-1]] = ref.inputs['pre_fwd_l0']['val'][...,[-ref.mdl['fwd']['lag_off_f2p']]] - tmp_['meas_l0'][...,[-1]]
+    ref.mdl['fwd']['prerr_l0'] = np.roll(tap_pre_fwd_X['prerr_fwd_l0'], shift=-1, axis=-1)
+    ref.mdl['fwd']['prerr_l0'][...,[-1]] = ref.inputs['pre_fwd_l0']['val'][...,[-ref.mdl['fwd']['lag_off_f2p']]] - tap_pre_fwd_X['meas_l0'][...,[-1]]
+    
+    # recompute the input stack
+    ref.mdl['fwd']['X_pre_fwd'] = tap_stack(tap_pre_fwd_X, ['pre_l0', 'meas_l0', 'prerr_fwd_l0'])
+    
+    # # compactify 2->1 oben
+    # ref.mdl['fwd']['X_fit_fwd'] = tap_imol_fwd(ref, ['pre_l0', 'meas_l0', 'prerr_l0'], ['lag_past'] * 3, [1, 0, 1])['X']
+    # ref.mdl['fwd']['Y_fit_fwd'] = tap_imol_fwd(ref, ['meas_l0'], ['lag_future'], [0])['X']
+    # ref.mdl['fwd']['X_pre_fwd'] = tap_imol_fwd(
+    #     ref, ['pre_l0', 'meas_l0', 'prerr_l0'],
+    #     ['lag_past'] * 3,
+    #     [ref.mdl['fwd']['lag_off_f2p'], ref.mdl['fwd']['lag_off_f2p'], ref.mdl['fwd']['lag_off_f2p'] - 1]
+    # )['X']
     
     ref.mdl['fwd']['prerr_avg'] = ref.mdl['fwd']['coef_err_avg'] * ref.mdl['fwd']['prerr_avg'] + (1-ref.mdl['fwd']['coef_err_avg']) * ref.mdl['fwd']['prerr_l0']
     ref.mdl['fwd']['prerr_rms_avg'] = np.sqrt(np.mean(np.square(ref.mdl['fwd']['prerr_avg']), keepdims=True))
@@ -1611,17 +1610,36 @@ def step_imol_inv(ref, mref, *args, **kwargs):
     # # debug
     # logger.debug('step_imol_inv ref.mdl[\'inv\'] = %s', ref.mdl['inv'].keys())
 
-    # tappings for predict and fit as dicts with channels as keys
-    tap_pre_inv, tap_fit_inv = tap_imol_inv(ref)
-    X_fit_inv, Y_fit_inv, X_pre_inv = tap_imol_inv_modality(tap_pre_inv, tap_fit_inv)
-    ref.mdl['inv']['X_fit_inv'] = X_fit_inv
-    ref.mdl['inv']['Y_fit_inv'] = Y_fit_inv
-    ref.mdl['inv']['X_pre_inv'] = X_pre_inv
-    # logger.debug('step_imol_inv X_fit_inv = %s', X_fit_inv)
+    # # tappings for predict and fit as dicts with channels as keys
+    # tap_pre_inv, tap_fit_inv = tap_imol_inv_old(ref)
+    # X_fit_inv, Y_fit_inv, X_pre_inv = tap_imol_inv_modality(tap_pre_inv, tap_fit_inv)
+    # ref.mdl['inv']['X_fit_inv'] = X_fit_inv
+    # ref.mdl['inv']['Y_fit_inv'] = Y_fit_inv
+    # ref.mdl['inv']['X_pre_inv'] = X_pre_inv
+    # # logger.debug('step_imol_inv X_fit_inv = %s', X_fit_inv)
+
+    tap_fit_inv = tap_imol_inv(
+        ref, [('pre_l1', 'meas_l0'), 'meas_l0', 'prerr_l0'],
+        ['lag_past'] * 3, [ref.mdl['inv']['lag_off_f2p'], 0, 1])
+    ref.mdl['inv']['X_fit_inv'] = tap_fit_inv['X']
+
+    tap_fit_inv = tap_imol_inv(
+        ref, ['pre_l0'],
+        ['lag_future'], [-ref.mdl['inv']['lag_off_f2p'] + 1])
+    ref.mdl['inv']['Y_fit_inv'] = tap_fit_inv['X']
+    
+    tap_pre_inv = tap_imol_inv(
+        ref, ['pre_l1', 'meas_l0', 'prerr_l0'],
+        ['lag_past'] * 3,
+        [ref.mdl['inv']['lag_off_f2p']] * 3)
+    ref.mdl['inv']['prerr_l0'] = np.roll(tap_pre_inv['prerr_l0'], shift=-1, axis=-1)
+    ref.mdl['inv']['prerr_l0'][...,[-1]] = ref.inputs['pre_l1']['val'][...,[-ref.mdl['inv']['lag_off_f2p']]] - tap_pre_inv['meas_l0'][...,[-1]]
+    tap_pre_inv['prerr_l0'] = ref.mdl['inv']['prerr_l0'] # copy? check view or not
+    ref.mdl['inv']['X_pre_inv'] = tap_stack(tap_pre_inv, ['pre_l1', 'meas_l0', 'prerr_l0'])
 
     # prediction error inverse model
     ref.mdl['inv']['prerr_l0_pre'] = tap_pre_inv['prerr_l0'][...,[-1]]
-    ref.mdl['inv']['prerr_l0_fit'] = tap_fit_inv['prerr_l0'][...,[-1]]
+    # ref.mdl['inv']['prerr_l0_fit'] = tap_fit_inv['prerr_l0'][...,[-1]]
 
     ref.mdl['inv']['prerr_avg'] = ref.mdl['inv']['coef_err_avg'] * ref.mdl['inv']['prerr_avg'] + (1-ref.mdl['inv']['coef_err_avg']) * ref.mdl['inv']['prerr_l0_pre']
     ref.mdl['inv']['prerr_rms_avg'] = np.sqrt(np.mean(np.square(ref.mdl['inv']['prerr_avg']), keepdims=True))
