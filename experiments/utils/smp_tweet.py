@@ -1,6 +1,11 @@
 """smp_tweet
 
 Tweet an image and text given on the command line
+
+Examples:
+`python utils/smp_tweet.py --image data/smp_dm_imol/smp_dm_imol_25e1eddf904aa1ae338e9b0643bfaf77_20180326_224924_plot_ts.jpg --status '... and #smp_graphs models are being learned, better than ever before \o/'`
+
+`python utils/smp_tweet.py --image dm-imol.png --status 'at the edge of insanity, #smp_graphs things are being tapped ...'`
 """
 
 import argparse, os, sys

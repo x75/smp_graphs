@@ -41,7 +41,7 @@ outputs = {
 # experiment
 commandline_args = ['numsteps']
 randseed = 12355
-numsteps = int(10000/20)
+numsteps = int(10000/5)
 loopblocksize = numsteps
 sysname = 'pm'
 # sysname = 'sa'
@@ -310,8 +310,12 @@ algo_inv = algo
 
 if algo == 'knn':
     dim_s_hidden_debug = 5 * 2 + 1
+    modelsize_fwd = int(numsteps*0.8)
+    modelsize_inv = int(numsteps*0.8) # 1000
 else:
     dim_s_hidden_debug = 20
+    modelsize_fwd = 100
+    modelsize_inv = 200
 
 # lag_past   = (-1, 0)
 # lag_past   = (-2, -1)
@@ -373,7 +377,7 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
     'block': PlotBlock2,
     'params': {
         'saveplot': saveplot,
-        'blocksize': min(numsteps, numsteps), # 1000, # blocksize
+        'blocksize': numsteps, # min(numsteps, numsteps), # 1000, # blocksize
         'title': 'Learning episode timeseries: dev-model = %s, algo = %s, system %s' % (devmodel, algo, sysname),
         'desc': """An %s agent learning to control a %d-dimensional %s
         system using %s low-level algorithm.""" % (devmodel, dim_s0,
@@ -401,7 +405,18 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             
             [
                 {
-                    'input': ['goals', 's0', 'pre', 'pre_fwd'], 'plot': partial(timeseries, marker='.'),
+                    'input': ['err', 'prerr_rms_avg', 'prerr_rms_avg_fwd'],
+                    'plot': [partial(timeseries, marker='.', alpha=0.07), partial(timeseries, marker='.'), partial(timeseries, marker='.')],
+                    'title': 'Momentary and time averaged inverse (goal) and forward errors',
+                    'legend': {'Error_t': 0, 'E(Error_i_t)': dim_s0, 'E(Error_f_t)': dim_s0 + 1},
+                    'xticks': False,
+                },
+            ],
+            
+            [
+                {
+                    'input': ['goals', 's0', 'pre', 'pre_fwd'],
+                    'plot': partial(timeseries, marker='.'),
                     'title': 'Goal, state, inverse, andd forward predictions',
                     # 'legend': OrderedDict([('State', 0), ('State_p', dim_s0)]),
                     'legend': {'Goal': 0, 'State': dim_s0, 'State_p_i': 2*dim_s0, 'State_p_f': 3*dim_s0},
@@ -426,15 +441,6 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             #     },
             # ],
                         
-            [
-                {
-                    'input': ['err', 'prerr_rms_avg', 'prerr_rms_avg_fwd'], 'plot': partial(timeseries, marker='.'),
-                    'title': 'Momentary and time averaged inverse (goal) and forward errors',
-                    'legend': {'Error_t': 0, 'E(Error_i_t)': dim_s0, 'E(Error_f_t)': dim_s0 + 1},
-                    'xticks': False,
-                },
-            ],
-            
             [
                 {
                     'input': ['X'], 'plot': partial(timeseries, marker = '.'),
@@ -959,10 +965,12 @@ graph = OrderedDict([
                             'prerr_rms_avg_fwd': {'shape': (1, 1)},
                             'wo_norm_fwd': {'shape': (dim_s0, 1)},
                         },
+                        
                         'models': {
                             'imol': {
                                 'type': 'imol',
                                 'algo': algo,
+                                
                                 'fwd': {
                                     'type': 'imol',
                                     'algo': algo_fwd,
@@ -974,7 +982,9 @@ graph = OrderedDict([
                                     # 'laglen_past': lag_past[1] - lag_past[0],
                                     # 'laglen_future': lag_future[1] - lag_future[0],
                                     'eta': eta,
+                                    'modelsize': modelsize_fwd,
                                 },
+                                
                                 'inv': {
                                     'type': 'imol',
                                     'algo': algo_inv,
@@ -992,7 +1002,7 @@ graph = OrderedDict([
                                     'multitau': False, # True,
                                     'theta': 0.01,
                                     # soesgp
-                                    'modelsize': 200,
+                                    'modelsize': modelsize_inv,
                                     # 'spectral_radius': 1.5, # 0.01,
                                     # FORCE / pm
                                     # 'modelsize': 300,

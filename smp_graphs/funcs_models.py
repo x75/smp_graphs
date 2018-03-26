@@ -1428,6 +1428,7 @@ def step_imol(ref, mref, *args, **kwargs):
         # logger.debug('step_imol[%d] mdl key = %s', ref.cnt, mk)
         # call step func for submodel
         ref.mdl[mk]['func_step'](ref, mref, *args, **kwargs)
+        step_imol_common(ref, mref, mk, *args, **kwargs)
         # if fwd disagrees with inv, reiterate?
 
     # logger.debug("step_imol fwd_pre_l0 = %s, %s", ref.mdl['fwd']['pre_l0'], ref.mdl['fwd']['pre_l0_var'])
@@ -1440,8 +1441,8 @@ def step_imol(ref, mref, *args, **kwargs):
     # setattr(ref, 'err', ref.mdl['inv']['prerr_l0_fit'].copy())
     setattr(ref, 'tgt', ref.mdl['inv']['tgt'].copy())
     # setattr(ref, 'tgt', tgt.copy())
-    setattr(ref, 'X', ref.mdl['inv']['X_fit_inv'].copy())
-    setattr(ref, 'Y', ref.mdl['inv']['Y_fit_inv'].copy())
+    setattr(ref, 'X', ref.mdl['inv']['X_fit'].copy())
+    setattr(ref, 'Y', ref.mdl['inv']['Y_fit'].copy())
     setattr(ref, 'wo_norm_inv', ref.mdl['inv']['inst_'].get_params(param='w_norm'))
     setattr(ref, 'wo_norm', getattr(ref, 'wo_norm_inv'))
 
@@ -1452,6 +1453,31 @@ def step_imol(ref, mref, *args, **kwargs):
     setattr(ref, 'prerr_rms_avg_fwd', ref.mdl['fwd']['prerr_rms_avg'].copy())
     setattr(ref, 'wo_norm_fwd', ref.mdl['fwd']['inst_'].get_params(param='w_norm'))
 
+def step_imol_common(ref, mref, mk, *args, **kwargs):
+    # prediction error local average
+    ref.mdl[mk]['prerr_avg'] = ref.mdl[mk]['coef_err_avg'] * ref.mdl[mk]['prerr_avg'] + (1-ref.mdl[mk]['coef_err_avg']) * ref.mdl[mk]['prerr_l0_pre']
+    ref.mdl[mk]['prerr_rms_avg'] = np.sqrt(np.mean(np.square(ref.mdl[mk]['prerr_avg']), keepdims=True))
+
+    # perform a fit / predict cycle
+    ref.mdl[mk]['pre_l0'], ref.mdl[mk]['pre_l0_var'] = fit_imol_inv(ref, mref, mk=mk, *args, **kwargs)
+    # add noise to prediction (exploration?)
+    ref.mdl[mk]['pre_l0'] += ref.mdl[mk]['pre_l0_var']
+    # bound outputs
+    ref.mdl[mk]['pre_l0'] = np.clip(ref.mdl[mk]['pre_l0'], -1.1, 1.1)
+
+    # debugging
+    if ref.cnt % 100 == 0:
+        logger.debug(
+            '%s-%s.step_imol[%d] %s prerr_rms_avg = %s',
+            ref.__class__.__name__,
+            ref.id,
+            ref.cnt,
+            mk,
+            ref.mdl[mk]['prerr_rms_avg'])
+
+    # check n-step prediction
+    pre_l0_, tgt_ = step_imol_nstep(ref, mk)
+    
 def step_imol_nstep(ref, mk):
     """special treatment for n-step prediction
     """
@@ -1472,12 +1498,12 @@ def step_imol_nstep(ref, mk):
         # print "ref.mdl[mk]['pre_l0']", ref.mdl[mk]['pre_l0'].shape
 
         # prepare target
-        tgt_t = ref.mdl[mk]['Y_fit_%s' % mk].reshape((ref.mdl[mk]['laglen_future'], -1)).T
+        tgt_t = ref.mdl[mk]['Y_fit'].reshape((ref.mdl[mk]['laglen_future'], -1)).T
         ref.mdl[mk]['tgt'] = tgt_t[...,[-1]]
     # 1-step prediction
     else:
         ref.mdl[mk]['pre_l0'] = ref.mdl[mk]['pre_l0'].T
-        ref.mdl[mk]['tgt'] = ref.mdl[mk]['Y_fit_%s' % mk]
+        ref.mdl[mk]['tgt'] = ref.mdl[mk]['Y_fit']
 
     return ref.mdl[mk]['pre_l0'], ref.mdl[mk]['tgt']
     
@@ -1506,17 +1532,17 @@ def step_imol_fwd(ref, mref, *args, **kwargs):
     # ref.mdl['fwd']['X_pre_fwd'] = X_pre_fwd
     
     tap_fit_fwd_X = tap_imol_fwd(ref, ['pre_l0', 'meas_l0', 'prerr_l0'], ['lag_past'] * 3, [1, 0, 1])
-    ref.mdl['fwd']['X_fit_fwd'] = tap_fit_fwd_X['X'] # tap_stack(tap_fit_fwd_X, ['meas_l0', 'prerr_l0', 'pre_l0'])
+    ref.mdl['fwd']['X_fit'] = tap_fit_fwd_X['X'] # tap_stack(tap_fit_fwd_X, ['meas_l0', 'prerr_l0', 'pre_l0'])
 
     tap_fit_fwd_Y = tap_imol_fwd(ref, ['meas_l0'], ['lag_future'], [0])
-    ref.mdl['fwd']['Y_fit_fwd'] = tap_fit_fwd_Y['X'] # tap_stack(tap_fit_fwd_Y, ['meas_l0'])
+    ref.mdl['fwd']['Y_fit'] = tap_fit_fwd_Y['X'] # tap_stack(tap_fit_fwd_Y, ['meas_l0'])
 
     tap_pre_fwd_X = tap_imol_fwd(
         ref, ['pre_l0', 'meas_l0', 'prerr_fwd_l0'],
         ['lag_past'] * 3,
         [ref.mdl['fwd']['lag_off_f2p'] - 1] + [ref.mdl['fwd']['lag_off_f2p']] * 2
     )
-    # ref.mdl['fwd']['X_pre_fwd'] = tap_pre_fwd_X['X'] # tap_stack(tap_pre_fwd_X, ['pre_l0', 'meas_l0', 'prerr_l0'])
+    # ref.mdl['fwd']['X_pre'] = tap_pre_fwd_X['X'] # tap_stack(tap_pre_fwd_X, ['pre_l0', 'meas_l0', 'prerr_l0'])
 
     # do computations outside of tappings
     # get motor
@@ -1525,70 +1551,68 @@ def step_imol_fwd(ref, mref, *args, **kwargs):
     tmp_[...,[-1]] = ref.mdl['inv']['pre_l0']
     tap_pre_fwd_X['pre_l0'] = tmp_.copy()
     
-    # prediction error forward model
-    # ref.mdl['fwd']['prerr_l0_pre'] = tap_pre_fwd_X['prerr_l0'][...,[-1]]
-    # ref.mdl['fwd']['prerr_l0_fit'] = tap_fit_fwd_X['prerr_l0'][...,[-1]]
-    
-    tmp_ = tap_imol_fwd( # 'pre_fwd_l0', 
-        ref, ['prerr_fwd_l0', 'meas_l0'],
-        ['lag_past'] * 2, [ref.mdl['fwd']['lag_off_f2p']] * 2)
     ref.mdl['fwd']['prerr_l0'] = np.roll(tap_pre_fwd_X['prerr_fwd_l0'], shift=-1, axis=-1)
     ref.mdl['fwd']['prerr_l0'][...,[-1]] = ref.inputs['pre_fwd_l0']['val'][...,[-ref.mdl['fwd']['lag_off_f2p']]] - tap_pre_fwd_X['meas_l0'][...,[-1]]
-    
+    tap_pre_fwd_X['prerr_fwd_l0'] = ref.mdl['fwd']['prerr_l0']
     # recompute the input stack
-    ref.mdl['fwd']['X_pre_fwd'] = tap_stack(tap_pre_fwd_X, ['pre_l0', 'meas_l0', 'prerr_fwd_l0'])
+    ref.mdl['fwd']['X_pre'] = tap_stack(tap_pre_fwd_X, ['pre_l0', 'meas_l0', 'prerr_fwd_l0'])
+    
+    # prediction error local
+    ref.mdl['fwd']['prerr_l0_pre'] = tap_pre_fwd_X['prerr_fwd_l0'][...,[-1]]
+    # ref.mdl['fwd']['prerr_l0_fit'] = tap_fit_fwd_X['prerr_l0'][...,[-1]]
     
     # # compactify 2->1 oben
-    # ref.mdl['fwd']['X_fit_fwd'] = tap_imol_fwd(ref, ['pre_l0', 'meas_l0', 'prerr_l0'], ['lag_past'] * 3, [1, 0, 1])['X']
-    # ref.mdl['fwd']['Y_fit_fwd'] = tap_imol_fwd(ref, ['meas_l0'], ['lag_future'], [0])['X']
-    # ref.mdl['fwd']['X_pre_fwd'] = tap_imol_fwd(
+    # ref.mdl['fwd']['X_fit'] = tap_imol_fwd(ref, ['pre_l0', 'meas_l0', 'prerr_l0'], ['lag_past'] * 3, [1, 0, 1])['X']
+    # ref.mdl['fwd']['Y_fit'] = tap_imol_fwd(ref, ['meas_l0'], ['lag_future'], [0])['X']
+    # ref.mdl['fwd']['X_pre'] = tap_imol_fwd(
     #     ref, ['pre_l0', 'meas_l0', 'prerr_l0'],
     #     ['lag_past'] * 3,
     #     [ref.mdl['fwd']['lag_off_f2p'], ref.mdl['fwd']['lag_off_f2p'], ref.mdl['fwd']['lag_off_f2p'] - 1]
     # )['X']
-    
-    ref.mdl['fwd']['prerr_avg'] = ref.mdl['fwd']['coef_err_avg'] * ref.mdl['fwd']['prerr_avg'] + (1-ref.mdl['fwd']['coef_err_avg']) * ref.mdl['fwd']['prerr_l0']
-    ref.mdl['fwd']['prerr_rms_avg'] = np.sqrt(np.mean(np.square(ref.mdl['fwd']['prerr_avg']), keepdims=True))
 
-    # # predict
+    # # prediction error local average
+    # ref.mdl['fwd']['prerr_avg'] = ref.mdl['fwd']['coef_err_avg'] * ref.mdl['fwd']['prerr_avg'] + (1-ref.mdl['fwd']['coef_err_avg']) * ref.mdl['fwd']['prerr_l0_pre']
+    # ref.mdl['fwd']['prerr_rms_avg'] = np.sqrt(np.mean(np.square(ref.mdl['fwd']['prerr_avg']), keepdims=True))
+
+    # # # predict
+    # # ref.mdl['fwd']['pre_l0'], ref.mdl['fwd']['pre_l0_var'] = fit_imol_fwd(ref, mref, *args, **kwargs)
+    # # logger.debug("step_imol_fwd = %s, %s", ref.mdl['fwd']['pre_l0'], ref.mdl['fwd']['pre_l0_var'])
+    
+    # # perform a fit / predict cycle
     # ref.mdl['fwd']['pre_l0'], ref.mdl['fwd']['pre_l0_var'] = fit_imol_fwd(ref, mref, *args, **kwargs)
-    # logger.debug("step_imol_fwd = %s, %s", ref.mdl['fwd']['pre_l0'], ref.mdl['fwd']['pre_l0_var'])
-    
-    # perform a fit / predict cycle
-    ref.mdl['fwd']['pre_l0'], ref.mdl['fwd']['pre_l0_var'] = fit_imol_fwd(ref, mref, *args, **kwargs)
-    # add noise to prediction (exploration?)
-    ref.mdl['fwd']['pre_l0'] += ref.mdl['fwd']['pre_l0_var']
-    # bound outputs
-    ref.mdl['fwd']['pre_l0'] = np.clip(ref.mdl['fwd']['pre_l0'], -1.1, 1.1)
+    # # add noise to prediction (exploration?)
+    # ref.mdl['fwd']['pre_l0'] += ref.mdl['fwd']['pre_l0_var']
+    # # bound outputs
+    # ref.mdl['fwd']['pre_l0'] = np.clip(ref.mdl['fwd']['pre_l0'], -1.1, 1.1)
 
-    # debugging
-    if ref.cnt % 100 == 0:
-        logger.debug(
-            '%s-%s.step_imol[%d] prerr_avg_fwd = %s',
-            ref.__class__.__name__,
-            ref.id,
-            ref.cnt,
-            ref.mdl['fwd']['prerr_rms_avg'])
+    # # debugging
+    # if ref.cnt % 100 == 0:
+    #     logger.debug(
+    #         '%s-%s.step_imol[%d] prerr_avg_fwd = %s',
+    #         ref.__class__.__name__,
+    #         ref.id,
+    #         ref.cnt,
+    #         ref.mdl['fwd']['prerr_rms_avg'])
 
-    # check n-step prediction
-    pre_l0_, tgt_ = step_imol_nstep(ref, 'fwd')
+    # # check n-step prediction
+    # pre_l0_, tgt_ = step_imol_nstep(ref, 'fwd')
 
 def fit_imol_fwd(ref, mref, *args, **kwargs):
     # get shortcut
-    X_fit_fwd = ref.mdl['fwd']['X_fit_fwd']
-    Y_fit_fwd = ref.mdl['fwd']['Y_fit_fwd']
-    X_pre_fwd = ref.mdl['fwd']['X_pre_fwd']
+    X_fit = ref.mdl['fwd']['X_fit']
+    Y_fit = ref.mdl['fwd']['Y_fit']
+    X_pre = ref.mdl['fwd']['X_pre']
 
     if True:
         # feedforward case
         # model fit
         if ref.cnt > ref.mdl['fwd']['fit_offset']:
-            # logger.debug('fit_imol_fwd fitting with X = %s, Y = %s', X_fit_fwd.T, Y_fit_fwd.T)
-            ref.mdl['fwd']['inst_'].fit(X = X_fit_fwd.T, y = Y_fit_fwd.T)
+            # logger.debug('fit_imol_fwd fitting with X = %s, Y = %s', X_fit.T, Y_fit.T)
+            ref.mdl['fwd']['inst_'].fit(X = X_fit.T, y = Y_fit.T)
             
         # model prediction
-        pre_l0 = ref.mdl['fwd']['inst_'].predict(X = X_pre_fwd.T)
-        # logger.debug('fit_imol_fwd predicting with X = %s, yhat = %s', X_pre_fwd.T, pre_l0)
+        pre_l0 = ref.mdl['fwd']['inst_'].predict(X = X_pre.T)
+        # logger.debug('fit_imol_fwd predicting with X = %s, yhat = %s', X_pre.T, pre_l0)
         # output weights
         # logger.debug("model params = %s", ref.mdl['fwd']['inst_'].get_params())
         # setattr(ref, 'wo_norm', ref.mdl['fwd']['inst_'].get_params())
@@ -1621,12 +1645,12 @@ def step_imol_inv(ref, mref, *args, **kwargs):
     tap_fit_inv = tap_imol_inv(
         ref, [('pre_l1', 'meas_l0'), 'meas_l0', 'prerr_l0'],
         ['lag_past'] * 3, [ref.mdl['inv']['lag_off_f2p'], 0, 1])
-    ref.mdl['inv']['X_fit_inv'] = tap_fit_inv['X']
+    ref.mdl['inv']['X_fit'] = tap_fit_inv['X']
 
     tap_fit_inv = tap_imol_inv(
         ref, ['pre_l0'],
         ['lag_future'], [-ref.mdl['inv']['lag_off_f2p'] + 1])
-    ref.mdl['inv']['Y_fit_inv'] = tap_fit_inv['X']
+    ref.mdl['inv']['Y_fit'] = tap_fit_inv['X']
     
     tap_pre_inv = tap_imol_inv(
         ref, ['pre_l1', 'meas_l0', 'prerr_l0'],
@@ -1635,124 +1659,126 @@ def step_imol_inv(ref, mref, *args, **kwargs):
     ref.mdl['inv']['prerr_l0'] = np.roll(tap_pre_inv['prerr_l0'], shift=-1, axis=-1)
     ref.mdl['inv']['prerr_l0'][...,[-1]] = ref.inputs['pre_l1']['val'][...,[-ref.mdl['inv']['lag_off_f2p']]] - tap_pre_inv['meas_l0'][...,[-1]]
     tap_pre_inv['prerr_l0'] = ref.mdl['inv']['prerr_l0'] # copy? check view or not
-    ref.mdl['inv']['X_pre_inv'] = tap_stack(tap_pre_inv, ['pre_l1', 'meas_l0', 'prerr_l0'])
+    # recompute the input stack
+    ref.mdl['inv']['X_pre'] = tap_stack(tap_pre_inv, ['pre_l1', 'meas_l0', 'prerr_l0'])
 
-    # prediction error inverse model
+    # prediction error local 
     ref.mdl['inv']['prerr_l0_pre'] = tap_pre_inv['prerr_l0'][...,[-1]]
     # ref.mdl['inv']['prerr_l0_fit'] = tap_fit_inv['prerr_l0'][...,[-1]]
 
-    ref.mdl['inv']['prerr_avg'] = ref.mdl['inv']['coef_err_avg'] * ref.mdl['inv']['prerr_avg'] + (1-ref.mdl['inv']['coef_err_avg']) * ref.mdl['inv']['prerr_l0_pre']
-    ref.mdl['inv']['prerr_rms_avg'] = np.sqrt(np.mean(np.square(ref.mdl['inv']['prerr_avg']), keepdims=True))
+    # # prediction error local average
+    # ref.mdl['inv']['prerr_avg'] = ref.mdl['inv']['coef_err_avg'] * ref.mdl['inv']['prerr_avg'] + (1-ref.mdl['inv']['coef_err_avg']) * ref.mdl['inv']['prerr_l0_pre']
+    # ref.mdl['inv']['prerr_rms_avg'] = np.sqrt(np.mean(np.square(ref.mdl['inv']['prerr_avg']), keepdims=True))
 
-    # perform a fit / predict cycle
-    ref.mdl['inv']['pre_l0'], ref.mdl['inv']['pre_l0_var'] = fit_imol_inv(ref, mref, *args, **kwargs)
-    # add noise to prediction (exploration?)
-    ref.mdl['inv']['pre_l0'] += ref.mdl['inv']['pre_l0_var']
-    # bound outputs
-    ref.mdl['inv']['pre_l0'] = np.clip(ref.mdl['inv']['pre_l0'], -1.1, 1.1)
+    # # perform a fit / predict cycle
+    # ref.mdl['inv']['pre_l0'], ref.mdl['inv']['pre_l0_var'] = fit_imol_inv(ref, mref, *args, **kwargs)
+    # # add noise to prediction (exploration?)
+    # ref.mdl['inv']['pre_l0'] += ref.mdl['inv']['pre_l0_var']
+    # # bound outputs
+    # ref.mdl['inv']['pre_l0'] = np.clip(ref.mdl['inv']['pre_l0'], -1.1, 1.1)
 
-    # debugging
-    if ref.cnt % 100 == 0:
-        logger.debug(
-            '%s-%s.step_imol[%d] prerr_avg_inv = %s',
-            ref.__class__.__name__,
-            ref.id,
-            ref.cnt,
-            ref.mdl['inv']['prerr_rms_avg'])
+    # # debugging
+    # if ref.cnt % 100 == 0:
+    #     logger.debug(
+    #         '%s-%s.step_imol[%d] prerr_avg_inv = %s',
+    #         ref.__class__.__name__,
+    #         ref.id,
+    #         ref.cnt,
+    #         ref.mdl['inv']['prerr_rms_avg'])
 
-    # check n-step prediction
-    pre_l0_, tgt_ = step_imol_nstep(ref, 'inv')
+    # # check n-step prediction
+    # pre_l0_, tgt_ = step_imol_nstep(ref, 'inv')
         
-def fit_imol_inv(ref, mref, *args, **kwargs):
+def fit_imol_inv(ref, mref, mk='inv', *args, **kwargs):
     # get shortcut
-    X_fit_inv = ref.mdl['inv']['X_fit_inv']
-    Y_fit_inv = ref.mdl['inv']['Y_fit_inv']
-    X_pre_inv = ref.mdl['inv']['X_pre_inv']
+    X_fit = ref.mdl[mk]['X_fit']
+    Y_fit = ref.mdl[mk]['Y_fit']
+    X_pre = ref.mdl[mk]['X_pre']
 
     # fit model
-    if isinstance(ref.mdl['inv']['inst_'], smpOTLModel):
-        # ref.mdl['inv']['inst_'].fit(X = X_fit_inv.T, y = Y_fit_inv.T, update = True) # False)
-        # if True: # np.any(ref.mdl['inv']['prerr_l0_pre'] < ref.mdl['inv']['prerr_avg']):
+    if isinstance(ref.mdl[mk]['inst_'], smpOTLModel):
+        # ref.mdl[mk]['inst_'].fit(X = X_fit.T, y = Y_fit.T, update = True) # False)
+        # if True: # np.any(ref.mdl[mk]['prerr_l0_pre'] < ref.mdl[mk]['prerr_avg']):
         # fit only after two updates
-        if ref.cnt > ref.mdl['inv']['fit_offset']: # washout?
-            ref.mdl['inv']['inst_'].fit(X = X_fit_inv.T, y = Y_fit_inv.T, update = False)
+        if ref.cnt > ref.mdl[mk]['fit_offset']: # washout?
+            ref.mdl[mk]['inst_'].fit(X = X_fit.T, y = Y_fit.T, update = False)
 
         # predict for external goal
-        pre_l1_local = ref.mdl['inv']['inst_'].predict(X = X_pre_inv.T, rollback = True)
+        pre_l1_local = ref.mdl[mk]['inst_'].predict(X = X_pre.T, rollback = True)
         
         # save prediction
-        pre_l0 = ref.mdl['inv']['inst_'].pred.copy().reshape(Y_fit_inv.T.shape)
+        pre_l0 = ref.mdl[mk]['inst_'].pred.copy().reshape(Y_fit.T.shape)
         # print "soesgp pre_l0", pre_l0
         
         # predict with same fit X and update network
-        ref.mdl['inv']['inst_'].predict(X = X_fit_inv.T)
+        ref.mdl[mk]['inst_'].predict(X = X_fit.T)
 
         # set hidden attribute for output
-        if hasattr(ref.mdl['inv']['inst_'], 'r_'):
-            hidden = ref.mdl['inv']['inst_'].r_[ref.mdl['inv']['hidden_output_index'],[-1]].reshape((ref.mdl['inv']['hidden_output_index'].shape[0], 1))
+        if hasattr(ref.mdl[mk]['inst_'], 'r_'):
+            hidden = ref.mdl[mk]['inst_'].r_[ref.mdl[mk]['hidden_output_index'],[-1]].reshape((ref.mdl[mk]['hidden_output_index'].shape[0], 1))
             setattr(ref, 'hidden', hidden)
             
-    elif isinstance(ref.mdl['inv']['inst_'], smpSHL):
+    elif isinstance(ref.mdl[mk]['inst_'], smpSHL):
         # fit only after two updates, 0.3 barrel
-        if ref.cnt > ref.mdl['inv']['fit_offset']: #  and ref.mdl['inv']['prerr_rms_avg'] >= 0.01: #  and np.mean(np.square(ref.mdl['inv']['prerr_l0_pre'])) < 0.1:
-            ref.mdl['inv']['inst_'].fit(X = X_fit_inv.T, Y = Y_fit_inv.T * 1.0, update = False)
-            # print "mdl_inv e", ref.mdl['inv']['inst_'].lr.e
+        if ref.cnt > ref.mdl[mk]['fit_offset']: #  and ref.mdl[mk]['prerr_rms_avg'] >= 0.01: #  and np.mean(np.square(ref.mdl[mk]['prerr_l0_pre'])) < 0.1:
+            ref.mdl[mk]['inst_'].fit(X = X_fit.T, Y = Y_fit.T * 1.0, update = False)
+            # print "mdl_inv e", ref.mdl[mk]['inst_'].lr.e
             
         # predict for external goal
-        # r_local = ref.mdl['inv']['inst_'].model.r.copy()
-        # x_local = ref.mdl['inv']['inst_'].model.x.copy()
+        # r_local = ref.mdl[mk]['inst_'].model.r.copy()
+        # x_local = ref.mdl[mk]['inst_'].model.x.copy()
         # print "mdl_inv.model.r", 
-        pre_l1_local = ref.mdl['inv']['inst_'].predict(X = X_pre_inv.T, rollback = True)
+        pre_l1_local = ref.mdl[mk]['inst_'].predict(X = X_pre.T, rollback = True)
         
-        # print "mdl_inv.model.r", np.mean(np.abs(ref.mdl['inv']['inst_'].model.r - r_local))
-        # print "mdl_inv.model.x", np.mean(np.abs(ref.mdl['inv']['inst_'].model.x - x_local))
+        # print "mdl_inv.model.r", np.mean(np.abs(ref.mdl[mk]['inst_'].model.r - r_local))
+        # print "mdl_inv.model.x", np.mean(np.abs(ref.mdl[mk]['inst_'].model.x - x_local))
         
         # print "pre_l1_local", pre_l1_local
             
-        if ref.mdl['inv']['inst_'].lrname == 'FORCEmdn':
-            pre_l0 = ref.mdl['inv']['inst_'].y
+        if ref.mdl[mk]['inst_'].lrname == 'FORCEmdn':
+            pre_l0 = ref.mdl[mk]['inst_'].y
         else:
-            # pre_l0 = ref.mdl['inv']['inst_'].model.zn.T
-            pre_l0 = ref.mdl['inv']['inst_'].model.z.T.copy()
+            # pre_l0 = ref.mdl[mk]['inst_'].model.zn.T
+            pre_l0 = ref.mdl[mk]['inst_'].model.z.T.copy()
             # print "step_imol smpSHL pre_l0", pre_l0
             
         # predict with same X and update network
-        ref.mdl['inv']['inst_'].predict(X = X_fit_inv.T)
+        ref.mdl[mk]['inst_'].predict(X = X_fit.T)
 
-        if hasattr(ref.mdl['inv']['inst_'].model, 'r'):
-            hidden = ref.mdl['inv']['inst_'].model.r[ref.mdl['inv']['hidden_output_index']]
+        if hasattr(ref.mdl[mk]['inst_'].model, 'r'):
+            hidden = ref.mdl[mk]['inst_'].model.r[ref.mdl[mk]['hidden_output_index']]
             # print "hidden", hidden.shape
             setattr(ref, 'hidden', hidden)
-            setattr(ref, 'wo_norm', np.array([[np.linalg.norm(ref.mdl['inv']['inst_'].model.wo, 2)]]))
-            # print "wo_norm", ref.mdl['inv']['wo_norm']
+            setattr(ref, 'wo_norm', np.array([[np.linalg.norm(ref.mdl[mk]['inst_'].model.wo, 2)]]))
+            # print "wo_norm", ref.mdl[mk]['wo_norm']
     else:
         # feedforward case
         # model fit
-        if ref.cnt > ref.mdl['inv']['fit_offset']:
-            ref.mdl['inv']['inst_'].fit(X = X_fit_inv.T, y = Y_fit_inv.T)
+        if ref.cnt > ref.mdl[mk]['fit_offset']:
+            ref.mdl[mk]['inst_'].fit(X = X_fit.T, y = Y_fit.T)
         # model prediction
-        pre_l0 = ref.mdl['inv']['inst_'].predict(X = X_pre_inv.T)
+        pre_l0 = ref.mdl[mk]['inst_'].predict(X = X_pre.T)
         # output weights
-        # logger.debug("model params = %s", ref.mdl['inv']['inst_'].get_params())
-        # setattr(ref, 'wo_norm', ref.mdl['inv']['inst_'].get_params())
+        # logger.debug("model params = %s", ref.mdl[mk]['inst_'].get_params())
+        # setattr(ref, 'wo_norm', ref.mdl[mk]['inst_'].get_params())
         
         # set hidden attribute for output
-        if hasattr(ref.mdl['inv']['inst_'], 'hidden_dist'):
+        if hasattr(ref.mdl[mk]['inst_'], 'hidden_dist'):
             hidden = np.hstack((
-                ref.mdl['inv']['inst_'].hidden_dist,
-                ref.mdl['inv']['inst_'].hidden_dist_sum_avg,
-                ref.mdl['inv']['inst_'].hidden_idx_norm)).T
+                ref.mdl[mk]['inst_'].hidden_dist,
+                ref.mdl[mk]['inst_'].hidden_dist_sum_avg,
+                ref.mdl[mk]['inst_'].hidden_idx_norm)).T
             # logger.debug('hidden = %s', hidden.shape)
             setattr(ref, 'hidden', hidden)
 
     # output sampling
-    if isinstance(ref.mdl['inv']['inst_'], smpOTLModel):
-        # pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * (1.0/np.sqrt(ref.mdl['inv']['inst_'].var) * 1.0) * ref.mdl['inv']['prerr_avg'] * 1.0
+    if isinstance(ref.mdl[mk]['inst_'], smpOTLModel):
+        # pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * (1.0/np.sqrt(ref.mdl[mk]['inst_'].var) * 1.0) * ref.mdl[mk]['prerr_avg'] * 1.0
 
         # amp = 1.0
         # amp = 0.2
         # amp = 0.1
-        amp = 0.001 / ref.mdl['inv']['inst_'].noise
+        amp = 0.001 / ref.mdl[mk]['inst_'].noise
         # print "amp", amp
         # amp = 0.02
         # amp = 0.01
@@ -1760,27 +1786,27 @@ def fit_imol_inv(ref, mref, *args, **kwargs):
         # amp = 0.0
         
         if ref.cnt % 100 == 0:
-            print "soesgp var", ref.mdl['inv']['inst_'].var, ref.cnt # np.sqrt(np.mean(ref.mdl['inv']['inst_'].var))
+            print "soesgp var", ref.mdl[mk]['inst_'].var, ref.cnt # np.sqrt(np.mean(ref.mdl[mk]['inst_'].var))
         
-        # if np.sqrt(np.mean(ref.mdl['inv']['inst_'].var)) < 0.4:
+        # if np.sqrt(np.mean(ref.mdl[mk]['inst_'].var)) < 0.4:
         #     pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * 0.1
         # else:
         #     pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * 0.1
-        # pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * np.square(ref.mdl['inv']['prerr_avg']) * 0.2 # 
-        if ref.cnt < ref.mdl['inv']['thr_predict']:
+        # pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * np.square(ref.mdl[mk]['prerr_avg']) * 0.2 # 
+        if ref.cnt < ref.mdl[mk]['thr_predict']:
             pre_l0 = np.random.uniform(-1.0, 1.0, size = pre_l0.shape)
             pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * 0.001
         else:
             # pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * amp
-            pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * amp * np.sqrt(ref.mdl['inv']['inst_'].var)
-            # pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * np.sqrt(ref.mdl['inv']['inst_'].var) * ref.mdl['inv']['prerr_rms_avg'] * amp # 0.3
+            pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * amp * np.sqrt(ref.mdl[mk]['inst_'].var)
+            # pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * np.sqrt(ref.mdl[mk]['inst_'].var) * ref.mdl[mk]['prerr_rms_avg'] * amp # 0.3
 
-    elif isinstance(ref.mdl['inv']['inst_'], smpSHL):
+    elif isinstance(ref.mdl[mk]['inst_'], smpSHL):
 
         # real goal prediction
         # pre_l0 = pre_l1_local.copy()
         # fake goal prediction
-        # pre_l0 = ref.mdl['inv']['inst_'].model.z.T.copy()
+        # pre_l0 = ref.mdl[mk]['inst_'].model.z.T.copy()
 
         # amp = 1.0
         amp = 0.1
@@ -1790,25 +1816,25 @@ def fit_imol_inv(ref, mref, *args, **kwargs):
         # amp = 1e-3
         # amp = 0.0
         
-        if ref.cnt < ref.mdl['inv']['thr_predict']:
+        if ref.cnt < ref.mdl[mk]['thr_predict']:
         #     pre_l0 = np.random.uniform(-1.0, 1.0, size = pre_l0.shape)
         #     pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * 0.001
         # else:
-            pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.mdl['inv']['prerr_rms_avg'] * 0.0001 # np.sqrt(ref.mdl['inv']['inst_'].var) # * ref.mdl['inv']['inst_'].noise
+            pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.mdl[mk]['prerr_rms_avg'] * 0.0001 # np.sqrt(ref.mdl[mk]['inst_'].var) # * ref.mdl[mk]['inst_'].noise
         else:
-            pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * np.abs(ref.mdl['inv']['prerr_avg']).T * amp # np.sqrt(ref.mdl['inv']['inst_'].var) # * ref.mdl['inv']['inst_'].noise
+            pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * np.abs(ref.mdl[mk]['prerr_avg']).T * amp # np.sqrt(ref.mdl[mk]['inst_'].var) # * ref.mdl[mk]['inst_'].noise
             # pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * amp
             
-        # ref.mdl['inv']['inst_'].theta = ref.mdl['inv']['prerr_rms_avg'] * amp
-        ref.mdl['inv']['inst_'].theta = amp
-        # pre_l0_var = np.ones_like(pre_l0) * ref.mdl['inv']['prerr_avg'] * 0.1
-        if ref.mdl['inv']['inst_'].lrname == 'FORCEmdn':
+        # ref.mdl[mk]['inst_'].theta = ref.mdl[mk]['prerr_rms_avg'] * amp
+        ref.mdl[mk]['inst_'].theta = amp
+        # pre_l0_var = np.ones_like(pre_l0) * ref.mdl[mk]['prerr_avg'] * 0.1
+        if ref.mdl[mk]['inst_'].lrname == 'FORCEmdn':
             pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * 1e-4
-    elif isinstance(ref.mdl['inv']['inst_'], smpHebbianSOM):
-        pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.mdl['inv']['prerr_rms_avg'] * 0.0001
+    elif isinstance(ref.mdl[mk]['inst_'], smpHebbianSOM):
+        pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.mdl[mk]['prerr_rms_avg'] * 0.0001
     else:
-        pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.mdl['inv']['prerr_rms_avg'] * 0.25 # 1.0
-    # pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.mdl['inv']['prerr_avg'] * 0.25
+        pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.mdl[mk]['prerr_rms_avg'] * 0.25 # 1.0
+    # pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.mdl[mk]['prerr_avg'] * 0.25
     
     return pre_l0, pre_l0_var
 
