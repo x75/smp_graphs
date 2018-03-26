@@ -41,7 +41,7 @@ outputs = {
 # experiment
 commandline_args = ['numsteps']
 randseed = 12355
-numsteps = int(10000/10)
+numsteps = int(10000/20)
 loopblocksize = numsteps
 sysname = 'pm'
 # sysname = 'sa'
@@ -286,7 +286,6 @@ systemblock   = get_systemblock[sysname](lag = 2)
 
 dim_s0 = systemblock['params']['dims']['s0']['dim']
 dim_s1 = systemblock['params']['dims']['s1']['dim']
-dim_s_hidden_debug = 20
 m_mins = np.array([systemblock['params']['m_mins']]).T
 m_maxs = np.array([systemblock['params']['m_maxs']]).T
 
@@ -308,6 +307,12 @@ algo = 'knn' # ok
 # pm
 algo_fwd = algo
 algo_inv = algo
+
+if algo == 'knn':
+    dim_s_hidden_debug = 5 * 2 + 1
+else:
+    dim_s_hidden_debug = 20
+
 # lag_past   = (-1, 0)
 # lag_past   = (-2, -1)
 # lag_past   = (-3, -2)
@@ -350,7 +355,7 @@ eta = 0.15
 # eta = 0.1
 # eta = 0.05
 
-
+devmodel = 'imol'
 ################################################################################
 # experiment description after all configurables have been set
 desc = """This is the most stripped down version of the forward /
@@ -359,63 +364,73 @@ low-level learning algorithm is {{0}}""".format(algo)
 
 def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
     global partial, OrderedDict
-    global PlotBlock2
-    global numsteps, timeseries, dim_s1, dim_s0, dim_s_hidden_debug, lag_past, lag_future, saveplot
+    global PlotBlock2, timeseries
+    global numsteps, saveplot
+    global dim_s1, dim_s0, dim_s_hidden_debug
+    global devmodel, algo, lag_past, lag_future
     global sysname
     return {
     'block': PlotBlock2,
     'params': {
         'saveplot': saveplot,
-        'blocksize': min(numsteps, 1000), # blocksize, # numsteps
-        'title': 'Learning episode timeseries with model imol, system %s' % (sysname),
-        'desc': 'An agent learning to control a %d-dimensional %s system.' % (dim_s0, sysname),
+        'blocksize': min(numsteps, numsteps), # 1000, # blocksize
+        'title': 'Learning episode timeseries: dev-model = %s, algo = %s, system %s' % (devmodel, algo, sysname),
+        'desc': """An %s agent learning to control a %d-dimensional %s
+        system using %s low-level algorithm.""" % (devmodel, dim_s0,
+        sysname, algo),
         'inputs': {
             'goals': {'bus': '%s/pre' % (l1,), 'shape': (dim_s0, blocksize)},
             'pre':   {'bus': '%s/pre' % (l0,), 'shape': (dim_s0, blocksize)},
             'err':   {'bus': '%s/err' % (l0,), 'shape': (dim_s0, blocksize)},
+            'prerr_avg': {'bus': '%s/prerr_avg' % (l0,), 'shape': (dim_s0, blocksize)},
+            'prerr_rms_avg': {'bus': '%s/prerr_rms_avg' % (l0,), 'shape': (1, blocksize)},
             'tgt':   {'bus': '%s/tgt' % (l0,), 'shape': (dim_s0, blocksize)},
             's0':    {'bus': 'robot1/s0', 'shape': (dim_s0, blocksize)},
             's1':     {'bus': 'robot1/s1',  'shape': (dim_s1, blocksize)},
-            'X': {'bus': 'pre_l0/X', 'shape': (dim_s0 * (lag_past[1] - lag_past[0]) * 3, blocksize)},
-            'Y': {'bus': 'pre_l0/Y',  'shape': (dim_s0 * (lag_future[1] - lag_future[0]), blocksize)},
-            'hidden': {'bus': 'pre_l0/hidden',  'shape': (dim_s_hidden_debug, blocksize)},
-            'wo_norm': {'bus': 'pre_l0/wo_norm',  'shape': (1, blocksize)},
+            'X': {'bus': '%s/X' % (l0, ), 'shape': (dim_s0 * (lag_past[1] - lag_past[0]) * 3, blocksize)},
+            'Y': {'bus': '%s/Y' % (l0, ),  'shape': (dim_s0 * (lag_future[1] - lag_future[0]), blocksize)},
+            'hidden': {'bus': '%s/hidden' % (l0, ),  'shape': (dim_s_hidden_debug, blocksize)},
+            'wo_norm': {'bus': '%s/wo_norm' % (l0, ),  'shape': (dim_s0, blocksize)},
             'pre_fwd': {'bus': '%s/pre_fwd' % (l0,), 'shape': (dim_s0 * (lag_future[1] - lag_future[0]) * 1, blocksize)},
+            'prerr_avg_fwd': {'bus': '%s/prerr_avg_fwd' % (l0,), 'shape': (dim_s0, blocksize)},
+            'prerr_rms_avg_fwd': {'bus': '%s/prerr_rms_avg_fwd' % (l0,), 'shape': (1, blocksize)},
+            'wo_norm_fwd': {'bus': '%s/wo_norm_fwd' % (l0, ),  'shape': (dim_s0, blocksize)},
             },
         'hspace': 0.2,
         'subplots': [
             
             [
                 {
-                    'input': ['s0', 'pre_fwd'], 'plot': partial(timeseries, marker='.'),
-                    'title': 'forward prediction',
+                    'input': ['goals', 's0', 'pre', 'pre_fwd'], 'plot': partial(timeseries, marker='.'),
+                    'title': 'Goal, state, inverse, andd forward predictions',
                     # 'legend': OrderedDict([('State', 0), ('State_p', dim_s0)]),
-                    'legend': {'State': 0, 'State_p': dim_s0},
+                    'legend': {'Goal': 0, 'State': dim_s0, 'State_p_i': 2*dim_s0, 'State_p_f': 3*dim_s0},
                     'xticks': False,
                 },
             ],
             
-            [
-                {
-                    'input': ['goals', 's0'], 'plot': partial(timeseries, marker='.'),
-                    'title': 'Goal and state',
-                    'legend': {'Goal': 0, 'State': dim_s0},
-                    'xticks': False,
-                },
-            ],
+            # [
+            #     {
+            #         'input': ['goals', 's0'], 'plot': partial(timeseries, marker='.'),
+            #         'title': 'Goal and state',
+            #         'legend': {'Goal': 0, 'State': dim_s0},
+            #         'xticks': False,
+            #     },
+            # ],
             
-            [
-                {
-                    'input': ['goals', 'pre'], 'plot': partial(timeseries, marker='.'),
-                    'title': 'Goal and prediction',
-                    'xticks': False,
-                },
-            ],
+            # [
+            #     {
+            #         'input': ['goals', 'pre'], 'plot': partial(timeseries, marker='.'),
+            #         'title': 'Goal and prediction',
+            #         'xticks': False,
+            #     },
+            # ],
                         
             [
                 {
-                    'input': ['err', 'tgt',], 'plot': partial(timeseries, marker='.'),
-                    'title': 'Error and training target',
+                    'input': ['err', 'prerr_rms_avg', 'prerr_rms_avg_fwd'], 'plot': partial(timeseries, marker='.'),
+                    'title': 'Momentary and time averaged inverse (goal) and forward errors',
+                    'legend': {'Error_t': 0, 'E(Error_i_t)': dim_s0, 'E(Error_f_t)': dim_s0 + 1},
                     'xticks': False,
                 },
             ],
@@ -423,7 +438,8 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             [
                 {
                     'input': ['X'], 'plot': partial(timeseries, marker = '.'),
-                    'title': 'Raw model input $\mathbf{X}$',
+                    'title': 'Model %s input $\mathbf{X}$' % (algo),
+                    'legend': {'X_pre_l1': 0, 'X_meas_l0': dim_s0, 'X_err_l0': 2*dim_s0},
                     'xticks': False,
                 },
             ],
@@ -431,7 +447,8 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             [
                 {
                     'input': ['Y'], 'plot': partial(timeseries, marker = '.'),
-                    'title': 'Raw model input $\mathbf{Y}$',
+                    'title': 'Model %s input $\mathbf{Y}$' % (algo),
+                    'legend': {'Y_pre_l0': 0},
                     'xticks': False,
                 },
             ],
@@ -439,16 +456,18 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             [
                 {
                     'input': ['hidden'], 'plot': partial(timeseries, marker = '.'),
-                    'title': 'Hidden activation',
-                    'legend': {'hidden': 0},
+                    'title': 'Model %s hidden activation $\mathbf{Z}$' % (algo),
+                    # FIXME: knn particulars
+                    'legend': {'Z_dist': 0, 'E(Z_dist)': 5, 'Z_idx': 6},
                     'xticks': False,
                 },
             ],
             
             [
                 {
-                    'input': ['wo_norm'], 'plot': partial(timeseries, marker = '.'),
-                    'title': 'Model parameter norm (adaptation)',
+                    'input': ['wo_norm', 'wo_norm_fwd'], 'plot': partial(timeseries, marker = '.'),
+                    'title': 'Model %s parameter norm (accumulated adaptation)' % (algo),
+                    'legend': {'|W|': 0}
                 },
             ],
             ]
@@ -916,18 +935,29 @@ graph = OrderedDict([
                                 'shape': (dim_s0, maxlag),
                                 'lag': range(lag_past[0] + 1, lag_past[1] + 1),
                             },
+                            'prerr_fwd_l0': {
+                                'bus': 'pre_l0/prerr_fwd',
+                                'shape': (dim_s0, maxlag),
+                                'lag': range(lag_past[0] + 1, lag_past[1] + 1),
+                            },
                         },
                         'outputs': {
                             # official
                             'pre': {'shape': (dim_s0, 1)},
                             'err': {'shape': (dim_s0, 1)},
+                            'prerr_avg': {'shape': (dim_s0, 1)},
+                            'prerr_rms_avg': {'shape': (1, 1)},
                             'tgt': {'shape': (dim_s0, 1)},
                             'X': {'shape': (dim_s0 * (lag_past[1] - lag_past[0]) * 3, 1)},
                             'Y': {'shape': (dim_s0 * (lag_future[1] - lag_future[0]), 1)},
                             'hidden': {'shape': (dim_s_hidden_debug, 1)},
-                            'wo_norm': {'shape': (1, 1)},
+                            'wo_norm': {'shape': (dim_s0, 1)},
                             # submodel sidechannel
                             'pre_fwd': {'shape': (dim_s0 * (lag_future[1] - lag_future[0]), 1)},
+                            'prerr_fwd': {'shape': (dim_s0 * (lag_future[1] - lag_future[0]), 1)},
+                            'prerr_avg_fwd': {'shape': (dim_s0, 1)},
+                            'prerr_rms_avg_fwd': {'shape': (1, 1)},
+                            'wo_norm_fwd': {'shape': (dim_s0, 1)},
                         },
                         'models': {
                             'imol': {

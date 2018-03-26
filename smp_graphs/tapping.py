@@ -21,6 +21,10 @@ TODO:
 
 import numpy as np
 
+from smp_base.common import get_module_logger
+import logging
+logger = get_module_logger(modulename = 'tapping', loglevel = logging.DEBUG)
+
 def tap_tupoff(tup = (), off = 0):
     """block_models.tap_tupoff
 
@@ -29,7 +33,7 @@ def tap_tupoff(tup = (), off = 0):
     assert len(tup) == 2, "block_models.py.tap_tupoff wants 2-tuple, got %d-tuple" % (len(tup), )
     return (tup[0] + off, tup[1] + off)
 
-def tap(ref, inkey = None, lag = None):
+def tap(ref, inkey = None, lag = None, off = 0):
     """block_models.tap
 
     Tap into inputs at indices given by lag
@@ -42,35 +46,47 @@ def tap(ref, inkey = None, lag = None):
     Returns:
     - tapped inputs, structured
     """
-    assert inkey is not None, "block_models.tap needs input key inkey"
-    assert lag is not None, "block_models.tap needs tapping 'lag', None given"
+    assert inkey in ref.inputs, "block_models.tap needs valid input key, %s not in %s" % self.inputs.keys()
+    assert type(lag) in [tuple, list], "block_models.tap needs tapping 'lag' tuple or list, %s given" % (type(lag))
+    
     if type(lag) is tuple:
-        tapping = range(lag[0], lag[1])
+        tapping = range(lag[0] + off, lag[1] + off)
+    elif type(lag) is list:
+        tapping = np.array(lag) + off
     # print "%s.%s tap(%s).tap = %s" % (ref.__class__.__name__, ref.id, inkey, tapping)
     return ref.inputs[inkey]['val'][...,tapping]
 
 def tap_flat(tap_struct):
     """block_models.tap_flat
 
-    Return transposed and flattened view of structured input vector (aka matrix) 'tap_struct' 
+    Return transposed and flattened view of structured input vector
+    (aka matrix) 'tap_struct'.
+    FIXME: myt transpose / tensor
     """
     return tap_struct.T.reshape((-1, 1))
 
 def tap_unflat(tap_flat, tap_len = 1):
     """block_models..tap_unflat
 
-    Return inverted tap_flat() by reshaping 'tap_flat' into numtaps x -1 and transposing
+    Return inverted tap_flat() by reshaping 'tap_flat' into numtaps x
+    -1 and transposing
     """
     if tap_len == 1:
         return tap_flat.T
     else:
         return tap_flat.reshape((tap_len, -1)).T
 
+def tap_stack(channels, channel_keys):
+    return np.vstack((channels['%s_flat' % channel_key] for channel_key in channel_keys))
+    
 ################################################################################
 # legacy tappings from funcs_models.py
 
 def tap_imol_fwd(ref):
-    return tap_imol_fwd_time(ref)
+    # return tap_imol_fwd_time(ref)
+    tap_pre_fwd, tap_fit_fwd = tap_imol_fwd_time(ref)
+    X_fit_fwd, Y_fit_fwd, X_pre_fwd = tap_imol_fwd_modality(tap_pre_fwd, tap_fit_fwd)
+    return tap_pre_fwd, tap_fit_fwd, X_fit_fwd, Y_fit_fwd, X_pre_fwd
     
 def tap_imol_fwd_time(ref):
     """tap for imol forward model
@@ -168,9 +184,44 @@ def tapping_imol_pre_fwd(ref):
         'prerr_l0_flat': prerr_l0.T.reshape((-1, 1)) * 1.0,
     }
 
-def tapping_imol_fit_fwd(ref):
+
+def tap_imol_fwd_2(ref, channels=['meas_l0', 'prerr_l0', 'pre_l0'], taps=['lag_past'] * 3, offs=[0, 1, 1]):
+    mk = 'fwd'
+    # rate = 1
+    # ret = {}
+    # ret['meas_l0'] = tap(ref, 'meas_l0', ref.mdl[mk]['lag_past'])
+    # ret['prerr_l0'] = tap(ref, 'prerr_l0', tap_tupoff(ref.mdl[mk]['lag_past'], rate))
+    # ret['pre_l0'] = tap(ref, 'pre_l0', tap_tupoff(ref.mdl[mk]['lag_past'], rate))
+    # return ret
+    a = [
+        (ch, tap(ref, ch, ref.mdl[mk][taps[i]], offs[i])) for i, ch in enumerate(channels)
+    ]
+    b = [
+        ('%s_flat' % ch, tap_flat(tap(ref, ch, ref.mdl[mk][taps[i]], offs[i]))) for i, ch in enumerate(channels)
+    ]
+    c = dict(a + b)
+    c['X'] = tap_stack(c, channels)
+    return c
+
+def tap_imol_fwd_fit_X(ref):
     mk = 'fwd'
     rate = 1
+    ret = {}
+    ret['meas_l0'] = tap(ref, 'meas_l0', ref.mdl[mk]['lag_past'])
+    ret['prerr_l0'] = tap(ref, 'prerr_l0', tap_tupoff(ref.mdl[mk]['lag_past'], rate))
+    ret['pre_l0'] = tap(ref, 'pre_l0', tap_tupoff(ref.mdl[mk]['lag_past'], rate))
+    return ret
+    
+def tap_imol_fwd_fit_Y(ref, mk='fwd'):
+    return {'meas_l0': tap(ref, 'meas_l0', ref.mdl[mk]['lag_future'])}
+
+def tapping_imol_fit_fwd(ref):
+    return tap_imol_fwd(reof, ['meas_l0', 'prerr_l0', 'pre_l0'], ['lag_past'] * 3, [0, 1, 1])
+
+def tapping_imol_fit_fwd_old(ref):
+    mk = 'fwd'
+    rate = 1
+    
     # Y
     # Y.1: most recent measurement
     pre_l1 = ref.inputs['meas_l0']['val'][
@@ -189,7 +240,10 @@ def tapping_imol_fit_fwd(ref):
     # X.3: corresponding error k steps in the past, 1-delay for recurrent connection
     prerr_l0 = ref.inputs['prerr_l0']['val'][
         ...,
-        range(ref.mdl[mk]['lag_past'][0] + rate, ref.mdl[mk]['lag_past'][1] + rate)].copy()
+        range(
+            ref.mdl[mk]['lag_past'][0] + rate,
+            ref.mdl[mk]['lag_past'][1] + rate)
+        ].copy()
     
     # X.1: corresponding output k steps in the past, 1-delay for recurrent
     pre_l0 = ref.inputs['pre_l0']['val'][
@@ -199,7 +253,24 @@ def tapping_imol_fit_fwd(ref):
             ref.mdl[mk]['lag_past'][1] - 0 + rate
         )].copy()
     
-    # range(ref.mdl[mk]['lag_future'][0], ref.mdl[mk]['lag_future'][1])].copy()
+    pre_l1_ = tap(ref, 'meas_l0', ref.mdl[mk]['lag_future'])
+    meas_l0_ = tap(ref, 'meas_l0', ref.mdl[mk]['lag_past'])
+    prerr_l0_ = tap(ref, 'prerr_l0', tap_tupoff(ref.mdl[mk]['lag_past'], rate))
+    pre_l0_ = tap(ref, 'pre_l0', tap_tupoff(ref.mdl[mk]['lag_past'], rate))
+
+    pre_l1_check = np.sum(np.abs(pre_l1 - pre_l1_))
+    meas_l0_check = np.sum(np.abs(meas_l0 - meas_l0_))
+    prerr_l0_check = np.sum(np.abs(prerr_l0 - prerr_l0_))
+    pre_l0_check = np.sum(np.abs(pre_l0 - pre_l0_))
+
+    if pre_l1_check > 0:
+        logger.debug('tapping_imol_fit_fwd check |pre_l1| = %s', pre_l1_check)
+    if meas_l0_check > 0:
+        logger.debug('tapping_imol_fit_fwd check |meas_l0| = %s', meas_l0_check)
+    if prerr_l0_check > 0:
+        logger.debug('tapping_imol_fit_fwd check |prerr_l0| = %s', prerr_l0_check)
+    if pre_l0_check > 0:
+        logger.debug('tapping_imol_fit_fwd check |pre_l0| = %s', pre_l0_check)
     
     return {
         'pre_l1': pre_l1,
@@ -287,7 +358,7 @@ def tapping_imol_pre_inv(ref):
         'prerr_l0': prerr_l0,
         'pre_l1_flat': pre_l1.T.reshape((-1, 1)),
         'meas_l0_flat': meas_l0.T.reshape((-1, 1)),
-        'prerr_l0_flat': prerr_l0.T.reshape((-1, 1)) * 0.0,
+        'prerr_l0_flat': prerr_l0.T.reshape((-1, 1)) * 1.0,
     }
 
 def tapping_imol_fit_inv(ref):
@@ -298,14 +369,18 @@ def tapping_imol_fit_inv(ref):
     pre_l1 = ref.inputs['meas_l0']['val'][
         ...,
         range(ref.mdl['inv']['lag_past'][0] + ref.mdl['inv']['lag_off_f2p'], ref.mdl['inv']['lag_past'][1] + ref.mdl['inv']['lag_off_f2p'])].copy()
+    # logger.debug('tapping_imol_fit_inv pre_l1 = %s', pre_l1)
     # corresponding starting state k steps in the past
     meas_l0 = ref.inputs['meas_l0']['val'][
         ...,
         range(ref.mdl['inv']['lag_past'][0], ref.mdl['inv']['lag_past'][1])].copy()
     # corresponding error k steps in the past, 1-delay for recurrent
+    # rate = -1
     prerr_l0 = ref.inputs['prerr_l0']['val'][
         ...,
         range(ref.mdl['inv']['lag_past'][0] + rate, ref.mdl['inv']['lag_past'][1] + rate)].copy()
+    # logger.debug('tapping_imol_fit_inv prerr_l0 = %s', prerr_l0)
+    # rate = 1
     # Y
     # corresponding output k steps in the past, 1-delay for recurrent
     pre_l0 = ref.inputs['pre_l0']['val'][
@@ -320,7 +395,7 @@ def tapping_imol_fit_inv(ref):
         # 'pre_l0': pre_l0,
         'pre_l1_flat': pre_l1.T.reshape((-1, 1)),
         'meas_l0_flat': meas_l0.T.reshape((-1, 1)),
-        'prerr_l0_flat': prerr_l0.T.reshape((-1, 1)) * 0.0,
+        'prerr_l0_flat': prerr_l0.T.reshape((-1, 1)) * 1.0,
         'pre_l0_flat': pre_l0.T.reshape((-1, 1)),
         }
 

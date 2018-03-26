@@ -8,7 +8,7 @@ Available blocks: :class:`AnalysisBlock2`, :class:`BaseplotBlock2`,
 :class:`FigPlotBlock2`, :class:`PlotBlock2`, :class:`ImgPlotBlock2`,
 :class:`MatrixPlotBlock2`, :class:`SnsMatrixPlotBlock2`
 """
-import re, time
+import re, time, inspect
 from collections import OrderedDict
 from functools import partial
 
@@ -425,7 +425,7 @@ class TextBlock2(BaseplotBlock2):
             f.close()
             self._info('Saved texbuf (%d) to file %s' % (len(self.textbuf), self.filename))
         except Exception, e:
-            self._error('Saving texbuf to file %s failed with %s' % (self.filename, e))
+            self._error('Saving texbuf to file %s failed with %s at %s' % (self.filename, e, inspect.getframeinfo(inspect.currentframe()).lineno))
 
 class FigPlotBlock2(BaseplotBlock2):
     """FigPlotBlock2 class
@@ -506,16 +506,27 @@ class FigPlotBlock2(BaseplotBlock2):
         except Exception, e:
             logger.error("%s.savefig saving failed with %s" % (plotinst.id, e))
 
-        try:
-            # if plotinst.top.
-            plotinst.top.outputs['latex']['figures'][plotinst.id] = {
-                'filename': filename,
-                'label': plotinst.top.id,
-                'id': plotinst.id,
-                'desc': plotinst.desc}
-            # plotinst.fig.savefig(filename, dpi=300)
-        except Exception, e:
-            logger.error("%s.savefig configuring top.outputs['latex']['figures'] failed with %s" % (plotinst.id, e, ))
+        # # FIXME: needed or obsolete?
+        # # register figure for latex output
+        # try:
+        #     logger.debug(
+        #         "%s.savefig, top = %s, has outputs = %s with keys %s",
+        #         plotinst.id, plotinst.top,
+        #         hasattr(plotinst.top, 'outputs'),
+        #         plotinst.top.outputs.keys())
+        #     # if plotinst.top.
+        #     plotinst.top.outputs['latex']['figures'][plotinst.id] = {
+        #         'filename': filename,
+        #         'label': plotinst.top.id,
+        #         'id': plotinst.id,
+        #         'desc': plotinst.desc}
+        #     # plotinst.fig.savefig(filename, dpi=300)
+        # except Exception, e:
+        #     logger.error(
+        #         "%s.savefig configuring top.outputs['latex']['figures'] failed with %s at %s",
+        #         plotinst.id, e,
+        #         inspect.getframeinfo(inspect.currentframe()).lineno
+        #     )
             
     @decStep()
     def step(self, x = None):
