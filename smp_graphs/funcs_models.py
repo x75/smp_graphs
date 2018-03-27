@@ -50,8 +50,8 @@ except ImportError, e:
 from smp_graphs.common  import code_compile_and_run, get_input
 from smp_graphs.tapping import tap_tupoff, tap, tap_flat, tap_unflat
 # from smp_graphs.tapping import tap_imol_fwd, tap_imol_fwd_time, tap_imol_fwd_modality
-from smp_graphs.tapping import tap_imol_fwd, tap_stack
-from smp_graphs.tapping import tap_imol_inv, tap_imol_inv_old, tap_imol_inv_time, tap_imol_inv_modality
+from smp_graphs.tapping import tap_imol, tap_stack
+# from smp_graphs.tapping import tap_imol_inv_old, tap_imol_inv_time, tap_imol_inv_modality
 
 from logging import DEBUG as LOGLEVEL
 logger = get_module_logger(modulename = 'funcs_models', loglevel = LOGLEVEL - 0)
@@ -559,9 +559,9 @@ def step_alternating_sign(ref, mref, *args, **kwargs):
 
 smpmodel_defaults = {'algo': 'knn', 'idim': 1, 'odim': 1}
         
-# used by: actinf, homeokinesis, e2p, eh (FIXME: rename reward)
-def init_model(ref, mref, conf, mconf):
-    """block_models.init_model
+# used by: actinf, imol, homeokinesis, e2p, eh (FIXME: rename reward)
+def init_smpModel(ref, mref, conf, mconf):
+    """block_models.init_smpModel
 
     Initialize an smp model for use in an agent self-exploration and
     learning model.
@@ -902,7 +902,7 @@ def init_actinf(ref, mref, conf, mconf):
     ref.dgoal_ = np.linalg.norm(-ref.pre_l1_tm1)
 
     #  initialize the learner
-    ref.mdl = init_model(ref, mref, conf, mconf)
+    ref.mdl = init_smpModel(ref, mref, conf, mconf)
     
 def step_actinf(ref, mref, *args, **kwargs):
 
@@ -1151,7 +1151,7 @@ def init_homoekinesis(ref, mref, conf, mconf):
     # hi = 1
     # for outk, outv in params['outputs'].items():
     #     setattr(ref, outk, np.random.uniform(-hi, hi, size = outv['shape']))
-    ref.mdl = init_model(ref, mref, conf, mconf)
+    ref.mdl = init_smpModel(ref, mref, conf, mconf)
     ref.X_  = np.zeros((mconf['idim'], 1))
     ref.y_  = np.zeros((mconf['odim'], 1))
     ref.pre_l1_tm1 = 0
@@ -1287,7 +1287,7 @@ def save_sklearn(ref, mref):
 ################################################################################
 # extero-to-proprio map learning (e2p)
 def init_e2p(ref, conf, mconf):
-    ref.mdl = init_model(ref, mref, conf, mconf)
+    ref.mdl = init_smpModel(ref, mref, conf, mconf)
     ref.X_  = np.zeros((mconf['idim'], 1))
     ref.y_  = np.zeros((mconf['odim'], 1))
     ref.pre = np.zeros_like(ref.y_)
@@ -1325,32 +1325,75 @@ def step_e2p(ref):
             setattr(ref, 'pre_ext', extero_)
 
 ################################################################################
-# dm: imol
-def init_imol_mdl(ref, mref, conf, mconf, mk):
-    """initialize imol single submodel
+# dm: internal model online learning (imol)
+def init_imol(ref, mref, conf, mconf):
+    """initialize imol model pool
+
+    Implements a forward / inverse model pair with online learning
+    algorithms.
+    TODO: generalize for n models
+    """
+    # params shortcut
+    params = conf['params']
+
+    # # debug
+    # logger.debug('mconf = %s', mconf.keys())
+    # for mk in mconf.keys():
+    #     logger.debug('mconf[%s] = %s', mk, mconf[mk])
+
+    # submodel names in the pool (pair, triple, n-tuple)
+    ref.submodels = ['fwd', 'inv']
+    # submodel step func components specific for each submodel
+    func_steps = {
+        'fwd': step_imol_fwd,
+        'inv': step_imol_inv,
+    }
+    # submodel pool
+    ref.mdl = {}
+    
+    # initialize each submodel
+    for mk in ref.submodels:
+        # debug
+        logger.debug('mconf[%s] = %s', mk, mconf[mk])
+        # init submodel
+        init_imol_submodel(ref, mref, conf, mconf, mk)
+        # step func pointer
+        ref.mdl[mk]['func_step'] = func_steps[mk]
+        # set random additional ad-hoc params
+        ref.mdl[mk]['coef_err_avg'] = 0.9
+        if 'fit_offset' not in ref.mdl[mk]:
+            ref.mdl[mk]['fit_offset'] = 200
+            
+def init_imol_submodel(ref, mref, conf, mconf, mk):
+    """initialize imol submodel
+
+    1. copy mconf into ref.mdl at location modelkey
+    2. init_smpModel for configuration mconf
     """
     # params shortcut
     params = conf['params']
     
     # copy configuration
     ref.mdl[mk] = mconf[mk]
-    # instantiate the model
-    ref.mdl[mk]['inst_'] = init_model(ref, mref, conf = conf, mconf = mconf[mk])
     
-    # update model conf with inferred information
-    # 1. explicit prior lag information
+    # instantiate the model, returns smpModel
+    ref.mdl[mk]['inst_'] = init_smpModel(ref, mref, conf = conf, mconf = mconf[mk])
+    
+    # update model mconf with inferred configuration
+    # 1. timing: explicit prior lag information
     ref.mdl[mk]['laglen_past'] = ref.mdl[mk]['lag_past'][1] - ref.mdl[mk]['lag_past'][0]
     ref.mdl[mk]['laglen_future'] = ref.mdl[mk]['lag_future'][1] - ref.mdl[mk]['lag_future'][0]
     ref.mdl[mk]['lag_gap_f2p'] = ref.mdl[mk]['lag_future'][0] - ref.mdl[mk]['lag_past'][1]
     ref.mdl[mk]['lag_off_f2p'] = ref.mdl[mk]['lag_future'][1] - ref.mdl[mk]['lag_past'][1]
     ref.mdl[mk]['lag_off'] = ref.mdl[mk]['lag_off_f2p']
     
-    # 2. modulation of learning params
+    # 2. introspection: errors, statistics, modulation of learning params
     ref.mdl[mk]['prerr_avg'] = 1e-3
-    # ref.mdl[mk]['prerr_inv_avg'] = 1e-3
     ref.mdl[mk]['prerr_rms_avg'] = 1e-3
-    ref.mdl[mk]['thr_predict'] = 1#000
-    
+    # exploration: cnt based suppression of prediction
+    ref.mdl[mk]['thr_predict'] = 1
+
+    # 3. outputs
     # random projection of hidden state for output and debugging
     if 'modelsize' in ref.mdl[mk]:
         # 1. projection size
@@ -1367,38 +1410,6 @@ def init_imol_mdl(ref, mref, conf, mconf, mk):
     if mref.isrecurrent(ref.mdl[mk]['inst_']):
         ref.mdl[mk]['recurrent'] = True
 
-def init_imol(ref, mref, conf, mconf):
-    """internal model online learning (imol)
-
-    Implements a forward / inverse model pair with online learning
-    algorithms.
-    """
-    # params shortcut
-    params = conf['params']
-
-    # # debug
-    # logger.debug('mconf = %s', mconf.keys())
-    # for mk in mconf.keys():
-    #     logger.debug('mconf[%s] = %s', mk, mconf[mk])
-
-    func_steps = {
-        'fwd': step_imol_fwd,
-        'inv': step_imol_inv,
-    }
-    
-    # initialize the models in the pair (or n-tuple)
-    ref.mdl = {}
-    for mk in ['fwd', 'inv']:
-        # debug
-        logger.debug('mconf[%s] = %s', mk, mconf[mk])
-        # init submodel
-        init_imol_mdl(ref, mref, conf, mconf, mk)
-        # step func pointer
-        ref.mdl[mk]['func_step'] = func_steps[mk]
-        ref.mdl[mk]['coef_err_avg'] = 0.9
-        if 'fit_offset' not in ref.mdl[mk]:
-            ref.mdl[mk]['fit_offset'] = 200
-            
 def step_imol(ref, mref, *args, **kwargs):
     """developmental model imol step func
 
@@ -1454,12 +1465,16 @@ def step_imol(ref, mref, *args, **kwargs):
     setattr(ref, 'wo_norm_fwd', ref.mdl['fwd']['inst_'].get_params(param='w_norm'))
 
 def step_imol_common(ref, mref, mk, *args, **kwargs):
+    """step imol common
+
+    shared computation for forward and inverse model
+    """
     # prediction error local average
     ref.mdl[mk]['prerr_avg'] = ref.mdl[mk]['coef_err_avg'] * ref.mdl[mk]['prerr_avg'] + (1-ref.mdl[mk]['coef_err_avg']) * ref.mdl[mk]['prerr_l0_pre']
     ref.mdl[mk]['prerr_rms_avg'] = np.sqrt(np.mean(np.square(ref.mdl[mk]['prerr_avg']), keepdims=True))
 
     # perform a fit / predict cycle
-    ref.mdl[mk]['pre_l0'], ref.mdl[mk]['pre_l0_var'] = fit_imol_inv(ref, mref, mk=mk, *args, **kwargs)
+    ref.mdl[mk]['pre_l0'], ref.mdl[mk]['pre_l0_var'] = fit_predict_imol(ref, mref, mk=mk, *args, **kwargs)
     # add noise to prediction (exploration?)
     ref.mdl[mk]['pre_l0'] += ref.mdl[mk]['pre_l0_var']
     # bound outputs
@@ -1530,37 +1545,55 @@ def step_imol_fwd(ref, mref, *args, **kwargs):
     # ref.mdl['fwd']['X_fit_fwd'] = X_fit_fwd
     # ref.mdl['fwd']['Y_fit_fwd'] = Y_fit_fwd
     # ref.mdl['fwd']['X_pre_fwd'] = X_pre_fwd
+
+    mk = 'fwd'
     
-    tap_fit_fwd_X = tap_imol_fwd(ref, ['pre_l0', 'meas_l0', 'prerr_l0'], ['lag_past'] * 3, [1, 0, 1])
+    tap_fit_fwd_X = tap_imol(
+        ref,
+        ['pre_l0', 'meas_l0', 'prerr_l0'],
+        ['lag_past'] * 3,
+        [1, 0, 1],
+        mk=mk)
     ref.mdl['fwd']['X_fit'] = tap_fit_fwd_X['X'] # tap_stack(tap_fit_fwd_X, ['meas_l0', 'prerr_l0', 'pre_l0'])
 
-    tap_fit_fwd_Y = tap_imol_fwd(ref, ['meas_l0'], ['lag_future'], [0])
+    tap_fit_fwd_Y = tap_imol(ref, ['meas_l0'], ['lag_future'], [0], mk=mk)
     ref.mdl['fwd']['Y_fit'] = tap_fit_fwd_Y['X'] # tap_stack(tap_fit_fwd_Y, ['meas_l0'])
 
-    tap_pre_fwd_X = tap_imol_fwd(
-        ref, ['pre_l0', 'meas_l0', 'prerr_fwd_l0'],
+    tap_pre_fwd_X = tap_imol(
+        ref,
+        ['pre_l0', 'meas_l0', 'prerr_fwd_l0'],
         ['lag_past'] * 3,
-        [ref.mdl['fwd']['lag_off_f2p'] - 1] + [ref.mdl['fwd']['lag_off_f2p']] * 2
+        [ref.mdl['fwd']['lag_off_f2p'] - 1] + [ref.mdl['fwd']['lag_off_f2p']] * 2,
+        mk=mk
     )
     # ref.mdl['fwd']['X_pre'] = tap_pre_fwd_X['X'] # tap_stack(tap_pre_fwd_X, ['pre_l0', 'meas_l0', 'prerr_l0'])
 
     # do computations outside of tappings
     # get motor
-    tmp_ = np.roll(tap_pre_fwd_X['pre_l0'], shift=-1, axis=-1)
+    tmp_ = np.roll(tap_pre_fwd_X['pre_l0'], shift=-1, axis=-1).copy()
     # update motor with most recent inverse prediction
     tmp_[...,[-1]] = ref.mdl['inv']['pre_l0']
-    tap_pre_fwd_X['pre_l0'] = tmp_.copy()
     
+    # update tap
+    tap_pre_fwd_X['pre_l0'] = tmp_
+
+    # update current local predicition error
+    ref.mdl['fwd']['prerr_l0_pre'] = ref.inputs['pre_fwd_l0']['val'][...,[-ref.mdl['fwd']['lag_off_f2p']]] - tap_pre_fwd_X['meas_l0'][...,[-1]]
+    # get past prediction errors
     ref.mdl['fwd']['prerr_l0'] = np.roll(tap_pre_fwd_X['prerr_fwd_l0'], shift=-1, axis=-1)
-    ref.mdl['fwd']['prerr_l0'][...,[-1]] = ref.inputs['pre_fwd_l0']['val'][...,[-ref.mdl['fwd']['lag_off_f2p']]] - tap_pre_fwd_X['meas_l0'][...,[-1]]
+    ref.mdl['fwd']['prerr_l0'][...,[-1]] = ref.mdl['fwd']['prerr_l0_pre']
+
+    # update tap
     tap_pre_fwd_X['prerr_fwd_l0'] = ref.mdl['fwd']['prerr_l0']
+    
     # recompute the input stack
     ref.mdl['fwd']['X_pre'] = tap_stack(tap_pre_fwd_X, ['pre_l0', 'meas_l0', 'prerr_fwd_l0'])
     
     # prediction error local
-    ref.mdl['fwd']['prerr_l0_pre'] = tap_pre_fwd_X['prerr_fwd_l0'][...,[-1]]
+    # ref.mdl['fwd']['prerr_l0_pre'] = tap_pre_fwd_X['prerr_fwd_l0'][...,[-1]]
+    # ref.mdl['fwd']['prerr_l0_pre'] = ref.mdl['fwd']['prerr_l0'][...,[-1]]
     # ref.mdl['fwd']['prerr_l0_fit'] = tap_fit_fwd_X['prerr_l0'][...,[-1]]
-    
+
     # # compactify 2->1 oben
     # ref.mdl['fwd']['X_fit'] = tap_imol_fwd(ref, ['pre_l0', 'meas_l0', 'prerr_l0'], ['lag_past'] * 3, [1, 0, 1])['X']
     # ref.mdl['fwd']['Y_fit'] = tap_imol_fwd(ref, ['meas_l0'], ['lag_future'], [0])['X']
@@ -1569,58 +1602,7 @@ def step_imol_fwd(ref, mref, *args, **kwargs):
     #     ['lag_past'] * 3,
     #     [ref.mdl['fwd']['lag_off_f2p'], ref.mdl['fwd']['lag_off_f2p'], ref.mdl['fwd']['lag_off_f2p'] - 1]
     # )['X']
-
-    # # prediction error local average
-    # ref.mdl['fwd']['prerr_avg'] = ref.mdl['fwd']['coef_err_avg'] * ref.mdl['fwd']['prerr_avg'] + (1-ref.mdl['fwd']['coef_err_avg']) * ref.mdl['fwd']['prerr_l0_pre']
-    # ref.mdl['fwd']['prerr_rms_avg'] = np.sqrt(np.mean(np.square(ref.mdl['fwd']['prerr_avg']), keepdims=True))
-
-    # # # predict
-    # # ref.mdl['fwd']['pre_l0'], ref.mdl['fwd']['pre_l0_var'] = fit_imol_fwd(ref, mref, *args, **kwargs)
-    # # logger.debug("step_imol_fwd = %s, %s", ref.mdl['fwd']['pre_l0'], ref.mdl['fwd']['pre_l0_var'])
     
-    # # perform a fit / predict cycle
-    # ref.mdl['fwd']['pre_l0'], ref.mdl['fwd']['pre_l0_var'] = fit_imol_fwd(ref, mref, *args, **kwargs)
-    # # add noise to prediction (exploration?)
-    # ref.mdl['fwd']['pre_l0'] += ref.mdl['fwd']['pre_l0_var']
-    # # bound outputs
-    # ref.mdl['fwd']['pre_l0'] = np.clip(ref.mdl['fwd']['pre_l0'], -1.1, 1.1)
-
-    # # debugging
-    # if ref.cnt % 100 == 0:
-    #     logger.debug(
-    #         '%s-%s.step_imol[%d] prerr_avg_fwd = %s',
-    #         ref.__class__.__name__,
-    #         ref.id,
-    #         ref.cnt,
-    #         ref.mdl['fwd']['prerr_rms_avg'])
-
-    # # check n-step prediction
-    # pre_l0_, tgt_ = step_imol_nstep(ref, 'fwd')
-
-def fit_imol_fwd(ref, mref, *args, **kwargs):
-    # get shortcut
-    X_fit = ref.mdl['fwd']['X_fit']
-    Y_fit = ref.mdl['fwd']['Y_fit']
-    X_pre = ref.mdl['fwd']['X_pre']
-
-    if True:
-        # feedforward case
-        # model fit
-        if ref.cnt > ref.mdl['fwd']['fit_offset']:
-            # logger.debug('fit_imol_fwd fitting with X = %s, Y = %s', X_fit.T, Y_fit.T)
-            ref.mdl['fwd']['inst_'].fit(X = X_fit.T, y = Y_fit.T)
-            
-        # model prediction
-        pre_l0 = ref.mdl['fwd']['inst_'].predict(X = X_pre.T)
-        # logger.debug('fit_imol_fwd predicting with X = %s, yhat = %s', X_pre.T, pre_l0)
-        # output weights
-        # logger.debug("model params = %s", ref.mdl['fwd']['inst_'].get_params())
-        # setattr(ref, 'wo_norm', ref.mdl['fwd']['inst_'].get_params())
-        pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * 1e-6
-    # logger.debug("fit_imol_fwd = %s, %s", pre_l0, pre_l0_var)
-        
-    return pre_l0, pre_l0_var
-        
 def step_imol_inv(ref, mref, *args, **kwargs):
     """step imol inverse model
 
@@ -1642,60 +1624,51 @@ def step_imol_inv(ref, mref, *args, **kwargs):
     # ref.mdl['inv']['X_pre_inv'] = X_pre_inv
     # # logger.debug('step_imol_inv X_fit_inv = %s', X_fit_inv)
 
-    tap_fit_inv = tap_imol_inv(
+    mk = 'inv'
+    
+    tap_fit_inv = tap_imol(
         ref, [('pre_l1', 'meas_l0'), 'meas_l0', 'prerr_l0'],
-        ['lag_past'] * 3, [ref.mdl['inv']['lag_off_f2p'], 0, 1])
+        ['lag_past'] * 3, [ref.mdl['inv']['lag_off_f2p'], 0, 1], mk=mk)
     ref.mdl['inv']['X_fit'] = tap_fit_inv['X']
 
-    tap_fit_inv = tap_imol_inv(
+    tap_fit_inv = tap_imol(
         ref, ['pre_l0'],
-        ['lag_future'], [-ref.mdl['inv']['lag_off_f2p'] + 1])
+        ['lag_future'], [-ref.mdl['inv']['lag_off_f2p'] + 1], mk=mk)
     ref.mdl['inv']['Y_fit'] = tap_fit_inv['X']
     
-    tap_pre_inv = tap_imol_inv(
+    tap_pre_inv = tap_imol(
         ref, ['pre_l1', 'meas_l0', 'prerr_l0'],
         ['lag_past'] * 3,
-        [ref.mdl['inv']['lag_off_f2p']] * 3)
+        [ref.mdl['inv']['lag_off_f2p']] * 3,
+        mk=mk)
+
+    # compute current prediction error
     ref.mdl['inv']['prerr_l0'] = np.roll(tap_pre_inv['prerr_l0'], shift=-1, axis=-1)
     ref.mdl['inv']['prerr_l0'][...,[-1]] = ref.inputs['pre_l1']['val'][...,[-ref.mdl['inv']['lag_off_f2p']]] - tap_pre_inv['meas_l0'][...,[-1]]
     tap_pre_inv['prerr_l0'] = ref.mdl['inv']['prerr_l0'] # copy? check view or not
-    # recompute the input stack
+    # recompute the input tap stack
     ref.mdl['inv']['X_pre'] = tap_stack(tap_pre_inv, ['pre_l1', 'meas_l0', 'prerr_l0'])
 
-    # prediction error local 
+    # prediction error local
     ref.mdl['inv']['prerr_l0_pre'] = tap_pre_inv['prerr_l0'][...,[-1]]
     # ref.mdl['inv']['prerr_l0_fit'] = tap_fit_inv['prerr_l0'][...,[-1]]
-
-    # # prediction error local average
-    # ref.mdl['inv']['prerr_avg'] = ref.mdl['inv']['coef_err_avg'] * ref.mdl['inv']['prerr_avg'] + (1-ref.mdl['inv']['coef_err_avg']) * ref.mdl['inv']['prerr_l0_pre']
-    # ref.mdl['inv']['prerr_rms_avg'] = np.sqrt(np.mean(np.square(ref.mdl['inv']['prerr_avg']), keepdims=True))
-
-    # # perform a fit / predict cycle
-    # ref.mdl['inv']['pre_l0'], ref.mdl['inv']['pre_l0_var'] = fit_imol_inv(ref, mref, *args, **kwargs)
-    # # add noise to prediction (exploration?)
-    # ref.mdl['inv']['pre_l0'] += ref.mdl['inv']['pre_l0_var']
-    # # bound outputs
-    # ref.mdl['inv']['pre_l0'] = np.clip(ref.mdl['inv']['pre_l0'], -1.1, 1.1)
-
-    # # debugging
-    # if ref.cnt % 100 == 0:
-    #     logger.debug(
-    #         '%s-%s.step_imol[%d] prerr_avg_inv = %s',
-    #         ref.__class__.__name__,
-    #         ref.id,
-    #         ref.cnt,
-    #         ref.mdl['inv']['prerr_rms_avg'])
-
-    # # check n-step prediction
-    # pre_l0_, tgt_ = step_imol_nstep(ref, 'inv')
+    
+    # return to step_imol for fit_predict_imol
+    return
         
-def fit_imol_inv(ref, mref, mk='inv', *args, **kwargs):
-    # get shortcut
+def fit_predict_imol(ref, mref, mk='inv', *args, **kwargs):
+    """fit-predict imol model
+
+    assume tapped inputs are in ['X_fit', 'Y_fit', 'X_pre'] of
+    ref.mdl[modelkey=mk]
+    """
+    # get tapped data
     X_fit = ref.mdl[mk]['X_fit']
     Y_fit = ref.mdl[mk]['Y_fit']
     X_pre = ref.mdl[mk]['X_pre']
 
-    # fit model
+    # fit predict model acoording to low-level algorithm
+    # otl model
     if isinstance(ref.mdl[mk]['inst_'], smpOTLModel):
         # ref.mdl[mk]['inst_'].fit(X = X_fit.T, y = Y_fit.T, update = True) # False)
         # if True: # np.any(ref.mdl[mk]['prerr_l0_pre'] < ref.mdl[mk]['prerr_avg']):
@@ -1718,6 +1691,7 @@ def fit_imol_inv(ref, mref, mk='inv', *args, **kwargs):
             hidden = ref.mdl[mk]['inst_'].r_[ref.mdl[mk]['hidden_output_index'],[-1]].reshape((ref.mdl[mk]['hidden_output_index'].shape[0], 1))
             setattr(ref, 'hidden', hidden)
             
+    # single hidden layer model
     elif isinstance(ref.mdl[mk]['inst_'], smpSHL):
         # fit only after two updates, 0.3 barrel
         if ref.cnt > ref.mdl[mk]['fit_offset']: #  and ref.mdl[mk]['prerr_rms_avg'] >= 0.01: #  and np.mean(np.square(ref.mdl[mk]['prerr_l0_pre'])) < 0.1:
@@ -1729,10 +1703,8 @@ def fit_imol_inv(ref, mref, mk='inv', *args, **kwargs):
         # x_local = ref.mdl[mk]['inst_'].model.x.copy()
         # print "mdl_inv.model.r", 
         pre_l1_local = ref.mdl[mk]['inst_'].predict(X = X_pre.T, rollback = True)
-        
         # print "mdl_inv.model.r", np.mean(np.abs(ref.mdl[mk]['inst_'].model.r - r_local))
         # print "mdl_inv.model.x", np.mean(np.abs(ref.mdl[mk]['inst_'].model.x - x_local))
-        
         # print "pre_l1_local", pre_l1_local
             
         if ref.mdl[mk]['inst_'].lrname == 'FORCEmdn':
@@ -1745,12 +1717,15 @@ def fit_imol_inv(ref, mref, mk='inv', *args, **kwargs):
         # predict with same X and update network
         ref.mdl[mk]['inst_'].predict(X = X_fit.T)
 
+        # prepare hidden states for output
         if hasattr(ref.mdl[mk]['inst_'].model, 'r'):
             hidden = ref.mdl[mk]['inst_'].model.r[ref.mdl[mk]['hidden_output_index']]
             # print "hidden", hidden.shape
             setattr(ref, 'hidden', hidden)
             setattr(ref, 'wo_norm', np.array([[np.linalg.norm(ref.mdl[mk]['inst_'].model.wo, 2)]]))
             # print "wo_norm", ref.mdl[mk]['wo_norm']
+            
+    # other models
     else:
         # feedforward case
         # model fit
@@ -1771,7 +1746,8 @@ def fit_imol_inv(ref, mref, mk='inv', *args, **kwargs):
             # logger.debug('hidden = %s', hidden.shape)
             setattr(ref, 'hidden', hidden)
 
-    # output sampling
+    # output sampling according to low-level algorithm
+    # otl model
     if isinstance(ref.mdl[mk]['inst_'], smpOTLModel):
         # pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * (1.0/np.sqrt(ref.mdl[mk]['inst_'].var) * 1.0) * ref.mdl[mk]['prerr_avg'] * 1.0
 
@@ -1800,7 +1776,8 @@ def fit_imol_inv(ref, mref, mk='inv', *args, **kwargs):
             # pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * amp
             pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * amp * np.sqrt(ref.mdl[mk]['inst_'].var)
             # pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * np.sqrt(ref.mdl[mk]['inst_'].var) * ref.mdl[mk]['prerr_rms_avg'] * amp # 0.3
-
+            
+    # single hidden layer model
     elif isinstance(ref.mdl[mk]['inst_'], smpSHL):
 
         # real goal prediction
@@ -1830,8 +1807,12 @@ def fit_imol_inv(ref, mref, mk='inv', *args, **kwargs):
         # pre_l0_var = np.ones_like(pre_l0) * ref.mdl[mk]['prerr_avg'] * 0.1
         if ref.mdl[mk]['inst_'].lrname == 'FORCEmdn':
             pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * 1e-4
+            
+    # hebbSOM model
     elif isinstance(ref.mdl[mk]['inst_'], smpHebbianSOM):
         pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.mdl[mk]['prerr_rms_avg'] * 0.0001
+        
+    # other models
     else:
         pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.mdl[mk]['prerr_rms_avg'] * 0.25 # 1.0
     # pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * ref.mdl[mk]['prerr_avg'] * 0.25
@@ -1889,7 +1870,7 @@ def init_eh(ref, mref, conf, mconf):
     mconf['visualize'] = False
     
     # reservoir network
-    ref.mdl = init_model(ref, mref, conf, mconf)
+    ref.mdl = init_smpModel(ref, mref, conf, mconf)
 
     # FIXME: parameter configuration post-processing
     # expand input coupling matrix from specification
@@ -2111,7 +2092,7 @@ def init_smpmodel(ref, mref, conf, mconf):
 
     For temporal embedding use smpmodel2, actinf, imol, eh
     """
-    mref.mdl = init_model(ref, mref, conf, mconf)
+    mref.mdl = init_smpModel(ref, mref, conf, mconf)
     mref.h = np.zeros((
         # conf['params']['outputs']['y']['shape'][0], # dim
         # ref.defaults['model_numelem']               # number observations

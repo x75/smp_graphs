@@ -33,29 +33,43 @@ def tap_tupoff(tup = (), off = 0):
     assert len(tup) == 2, "block_models.py.tap_tupoff wants 2-tuple, got %d-tuple" % (len(tup), )
     return (tup[0] + off, tup[1] + off)
 
-def tap(ref, inkey = None, lag = None, off = 0):
-    """block_models.tap
+def tap(ref, inkey = None, lag = None, off = 0, source='inputs'):
+    """tap stuff
 
-    Tap into inputs at indices given by lag
+    Tap into Block2 inputs or attrs at indices given by lag
 
     Arguments
     - ref: Reference to model block
-    - inkey: input variable
+    - inkey: input variable or attribute
     - lag: tap indices
+    - off: tap offset
 
     Returns:
     - tapped inputs, structured
     """
     assert inkey in ref.inputs, "block_models.tap needs valid input key, %s not in %s" % (inkey, ref.inputs.keys())
     assert type(lag) in [tuple, list], "block_models.tap needs tapping 'lag' tuple or list, %s given" % (type(lag))
-    
+
+    # handle tapping specs
     if type(lag) is tuple:
         tapping = range(lag[0] + off, lag[1] + off)
     elif type(lag) is list:
         tapping = np.array(lag) + off
-    # print "%s.%s tap(%s).tap = %s" % (ref.__class__.__name__, ref.id, inkey, tapping)
-    return ref.inputs[inkey]['val'][...,tapping].copy()
+        
+    # logger.debug(
+    #     '%s.%s tap(%s).tap = %s', ref.__class__.__name__, ref.id, inkey, tapping)
 
+    # return tapped data
+    if source == 'inputs':
+        # return tap_inputs(ref, inkey, tapping)
+        return ref.inputs[inkey]['val'][...,tapping].copy()
+    elif source == 'attr':
+        ref_attr = getattr(ref, inkey)
+        return ref_attr[...,tapping].copy()
+    else:
+        # TODO: consider inputs as attr, attr/key addresses
+        return None
+    
 def tap_flat(tap_struct):
     """block_models.tap_flat
 
@@ -76,10 +90,13 @@ def tap_unflat(tap_flat, tap_len = 1):
     else:
         return tap_flat.reshape((tap_len, -1)).T
 
-def tap_stack(channels, channel_keys):
+def tap_stack(channels, channel_keys, flat=True):
     channel_keys = fix_channels(channel_keys)
-    return np.vstack((channels['%s_flat' % channel_key[0]] for channel_key in channel_keys))
-    
+    if flat:
+        return np.vstack((channels['%s_flat' % channel_key[0]] for channel_key in channel_keys))
+    else:
+        return np.vstack((channels[channel_key[0]] for channel_key in channel_keys))
+        
 ################################################################################
 # legacy tappings from funcs_models.py
 
@@ -257,11 +274,23 @@ def fix_channels(channels):
     # logger.debug('fix_channels channels = %s', channels)
     return channels
 
-def tap_imol_fwd(ref, channels=['meas_l0', 'prerr_l0', 'pre_l0'], taps=['lag_past'] * 3, offs=[0, 1, 1], mk='fwd'):
-    """tap from inputs at times
+def tap_imol(
+        ref,
+        channels=['meas_l0', 'prerr_l0', 'pre_l0'],
+        taps=['lag_past'] * 3,
+        offs=[0, 1, 1],
+        mk='fwd'):
+    """tap imol style
 
-    In explicit form it was:
+    tap from named inputs 'channels' at time indices 'taps' with
+    optional offsets 'offs'.
 
+    TODO: factor out mk, collate all imol variables / channels regardless fwd/inv
+    TODO: arg: chans (list of names / list of name tuples)
+    TODO: arg: times (binary index matrix / lists of indices)
+    TODO: arg: offs (list of ints)
+
+    In explicit form it was for example:
     ```
     rate = 1
     ret = {}
@@ -276,15 +305,17 @@ def tap_imol_fwd(ref, channels=['meas_l0', 'prerr_l0', 'pre_l0'], taps=['lag_pas
     # for i, ch in enumerate(channels):
     #     logger.debug('fixed channel[%d] = %s -> %s', i, ch[0], ch[1])
     
-    # mk = 'fwd'
+    # compile dict of tapped sources
     a = [
         (ch[0], tap(ref, ch[1], ref.mdl[mk][taps[i]], offs[i])) for i, ch in enumerate(channels)
     ]
+    # compile dict of tapped and flattened sources
     b = [
         ('%s_flat' % ch[0], tap_flat(tap(ref, ch[1], ref.mdl[mk][taps[i]], offs[i]))) for i, ch in enumerate(channels)
     ]
     c = dict(a + b)
-    c['X'] = tap_stack(c, channels)
+    # compute stack of flat entries
+    c['X'] = tap_stack(c, channels, flat=True)
     return c
 
 # def tap_imol_fwd_fit_X(ref):
@@ -302,9 +333,9 @@ def tap_imol_fwd(ref, channels=['meas_l0', 'prerr_l0', 'pre_l0'], taps=['lag_pas
 # def tapping_imol_fit_fwd(ref):
 #     return tap_imol_fwd_2(ref, ['meas_l0', 'prerr_l0', 'pre_l0'], ['lag_past'] * 3, [0, 1, 1])
 
-# imol inverse
-def tap_imol_inv(ref, channels=['pre_l1', 'meas_l0', 'prerr_l0'], taps=['lag_past'] * 3, offs=[0, 1, 1]):
-    return tap_imol_fwd(ref, channels, taps, offs, mk='inv')
+# # imol inverse
+# def tap_imol_inv(ref, channels=['pre_l1', 'meas_l0', 'prerr_l0'], taps=['lag_past'] * 3, offs=[0, 1, 1]):
+#     return tap_imol_fwd(ref, channels, taps, offs, mk='inv')
 
 def tap_imol_inv_old(ref):
     return tap_imol_inv_time(ref)
