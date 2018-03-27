@@ -47,7 +47,7 @@ def tap(ref, inkey = None, lag = None, off = 0, source='inputs'):
     Returns:
     - tapped inputs, structured
     """
-    assert inkey in ref.inputs, "block_models.tap needs valid input key, %s not in %s" % (inkey, ref.inputs.keys())
+    if source == 'inputs': assert inkey in ref.inputs, "block_models.tap needs valid input key, %s not in %s" % (inkey, ref.inputs.keys())
     assert type(lag) in [tuple, list], "block_models.tap needs tapping 'lag' tuple or list, %s given" % (type(lag))
 
     # handle tapping specs
@@ -64,6 +64,7 @@ def tap(ref, inkey = None, lag = None, off = 0, source='inputs'):
         # return tap_inputs(ref, inkey, tapping)
         return ref.inputs[inkey]['val'][...,tapping].copy()
     elif source == 'attr':
+        # inkey_ = 'mref_%s' % inkey
         ref_attr = getattr(ref, inkey)
         return ref_attr[...,tapping].copy()
     else:
@@ -274,12 +275,20 @@ def fix_channels(channels):
     # logger.debug('fix_channels channels = %s', channels)
     return channels
 
+def fix_sources(sources, numsources):
+    if sources is None:
+        return ['inputs'] * numsources
+    elif type(sources) is list:
+        # assert len(sources) == numsources, 'Number of source specs needs to be equal the number of sources in the channels'
+        return sources
+        
 def tap_imol(
         ref,
         channels=['meas_l0', 'prerr_l0', 'pre_l0'],
         taps=['lag_past'] * 3,
         offs=[0, 1, 1],
-        mk='fwd'):
+        mk='fwd',
+        sources=['inputs'] * 3):
     """tap imol style
 
     tap from named inputs 'channels' at time indices 'taps' with
@@ -302,16 +311,17 @@ def tap_imol(
     """
     assert len(channels) == len(taps) and len(taps) == len(offs), "All input lists need to be same length but are %d %d %d" % (len(channels), len(taps), len(offs))
     channels = fix_channels(channels)
+    sources = fix_sources(sources, len(channels))
     # for i, ch in enumerate(channels):
     #     logger.debug('fixed channel[%d] = %s -> %s', i, ch[0], ch[1])
     
     # compile dict of tapped sources
     a = [
-        (ch[0], tap(ref, ch[1], ref.mdl[mk][taps[i]], offs[i])) for i, ch in enumerate(channels)
+        (ch[0], tap(ref, ch[1], ref.mdl[mk][taps[i]], offs[i], sources[i])) for i, ch in enumerate(channels)
     ]
     # compile dict of tapped and flattened sources
     b = [
-        ('%s_flat' % ch[0], tap_flat(tap(ref, ch[1], ref.mdl[mk][taps[i]], offs[i]))) for i, ch in enumerate(channels)
+        ('%s_flat' % ch[0], tap_flat(tap(ref, ch[1], ref.mdl[mk][taps[i]], offs[i], sources[i]))) for i, ch in enumerate(channels)
     ]
     c = dict(a + b)
     # compute stack of flat entries
