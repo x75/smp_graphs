@@ -936,12 +936,12 @@ graph = OrderedDict([
                                 # 'shape': (dim_s0, maxlag), 'lag': range(-laglen, 0)}
                                 'shape': (dim_s0, maxlag), 'lag': range(lag_future[0], lag_future[1])
                             },
-                            'pre_fwd_l0': {
+                            'pre_l0_fwd': {
                                 'bus': 'pre_l0/pre_fwd',
                                 'shape': (dim_s0, maxlag),
                                 'lag': range(lag_past[0] + 1, lag_past[1] + 1),
                             },
-                            'prerr_fwd_l0': {
+                            'prerr_l0_fwd': {
                                 'bus': 'pre_l0/prerr_fwd',
                                 'shape': (dim_s0, maxlag),
                                 'lag': range(lag_past[0] + 1, lag_past[1] + 1),
