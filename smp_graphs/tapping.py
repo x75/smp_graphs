@@ -55,9 +55,10 @@ def tap(ref, inkey = None, lag = None, off = 0, source='inputs'):
         tapping = range(lag[0] + off, lag[1] + off)
     elif type(lag) is list:
         tapping = np.array(lag) + off
-        
-    # logger.debug(
-    #     '%s.%s tap(%s).tap = %s', ref.__class__.__name__, ref.id, inkey, tapping)
+
+    if ref.cnt < 2:
+        logger.debug(
+            '%s.%s tap[%d] %s, %s', ref.__class__.__name__, ref.id, ref.cnt, '%s.%s' % (source, inkey), tapping)
 
     # return tapped data
     if source == 'inputs':
@@ -318,9 +319,9 @@ def tap_imol(
     channels = fix_channels(channels)
     sources = fix_sources(sources, len(channels))
 
-    # debug
-    for i, ch in enumerate(channels):
-        logger.debug('fixed channel[%d] = %s -> %s', i, ch[0], ch[1])
+    # # debug
+    # for i, ch in enumerate(channels):
+    #     logger.debug('fixed channel[%d] = %s -> %s', i, ch[0], ch[1])
     
     # compile dict of tapped sources
     a = [
@@ -328,7 +329,7 @@ def tap_imol(
     ]
     # compile dict of tapped and flattened sources
     b = [
-        ('%s_flat' % ch[0], tap_flat(tap(ref, ch[1], ref.mdl[mk][taps[i]], offs[i], sources[i]))) for i, ch in enumerate(channels)
+        ('%s_flat' % ch[0], tap_flat(a[i][1])) for i, ch in enumerate(channels)
     ]
     c = dict(a + b)
     # compute stack of flat entries

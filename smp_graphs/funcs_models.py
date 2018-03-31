@@ -1723,9 +1723,11 @@ def tap_imol_x(ref, mref, mk, *args, **kwargs):
      - predict new inverse with current state
      - return new (inverse) prediction (command)
     """
-    # debug
-
+    
     for k in ['X_fit', 'Y_fit', 'X_pre']:
+        # debug
+        if ref.cnt < 2:
+            logger.debug('tap_imol_x %s, %s', mk, k)
         # for tk in ['vars', 'taps', 'offs', 'srcs']:
         #     tapk = 'tap_%s_%s' % (k, tk)
         #     logger.debug('tap_imol_x ref.mdl[%s][%s] = %s', mk, tapk, ref.mdl[mk][tapk])
