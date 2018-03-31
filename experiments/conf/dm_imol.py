@@ -327,6 +327,8 @@ else:
 
 lag_future = systemblock['params']['lag_future'] # (-1, 0)
 lag_past = systemblock['params']['lag_past'] # (-1, 0)
+lag_gap_f2p = lag_future[0] - lag_past[1]
+lag_off_f2p = lag_future[1] - lag_past[1]
 
 minlag = 1 # -lag_future[1]
 # maxlag = -lag_past[0] # + lag_future[1]
@@ -974,6 +976,22 @@ graph = OrderedDict([
                                 'fwd': {
                                     'type': 'imol',
                                     'algo': algo_fwd,
+                                    # tapping X_fit
+                                    'tap_X_fit_vars': ['pre_l0', 'meas_l0', 'prerr_l0'],
+                                    'tap_X_fit_taps': ['lag_past'] * 3,
+                                    'tap_X_fit_offs': [1, 0, 1],
+                                    'tap_X_fit_srcs': ['inputs'] * 3,
+                                    # tapping Y_fit
+                                    'tap_Y_fit_vars': ['meas_l0'],
+                                    'tap_Y_fit_taps': ['lag_future'],
+                                    'tap_Y_fit_offs': [0],
+                                    'tap_Y_fit_srcs': ['inputs'],
+                                    # tapping X_pre
+                                    'tap_X_pre_vars': ['pre_l0_inv', 'meas_l0', 'prerr_l0_fwd'],
+                                    'tap_X_pre_taps': ['lag_past'] * 3,
+                                    'tap_X_pre_offs': [lag_off_f2p - 1] + [lag_off_f2p] * 2,
+                                    'tap_X_pre_srcs': ['attr', 'inputs', 'inputs'],
+                                    # legacy lag
                                     'lag_past': lag_past,
                                     'lag_future': lag_future,
                                     'idim': dim_s0 * (lag_past[1] - lag_past[0]) * 3, # laglen
@@ -988,6 +1006,22 @@ graph = OrderedDict([
                                 'inv': {
                                     'type': 'imol',
                                     'algo': algo_inv,
+                                    # tapping X_fit
+                                    'tap_X_fit_vars': [('pre_l1', 'meas_l0'), 'meas_l0', 'prerr_l0'],
+                                    'tap_X_fit_taps': ['lag_past'] * 3,
+                                    'tap_X_fit_offs': [lag_off_f2p, 0, 1],
+                                    'tap_X_fit_srcs': ['inputs'] * 3,
+                                    # tapping Y_fit
+                                    'tap_Y_fit_vars': ['pre_l0'],
+                                    'tap_Y_fit_taps': ['lag_future'],
+                                    'tap_Y_fit_offs': [-lag_off_f2p + 1],
+                                    'tap_Y_fit_srcs': ['inputs'],
+                                    # tapping X_pre
+                                    'tap_X_pre_vars': ['pre_l1', 'meas_l0', 'prerr_l0_%s' % 'inv'],
+                                    'tap_X_pre_taps': ['lag_past'] * 3,
+                                    'tap_X_pre_offs': [lag_off_f2p] * 3,
+                                    'tap_X_pre_srcs': ['inputs', 'inputs', 'attr'],
+                                    # legacy lag
                                     'lag_past': lag_past,
                                     'lag_future': lag_future,
                                     'idim': dim_s0 * (lag_past[1] - lag_past[0]) * 3, # laglen

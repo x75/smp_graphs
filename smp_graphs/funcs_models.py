@@ -1345,10 +1345,23 @@ def init_imol(ref, mref, conf, mconf):
     ref.submodels = ['fwd', 'inv']
     # submodel step func components specific for each submodel
     func_steps = {
-        'fwd': [step_imol_update_prerr_l0_2, step_imol_fwd, step_imol_common],
+
+        # 'fwd': [step_imol_update_prerr_l0_2, step_imol_fwd, step_imol_common],
+        # 'inv': [
+        #     step_imol_update_prerr_l0, step_imol_inv,
+        #     step_imol_common, step_imol_update_pre_l0],
+
+        'fwd': [
+            step_imol_update_prerr_l0_2,
+            tap_imol_x,
+            step_imol_common
+        ],
         'inv': [
-            step_imol_update_prerr_l0, step_imol_inv,
-            step_imol_common, step_imol_update_pre_l0],
+            step_imol_update_prerr_l0,
+            tap_imol_x,
+            step_imol_common,
+            step_imol_update_pre_l0
+        ],
     }
     # submodel pool
     ref.mdl = {}
@@ -1699,7 +1712,36 @@ def step_imol_inv(ref, mref, mk, *args, **kwargs):
     
     # return to step_imol for fit_predict_imol
     return
-        
+
+def tap_imol_x(ref, mref, mk, *args, **kwargs):
+    """step imol inverse model
+
+     - tap data
+     - fit old forward with current feedback
+     - predict new forward after update
+     - fit old inverse with current feedback
+     - predict new inverse with current state
+     - return new (inverse) prediction (command)
+    """
+    # debug
+
+    for k in ['X_fit', 'Y_fit', 'X_pre']:
+        # for tk in ['vars', 'taps', 'offs', 'srcs']:
+        #     tapk = 'tap_%s_%s' % (k, tk)
+        #     logger.debug('tap_imol_x ref.mdl[%s][%s] = %s', mk, tapk, ref.mdl[mk][tapk])
+        tap_fit_inv = tap_imol(
+            ref, ref.mdl[mk]['tap_%s_vars' % k],
+            ref.mdl[mk]['tap_%s_taps' % k],
+            ref.mdl[mk]['tap_%s_offs' % k],
+            mk,
+            ref.mdl[mk]['tap_%s_srcs' % k],
+            # ['attr', 'inputs', 'inputs']
+            # ['inputs', 'inputs', 'attr']
+            )
+        ref.mdl[mk][k] = tap_fit_inv['X']
+
+    return
+
 def fit_predict_imol(ref, mref, mk='inv', *args, **kwargs):
     """fit-predict imol model
 

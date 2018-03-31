@@ -65,6 +65,7 @@ def tap(ref, inkey = None, lag = None, off = 0, source='inputs'):
         return ref.inputs[inkey]['val'][...,tapping].copy()
     elif source == 'attr':
         # inkey_ = 'mref_%s' % inkey
+        # logger.debug('tap inkey = %s', inkey)
         ref_attr = getattr(ref, inkey)
         return ref_attr[...,tapping].copy()
     else:
@@ -309,11 +310,17 @@ def tap_imol(
     return ret
     ```
     """
+    # logger.debug(
+    #     'tap_imol channels = %s, taps = %s, offs = %s, mk = %s, srcs = %s',
+    #     channels, taps, offs, mk, sources)
+    
     assert len(channels) == len(taps) and len(taps) == len(offs), "All input lists need to be same length but are %d %d %d" % (len(channels), len(taps), len(offs))
     channels = fix_channels(channels)
     sources = fix_sources(sources, len(channels))
-    # for i, ch in enumerate(channels):
-    #     logger.debug('fixed channel[%d] = %s -> %s', i, ch[0], ch[1])
+
+    # debug
+    for i, ch in enumerate(channels):
+        logger.debug('fixed channel[%d] = %s -> %s', i, ch[0], ch[1])
     
     # compile dict of tapped sources
     a = [
