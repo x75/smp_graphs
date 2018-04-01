@@ -1493,18 +1493,13 @@ def step_imol(ref, mref, *args, **kwargs):
     # logger.debug("step_imol fwd_pre_l0 = %s, %s", ref.mdl['fwd']['pre_l0'], ref.mdl['fwd']['pre_l0_var'])
     
     # set imol block outputs after fit / predicting all models
-    setattr(ref, 'pre', ref.mdl['inv']['pre_l0'].copy())
-    setattr(ref, 'err', ref.mdl['inv']['prerr_l0_'].copy())
-    setattr(ref, 'prerr_avg', ref.mdl['inv']['prerr_avg'].copy())
-    setattr(ref, 'prerr_rms_avg', ref.mdl['inv']['prerr_rms_avg'].copy())
-    # setattr(ref, 'err', ref.mdl['inv']['prerr_l0_fit'].copy())
-    setattr(ref, 'tgt', ref.mdl['inv']['tgt'].copy())
-    # setattr(ref, 'tgt', tgt.copy())
-    setattr(ref, 'X', ref.mdl['inv']['X_fit'].copy())
-    setattr(ref, 'Y', ref.mdl['inv']['Y_fit'].copy())
+    # inv 
+    setattr(ref, 'pre_inv', ref.mdl['inv']['pre_l0'].copy())
+    setattr(ref, 'prerr_inv', ref.mdl['inv']['prerr_l0_'].copy())
+    setattr(ref, 'prerr_avg_inv', ref.mdl['inv']['prerr_avg'].copy())
+    setattr(ref, 'prerr_rms_avg_inv', ref.mdl['inv']['prerr_rms_avg'].copy())
     setattr(ref, 'wo_norm_inv', ref.mdl['inv']['inst_'].get_params(param='w_norm'))
-    setattr(ref, 'wo_norm', getattr(ref, 'wo_norm_inv'))
-
+    
     # fwd sidechannel
     setattr(ref, 'pre_fwd', ref.mdl['fwd']['pre_l0'].copy())
     setattr(ref, 'prerr_fwd', ref.mdl['fwd']['prerr_l0_'].copy())
@@ -1512,6 +1507,16 @@ def step_imol(ref, mref, *args, **kwargs):
     setattr(ref, 'prerr_rms_avg_fwd', ref.mdl['fwd']['prerr_rms_avg'].copy())
     setattr(ref, 'wo_norm_fwd', ref.mdl['fwd']['inst_'].get_params(param='w_norm'))
 
+    # legacy
+    setattr(ref, 'pre', getattr(ref, 'pre_inv'))
+    setattr(ref, 'err', getattr(ref, 'prerr_inv'))
+    setattr(ref, 'prerr_avg', getattr(ref, 'prerr_avg_inv'))
+    setattr(ref, 'prerr_rms_avg', getattr(ref, 'prerr_rms_avg_inv'))
+    setattr(ref, 'wo_norm', getattr(ref, 'wo_norm_inv'))
+    setattr(ref, 'tgt', ref.mdl['inv']['tgt'].copy())
+    setattr(ref, 'X', ref.mdl['inv']['X_fit'].copy())
+    setattr(ref, 'Y', ref.mdl['inv']['Y_fit'].copy())
+    
 def step_imol_common(ref, mref, mk, *args, **kwargs):
     """step imol common
 
@@ -1714,14 +1719,11 @@ def step_imol_inv(ref, mref, mk, *args, **kwargs):
     return
 
 def tap_imol_x(ref, mref, mk, *args, **kwargs):
-    """step imol inverse model
+    """pure tapping for imol model
 
-     - tap data
-     - fit old forward with current feedback
-     - predict new forward after update
-     - fit old inverse with current feedback
-     - predict new inverse with current state
-     - return new (inverse) prediction (command)
+    - take tap config
+    - tap block inputs and attr data
+    - return raw ndarray tensor stack
     """
     
     for k in ['X_fit', 'Y_fit', 'X_pre']:

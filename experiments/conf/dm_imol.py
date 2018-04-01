@@ -950,7 +950,7 @@ graph = OrderedDict([
                             },
                         },
                         'outputs': {
-                            # official
+                            # legacy
                             'pre': {'shape': (dim_s0, 1)},
                             'err': {'shape': (dim_s0, 1)},
                             'prerr_avg': {'shape': (dim_s0, 1)},
@@ -960,7 +960,13 @@ graph = OrderedDict([
                             'Y': {'shape': (dim_s0 * (lag_future[1] - lag_future[0]), 1)},
                             'hidden': {'shape': (dim_s_hidden_debug, 1)},
                             'wo_norm': {'shape': (dim_s0, 1)},
-                            # submodel sidechannel
+                            # inv out
+                            'pre_inv': {'shape': (dim_s0, 1)},
+                            'err_inv': {'shape': (dim_s0, 1)},
+                            'prerr_avg_inv': {'shape': (dim_s0, 1)},
+                            'prerr_rms_avg_inv': {'shape': (1, 1)},
+                            'wo_norm_inv': {'shape': (dim_s0, 1)},
+                            # fwd out
                             'pre_fwd': {'shape': (dim_s0 * (lag_future[1] - lag_future[0]), 1)},
                             'prerr_fwd': {'shape': (dim_s0 * (lag_future[1] - lag_future[0]), 1)},
                             'prerr_avg_fwd': {'shape': (dim_s0, 1)},
@@ -977,7 +983,7 @@ graph = OrderedDict([
                                     'type': 'imol',
                                     'algo': algo_fwd,
                                     # tapping X_fit
-                                    'tap_X_fit_vars': ['pre_l0', 'meas_l0', 'prerr_l0'],
+                                    'tap_X_fit_vars': ['pre_l0', 'meas_l0', 'prerr_l0_fwd'],
                                     'tap_X_fit_taps': ['lag_past'] * 3,
                                     'tap_X_fit_offs': [1, 0, 1],
                                     'tap_X_fit_srcs': ['inputs'] * 3,
@@ -989,8 +995,9 @@ graph = OrderedDict([
                                     # tapping X_pre
                                     'tap_X_pre_vars': ['pre_l0_inv', 'meas_l0', 'prerr_l0_fwd'],
                                     'tap_X_pre_taps': ['lag_past'] * 3,
-                                    'tap_X_pre_offs': [lag_off_f2p - 1] + [lag_off_f2p] * 2,
-                                    'tap_X_pre_srcs': ['attr', 'inputs', 'inputs'],
+                                    # 'tap_X_pre_offs': [lag_off_f2p - 1] + [lag_off_f2p] * 2,
+                                    'tap_X_pre_offs': [lag_off_f2p] * 3,
+                                    'tap_X_pre_srcs': ['attr', 'inputs', 'attr'],
                                     # legacy lag
                                     'lag_past': lag_past,
                                     'lag_future': lag_future,

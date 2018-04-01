@@ -33,7 +33,7 @@ def tap_tupoff(tup = (), off = 0):
     assert len(tup) == 2, "block_models.py.tap_tupoff wants 2-tuple, got %d-tuple" % (len(tup), )
     return (tup[0] + off, tup[1] + off)
 
-def tap(ref, inkey = None, lag = None, off = 0, source='inputs'):
+def tap(ref, inkey = None, lag = None, off = 0, source='inputs', outidx=None):
     """tap stuff
 
     Tap into Block2 inputs or attrs at indices given by lag
@@ -58,7 +58,7 @@ def tap(ref, inkey = None, lag = None, off = 0, source='inputs'):
 
     if ref.cnt < 2:
         logger.debug(
-            '%s.%s tap[%d] %s, %s', ref.__class__.__name__, ref.id, ref.cnt, '%s.%s' % (source, inkey), tapping)
+            '%s.%s tap[%d] %s, %s, %s', ref.__class__.__name__, ref.id, ref.cnt, '%s.%s' % (source, inkey), tapping, outidx)
 
     # return tapped data
     if source == 'inputs':
@@ -325,7 +325,7 @@ def tap_imol(
     
     # compile dict of tapped sources
     a = [
-        (ch[0], tap(ref, ch[1], ref.mdl[mk][taps[i]], offs[i], sources[i])) for i, ch in enumerate(channels)
+        (ch[0], tap(ref, ch[1], ref.mdl[mk][taps[i]], offs[i], sources[i], i)) for i, ch in enumerate(channels)
     ]
     # compile dict of tapped and flattened sources
     b = [
