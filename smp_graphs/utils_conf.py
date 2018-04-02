@@ -27,7 +27,9 @@ def get_systemblock_pm(
     :mod:`smp_sys.systems.Pointmass2Sys`
     """
     global np, PointmassBlock2, meas
-    logger.debug("get_systemblock_pm: dim_s0 = %d, dt= %f, lag = %d, kwargs = %s" % (dim_s0, dt, lag, kwargs))
+    logger.debug(
+        "get_systemblock_pm: dim_s0 = %d, dt= %f, lag = %d, kwargs = %s" % (
+            dim_s0, dt, lag, kwargs))
 
     # legacy argument handling
     if kwargs.has_key('dim_s_proprio'):

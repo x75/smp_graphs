@@ -284,6 +284,8 @@ from smp_graphs.utils_conf import get_systemblock
 systemblock   = get_systemblock[sysname](lag = 2)
 # lag           = 1
 
+# systemblock['params']['anoise_std'] = 0.0
+# systemblock['params']['sysname'] = 0.0
 dim_s0 = systemblock['params']['dims']['s0']['dim']
 dim_s1 = systemblock['params']['dims']['s1']['dim']
 m_mins = np.array([systemblock['params']['m_mins']]).T
@@ -293,6 +295,12 @@ m_maxs = np.array([systemblock['params']['m_maxs']]).T
 # maxlag = systemblock['params']['maxlag']
 
 dt = systemblock['params']['dt']
+
+algo_conf = {
+    'knn': {
+        'name': 'k-nearest neighbors',
+    },
+}
 
 algo = 'knn' # ok
 # algo = 'gmm' # ok
@@ -364,9 +372,31 @@ eta = 0.15
 devmodel = 'imol'
 ################################################################################
 # experiment description after all configurables have been set
-desc = """This is the most stripped down version of the forward /
-inverse internal model pair (fiimp) with online learning (imol). The
-low-level learning algorithm is {{0}}""".format(algo)
+desc = """This is a basic version of the forward / inverse internal
+model pair online learning (imol) algorithm put into an actual agent
+experiment. The low-level learning algorithm in this particular case
+is {0} ({1}). The episode lasts for {2} timesteps. The developmental
+schedule within that episode consists of bootstrapping the low-level
+models on initialization (uniform random), a warm-up phase (200 time
+steps), an actual learning phase (1600 time steps), and a consecutive
+testing phase (another 200 time
+steps). During the learning phase, the following steps are repeated:
+1) compute the (inverse) prediction error using the incoming
+measurement, this prediction error is the difference of actual state
+and some goal state; 2) the inverse model is fitted to the current
+error and the corresponding past input, which is still lingering in
+local memory; 3) predict the next motor command from current goal and
+state inputs based on the updated model; 4) compute the forward
+prediction error; 5) fit the forward model with the forward pe; 6)
+make new forward prediction using current state and current motor
+prediction. There is no explicit exploration noise involved and only
+the cumulative noise of embodiment and model uncertainty is present in
+the system. Also, only the inverse model is effective in this
+configuration. What is interesting and which can be observed from the
+different behaviour of the green and yellow traces in the second row
+panel, is the difference in output for identical initializations of
+low-level predictors, caused only by their
+inputs. """.format(algo_conf[algo]['name'], algo, numsteps)
 
 def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
     global partial, OrderedDict
@@ -382,8 +412,9 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
         'blocksize': numsteps, # min(numsteps, numsteps), # 1000, # blocksize
         'title': 'Learning episode timeseries: dev-model = %s, algo = %s, system %s' % (devmodel, algo, sysname),
         'desc': """An %s agent learning to control a %d-dimensional %s
-        system using %s low-level algorithm.""" % (devmodel, dim_s0,
-        sysname, algo),
+        system using the %s low-level algorithm. Please refer to the
+        main text of the dm-imol experiment for the detailed
+        description.""" % (devmodel, dim_s0, llsysname, algo),
         'inputs': {
             'goals': {'bus': '%s/pre' % (l1,), 'shape': (dim_s0, blocksize)},
             'pre':   {'bus': '%s/pre' % (l0,), 'shape': (dim_s0, blocksize)},
