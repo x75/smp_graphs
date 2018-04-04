@@ -920,6 +920,12 @@ def step_actinf(ref, mref, *args, **kwargs):
     # loop over block of inputs if pre_l1.shape[-1] > 0:
     prerr = prerr_l0_
 
+    logger.debug(
+        'step_actinf, pre_l1 = %s, pre_l0 = %s, meas_l0 = %s, prerr_l0 = %s',
+        pre_l1, pre_l0, meas_l0, prerr_l0)
+    ################################################################################
+    # fit the model
+    
     # dgoal for fitting lag additional time steps back
     dgoal_fit = np.linalg.norm(ref.pre_l1_tm1 - ref.pre_l1_tm2)
     y_ = Y.reshape((ref.odim / ref.laglen_future, -1))[...,[-1]]
@@ -941,6 +947,9 @@ def step_actinf(ref, mref, *args, **kwargs):
     # ref.X_ = np.vstack((pre_l1[...,[-1]], prerr_l0[...,[-1]]))
     ref.debug_print("step_actinf_m2_single ref.X_.shape = %s", (ref.X_.shape, ))
 
+    ################################################################################
+    # predict
+    
     # predict next values at current layer input
     # pre_l1_tap_spec = ref.inputs[ref.pre_l1_inkey]['lag']
     pre_l1_tap_full = ref.inputs[ref.pre_l1_inkey]['val'][...,-ref.laglen_past:]
@@ -1016,15 +1025,30 @@ def step_actinf_2(ref, mref, *args, **kwargs):
     # FIXME: single time slice taps only: add flattened version, reshape business
     # FIXME: what's actinf specific, what's general?
     """
+    logger.debug(
+        'step_actinf_2 lag_past = %s, lag_future = %s, lag_off = %s',
+        ref.lag_past, ref.lag_future, ref.lag_off)
     
     # prerr_t  = pre_l1_{lagf[0] - lag_off, lagf[1] - lag_off} - meas_l0_{lagf[0], lagf[1]}
     def tapping_prerr_fit(ref):
-        prerr_fit = tap(ref, 'pre_l1', tap_tupoff(ref.lag_future, -ref.lag_off)) - tap(ref, 'meas_l0', ref.lag_future)
+        # prerr_fit = tap(ref, 'pre_l1', tap_tupoff(ref.lag_future, -ref.lag_off)) - tap(ref, 'meas_l0', ref.lag_future)
+        goal_ = tap(
+            ref,
+            'pre_l1',
+            ref.lag_future,
+            -ref.lag_off,
+            'inputs'
+        )
+        meas_ = tap(ref, 'meas_l0', ref.lag_future, 0, 'inputs')
+        logger.debug('tapping_prerr_fit goal = %s, meas = %s', goal_, meas_)
+        prerr_fit = goal_ - meas_
         return (prerr_fit, )
 
     # pre_l0_t = pre_l0_{lagf[0] - lag_off + 1, lagf[1] - lag_off + 1}
     def tapping_pre_l0_fit(ref):
-        pre_l0_fit = tap(ref, 'pre_l0', tap_tupoff(ref.lag_future, -ref.lag_off + 1))
+        # pre_l0_fit = tap(ref, 'pre_l0', tap_tupoff(ref.lag_future, -ref.lag_off + 1))
+        pre_l0_fit = tap(
+            ref, 'pre_l0', ref.lag_future, -ref.lag_off + 1)
         return (pre_l0_fit,)
         
     # X_t-lag  = [pre_l1_{lagp[0], lagp[1]}, prerr_l0_{lagp[0]+1, lagp[1]+1}]
@@ -1046,6 +1070,7 @@ def step_actinf_2(ref, mref, *args, **kwargs):
 
     # get data and fit the model
     X_fit_flat, Y_fit_flat, prerr_fit_flat = tapping_XY_fit(ref)
+    logger.debug('X_fit_flat = %s, Y_fit_flat = %s, prerr_fit_flat = %s', X_fit_flat.T, Y_fit_flat.T, prerr_fit_flat.T)
     ref.mdl.fit(X_fit_flat.T, Y_fit_flat.T)
 
     # prerr_t  = pre_l1_{lagf[0] - lag_off, lagf[1] - lag_off} - meas_l0_{lagf[0], lagf[1]}
@@ -1071,7 +1096,9 @@ def step_actinf_2(ref, mref, *args, **kwargs):
 
     # get data and predict
     X_predict, = tapping_X_predict(ref)
+    logger.debug('X_predict = %s', X_predict.T)
     pre_l0 = ref.mdl.predict(X_predict.T)
+    logger.debug('pre_l0 = %s', pre_l0)
     
     # block outputs prepare
     pre_ = tap_unflat(pre_l0, ref.laglen_future).copy()
@@ -1083,7 +1110,9 @@ def step_actinf_2(ref, mref, *args, **kwargs):
     X_fit = X_fit_flat.copy()
     Y_pre = pre_l0.T.copy()
 
-    # print "pre", pre.shape, "err", err.shape, "tgt", tgt.shape, "X_fit", X_fit.shape, "Y_pre", Y_pre.shape
+    # print 
+    logger.debug('pre = %s, err = %s, tgt = %s, X_fit = %s, Y_pre = %s', pre.shape, err.shape, tgt.shape, X_fit.shape, Y_pre.shape)
+    logger.debug('pre = %s, err = %s, tgt = %s, X_fit = %s, Y_pre = %s', pre.T, err.T, tgt.T, X_fit.T, Y_pre.T)
     
     # block outputs set
     setattr(ref, 'pre', pre)
@@ -1092,6 +1121,7 @@ def step_actinf_2(ref, mref, *args, **kwargs):
     setattr(ref, 'X_fit', X_fit)
     setattr(ref, 'Y_pre', Y_pre)
 
+    
 # def step_actinf_prediction_errors_extended(ref, mref, *args, **kwargs):
 #     # if np.sum(np.abs(ref.goal_prop - ref.goal_prop_tm1)) > 1e-2:
 #     #     ref.E_prop_pred_fast = np.random.uniform(-1e-5, 1e-5, ref.E_prop_pred_fast.shape)

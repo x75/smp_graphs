@@ -45,7 +45,7 @@ ros = False # True
 # experiment
 commandline_args = ['numsteps']
 randseed = 12348
-numsteps = int(10000/5)
+numsteps = int(10000/20)
 loopblocksize = numsteps
 sysname = 'pm'
 # sysname = 'sa'
@@ -71,7 +71,7 @@ from smp_graphs.utils_conf import get_systemblock
 # - number of modalities
     
 systemblock = get_systemblock[sysname](
-    lag = 0, dim_s0 = 2, dim_s1 = 2)
+    lag = 3, dim_s0 = 2, dim_s1 = 2)
 
 # print "systemblock", systemblock
 dim_s0 = systemblock['params']['dims']['s0']['dim']
@@ -138,6 +138,7 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
     'params': {
         'blocksize': blocksize,
         'saveplot': saveplot,
+        # 'debug': True,
         'title': '%s\nalgo %s, sys %s(d_p=%d), lag %d, tap- %s, tap+ %s' % (
             'dm actinf m1', algo, sysname, dim_s0, lag, lag_past, lag_future),
         'inputs': {
@@ -357,7 +358,7 @@ loopblock_model = {
                 'params': {
                     'blocksize': sweepmdl_input_flat,
                     'blockphase': [0],
-                    'debug': False, # True,
+                    # 'debug': True,
                     'lag': minlag,
                     'eta': eta, # 0.3,
                     'inputs': {
@@ -669,7 +670,7 @@ graph = OrderedDict([
                     'params': {
                         'blocksize': 1,
                         'blockphase': [0],
-                        'debug': False,
+                        'debug': True,
                         'lag': minlag,
                         'eta': eta, # 3.7,
                         'ros': ros,

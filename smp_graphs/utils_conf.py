@@ -28,7 +28,7 @@ def get_systemblock_pm(
     """
     global np, PointmassBlock2, meas
     logger.debug(
-        "get_systemblock_pm: dim_s0 = %d, dt= %f, lag = %d, kwargs = %s" % (
+        'get_systemblock_pm: dim_s0 = %d, dt= %f, lag = %d, kwargs = %s' % (
             dim_s0, dt, lag, kwargs))
 
     # legacy argument handling
@@ -92,6 +92,7 @@ def get_systemblock_pm(
             # ground truth information for configuring the model, FIXME: make model autonomous with resp. to these params
             # memory, time: tapping
             'lag_past': (-4, -3),
+            # 'lag_past': (-2, -1),
             'lag_future': (-1, 0),
             
             # low-level params

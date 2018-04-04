@@ -306,7 +306,7 @@ class ModelBlock2(PrimBlock2):
     @decStep()
     def step_single(self, x = None):
         """ModelBlock2 step"""
-        # print "%s-%s.step %d" % (self.cname, self.id, self.cnt,)
+        # self._debug("%s-%s.step %d" % (self.cname, self.id, self.cnt,))
         # self.debug_print("%s.step:\n\tx = %s,\n\tbus = %s,\n\tinputs = %s,\n\toutputs = %s",
         #     (self.__class__.__name__, self.outputs.keys(), self.bus,
         #          self.inputs, self.outputs))
