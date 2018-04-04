@@ -45,7 +45,7 @@ ros = False # True
 # experiment
 commandline_args = ['numsteps']
 randseed = 12348
-numsteps = int(10000/20)
+numsteps = int(10000/5)
 loopblocksize = numsteps
 sysname = 'pm'
 # sysname = 'sa'
@@ -71,7 +71,7 @@ from smp_graphs.utils_conf import get_systemblock
 # - number of modalities
     
 systemblock = get_systemblock[sysname](
-    lag = 3, dim_s0 = 2, dim_s1 = 2)
+    lag = 0, dim_s0 = 2, dim_s1 = 2)
 
 # print "systemblock", systemblock
 dim_s0 = systemblock['params']['dims']['s0']['dim']
@@ -128,7 +128,10 @@ eta = 0.7
 # eta = 0.1
 # eta = 0.01
 
-print "dm_actinf_m1_goal_error_ND_embedding.py: dim_s0 = %s" % (dim_s0, )
+# print "dm_actinf_m1_goal_error_ND_embedding.py: dim_s0 = %s" % (dim_s0, )
+
+desc = """An exemplary experiment involving a developmental episode of
+{0} steps of actinf agent.""".format(numsteps)
 
 def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
     global partial

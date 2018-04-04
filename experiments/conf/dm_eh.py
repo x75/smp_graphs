@@ -454,6 +454,9 @@ laglen = maxlag - minlag
 eta = 3e-3
 
 
+desc = """The basic learning episode of a learning agent under the
+exploratory Hebbian model.""".format()
+
 def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
     global partial
     global PlotBlock2, numsteps, timeseries, dim_s1, dim_s0, dim_s_hidden_debug, saveplot
