@@ -107,6 +107,12 @@ lag_future = systemblock['params']['lag_future']
 
 dt = systemblock['params']['dt']
 
+algo_conf = {
+    'knn': {
+        'name': 'k-nearest neighbors',
+    },
+}
+
 algo = 'knn' #
 # algo = 'gmm' #
 # algo = 'igmm' #

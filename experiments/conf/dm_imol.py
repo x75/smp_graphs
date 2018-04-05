@@ -4,6 +4,22 @@ smp_graphs config, converted from smp/imol
 
 TODO:
 - Embedding: implement embedding at block boundaries
+
+experiment variations
+- algo
+- system
+- system order
+- dimensions
+- number of modalities
+
+# robustness
+# fix: target properties like frequency matched to body (attainable / not attainable)
+# fix: eta
+# fix: motor / sensor limits, how does the model learn the limits
+
+# priors: timing, limits
+
+    
 """
 
 import copy
@@ -19,13 +35,7 @@ from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2, BhasimulatedB
 from smp_graphs.block_cls_ros import STDRCircularBlock2, LPZBarrelBlock2, SpheroBlock2
 
 from smp_graphs.funcs import f_meshgrid, f_meshgrid_mdl, f_random_uniform, f_sin_noise
-
-# robustness
-# fix: target properties like frequency matched to body (attainable / not attainable)
-# fix: eta
-# fix: motor / sensor limits, how does the model learn the limits
-
-# priors: timing, limits
+from smp_graphs.utils_conf import get_systemblock
 
 # execution
 saveplot = False
@@ -41,9 +51,24 @@ outputs = {
 # experiment
 commandline_args = ['numsteps']
 randseed = 12355
-numsteps = int(10000/5)
+
+lconf = {
+    'numsteps': int(10000/5),
+    'sys': {
+        'name': 'pm',
+        'lag': 2,
+        'dim_s0': 2,
+        'dim_s1': 2,
+    },
+    'motivation_i': 0,
+}
+lconf['systemblock'] = get_systemblock[lconf['sys']['name']](**lconf['sys'])
+
+numsteps = lconf['numsteps']
 loopblocksize = numsteps
-sysname = 'pm'
+
+sysname = lconf['sys']['name']
+# sysname = 'pm'
 # sysname = 'sa'
 # sysname = 'bha'
 # sysname = 'stdr'
@@ -51,14 +76,9 @@ sysname = 'pm'
 # sysname = 'sphero'
 # dim = 3 # 2, 1
 # dim = 9 # bha
-
-lconf = {
-    'motivation_i': 0,
-}
-
+    
 """system block
 """
-from smp_graphs.utils_conf import get_systemblock
 
 # def get_systemblock_pm(dim_s0 = 2, dim_s1 = 2, dt = 0.1):
 #     global np, PointmassBlock2, meas
@@ -261,32 +281,13 @@ from smp_graphs.utils_conf import get_systemblock
 #             'maxlag': 5,
 #             }
 #         }
-#     return systemblock_sphero
+#     return systemblock_sphero    
 
-# # systemblock_sphero = get_systemblock_sphero()
-
-# get_systemblock = {
-#     'pm': partial(get_systemblock_pm, dim_s0 = 2, dim_s1 = 2, dt = 0.1),
-#     'sa': partial(get_systemblock_sa, dim_s0 = 2, dim_s1 = 2, dt = 0.1),
-#     'bha': partial(get_systemblock_bha, dim_s0 = 9, dim_s1 = 3, dt = 0.1),
-#     'lpzbarrel': partial(get_systemblock_lpzbarrel, dim_s0 = 2, dim_s1 = 1, dt = 1.0/12.5), # 2.0/92.0), # 0.025),
-#     'stdr': partial(get_systemblock_stdr, dim_s0 = 2, dim_s1 = 3, dt = 0.1),
-#     'sphero': partial(get_systemblock_sphero, dim_s0 = 2, dim_s1 = 1, dt = 0.0167),
-#     }
-    
-
-################################################################################
-# experiment variations
-# - algo
-# - system
-# - system order
-# - dimensions
-# - number of modalities
-    
 # systemblock   = systemblock_lpzbarrel
 # lag = 6 # 5, 4, 2 # 2 or 3 worked with lpzbarrel, dt = 0.05
-systemblock   = get_systemblock[sysname](lag = 2)
+# systemblock   = get_systemblock[sysname](lag = 2)
 # lag           = 1
+systemblock = lconf['systemblock']
 
 # systemblock['params']['anoise_std'] = 0.0
 # systemblock['params']['sysname'] = 0.0
