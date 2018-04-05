@@ -48,7 +48,7 @@ from logging import INFO as logging_INFO
 from logging import DEBUG as logging_DEBUG
 # import logging
 loglevel_DEFAULT = logging_INFO
-logger = get_module_logger(modulename = 'block', loglevel = logging_INFO)
+logger = get_module_logger(modulename = 'block', loglevel = logging_DEBUG)
 
 # finally, ros
 # import rospy
@@ -2484,7 +2484,9 @@ class LoopBlock2(Block2):
     variation one after the other.
 
     Parallel / LoopBlock2 parameters:
-    - loop: the loop specification. either a list of tuples or a function returning tuples. Tuples have the form ('param', value) and param is a configuration parameter of the inner loopblock.
+    - loop: the loop specification. either a list of tuples or a
+      function returning tuples. Tuples have the form ('param', value)
+      and param is a configuration parameter of the inner loopblock.
     - loopblock: conf dict for the block which is being looped
     - loopmode: used during graph construction (graphs.py)
 
@@ -2620,7 +2622,7 @@ class LoopBlock2(Block2):
                 logger.debug("    replacing conf from loop paramk = %s, paramv = %s", paramk, paramv)
                 # lpconf['params'][paramk] = paramv # .copy()
                 # FIXME: include id/params syntax in loop update
-                if lpconf['params'].has_key('subgraph'):
+                if lpconf['params'].has_key('subgraph') and type(lpconf['params']) is OrderedDict:
                     for (blockk, blockv) in lpconf['params']['subgraph'].items():
                         if blockv['params'].has_key(paramk):
                             blockv['params'][paramk] = paramv # .copy()
@@ -2993,12 +2995,12 @@ class IBlock2(PrimBlock2):
 
         # create output states
         for k, v in conf['params']['inputs'].items():
-            print "%s.init inkeys %s" % (self.__class__.__name__, k)
-            print "IBlock2 conf['params'] keys", conf['params'].keys()
-            print "IBlock2 conf['params']['outputs'] keys = %s" % (conf['params']['outputs'].keys(), ) # ["I%s" % k]
+            logger.debug('%s.init inkeys %s', self.__class__.__name__, k)
+            logger.debug('IBlock2 conf[\'params\'] keys = %s', conf['params'].keys())
+            logger.debug('IBlock2 conf[\'params\'][\'outputs\'] keys = %s' % (conf['params']['outputs'].keys(), )) # ["I%s" % k]
             outk = 'I%s' % (k, )
             busk = conf['params']['inputs'][k]
-            # print "IBlock2 outk = %s, busk = %s" % (outk, busk, )
+            # logger.debug('IBlock2 outk = %s, busk = %s" % (outk, busk, )
             if conf['params']['outputs'].has_key(outk):
                 # conf['params']['outputs'][outk] = {'shape': top.bus[busk['bus']].shape} # ['val'].shape]}
                 pass
@@ -3008,7 +3010,7 @@ class IBlock2(PrimBlock2):
             
         PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
-        # print "IBlock2 outputs", self.outputs
+        # logger.debug('IBlock2 outputs", self.outputs
         
         if hasattr(self, 'leak'):# and self.leak > 0.0:
             self.step = self.step_leak
@@ -3047,7 +3049,7 @@ class IBlock2(PrimBlock2):
             # setattr(self, outk, getattr(self, outk) + (self.inputs[ink][0] * 1.0))
             # multi step / batch
             setattr(self, outk, Iin)
-            print "IBlock2.step[%d] self.%s = %s / %s" % (self.cnt, outk, getattr(self, outk).shape, self.outputs[outk]['shape'])
+            logger.debug('IBlock2.step[%d] self.%s = %s / %s' % (self.cnt, outk, getattr(self, outk).shape, self.outputs[outk]['shape']))
 
 class dBlock2(PrimBlock2):
     """dBlock2 class

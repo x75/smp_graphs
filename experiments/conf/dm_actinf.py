@@ -1,16 +1,27 @@
-"""actinf_m1_goal_error_ND.py
+"""dm_actinf.py
 
-smp_graphs config for experiment
+Developmental model: *actinf*, smp_graphs configured for base
+experiment
 
-    active inference
-    model type 1 (goal error)
-    simple n-dimensioal system (point mass, simple n-joint arm)
+Variations:
+- actinf variant: M1: goal and goal error, M2: goal error only, M3: ?
+- data dimensionality: 1, 2, 3, ..., N?
+- proprioceptive space upwards: include extero
+- Temporal embedding configured with lag* parameters to system and
+  models
 
-from actinf/active_inference_basic.py --mode m1_goal_error_nd
+TODO:
+- FIXME: target function properties like: frequency matched to body
+  (attainable / not attainable)
+- FIXME: learning rate: eta
+- FIXME: priors: limits, learn the sensorimotor limits
+- FIXME: priors: tapping, learn tapping
+- FIXME: x insert measure_mse, x insert measure_moments, x insert
+  measure_accumulated_error
 
-Model variant M1, n-dimensional data, proprioceptive space
-
-Temporal embedding configured with lag* parameters to system and models
+Log:
+- renamed from dm_actinf_m1_goal_error_ND_embedding.py
+- ported from actinf/active_inference_basic.py --mode m1_goal_error_nd
 """
 
 import copy
@@ -27,13 +38,7 @@ from smp_graphs.block_cls_ros import STDRCircularBlock2, LPZBarrelBlock2, Sphero
 
 from smp_graphs.funcs import f_meshgrid, f_meshgrid_mdl, f_random_uniform, f_sin_noise
 
-# robustness
-# FIXME: target properties like frequency matched to body (attainable / not attainable)
-# FIXME: eta
-# FIXME: priors: limits, learn the sensorimotor limits
-# FIXME: priors: tapping, learn tapping
-
-# FIXME: x insert measure_mse, x insert measure_moments, x insert measure_accumulated_error
+from smp_graphs.utils_conf import get_systemblock
 
 # execution
 saveplot = False
@@ -45,22 +50,6 @@ ros = False # True
 # experiment
 commandline_args = ['numsteps']
 randseed = 12348
-numsteps = int(10000/5)
-loopblocksize = numsteps
-sysname = 'pm'
-# sysname = 'sa'
-# sysname = 'bha'
-# sysname = 'stdr'
-# sysname = 'lpzbarrel'
-# sysname = 'sphero'
-# dim = 3 # 2, 1
-# dim = 9 # bha
-
-outputs = {
-    'latex': {'type': 'latex',},
-}
-
-from smp_graphs.utils_conf import get_systemblock
 
 ################################################################################
 # experiment variations
@@ -70,8 +59,37 @@ from smp_graphs.utils_conf import get_systemblock
 # - dimensions
 # - number of modalities
     
-systemblock = get_systemblock[sysname](
-    lag = 0, dim_s0 = 2, dim_s1 = 2)
+lconf = {
+    'numsteps': int(10000/5),
+    'sys': {
+        'name': 'pm',
+        'lag': 0,
+        'dim_s0': 2,
+        'dim_s1': 2,
+    },
+    'motivation_i': 0,
+}
+lconf['systemblock'] = get_systemblock[lconf['sys']['name']](**lconf['sys'])
+
+numsteps = lconf['numsteps']
+loopblocksize = numsteps
+
+sysname = lconf['sys']['name']
+# sysname = 'pm'
+# sysname = 'sa'
+# sysname = 'bha'
+# sysname = 'stdr'
+# sysname = 'lpzbarrel'
+# sysname = 'sphero'
+# dim = 3 # 2, 1
+# dim = 9 # bha
+    
+outputs = {
+    'latex': {'type': 'latex',},
+}
+
+# get systemblock
+systemblock = lconf['systemblock']
 
 # print "systemblock", systemblock
 dim_s0 = systemblock['params']['dims']['s0']['dim']
@@ -133,17 +151,26 @@ eta = 0.7
 desc = """An exemplary experiment involving a developmental episode of
 {0} steps of actinf agent.""".format(numsteps)
 
+# motivations
+from smp_graphs.utils_conf import dm_motivations
+motivations = dm_motivations(m_mins, m_maxs, dim_s0, dt)
+motivation_i = lconf['motivation_i']
+    
 def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
     global partial
     global PlotBlock2, numsteps, timeseries, algo, dim_s1, dim_s0, sysname, lag, lag_past, lag_future, saveplot
+    global motivations, motivation_i
+    goal = motivations[motivation_i][1]['params']['models']['goal']['type']
     return {
     'block': PlotBlock2,
     'params': {
         'blocksize': blocksize,
         'saveplot': saveplot,
         # 'debug': True,
-        'title': '%s\nalgo %s, sys %s(d_p=%d), lag %d, tap- %s, tap+ %s' % (
-            'dm actinf m1', algo, sysname, dim_s0, lag, lag_past, lag_future),
+        'title': '%s\nalgo %s, sys %s(dim_p=%d), goal = %s, lag %d, tap- %s, tap+ %s' % (
+            'dm actinf', algo, sysname, dim_s0, goal, lag, lag_past, lag_future),
+        'desc': """An {1} agent learning to control a {0}-dimensional {2}
+            system using the {3} low-level algorithm.""".format(dim_s0, 'actinf', sysname, algo),
         'inputs': {
             'goals': {'bus': '%s/pre' % (l1,), 'shape': (dim_s0, blocksize)},
             'pre':   {'bus': '%s/pre' % (l0,), 'shape': (dim_s0, blocksize)},
@@ -157,38 +184,74 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
         'hspace': 0.2,
         'subplots': [
             [
-                {'input': ['goals', 's0'], 'plot': partial(timeseries, marker='.')},
+                {
+                    'input': ['err',], 'plot': partial(timeseries, marker='.'),
+                    'title': 'Momentary prediction error',
+                    'legend': {'e(s_p)': 0},
+                    'xticks': False,
+                },
             ],
+            
             [
-                {'input': ['goals', 'pre', 's0'], 'plot': partial(timeseries, marker='.')},
+                {
+                    'input': ['goals', 's0', 'pre'],
+                    'plot': [partial(timeseries, marker='.')] * 3,
+                    'title': 'Goal, state, and prediction',
+                    'legend': {'Goal': 0, 'State': dim_s0, 'State_p': 2*dim_s0},
+                    'xticks': False,
+                }
             ],
+            
             # [
-            #     {'input': ['s0'], 'plot': partial(timeseries, marker='.')},
+            #     {
+            #         'input': ['goals', 'pre', 's0'],
+            #         'plot': partial(timeseries, marker='.')
+            #     },
             # ],
-            # [
-            #     {'input': ['pre'], 'plot': partial(timeseries, marker='.')},
-            # ],
-            # [
-            #     {'input': ['pre'], 'plot': timeseries},
-            # ],
+            
             [
-                {'input': ['err',], 'plot': partial(timeseries, marker='.')},
+                {
+                    'input': ['X_fit'], 'plot': partial(timeseries, marker='.'),
+                    'title': 'Model %s input $\mathbf{X}$' % (algo),
+                    'legend': {'X_pre_l1': 0, 'X_prerr_l0': dim_s0},
+                },
             ],
+            
             [
-                {'input': ['mse_s_p_accum',], 'plot': partial(timeseries, marker='.')},
-            ],
-            [
-                {'input': ['X_fit'], 'plot': partial(timeseries, marker='.')},
-            ],
-            [
-                {'input': ['tgt'], 'plot': partial(timeseries, marker='.')},
+                {
+                    'input': ['tgt'], 'plot': partial(timeseries, marker='.'),
+                    'title': 'Model %s input $\mathbf{Y}$' % (algo),
+                    'legend': {'Y_tgt': 0},
+                },
             ],
             # [
             #     {'input': ['s0', 's1'], 'plot': timeseries},
             # ],
-            ]
-        }
-    }
+            
+            # [
+            #     {
+            #         'input': ['hidden'], 'plot': partial(timeseries, marker = '.'),
+            #         'title': 'Model %s hidden activation $\mathbf{Z}$' % (algo),
+            #         # FIXME: knn particulars
+            #         'legend': {'Z_dist': 0, 'E(Z_dist)': 5, 'Z_idx': 6},
+            #         'xticks': False,
+            #     },
+            # ],
+            
+            # [
+            #     {
+            #         'input': ['wo_norm', 'wo_norm_fwd'], 'plot': partial(timeseries, marker = '.'),
+            #         'title': 'Model %s parameter norm (accumulated adaptation)' % (algo),
+            #         'legend': {'|W|': 0}
+            #     },
+            # ],
+            
+            [
+                {'input': ['mse_s_p_accum',], 'plot': partial(timeseries, marker='.')},
+            ],
+            
+        ],
+    }}
 
 """
 sweep system subgraph
@@ -574,7 +637,7 @@ graph = OrderedDict([
         
     # system block from definition elsewhere
     ('robot1', systemblock),
-    
+
     # learning experiment
     ('brain_learn_proprio', {
         'block': Block2,
@@ -583,88 +646,26 @@ graph = OrderedDict([
             'blocksize': 1,
             'graph': OrderedDict([
 
-                # # goal sampler (motivation) sample_discrete_uniform_goal
-                # ('pre_l1', {
-                #     'block': ModelBlock2,
-                #     'params': {
-                #         'blocksize': 1,
-                #         'blockphase': [0],
-                #         'inputs': {                        
-                #             'lo': {'val': m_mins, 'shape': (dim_s0, 1)},
-                #             'hi': {'val': m_maxs, 'shape': (dim_s0, 1)},
-                #             },
-                #         'outputs': {'pre': {'shape': (dim_s0, 1)}},
-                #         'models': {
-                #             'goal': {'type': 'random_uniform'}
-                #             },
-                #         'rate': 40,
-                #         },
-                #     }),
-
                 ('cnt', {
                     'block': CountBlock2,
                     'params': {
                         'blocksize': 1,
-                        'debug': False,
-                        'inputs': {},
+                        # 'debug': True,
+                        # 'inputs': {},
                         'outputs': {'x': {'shape': (dim_s0, 1)}},
                         },
-                    }),
+                }),
 
-                # a random number generator, mapping const input to hi
+                # generic block configured with subgraph on demand
                 ('pre_l1', {
-                    'block': FuncBlock2,
+                    'block': Block2,
                     'params': {
-                        'id': 'pre_l1',
-                        'outputs': {'pre': {'shape': (dim_s0, 1)}},
-                        'debug': False,
-                        'ros': ros,
+                        'numsteps': numsteps,
                         'blocksize': 1,
-                        # 'inputs': {'lo': [0, (3, 1)], 'hi': ['b1/x']}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
-                        # recurrent connection
-                        'inputs': {
-                            'x': {'bus': 'cnt/x'},
-                            # 'f': {'val': np.array([[0.2355, 0.2355]]).T * 1.0}, # good with knn and eta = 0.3
-                            # 'f': {'val': np.array([[0.23538, 0.23538]]).T * 1.0}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.45]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.225]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
-
-                            # barrel
-                            # 'f': {'val': np.array([[0.23539]]).T * 10.0 * dt}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.23539]]).T * 7.23 * dt}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.23539]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.23539]]).T * 2.9 * dt}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.23539]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
-
-                            # pointmass
-                            'f': {'val': np.array([[0.23539]]).T * 0.2 * dt}, # good with soesgp and eta = 0.7
-                            
-                            # 'f': {'val': np.array([[0.23539, 0.2348, 0.14]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
-                            # 'f': {'val': np.array([[0.14, 0.14]]).T * 1.0},
-                            # 'f': {'val': np.array([[0.82, 0.82]]).T},
-                            # 'f': {'val': np.array([[0.745, 0.745]]).T},
-                            # 'f': {'val': np.array([[0.7, 0.7]]).T},
-                            # 'f': {'val': np.array([[0.65, 0.65]]).T},
-                            # 'f': {'val': np.array([[0.39, 0.39]]).T},
-                            # 'f': {'val': np.array([[0.37, 0.37]]).T},
-                            # 'f': {'val': np.array([[0.325, 0.325]]).T},
-                            # 'f': {'val': np.array([[0.31, 0.31]]).T},
-                            # 'f': {'val': np.array([[0.19, 0.19]]).T},
-                            # 'f': {'val': np.array([[0.18, 0.181]]).T},
-                            # 'f': {'val': np.array([[0.171, 0.171]]).T},
-                            # 'f': {'val': np.array([[0.161, 0.161]]).T},
-                            # 'f': {'val': np.array([[0.151, 0.151]]).T},
-                            # 'f': {'val': np.array([[0.141, 0.141]]).T},
-                            # stay in place
-                            # 'f': {'val': np.array([[0.1, 0.1]]).T},
-                            # 'f': {'val': np.array([[0.24, 0.24]]).T},
-                            # 'sigma': {'val': np.array([[0.001, 0.002]]).T}}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
-                            'sigma': {'val': np.random.uniform(0, 0.01, (dim_s0, 1))},
-                            'offset': {'val': m_mins + (m_maxs - m_mins)/2.0},
-                            'amp': {'val': (m_maxs - m_mins)/2.0},
-                        }, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
-                        'func': f_sin_noise,
-                    },
+                        # 'subgraph': OrderedDict([motivations[0]]),
+                        'subgraph': OrderedDict([motivations[motivation_i]]),
+                        'subgraph_rewrite_id': False,
+                    }
                 }),
                 
                 # dev model actinf_m1: learner is basic actinf predictor proprio space learn_proprio_base_0

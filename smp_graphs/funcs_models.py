@@ -250,6 +250,55 @@ def init_polyexp(ref, mref, conf, mconf):
 
 def step_polyexp(ref, mref, *args, **kwargs):
     setattr(mref, 'y', mref.polyexpnode.execute(ref.inputs['x']['val'].T).T)
+
+# model func: function generator model
+def init_function_generator(ref, mref, conf, mconf):
+    params = conf['params']
+    # function
+    func_ = mconf['func']
+    if type(func_) is str:
+        # eval string
+        ref.func = eval(func_)
+    else:
+        ref.func = func_
+    ref.funcargs = {}
+
+    # outputs
+    for outk, outv in params['outputs'].items():
+        lo = -np.ones(( outv['shape'] ))
+        hi = np.ones(( outv['shape'] ))
+        setattr(ref, outk, np.zeros(outv['shape']))
+        logger.debug('init_function_generator %s = %s' % (outk, getattr(ref, outk)))
+
+def step_function_generator(ref, mref, *args, **kwargs):
+    # logger.debug('step_function_generator[%d]' % (ref.cnt))
+    if hasattr(ref, 'rate'):
+        if (ref.cnt % ref.rate) not in ref.blockphase: return
+
+    # # copy inputs to function arguments
+    # for ink in ref.inputs:
+    #     ref.funcargs[ink] = ref.get_input(ink)
+
+    # evaluate function
+    funcval = ref.func(ref.inputs)
+    
+    for outk, outv in ref.outputs.items():
+        setattr(ref, outk, funcval)
+        # logger.debug('step_function_generator outk %s = %s' % (outk, getattr(ref, outk)))
+        
+        # if ref.cnt % (ref.rate * 1) == 0:
+        #     # print ref.__class__.__name__, ref.id, "lo, hi, out shapes", lo.shape, hi.shape, outv['shape']
+        #     setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
+        # else:
+        #     setattr(ref, outk, np.random.uniform(-1e-3, 1e-3, size = outv['shape']))
+        
+        # setattr(ref, outk, np.random.choice([-1.0, 1.0], size = outv['shape']))
+        
+        # np.random.uniform(lo, hi, size = outv['shape']))
+        # print "%s-%s[%d]model.step_function_generator %s = %s" % (
+        #     ref.cname, ref.id, ref.cnt, outk, getattr(ref, outk))
+        # print "block_models.py: function_generator_step %s = %s" % (outk, getattr(ref, outk))
+
     
 def init_random_lookup(ref, mref, conf, mconf):
     """random_lookup: init and setup
@@ -392,7 +441,9 @@ def step_random_uniform(ref, mref, *args, **kwargs):
     hi = ref.inputs['hi']['val'] # .T
     for outk, outv in ref.outputs.items():
         if ref.cnt % (ref.rate * 1) == 0:
-            # print ref.__class__.__name__, ref.id, "lo, hi, out shapes", lo.shape, hi.shape, outv['shape']
+            # logger.debug('lo = %s, hi = %s, out = %s', lo.shape, hi.shape, outv['shape'])
+            assert lo.shape == hi.shape, "lo/hi shapes need to agree %s/%s" % (lo.shape, hi.shape)
+            assert lo.shape == outv['shape'], "lo/hi and out shapes need to agree %s/%s" % (lo.shape, outv['shape'])
             setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
         else:
             setattr(ref, outk, np.random.uniform(-1e-3, 1e-3, size = outv['shape']))
@@ -402,7 +453,8 @@ def step_random_uniform(ref, mref, *args, **kwargs):
         # np.random.uniform(lo, hi, size = outv['shape']))
         # print "%s-%s[%d]model.step_random_uniform %s = %s" % (
         #     ref.cname, ref.id, ref.cnt, outk, getattr(ref, outk))
-        # print "block_models.py: random_uniform_step %s = %s" % (outk, getattr(ref, outk))
+        
+        # logger.debug('step_random_uniform %s = %s', outk, getattr(ref, outk))
 
 # model func: random_uniform_pi_2 model
 def init_random_uniform_pi_2(ref, conf, mconf):
@@ -1465,6 +1517,10 @@ def step_imol_update_prerr_l0(ref, mref, mk, *args, **kwargs):
     tmp_[...,[-1]] = err_
     setattr(ref, 'prerr_l0_%s' % mk, tmp_)
 
+    # fit error meas_now - meas_then?
+    err_2 = ref.get_input('meas_l0')[...,[-1]] - ref.get_input('meas_l0')[...,[ref.mdl[mk]['lag_off_f2p']]]
+    setattr(ref, 'prerr_l0_%s' % 'invfit', err_2)
+    
 def step_imol_update_prerr_l0_2(ref, mref, mk, *args, **kwargs):
     # update current local predicition error
     err_ = ref.get_input('pre_l0_fwd')[...,[-ref.mdl['fwd']['lag_off_f2p']]] - ref.get_input('meas_l0')[...,[-1]]
@@ -2381,19 +2437,25 @@ class model(object):
         'msr': {'init': init_msr, 'step': step_msr},
         'res': {'init': init_res, 'step': step_res},
         'polyexp': {'init': init_polyexp, 'step': step_polyexp},
-        'random_lookup': {'init': init_random_lookup, 'step': step_random_lookup},
+        'random_lookup': {
+            'init': init_random_lookup, 'step': step_random_lookup},
         # budget
-        'budget_linear': {'init': init_budget, 'step': step_budget},
+        'budget_linear': {
+            'init': init_budget, 'step': step_budget},
         # constants
         'alternating_sign': {
             'init': init_alternating_sign, 'step': step_alternating_sign},
+        # function generators
+        'function_generator': {
+            'init': init_function_generator, 'step': step_function_generator},
         # active randomness
         'random_uniform': {
             'init': init_random_uniform, 'step': step_random_uniform},
         'random_uniform_pi_2': {
             'init': init_random_uniform_pi_2, 'step': step_random_uniform_pi_2},
         'random_uniform_modulated': {
-            'init': init_random_uniform_modulated, 'step': step_random_uniform_modulated},
+            'init': init_random_uniform_modulated,
+            'step': step_random_uniform_modulated},
         # smp model
         'smpmodel': {'init': init_smpmodel, 'step': step_smpmodel},
         # closed-loop models

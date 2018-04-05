@@ -1,4 +1,6 @@
 """Reuse and modify dm_imol
+
+Obsolete: overwrite with expr0400_dm_actinf_variation.py template
 """
 graphconf = 'conf/dm_imol.py'
 debug = False

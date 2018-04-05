@@ -159,7 +159,7 @@ class ModelBlock2(PrimBlock2):
         # self.lag = 1
 
         # s_ = super(ModelBlock2, self)
-        # self.logger.info('super = %s, %s', type(s_), s_.__class__.__name__)
+        self.logger.debug('params.models = %s', params['models'])
 
         # initialize model
         self.nummodels = len(params['models'])
