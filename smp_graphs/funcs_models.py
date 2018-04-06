@@ -1113,7 +1113,7 @@ def step_actinf_2(ref, mref, *args, **kwargs):
     # prerr_t  = pre_l1_{lagf[0] - lag_off, lagf[1] - lag_off} - meas_l0_{lagf[0], lagf[1]}    
     def tapping_prerr_fit(ref):
         # prerr_fit = tap(ref, 'pre_l1', tap_tupoff(ref.lag_future, -ref.lag_off)) - tap(ref, 'meas_l0', ref.lag_future)
-        goal_ = tap(ref, 'pre_l1', ref.lag_future, -ref.lag_off, 'inputs')
+        goal_ = tap(ref, 'pre_l1', ref.lag_future, -ref.lag_off - 1, 'inputs')
         meas_ = tap(ref, 'meas_l0', ref.lag_future, 0, 'inputs')
         # logger.debug('tapping_prerr_fit goal = %s, meas = %s', goal_, meas_)
         prerr_fit = goal_ - meas_
@@ -1150,7 +1150,7 @@ def step_actinf_2(ref, mref, *args, **kwargs):
 
     # prerr_t  = pre_l1_{lagf[0] - lag_off, lagf[1] - lag_off} - meas_l0_{lagf[0], lagf[1]}
     def tapping_prerr_predict(ref):
-        prerr_predict = tap(ref, 'pre_l1', ref.lag_past) - tap(ref, 'meas_l0', tap_tupoff(ref.lag_past, ref.lag_off))
+        prerr_predict = tap(ref, 'pre_l1', ref.lag_past, -1) - tap(ref, 'meas_l0', tap_tupoff(ref.lag_past, ref.lag_off))
         return (prerr_predict, )
     
     def tapping_pre_l1_predict(ref):
@@ -1543,14 +1543,18 @@ def step_imol_update_pre_l0(ref, mref, mk, *args, **kwargs):
 def step_imol_update_prerr_l0(ref, mref, mk, *args, **kwargs):
     # mk was inv
     # compute current prediction error
-    err_ = ref.get_input('pre_l1')[...,[-ref.mdl[mk]['lag_off_f2p']]] - ref.get_input('meas_l0')[...,[-1]]
+    err_ = ref.get_input('pre_l1')[...,[-ref.mdl[mk]['lag_off_f2p'] - 1]] - ref.get_input('meas_l0')[...,[-1]]
     tmp_ = np.roll(ref.get_input('prerr_l0'), shift=-1, axis=-1).copy()
     tmp_[...,[-1]] = err_
     setattr(ref, 'prerr_l0_%s' % mk, tmp_)
 
     # fit error meas_now - meas_then?
+    if not hasattr(ref, 'prerr_l0_%s' % 'invfit'):
+        setattr(ref, 'prerr_l0_%s' % 'invfit', np.zeros_like(tmp_))
+    tmp_2 = np.roll(getattr(ref, 'prerr_l0_%s' % 'invfit'), shift=-1, axis=-1)
     err_2 = ref.get_input('meas_l0')[...,[-1]] - ref.get_input('meas_l0')[...,[ref.mdl[mk]['lag_off_f2p']]]
-    setattr(ref, 'prerr_l0_%s' % 'invfit', err_2)
+    tmp_2[...,[-1]] = err_2
+    setattr(ref, 'prerr_l0_%s' % 'invfit', tmp_2)
     
 def step_imol_update_prerr_l0_2(ref, mref, mk, *args, **kwargs):
     # update current local predicition error
@@ -2283,8 +2287,11 @@ def step_eh(ref, mref, *args, **kwargs):
     # print "hidden", hidden.shape
     setattr(ref, 'hidden', hidden)
 
+    wo_norm = np.linalg.norm(ref.mdl.model.wo, keepdims=True)
+    setattr(ref, 'wo_norm', wo_norm)
+    
     if ref.cnt % 500 == 0:
-        print "iter[%d]: |W_o| = %f, eta = %f" % (ref.cnt, np.linalg.norm(ref.mdl.model.wo), ref.mdl.eta, )
+        print "iter[%d]: |W_o| = %f, eta = %f" % (ref.cnt, wo_norm, ref.mdl.eta, )
     
     # return to execute prediction on system and wait for new measurement
 

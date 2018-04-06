@@ -46,6 +46,17 @@ def get_systemblock_pm(
     if dim_s1 is not None:
         dims['s1'] = {'dim': dim_s1, 'dist': 0}
 
+    # tapping conf from lag
+    if 'lag_past' in kwargs:
+        lag_past = kwargs['lag_past']
+    else:
+        lag_past = (-lag -2, -lag - 1)
+        
+    if 'lag_future' in kwargs:
+        lag_future = kwargs['lag_future']
+    else:
+        lag_future = (-1, 0)
+        
     # print("dims = %s" % (dims, ))
         
     # FIXME: disentangle block conf from sys conf?
@@ -70,6 +81,7 @@ def get_systemblock_pm(
             'dt': 0.1,
             # memory 
             'order': 1,
+            # this is the real lag applied in the simulation
             'lag': lag,
             'mass': 1.0,
             # distortion
@@ -91,9 +103,10 @@ def get_systemblock_pm(
             
             # ground truth information for configuring the model, FIXME: make model autonomous with resp. to these params
             # memory, time: tapping
-            'lag_past': (-4, -3),
-            # 'lag_past': (-2, -1),
-            'lag_future': (-1, 0),
+            # 'lag_past': (-4, -3),
+            # 'lag_future': (-1, 0),
+            'lag_past': lag_past,
+            'lag_future': lag_future,
             
             # low-level params
             'mdl_modelsize': 300,

@@ -66,7 +66,9 @@ def tap(ref, inkey = None, lag = None, off = 0, source='inputs', outidx=None):
         return ref.inputs[inkey]['val'][...,tapping].copy()
     elif source == 'attr':
         # inkey_ = 'mref_%s' % inkey
-        # logger.debug('tap inkey = %s', inkey)
+        # logger.debug('tap attr = %s, tapping = %s', inkey, tapping)
+        # FIXME: make these tapped attrs equal in shape so that tapping spec doesn't break
+        #        or fix in some better way
         ref_attr = getattr(ref, inkey)
         return ref_attr[...,tapping].copy()
     else:

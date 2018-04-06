@@ -54,7 +54,7 @@ randseed = 12355
 
 lconf = {
     # execution and global
-    'numsteps': int(10000/5),
+    'numsteps': int(10000/4),
     
     # system
     'sys': {
@@ -947,12 +947,12 @@ graph = OrderedDict([
                             },
                             'pre_l0_fwd': {
                                 'bus': 'pre_l0/pre_fwd',
-                                'shape': (dim_s0, maxlag),
+                                'shape': (dim_s0 * (lag_future[1] - lag_future[0]), maxlag),
                                 'lag': range(lag_past[0] + 1, lag_past[1] + 1),
                             },
                             'prerr_l0_fwd': {
                                 'bus': 'pre_l0/prerr_fwd',
-                                'shape': (dim_s0, maxlag),
+                                'shape': (dim_s0 * (lag_future[1] - lag_future[0]), maxlag),
                                 'lag': range(lag_past[0] + 1, lag_past[1] + 1),
                             },
                         },

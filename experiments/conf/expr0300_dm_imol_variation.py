@@ -39,6 +39,8 @@ lconf = {
         'lag': 2,
         'dim_s0': 2,
         'dim_s1': 2,
+        'lag_past': (-4, -3),
+        'lag_future': (-1, 0),
     },
     
     # motivation

@@ -542,6 +542,7 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             'err':   {'bus': '%s/err' % (l0,), 'shape': (dim_s0, blocksize)},
             'tgt':   {'bus': '%s/tgt' % (l0,), 'shape': (dim_s0, blocksize)},
             'hidden':   {'bus': '%s/hidden' % (l0,), 'shape': (dim_s_hidden_debug, blocksize)},
+            'wo_norm':   {'bus': '%s/wo_norm' % (l0,), 'shape': (1, blocksize)},
             's0':    {'bus': 'robot1/s0', 'shape': (dim_s0, blocksize)},
             's1':     {'bus': 'robot1/s1',  'shape': (dim_s1, blocksize)},
             },
@@ -581,6 +582,15 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
                     'plot': partial(timeseries, marker='.'),
                     'title': 'Hidden activation of reservoir $\mathbf{r}$ (partial)',
                     'legend': {'$\mathbf{r}$': 0},
+                }
+            ],
+            
+            [
+                {
+                    'input': ['wo_norm'],
+                    'plot': partial(timeseries, marker='.'),
+                    'title': 'Model %s parameter norm (accumulated adaptation)' % (algo),
+                    'legend': {'$|\mathbf{W}_o|$': 0}
                 }
             ],
             
@@ -1210,21 +1220,25 @@ graph = OrderedDict([
                                 'bus': 'pre_l1/pre',
                                 # 'shape': (dim_s0, maxlag), 'lag': range(-maxlag, -minlag)},
                                 'shape': (dim_s0, maxlag_x), 'lag': range(lag_past[0], lag_past[1])},
+                                
                             # ascending prediction error
                             'pre_l0': {
                                 'bus': 'pre_l0/pre',
                                 # 'shape': (dim_s0, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)},
                                 'shape': (dim_s0, maxlag), 'lag': range(lag_past[0] + 1, lag_past[1] + 1)},
+                                
                             # ascending prediction error
                             'prerr_l0': {
                                 'bus': 'pre_l0/err',
                                 # 'shape': (dim_s0, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)},
                                 'shape': (dim_s0, maxlag), 'lag': range(lag_past[0] + 1, lag_past[1] + 1)},
+                                
                             # measurement
                             'meas_l0': {
                                 'bus': 'robot1/s0',
                                 # 'shape': (dim_s0, maxlag), 'lag': range(-laglen, 0)}
-                                'shape': (dim_s0, maxlag_x), 'lag': range(lag_future[0], lag_future[1])}
+                                'shape': (dim_s0, maxlag_x), 'lag': range(lag_future[0], lag_future[1])},
+                                
                             },
                         'outputs': {
                             'pre': {'shape': (dim_s0, 1)},
@@ -1232,9 +1246,11 @@ graph = OrderedDict([
                             'perflp': {'shape': (dim_s0, 1)},
                             'tgt': {'shape': (dim_s0, 1)},
                             'hidden': {'shape': (dim_s_hidden_debug, 1)},
-                            },
+                            'wo_norm': {'shape': (1, 1)},
+                        },
+                        
                         'models': {
-                            
+                            # eh model conf
                             'm1': {
                                 'type': 'eh',
                                 'lrname': 'eh',
