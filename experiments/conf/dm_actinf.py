@@ -60,19 +60,42 @@ randseed = 12348
 # - number of modalities
     
 lconf = {
+    # execution and global
     'numsteps': int(10000/5),
+    # system
     'sys': {
         'name': 'pm',
         'lag': 0,
         'dim_s0': 2,
         'dim_s1': 2,
     },
+    # motivation
     'motivation_i': 0,
+    # models
+    # learning modulation
+    'lm' : {
+        'washout': 200,
+        'thr_predict': 200,
+        'fit_offset': 200,
+        # start stop in ratios of episode length numsteps
+        'r_washout': (0.0, 0.1),
+        'r_train': (0.1, 0.8),
+        'r_test': (0.8, 1.0),
+    }
 }
 lconf['systemblock'] = get_systemblock[lconf['sys']['name']](**lconf['sys'])
 
 numsteps = lconf['numsteps']
 loopblocksize = numsteps
+
+# learning modulation
+for k in list(lconf['lm']):
+    if not k.startswith('r_'): continue
+    k_ = k.replace('r_', 'n_')
+    r0 = lconf['lm'][k][0] * lconf['numsteps']
+    r1 = lconf['lm'][k][1] * lconf['numsteps']
+    # lconf['lm'][k_] = range(int(r0), int(r1))
+    lconf['lm'][k_] = (int(r0), int(r1))
 
 sysname = lconf['sys']['name']
 # sysname = 'pm'
@@ -232,6 +255,16 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
                     'xticks': False,
                 },
             ],
+            
+            [
+                {
+                    'input': ['mse_s_p_accum',],
+                    'plot': partial(timeseries, marker='.'),
+                    'title': 'Accumulated error',
+                    'legend': {'$\sum$ err': 0},
+                }
+            ],
+            
             # [
             #     {'input': ['s0', 's1'], 'plot': timeseries},
             # ],
@@ -253,14 +286,6 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             #         'legend': {'|W|': 0}
             #     },
             # ],
-            
-            [
-                {
-                    'input': ['mse_s_p_accum',],
-                    'plot': partial(timeseries, marker='.')},
-                    'title': 'Accumulated error',
-                    'legend': {'$\sum$ err': 0},
-            ],
             
         ],
     }}
@@ -736,6 +761,10 @@ graph = OrderedDict([
                                 'eta': eta,
                                 # 'laglen_past': lag_past[1] - lag_past[0],
                                 # 'laglen_future': lag_future[1] - lag_future[0],
+                                # learning modulation
+                                'n_washout': lconf['lm']['n_washout'],
+                                'n_train': lconf['lm']['n_train'],
+                                'n_test': lconf['lm']['n_test'],
                             },
                                 
                             # 'm2': {

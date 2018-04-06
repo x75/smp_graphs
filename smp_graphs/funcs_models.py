@@ -81,6 +81,28 @@ def array_fix(a = None, col = True):
         else:
             return a
 
+# test for learning modulation
+def isindevelphase(cnt, model, phase='n_train'):
+    # logger.debug('isindevelphase model = %s, phase = %s', dir(model), phase)
+    if hasattr(model, phase):
+        r0 = getattr(model, phase)[0]
+        r1 = getattr(model, phase)[1]
+    else:
+        r0 = model[phase][0]
+        r1 = model[phase][1]
+    return r0 <= cnt < r1
+
+def istraining(cnt, model):
+    return isindevelphase(cnt, model, 'n_train')
+        
+def iswashouting(cnt, model):
+    # return model['n_washout'][0] <= cnt < model['n_washout'][1]
+    return isindevelphase(cnt, model, 'n_washout')
+        
+def istesting(cnt, model):
+    # return model['n_test'][0] <= cnt < model['n_test'][1]
+    return isindevelphase(cnt, model, 'n_test')
+        
 # def init_identity(ref):
 #     return None
                         
@@ -613,7 +635,7 @@ smpmodel_defaults = {'algo': 'knn', 'idim': 1, 'odim': 1}
         
 # used by: actinf, imol, homeokinesis, e2p, eh (FIXME: rename reward)
 def init_smpModel(ref, mref, conf, mconf):
-    """block_models.init_smpModel
+    """init_smpModel
 
     Initialize an smp model for use in an agent self-exploration and
     learning model.
@@ -651,7 +673,7 @@ def init_smpModel(ref, mref, conf, mconf):
 
     if not HAVE_SOESGP:
         algo = "knn"
-        print "soesgp/storkgp not available, defaulting to knn"
+        logger.warning('soesgp/storkgp not available, defaulting to knn')
             
     if algo == "knn":
         # mdl = KNeighborsRegressor(n_neighbors=5)
@@ -917,6 +939,10 @@ def tapping_EH(
 # active inference model
 # model func: actinf_m2
 def init_actinf(ref, mref, conf, mconf):
+    """init_actinf
+
+    Initialize active inference model
+    """
     # params = conf['params']
     # hi = 1
     # for outk, outv in params['outputs'].items():
@@ -957,7 +983,10 @@ def init_actinf(ref, mref, conf, mconf):
     ref.mdl = init_smpModel(ref, mref, conf, mconf)
     
 def step_actinf(ref, mref, *args, **kwargs):
+    """step_actinf
 
+    compute one step of active inference algorithm
+    """
     # get prediction taps
     (pre_l1, pre_l0, meas_l0, prerr_l0, prerr_l0_, prerr_l0__, prerr_l0___) = ref.tapping_SM(ref)
     # get model fit taps
@@ -1070,9 +1099,9 @@ def step_actinf(ref, mref, *args, **kwargs):
 ################################################################################
 # step_actinf_2
 def step_actinf_2(ref, mref, *args, **kwargs):
-    """block_models.step_actinf_2
+    """step_actinf_2
 
-    Step the actinf model, version 2, lean tapping code
+    Compute on step of the actinf model, version 2, lean tapping code
 
     # FIXME: single time slice taps only: add flattened version, reshape business
     # FIXME: what's actinf specific, what's general?
@@ -1089,7 +1118,6 @@ def step_actinf_2(ref, mref, *args, **kwargs):
         # logger.debug('tapping_prerr_fit goal = %s, meas = %s', goal_, meas_)
         prerr_fit = goal_ - meas_
         return (prerr_fit, )
-
     
     # pre_l0_t = pre_l0_{lagf[0] - lag_off + 1, lagf[1] - lag_off + 1}
     def tapping_pre_l0_fit(ref):
@@ -1117,7 +1145,8 @@ def step_actinf_2(ref, mref, *args, **kwargs):
     # get data and fit the model
     X_fit_flat, Y_fit_flat, prerr_fit_flat = tapping_XY_fit(ref)
     # logger.debug('X_fit_flat = %s, Y_fit_flat = %s, prerr_fit_flat = %s', X_fit_flat.T, Y_fit_flat.T, prerr_fit_flat.T)
-    ref.mdl.fit(X_fit_flat.T, Y_fit_flat.T)
+    if istraining(ref.cnt, ref.mdl):
+        ref.mdl.fit(X_fit_flat.T, Y_fit_flat.T)
 
     # prerr_t  = pre_l1_{lagf[0] - lag_off, lagf[1] - lag_off} - meas_l0_{lagf[0], lagf[1]}
     def tapping_prerr_predict(ref):
@@ -1454,6 +1483,8 @@ def init_imol(ref, mref, conf, mconf):
         ref.mdl[mk]['func_step'] = func_steps[mk]
         # set random additional ad-hoc params
         ref.mdl[mk]['coef_err_avg'] = 0.9
+        
+        # learning modulation
         if 'fit_offset' not in ref.mdl[mk]:
             ref.mdl[mk]['fit_offset'] = 200
             
@@ -1843,7 +1874,7 @@ def fit_predict_imol(ref, mref, mk='inv', *args, **kwargs):
         # ref.mdl[mk]['inst_'].fit(X = X_fit.T, y = Y_fit.T, update = True) # False)
         # if True: # np.any(ref.mdl[mk]['prerr_l0_pre'] < ref.mdl[mk]['prerr_avg']):
         # fit only after two updates
-        if ref.cnt > ref.mdl[mk]['fit_offset']: # washout?
+        if istraining(ref.cnt, ref.mdl[mk]): # washout?
             ref.mdl[mk]['inst_'].fit(X = X_fit.T, y = Y_fit.T, update = False)
 
         # predict for external goal
@@ -1864,7 +1895,7 @@ def fit_predict_imol(ref, mref, mk='inv', *args, **kwargs):
     # single hidden layer model
     elif isinstance(ref.mdl[mk]['inst_'], smpSHL):
         # fit only after two updates, 0.3 barrel
-        if ref.cnt > ref.mdl[mk]['fit_offset']: #  and ref.mdl[mk]['prerr_rms_avg'] >= 0.01: #  and np.mean(np.square(ref.mdl[mk]['prerr_l0_pre'])) < 0.1:
+        if istraining(ref.cnt, ref.mdl[mk]): #  and ref.mdl[mk]['prerr_rms_avg'] >= 0.01: #  and np.mean(np.square(ref.mdl[mk]['prerr_l0_pre'])) < 0.1:
             ref.mdl[mk]['inst_'].fit(X = X_fit.T, Y = Y_fit.T * 1.0, update = False)
             # print "mdl_inv e", ref.mdl[mk]['inst_'].lr.e
             
@@ -1899,7 +1930,7 @@ def fit_predict_imol(ref, mref, mk='inv', *args, **kwargs):
     else:
         # feedforward case
         # model fit
-        if ref.cnt > ref.mdl[mk]['fit_offset']:
+        if istraining(ref.cnt, ref.mdl[mk]):
             ref.mdl[mk]['inst_'].fit(X = X_fit.T, y = Y_fit.T)
         # model prediction
         pre_l0 = ref.mdl[mk]['inst_'].predict(X = X_pre.T)
@@ -2209,10 +2240,12 @@ def step_eh(ref, mref, *args, **kwargs):
     # print "x", x.shape
     y = pre_i
     # update model
-    if ref.cnt < 200: # washout 
-        ref.mdl.eta = 0.0
-    else:
+    # if ref.cnt < 200: # washout 
+    if isindevelphase(ref.cnt, ref.mdl, 'n_train'):
         ref.mdl.eta = ref.mdl.eta2
+    else:
+        ref.mdl.eta = 0.0
+        
     # print "perf", np.mean(np.square(ref.mdl.perf_lp))
     # print "eta", ref.mdl.eta
     y_mdl_ = ref.mdl.step(

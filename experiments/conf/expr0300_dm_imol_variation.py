@@ -14,7 +14,7 @@ from smp_graphs.utils_conf import get_systemblock
 from smp_graphs.funcs import f_sin_noise
 
 # reuse
-graphconf = 'conf/dm_actinf.py'
+graphconf = 'conf/dm_imol.py'
 debug = False
 
 # add latex output
@@ -32,6 +32,7 @@ numsteps = cnf['numsteps']
 lconf = {
     # execution and global
     'numsteps': int(10000/5),
+    
     # system
     'sys': {
         'name': 'pm',
@@ -39,9 +40,12 @@ lconf = {
         'dim_s0': 2,
         'dim_s1': 2,
     },
+    
     # motivation
     'motivation_i': 1,
+    
     # models
+    
     # learning modulation
     'lm' : {
         'washout': 200,
@@ -52,6 +56,7 @@ lconf = {
         'r_train': (0.1, 0.8),
         'r_test': (0.8, 1.0),
     }
+    
 }
 systemblock = get_systemblock[lconf['sys']['name']](**lconf['sys'])
 

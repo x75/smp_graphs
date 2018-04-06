@@ -47,15 +47,18 @@ commandline_args = ['numsteps']
 randseed = 12360
 
 lconf = {
+    # execution and global
     'numsteps': int(10000/5),
+    # system
     'sys': {
         'name': 'pm',
         'lag': 2,
         'dim_s0': 2,
         'dim_s1': 2,
     },
+    # motivation
     'motivation_i': 0,
-    'motivation_rate': 500,
+    'motivation_rate': 40,
     # model
     'algo': 'res_eh',
     # eta = 0.99
@@ -80,18 +83,39 @@ lconf = {
         'mdl_mdltr_type': 'bin_elem',
         'mdl_mdltr_thr': 0.0,
         'mdl_wgt_thr': 1.0, # 
-        'mdl_perf_measure': meas.square, # meas.abs, # abs, square, sum_abs, sum_square, sum_sqrt
+        'mdl_perf_measure': 'meas.square', # meas.abs, # abs, square, sum_abs, sum_square, sum_sqrt
         'mdl_perf_model_type': 'lowpass', # 'resforce'
         'mdl_coeff_a': 0.2, 
     },
     'tgt_cnf': {
         'target_f': 0.05,
+    },
+
+    # learning modulation
+    'lm' : {
+        'washout': 200,
+        'thr_predict': 200,
+        'fit_offset': 200,
+        # start stop in ratios of episode length numsteps
+        'r_washout': (0.0, 0.1),
+        'r_train': (0.1, 0.8),
+        'r_test': (0.8, 1.0),
     }
+    
 }
 lconf['systemblock'] = get_systemblock[lconf['sys']['name']](**lconf['sys'])
 
 numsteps = lconf['numsteps']
 loopblocksize = numsteps
+
+# learning modulation
+for k in list(lconf['lm']):
+    if not k.startswith('r_'): continue
+    k_ = k.replace('r_', 'n_')
+    r0 = lconf['lm'][k][0] * lconf['numsteps']
+    r1 = lconf['lm'][k][1] * lconf['numsteps']
+    # lconf['lm'][k_] = range(int(r0), int(r1))
+    lconf['lm'][k_] = (int(r0), int(r1))
 
 sysname = lconf['sys']['name']
 loopblocksize = numsteps
@@ -511,7 +535,7 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             'dm EH', algo, sysname, dim_s0, goal, lag, lag_past, lag_future),
         'desc': """An {1} agent learning to control a {0}-dimensional {2}
             system using the {3} low-level algorithm.""".format(
-                dim_s0, 'eh', sysname, algo),
+                dim_s0, 'eh', sysname, algo.replace('_', '\_')),
         'inputs': {
             'goals': {'bus': '%s/pre' % (l1,), 'shape': (dim_s0, blocksize)},
             'pre':   {'bus': '%s/pre' % (l0,), 'shape': (dim_s0, blocksize)},
@@ -1260,16 +1284,20 @@ graph = OrderedDict([
                                 'use_wb': 0,
                                 'wb_thr': 1.5,
                                 'oversampling': 1,
-                                },
-                                                                
+                                # learning modulation
+                                'n_washout': lconf['lm']['n_washout'],
+                                'n_train': lconf['lm']['n_train'],
+                                'n_test': lconf['lm']['n_test'],
                             },
-                        'rate': 1,
+                                                                
                         },
-                    }),
-                # learn_proprio_e2p2e
-                ]),
-            }
-        }),
+                        'rate': 1,
+                    },
+                }),
+            # learn_proprio_e2p2e
+            ]),
+        }
+    }),
 
     ################################################################################
     # use a sequential loop block to insert probes running orthogonally in time

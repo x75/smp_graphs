@@ -373,26 +373,26 @@ def dm_motivations(m_mins, m_maxs, dim_s0, dt):
             # recurrent connection
             'inputs': {
                 'x': {'bus': 'cnt/x'},
-                # 'f': {'val': np.array([[0.225]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
-                # 'f': {'val': np.array([[0.23538, 0.23538]]).T * 1.0}, # good with soesgp and eta = 0.7
+                # 'f': {'val': np.array([[0.225]]).T * 5.0 * dt}, 
+                # 'f': {'val': np.array([[0.23538, 0.23538]]).T * 1.0}, 
                 # 'f': {'val': np.array([[0.2355, 0.2355]]).T * 1.0}, # good with knn and eta = 0.3
-                # 'f': {'val': np.array([[0.45]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
+                # 'f': {'val': np.array([[0.45]]).T * 5.0 * dt}, 
                 
                 # barrel
-                # 'f': {'val': np.array([[0.23539]]).T * 10.0 * dt}, # good with soesgp and eta = 0.7
-                # 'f': {'val': np.array([[0.23539]]).T * 5.0 * dt}, # good with soesgp and eta = 0.7
-                # 'f': {'val': np.array([[0.23539]]).T * 7.23 * dt}, # good with soesgp and eta = 0.7
-                # 'f': {'val': np.array([[0.23539]]).T * 3.2 * dt}, # good with soesgp and eta = 0.7
-                # 'f': {'val': np.array([[0.23539]]).T * 2.9 * dt}, # good with soesgp and eta = 0.7
-                # 'f': {'val': np.array([[0.23539]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
+                # 'f': {'val': np.array([[0.23539]]).T * 10.0 * dt}, 
+                # 'f': {'val': np.array([[0.23539]]).T * 5.0 * dt}, 
+                # 'f': {'val': np.array([[0.23539]]).T * 7.23 * dt}, 
+                # 'f': {'val': np.array([[0.23539]]).T * 3.2 * dt}, 
+                # 'f': {'val': np.array([[0.23539]]).T * 2.9 * dt}, 
+                # 'f': {'val': np.array([[0.23539]]).T * 1.25 * dt}, 
                 
                 # pointmass
-                'f': {'val': np.array([[0.23539]]).T * 0.4 * dt}, # good with soesgp and eta = 0.7
-                # 'f': {'val': np.array([[0.23539]]).T * 0.2 * dt}, # good with soesgp and eta = 0.7
-                # 'f': {'val': np.array([[0.23539]]).T * 0.1 * dt}, # good with soesgp and eta = 0.7
-                # 'f': {'val': np.array([[0.23539]]).T * 0.05 * dt}, # good with soesgp and eta = 0.7
+                'f': {'val': np.array([[0.23539]]).T * 0.4 * dt}, 
+                # 'f': {'val': np.array([[0.23539]]).T * 0.2 * dt}, 
+                # 'f': {'val': np.array([[0.23539]]).T * 0.1 * dt}, 
+                # 'f': {'val': np.array([[0.23539]]).T * 0.05 * dt}, 
                 
-                # 'f': {'val': np.array([[0.23539, 0.2348, 0.14]]).T * 1.25 * dt}, # good with soesgp and eta = 0.7
+                # 'f': {'val': np.array([[0.23539, 0.2348, 0.14]]).T * 1.25 * dt}, 
                 # 'f': {'val': np.array([[0.14, 0.14]]).T * 1.0},
                 # 'f': {'val': np.array([[0.82, 0.82]]).T},
                 # 'f': {'val': np.array([[0.745, 0.745]]).T},
@@ -421,3 +421,92 @@ def dm_motivations(m_mins, m_maxs, dim_s0, dt):
         })
         ]
     return motivations
+
+################################################################################
+# legacy motivations from dm_*.py
+
+# legacy motivations from dm_imol
+
+# # goal sampler (motivation) sample_function_generator sinusoid
+# ('pre_l1', {
+#     'block': ModelBlock2,
+#     'params': {
+#         'blocksize': 1,
+#         'blockphase': [0],
+#         'inputs': {
+#             'x': {'bus': 'cnt/x'},
+#             # pointmass
+#             'f': {'val': np.array([[0.23539]]).T * 0.2 * dt}, 
+#             'sigma': {'val': np.random.uniform(0, 0.01, (dim_s0, 1))},
+#             'offset': {'val': m_mins + (m_maxs - m_mins)/2.0},
+#             'amp': {'val': (m_maxs - m_mins)/2.0},
+#         },
+#         'outputs': {'pre': {'shape': (dim_s0, 1)}},
+#         'models': {
+#             'goal': {
+#                 'type': 'function_generator',
+#                 'func': f_sin_noise,
+#             }
+#         },
+#         'rate': 1,
+#     },
+# }),
+                
+# # a random number generator, mapping const input to hi
+# ('pre_l1', {
+#     'block': FuncBlock2,
+#     'params': {
+#         'id': 'pre_l1',
+#         'outputs': {'pre': {'shape': (dim_s0, 1)}},
+#         'debug': False,
+#         'ros': ros,
+#         'blocksize': 1,
+#         # recurrent connection
+#         'inputs': {
+#             'x': {'bus': 'cnt/x'},
+#             # 'f': {'val': np.array([[0.2355, 0.2355]]).T * 1.0}, # good with knn and eta = 0.3
+#             # 'f': {'val': np.array([[0.23538, 0.23538]]).T * 1.0}, 
+#             # 'f': {'val': np.array([[0.45]]).T * 5.0 * dt}, 
+#             # 'f': {'val': np.array([[0.225]]).T * 5.0 * dt}, 
+
+#             # barrel
+#             # 'f': {'val': np.array([[0.23539]]).T * 10.0 * dt}, 
+#             # 'f': {'val': np.array([[0.23539]]).T * 5.0 * dt}, 
+#             # 'f': {'val': np.array([[0.23539]]).T * 7.23 * dt}, 
+#             # 'f': {'val': np.array([[0.23539]]).T * 3.2 * dt}, 
+#             # 'f': {'val': np.array([[0.23539]]).T * 2.9 * dt}, 
+#             # 'f': {'val': np.array([[0.23539]]).T * 1.25 * dt}, 
+                            
+#             'f': {'val': np.array([[0.23539]]).T * 0.4 * dt}, 
+#             # 'f': {'val': np.array([[0.23539]]).T * 0.2 * dt}, 
+#             # 'f': {'val': np.array([[0.23539]]).T * 0.1 * dt}, 
+#             # 'f': {'val': np.array([[0.23539]]).T * 0.05 * dt}, 
+                            
+#             # 'f': {'val': np.array([[0.23539, 0.2348, 0.14]]).T * 1.25 * dt}, 
+#             # 'f': {'val': np.array([[0.14, 0.14]]).T * 1.0},
+#             # 'f': {'val': np.array([[0.82, 0.82]]).T},
+#             # 'f': {'val': np.array([[0.745, 0.745]]).T},
+#             # 'f': {'val': np.array([[0.7, 0.7]]).T},
+#             # 'f': {'val': np.array([[0.65, 0.65]]).T},
+#             # 'f': {'val': np.array([[0.39, 0.39]]).T},
+#             # 'f': {'val': np.array([[0.37, 0.37]]).T},
+#             # 'f': {'val': np.array([[0.325, 0.325]]).T},
+#             # 'f': {'val': np.array([[0.31, 0.31]]).T},
+#             # 'f': {'val': np.array([[0.19, 0.19]]).T},
+#             # 'f': {'val': np.array([[0.18, 0.181]]).T},
+#             # 'f': {'val': np.array([[0.171, 0.171]]).T},
+#             # 'f': {'val': np.array([[0.161, 0.161]]).T},
+#             # 'f': {'val': np.array([[0.151, 0.151]]).T},
+#             # 'f': {'val': np.array([[0.141, 0.141]]).T},
+#             # stay in place
+#             # 'f': {'val': np.array([[0.1, 0.1]]).T},
+#             # 'f': {'val': np.array([[0.24, 0.24]]).T},
+#             # 'sigma': {'val': np.array([[0.001, 0.002]]).T}}, # , 'li': np.random.uniform(0, 1, (3,)), 'bu': {'b1/x': [0, 1]}}
+#             'sigma': {'val': np.random.uniform(0, 0.01, (dim_s0, 1))},
+#             'offset': {'val': m_mins + (m_maxs - m_mins)/2.0},
+#             'amp': {'val': (m_maxs - m_mins)/2.0},
+#         },
+#         'func': f_sin_noise,
+#     },
+# }),
+                

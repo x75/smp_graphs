@@ -1,4 +1,4 @@
-"""expr0400 dm_actinf.py variations
+"""expr0500 dm_eh.py variations
 
 Variations:
 - episode length
@@ -12,9 +12,10 @@ FIXME: looping + subgraph
 """
 from smp_graphs.utils_conf import get_systemblock
 from smp_graphs.funcs import f_sin_noise
+from smp_base.measures import meas
 
 # reuse
-graphconf = 'conf/dm_actinf.py'
+graphconf = 'conf/dm_eh.py'
 debug = False
 
 # add latex output
@@ -41,7 +42,39 @@ lconf = {
     },
     # motivation
     'motivation_i': 1,
-    # models
+    'motivation_rate': 40,
+    # model
+    'algo': 'res_eh',
+    # eta = 0.99
+    # eta = 0.95
+    # eta = 0.7
+    # eta = 0.3
+    # eta = 0.25
+    # eta = 0.15
+    # eta = 0.1
+    # eta = 0.05
+    'eta': 3e-3,
+    'dim_s_hidden_debug': 20,
+    # model config defaults
+    'mdl_cnf': {
+        'mdl_modelsize': 300,
+        'mdl_w_input': 1.0,
+        'mdl_w_bias': 0.5,
+        'mdl_theta': 1e-1,
+        'mdl_eta': 1e-4,
+        'mdl_spectral_radius': 0.999,
+        'mdl_tau': 0.1,
+        'mdl_mdltr_type': 'bin_elem',
+        'mdl_mdltr_thr': 0.0,
+        'mdl_wgt_thr': 1.0, # 
+        'mdl_perf_measure': 'meas.square', # meas.abs, # abs, square, sum_abs, sum_square, sum_sqrt
+        'mdl_perf_model_type': 'lowpass', # 'resforce'
+        'mdl_coeff_a': 0.2, 
+    },
+    'tgt_cnf': {
+        'target_f': 0.05,
+    },
+
     # learning modulation
     'lm' : {
         'washout': 200,
@@ -52,6 +85,7 @@ lconf = {
         'r_train': (0.1, 0.8),
         'r_test': (0.8, 1.0),
     }
+    
 }
 systemblock = get_systemblock[lconf['sys']['name']](**lconf['sys'])
 
