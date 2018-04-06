@@ -220,6 +220,7 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
                     'input': ['X_fit'], 'plot': partial(timeseries, marker='.'),
                     'title': 'Model %s input $\mathbf{X}$' % (algo),
                     'legend': {'X_pre_l1': 0, 'X_prerr_l0': dim_s0},
+                    'xticks': False,
                 },
             ],
             
@@ -228,6 +229,7 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
                     'input': ['tgt'], 'plot': partial(timeseries, marker='.'),
                     'title': 'Model %s input $\mathbf{Y}$' % (algo),
                     'legend': {'Y_tgt': 0},
+                    'xticks': False,
                 },
             ],
             # [
@@ -253,7 +255,11 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             # ],
             
             [
-                {'input': ['mse_s_p_accum',], 'plot': partial(timeseries, marker='.')},
+                {
+                    'input': ['mse_s_p_accum',],
+                    'plot': partial(timeseries, marker='.')},
+                    'title': 'Accumulated error',
+                    'legend': {'$\sum$ err': 0},
             ],
             
         ],

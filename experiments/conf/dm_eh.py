@@ -10,6 +10,12 @@ EH legacy
  - smp/neural/esn_reward_MSO.py: early EH learning with sinewave target
  - smp/neural/esn_reward_MSO_EH.py: early EH learning with sinewave target and more analyis, hyperopt
 
+# robustness
+# fix: target properties like frequency matched to body (attainable / not attainable)
+# fix: eta
+# fix: motor / sensor limits, how does the model learn the limits
+
+# priors: timing, limits
 """
 
 import copy
@@ -20,19 +26,14 @@ from smp_base.measures import meas
 from smp_graphs.block_plot import SnsMatrixPlotBlock2, ImgPlotBlock2
 from smp_graphs.block import dBlock2, IBlock2, SliceBlock2, DelayBlock2, StackBlock2
 from smp_graphs.block_meas import XCorrBlock2
-from smp_graphs.block_meas_infth import JHBlock2, MIBlock2, InfoDistBlock2, TEBlock2, CTEBlock2, MIMVBlock2, TEMVBlock2
+from smp_graphs.block_meas_infth import JHBlock2, MIBlock2, InfoDistBlock2
+from smp_graphs.block_meas_infth import TEBlock2, CTEBlock2, MIMVBlock2, TEMVBlock2
 from smp_graphs.block_models import ModelBlock2
 from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2, BhasimulatedBlock2
 from smp_graphs.block_cls_ros import STDRCircularBlock2, LPZBarrelBlock2, SpheroBlock2
 
 from smp_graphs.funcs import f_meshgrid, f_meshgrid_mdl, f_random_uniform, f_sin_noise
-
-# robustness
-# fix: target properties like frequency matched to body (attainable / not attainable)
-# fix: eta
-# fix: motor / sensor limits, how does the model learn the limits
-
-# priors: timing, limits
+from smp_graphs.utils_conf import get_systemblock
 
 # execution
 saveplot = False
@@ -44,9 +45,57 @@ ros = False
 # experiment
 commandline_args = ['numsteps']
 randseed = 12360
-numsteps = int(10000/(1/1.))
+
+lconf = {
+    'numsteps': int(10000/5),
+    'sys': {
+        'name': 'pm',
+        'lag': 2,
+        'dim_s0': 2,
+        'dim_s1': 2,
+    },
+    'motivation_i': 0,
+    'motivation_rate': 500,
+    # model
+    'algo': 'res_eh',
+    # eta = 0.99
+    # eta = 0.95
+    # eta = 0.7
+    # eta = 0.3
+    # eta = 0.25
+    # eta = 0.15
+    # eta = 0.1
+    # eta = 0.05
+    'eta': 3e-3,
+    'dim_s_hidden_debug': 20,
+    # model config defaults
+    'mdl_cnf': {
+        'mdl_modelsize': 300,
+        'mdl_w_input': 1.0,
+        'mdl_w_bias': 0.5,
+        'mdl_theta': 1e-1,
+        'mdl_eta': 1e-4,
+        'mdl_spectral_radius': 0.999,
+        'mdl_tau': 0.1,
+        'mdl_mdltr_type': 'bin_elem',
+        'mdl_mdltr_thr': 0.0,
+        'mdl_wgt_thr': 1.0, # 
+        'mdl_perf_measure': meas.square, # meas.abs, # abs, square, sum_abs, sum_square, sum_sqrt
+        'mdl_perf_model_type': 'lowpass', # 'resforce'
+        'mdl_coeff_a': 0.2, 
+    },
+    'tgt_cnf': {
+        'target_f': 0.05,
+    }
+}
+lconf['systemblock'] = get_systemblock[lconf['sys']['name']](**lconf['sys'])
+
+numsteps = lconf['numsteps']
 loopblocksize = numsteps
-sysname = 'pm'
+
+sysname = lconf['sys']['name']
+loopblocksize = numsteps
+# sysname = 'pm'
 # sysname = 'sa'
 # sysname = 'bha'
 # sysname = 'stdr'
@@ -56,8 +105,6 @@ sysname = 'pm'
 outputs = {
     'latex': {'type': 'latex',},
 }
-
-from smp_graphs.utils_conf import get_systemblock
 
 # FIXME: param: perf_lp/perf_lp_fancy, element-wise/np.any/np.all, input_coupling
 
@@ -343,65 +390,52 @@ from smp_graphs.utils_conf import get_systemblock
 # - system order
 # - dimensions
 # - number of modalities
-    
+
 # systemblock   = systemblock_lpzbarrel
 # lag = 6 # 5, 4, 2 # 2 or 3 worked with lpzbarrel, dt = 0.05
 # systemblock   = get_systemblock[sysname]()
 # lag           = 1
-systemblock = get_systemblock[sysname](
-    lag = 2, dim_s0 = 2, dim_s1 = 2)
+# systemblock = get_systemblock[sysname](
+#     lag = 2, dim_s0 = 2, dim_s1 = 2)
+
+# get systemblock
+systemblock = lconf['systemblock']
 
 dim_s0 = systemblock['params']['dims']['s0']['dim']
 dim_s1 = systemblock['params']['dims']['s1']['dim']
-dim_s_hidden_debug = 20
+dim_s_hidden_debug = lconf['dim_s_hidden_debug']
 m_mins = np.array([systemblock['params']['m_mins']]).T
 m_maxs = np.array([systemblock['params']['m_maxs']]).T
 
 dt = systemblock['params']['dt']
 
 # model config defaults
-mdl_cnf = {
-    'mdl_modelsize': 300,
-    'mdl_w_input': 1.0,
-    'mdl_w_bias': 0.5,
-    'mdl_theta': 1e-1,
-    'mdl_eta': 1e-4,
-    'mdl_spectral_radius': 0.999,
-    'mdl_tau': 0.1,
-    'mdl_mdltr_type': 'bin_elem',
-    'mdl_mdltr_thr': 0.0,
-    'mdl_wgt_thr': 1.0, # 
-    'mdl_perf_measure': meas.square, # meas.abs, # abs, square, sum_abs, sum_square, sum_sqrt
-    'mdl_perf_model_type': 'lowpass', # 'resforce'
-    'mdl_coeff_a': 0.2, 
-    }
-
-tgt_cnf = {
-    'target_f': 0.05,
-}
-
+mdl_cnf = lconf['mdl_cnf']
+tgt_cnf = lconf['tgt_cnf']
+    
 # update default model config with system specific values
-for k in [
-        'mdl_w_input', 'mdl_w_bias', 'mdl_theta', 'mdl_eta',
-        'mdl_spectral_radius', ' mdl_tau', 'mdl_mdltr_type',
-        'mdl_mdltr_thr', 'mdl_perf_measure', 'mdl_perf_model_type',
-        'mdl_wgt_thr', 'mdl_coeff_a']:
+# for k in [
+#         'mdl_w_input', 'mdl_w_bias', 'mdl_theta', 'mdl_eta',
+#         'mdl_spectral_radius', ' mdl_tau', 'mdl_mdltr_type',
+#         'mdl_mdltr_thr', 'mdl_perf_measure', 'mdl_perf_model_type',
+#         'mdl_wgt_thr', 'mdl_coeff_a']:
+for k in mdl_cnf.keys():
     if systemblock['params'].has_key(k):
         mdl_cnf[k] = systemblock['params'][k]
 
-print "mdl_cnf = {"
-for k, v in mdl_cnf.items():
-    print "    %s = %s" % (k, v)
+# print "mdl_cnf = {"
+# for k, v in mdl_cnf.items():
+#     print "    %s = %s" % (k, v)
 
 
 # update default target config with system specific values
-for k in ['target_f']:
+for k in tgt_cnf:
     if systemblock['params'].has_key(k):
         tgt_cnf[k] = systemblock['params'][k]
 
-print "tgt_cnf = {"
-for k, v in tgt_cnf.items():
-    print "    %s = %s" % (k, v)
+# print "tgt_cnf = {"
+# for k, v in tgt_cnf.items():
+#     print "    %s = %s" % (k, v)
         
 # algo = 'knn' #
 # algo = 'gmm' #
@@ -413,7 +447,10 @@ for k, v in tgt_cnf.items():
 # algo = 'homeokinesis'
 
 
-algo = 'res_eh'
+# algo = 'res_eh'
+algo = lconf['algo']
+lag = systemblock['params']['lag']
+
 # eh model in principle only needs
 #  1) current goal prediction (pre_l1), current measurement (meas_l0) on the
 #     block input
@@ -443,28 +480,38 @@ laglen = maxlag - minlag
 
 # print "minlag", minlag, "maxlag", maxlag
 
-# eta = 0.99
-# eta = 0.95
-# eta = 0.7
-# eta = 0.3
-# eta = 0.25
-# eta = 0.15
-# eta = 0.1
-# eta = 0.05
-eta = 3e-3
+eta = lconf['eta']
 
+desc = """An exploration and learning episode of {0} time steps of a
+learning agent under the exploratory Hebbian model.""".format(numsteps)
 
-desc = """The basic learning episode of a learning agent under the
-exploratory Hebbian model.""".format()
+# motivations
+from smp_graphs.utils_conf import dm_motivations
+motivations = dm_motivations(m_mins, m_maxs, dim_s0, dt)
+motivation_i = lconf['motivation_i']
 
+# motivations eh local moves
+lmotivation = motivations[motivation_i]
+if lmotivation[1]['params']['models']['goal']['type'] == 'random_uniform':
+    lmotivation[1]['params']['rate'] = lconf['motivation_rate']
+    
 def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
     global partial
-    global PlotBlock2, numsteps, timeseries, dim_s1, dim_s0, dim_s_hidden_debug, saveplot
+    global PlotBlock2, numsteps, timeseries, saveplot
+    global algo, sysname, lag, lag_past, lag_future
+    global dim_s1, dim_s0, dim_s_hidden_debug
+    global motivations, motivation_i, lmotivation
+    goal = motivations[motivation_i][1]['params']['models']['goal']['type']
     return {
     'block': PlotBlock2,
     'params': {
         'blocksize': numsteps, # 1000, # blocksize,
         'saveplot': saveplot,
+        'title': '%s\nalgo %s, sys %s(dim_p=%d), goal = %s, lag = %s, tap- %s, tap+ %s' % (
+            'dm EH', algo, sysname, dim_s0, goal, lag, lag_past, lag_future),
+        'desc': """An {1} agent learning to control a {0}-dimensional {2}
+            system using the {3} low-level algorithm.""".format(
+                dim_s0, 'eh', sysname, algo),
         'inputs': {
             'goals': {'bus': '%s/pre' % (l1,), 'shape': (dim_s0, blocksize)},
             'pre':   {'bus': '%s/pre' % (l0,), 'shape': (dim_s0, blocksize)},
@@ -476,32 +523,56 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             },
         'hspace': 0.2,
         'subplots': [
+            
             # [
             #     {'input': ['goals', 's0'], 'plot': partial(timeseries, marker='.')},
             # ],
             # [
             #     {'input': ['goals', 'pre'], 'plot': partial(timeseries, marker='.')},
             # ],
+            
             [
-                {'input': ['goals', 's0'], 'plot': partial(timeseries, marker='.')},
+                {
+                    'input': ['err',],
+                    'plot': partial(timeseries, marker='.'),
+                    'title': 'Momentary error and reward',
+                    'legend': {'e(s_p)': 0},
+                    'xticks': False,
+                }
             ],
+            
             [
-                {'input': ['pre', 's0'], 'plot': partial(timeseries, marker='.')},
+                {
+                    'input': ['goals', 's0', 'pre'],
+                    'plot': partial(timeseries, marker='.'),
+                    'title': 'Goal, state and prediction',
+                    'legend': {'Goal': 0, 'State': dim_s0, 'State_p': 2*dim_s0},
+                    'xticks': False,
+                }
             ],
+            
+            [
+                {
+                    'input': ['hidden'],
+                    'plot': partial(timeseries, marker='.'),
+                    'title': 'Hidden activation of reservoir $\mathbf{r}$ (partial)',
+                    'legend': {'$\mathbf{r}$': 0},
+                }
+            ],
+            
+            # [
+            #     {'input': ['pre', 's0'], 'plot': partial(timeseries, marker='.')},
+            # ],
+            
             # [
             #     {'input': ['pre'], 'plot': timeseries},
             # ],
-            [
-                {'input': ['err',], 'plot': partial(timeseries, marker='.')},
-            ],
-            [
-                {'input': ['hidden'], 'plot': partial(timeseries, marker='.')},
-            ],
+            
             # [
             #     {'input': ['s0', 's1'], 'plot': timeseries},
             # ],
-            ]
-        }
+            
+        ]}
     }
 
 """
@@ -835,25 +906,48 @@ graph = OrderedDict([
         'block': Block2,
         'params': {
             'graph': OrderedDict([
-
-                # goal sampler (motivation) sample_discrete_uniform_goal
-                ('pre_l1', {
-                    'block': ModelBlock2,
+                
+                # generic count block
+                ('cnt', {
+                    'block': CountBlock2,
                     'params': {
                         'blocksize': 1,
-                        'blockphase': [0],
-                        'ros': ros,
-                        'inputs': {                        
-                            'lo': {'val': m_mins, 'shape': (dim_s0, 1)},
-                            'hi': {'val': m_maxs, 'shape': (dim_s0, 1)},
-                            },
-                        'outputs': {'pre': {'shape': (dim_s0, 1)}},
-                        'models': {
-                            'goal': {'type': 'random_uniform'}
-                            },
-                        'rate': 500, # int(numsteps/30), # 1000,
+                        'debug': False,
+                        'inputs': {},
+                        'outputs': {'x': {'shape': (dim_s0, 1)}},
                         },
                     }),
+
+                # generic block configured with subgraph on demand
+                ('pre_l1', {
+                    'block': Block2,
+                    'params': {
+                        'numsteps': numsteps,
+                        'blocksize': 1,
+                        # 'subgraph': OrderedDict([motivations[0]]),
+                        'subgraph': OrderedDict([lmotivation]),
+                        'subgraph_rewrite_id': False,
+                    }
+                }),
+                
+                # # goal sampler (motivation) sample_discrete_uniform_goal
+                # ('pre_l1', {
+                #     'block': ModelBlock2,
+                #     'params': {
+                #         'blocksize': 1,
+                #         'blockphase': [0],
+                #         'ros': ros,
+                #         'inputs': {                        
+                #             'lo': {'val': m_mins, 'shape': (dim_s0, 1)},
+                #             'hi': {'val': m_maxs, 'shape': (dim_s0, 1)},
+                #             },
+                #         'outputs': {'pre': {'shape': (dim_s0, 1)}},
+                #         'models': {
+                #             'goal': {'type': 'random_uniform'}
+                #             },
+                #         'rate': 500, # int(numsteps/30), # 1000,
+                #         },
+                #     }),
 
                 # # goal sampler (motivation) sample single angle and duplicate with offset pi/2
                 # ('pre_l1', {
@@ -880,16 +974,6 @@ graph = OrderedDict([
                 #         },
                 #     }),
                     
-                # ('cnt', {
-                #     'block': CountBlock2,
-                #     'params': {
-                #         'blocksize': 1,
-                #         'debug': False,
-                #         'inputs': {},
-                #         'outputs': {'x': {'shape': (dim_s0, 1)}},
-                #         },
-                #     }),
-
                 # # a random number generator, mapping const input to hi
                 # ('pre_l1', {
                 #     'block': FuncBlock2,

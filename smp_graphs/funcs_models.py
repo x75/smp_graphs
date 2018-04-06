@@ -2008,9 +2008,9 @@ def init_eh(ref, mref, conf, mconf):
     """
 
     
-    print "ModelBlock2.model.init_eh mconf = {"
+    logger.debug('ModelBlock2.model.init_eh mconf = {')
     for k, v in mconf.items():
-        print "   %s = %s" % (k,v)
+            logger.debug('   %s = %s', k, v)
     # print "mconf.eta", mconf['eta']
     # print "mconf.eta_init", mconf['eta_init']
     
