@@ -1128,6 +1128,7 @@ def step_actinf_2(ref, mref, *args, **kwargs):
     # X_t-lag  = [pre_l1_{lagp[0], lagp[1]}, prerr_l0_{lagp[0]+1, lagp[1]+1}]
     # Y_t      = pre_l0_t - (prerr_t * eta) # * d_prerr/d_params
     def tapping_XY_fit(ref):
+        if ref.cnt < 2: logger.debug('tap_actinf %s, %s', 'pred', 'X_fit')
         X_fit_pre_l1 = tap(ref, 'pre_l1', ref.lag_past)
         X_fit_prerr_l0 = tap(ref, 'prerr_l0', ref.lag_past)
         X_fit_flat = np.vstack((
@@ -1135,6 +1136,7 @@ def step_actinf_2(ref, mref, *args, **kwargs):
             tap_flat(X_fit_prerr_l0),
         ))
         
+        if ref.cnt < 2: logger.debug('tap_actinf %s, %s', 'pred', 'Y_fit')
         Y_fit_prerr_l0, = tapping_prerr_fit(ref)
         Y_fit_prerr_l0_flat = tap_flat(Y_fit_prerr_l0)
         Y_fit_pre_l0,   = tapping_pre_l0_fit(ref)
@@ -1159,6 +1161,7 @@ def step_actinf_2(ref, mref, *args, **kwargs):
     
     # X_t = [pre_l1_{lagf[1] - lagp_len, lagf[1]}, prerr_t]
     def tapping_X_predict(ref):
+        if ref.cnt < 2: logger.debug('tap_actinf %s, %s', 'pred', 'X_pre')
         prerr_predict, = tapping_prerr_predict(ref)
         prerr_predict_flat = tap_flat(prerr_predict)
         pre_l1_predict, = tapping_pre_l1_predict(ref)
@@ -1842,7 +1845,7 @@ def tap_imol_x(ref, mref, mk, *args, **kwargs):
     """
     
     for k in ['X_fit', 'Y_fit', 'X_pre']:
-        # debug
+        # debug tapping
         if ref.cnt < 2:
             logger.debug('tap_imol_x %s, %s', mk, k)
         # for tk in ['vars', 'taps', 'offs', 'srcs']:

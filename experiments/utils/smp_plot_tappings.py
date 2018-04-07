@@ -11,7 +11,8 @@ from smp_base.plot_utils import put_legend_out_right
 from smp_base.plot import makefig
 
 # tap spec file
-tapspecfile = 'dm-imol-pre_l0-tappings-3.csv'
+# tapspecfile = 'dm-imol-pre_l0-tappings-3.csv'
+tapspecfile = 'dm-actinf-tappings-pre_l0.csv'
 tapspecfile_base = tapspecfile[:-4]
 
 # get the data
@@ -24,7 +25,7 @@ tappings = pd.read_csv(tapspecfile)
 print('plot_tappings: tappings = \n%s' % tappings.describe())
 
 # get model keys
-mks = ['inv', 'fwd']
+# mks = ['inv', 'fwd']
 mks = list(tappings.mk.unique())
 print('plot_tappings: model keys = %s' % mks)
 mtapk = dict(zip(tappings.tapk.unique(), range(len(tappings.tapk.unique()))))
@@ -158,6 +159,9 @@ for i, mk in enumerate(mks):
     [ax.axvspan(tval - 0.5, tval+ 0.5, color='k', edgecolor=None, alpha=altval[tval%2]) for tval in range(tmin, tmax+1)]
 
     ax.set_aspect(0.33)
+    xlim = list(ax.get_xlim())
+    xlim[1] += 1
+    ax.set_xlim(xlim)
     
     # list(t_.ch)
     ax.set_yticks(sorted(mvars.values()))

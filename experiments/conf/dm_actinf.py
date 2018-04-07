@@ -36,6 +36,7 @@ from smp_graphs.block_models import ModelBlock2
 from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2, BhasimulatedBlock2
 from smp_graphs.block_cls_ros import STDRCircularBlock2, LPZBarrelBlock2, SpheroBlock2
 
+from smp_graphs.common import escape_backslash
 from smp_graphs.funcs import f_meshgrid, f_meshgrid_mdl, f_random_uniform, f_sin_noise
 
 from smp_graphs.utils_conf import get_systemblock
@@ -177,19 +178,36 @@ eta = 0.7
 
 # print "dm_actinf_m1_goal_error_ND_embedding.py: dim_s0 = %s" % (dim_s0, )
 
-desc = """An exemplary experiment involving a developmental episode of
-{0} steps of actinf agent.""".format(numsteps)
-
 # motivations
 from smp_graphs.utils_conf import dm_motivations
 motivations = dm_motivations(m_mins, m_maxs, dim_s0, dt)
 motivation_i = lconf['motivation_i']
+goal = motivations[motivation_i][1]['params']['models']['goal']['type']
     
+desc = """An exemplary experiment involving a single developmental
+episode of {0} steps of an actinf agent. The episode starts with an
+initial washout period of 1/10th of the episode length during which
+the top-down prediction is applied and the model is allowed to predict
+but its is only predicting from its bootstrapping state. Starting with
+time step {1}, the model is being updated with the incoming
+measurements, which almost immediately has the effect of bringing the
+system into the state predicted by the goal. The goal or target
+function is a {2} sequence of proprioceptive states. In this case,
+every consecutive change of goal leads to a new mini-episode of
+learning for new combinations of goal prediction and local prediction
+error. This is a simple type of \\emph{{goal babbling}}, and it is
+only partially completed when learning is stopped at time step
+{3}. The agent able to get close to most of the goal predictions based
+on the existing knowledge but the remaining residual after the goal
+change transient is not being corrected anymore.""".format(
+    numsteps, lconf['lm']['n_train'][0], escape_backslash(goal),
+    lconf['lm']['n_test'][0])
+
 def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
     global partial
     global PlotBlock2, numsteps, timeseries, algo, dim_s1, dim_s0, sysname, lag, lag_past, lag_future, saveplot
-    global motivations, motivation_i
-    goal = motivations[motivation_i][1]['params']['models']['goal']['type']
+    global motivations, motivation_i, goal
+    # goal = motivations[motivation_i][1]['params']['models']['goal']['type']
     return {
     'block': PlotBlock2,
     'params': {
