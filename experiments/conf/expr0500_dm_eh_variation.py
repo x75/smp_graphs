@@ -89,7 +89,11 @@ lconf = {
 }
 systemblock = get_systemblock[lconf['sys']['name']](**lconf['sys'])
 
-desc = """Variation 1 of dm\_imol using a different target function.""".format()
+desc = """Variation of the previous experiment using a different
+target function. Also for the sinusoid, the approach toward the target
+is slower for the EH learner but is well approximated after a very
+short learning transient with only a small increase in average error
+levels during testing without further adaptation.""".format()
 
 # execution
 saveplot = True
