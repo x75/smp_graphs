@@ -506,8 +506,16 @@ laglen = maxlag - minlag
 
 eta = lconf['eta']
 
-desc = """An exploration and learning episode of {0} time steps of a
-learning agent under the exploratory Hebbian model.""".format(numsteps)
+desc = """An exploration and learning episode of {0} time steps of an
+agent learning motor skills with the exploratory Hebbian model. The
+task is a again a sequence uniformly random
+goals. After washout, this learner is slower to pick up on the target
+signal, as compared with the previous two models. This can be
+expected from the fact that the learning rule does not convey the sign
+or magnitude of the error but only wether the error magnitude has
+decreased compared to the prediction. There is no noticable difference
+in error levels in the testing phase at the end of the
+episode.""".format(numsteps)
 
 # motivations
 from smp_graphs.utils_conf import dm_motivations
