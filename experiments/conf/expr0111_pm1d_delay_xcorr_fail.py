@@ -26,8 +26,8 @@ be restored however by using the mutual information instead of
 cross-correlation as the point-wise dependency measure.""".format(numsteps)
 
 # scan parameters
-scanstart = -10
-scanstop = 0
+scanstart = 0 # -10
+scanstop = 10
 scanlen = scanstop - scanstart
 
 scan_plot_inputs = make_input_matrix_ndim(xdim = dim_m0, ydim = dim_s0, with_t = True, scan = (scanstart, scanstop))

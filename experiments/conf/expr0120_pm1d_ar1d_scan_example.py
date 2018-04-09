@@ -55,8 +55,8 @@ time converges, indicated by values close to zero for all measures
 starting from ten time steps into the past.""".format(numsteps)
 
 # scan parameters
-scanstart = -100
-scanstop = 0
+scanstart = 0 # -100
+scanstop = 100
 scanlen = scanstop - scanstart
 
 scan_plot_inputs = {'d1': {'bus': 'mi_ll0_ll0/mi', 'shape': (dim_s1, dim_m0, scanlen)}}
