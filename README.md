@@ -1,28 +1,26 @@
-<div id="table-of-contents">
-<h2>Table of Contents</h2>
-<div id="text-table-of-contents">
-<ul>
-<li><a href="#org22f1523">1. smp_graphs</a>
-<ul>
-<li><a href="#org51ebac0">1.1. Installation</a></li>
-<li><a href="#org6c8addc">1.2. Examples</a></li>
-<li><a href="#orgf9e5dce">1.3. Design considerations</a>
-<ul>
-<li><a href="#orgd3f96a6">1.3.1. <span class="done DONE">DONE</span> Base block</a></li>
-</ul>
-</li>
-<li><a href="#orgfe91f72">1.4. Notes</a></li>
-</ul>
-</li>
-<li><a href="#org9da324f">2. API documentation</a></li>
-</ul>
-</div>
-</div>
+
+# Table of Contents
+
+1.  [smp\_graphs](#org08e9199)
+    1.  [smp what?](#org6ef7e63)
+    2.  [Installation](#org1e8d782)
+    3.  [Examples](#orga1cc7a0)
+    4.  [Design considerations](#orga94b695)
+        1.  [Read/write: integrate input from and output to ROS, OSC, &#x2026;](#org060b17d)
+        2.  [Base block](#org6bdf688)
+    5.  [Notes](#orgda21f47)
+2.  [API documentation](#org53e36e7)
 
 
-<a id="org22f1523"></a>
+
+<a id="org08e9199"></a>
 
 # smp\_graphs
+
+
+<a id="org6ef7e63"></a>
+
+## smp what?
 
 This is an experimental framework for specifying sensorimotor learning
 experiments as a computation graph. The nodes represent functions
@@ -68,7 +66,7 @@ verbosity of the configuration dictionary but clearly this can also be
 optimized to allow very terse formulations.
 
 
-<a id="org51ebac0"></a>
+<a id="org1e8d782"></a>
 
 ## Installation
 
@@ -81,8 +79,23 @@ smp stuff is 'installed' by cloning the repositories and setting the PYTHONPATH 
 
     export PYTHONPATH=/path/to/smp_base:/path/to/smp_graphs:$PYTHONPATH
 
+Simulators and robots
 
-<a id="org6c8addc"></a>
+-   stdr simulator (FIXME: fetch config from smq)
+-   lpzrobots
+-   sphero\_ros
+-   MORSE
+
+TODO
+
+-   prepare requirements.txt: numpy, scipy, sklearn scikit-learn,
+    seaborn, fix: rlspy from git, jpype = jpypex, link infodynamics,
+    mdp = MDP, fix Oger from git, cma is cma, add: colorcet, pyunicorn
+    deps: weave, igraph/jgraph
+-   clean path for running without ROS
+
+
+<a id="orga1cc7a0"></a>
 
 ## Examples
 
@@ -112,7 +125,7 @@ directory.
 \FIXME Provide the data for the examples as a .zip file on osf
 
 
-<a id="orgf9e5dce"></a>
+<a id="orga94b695"></a>
 
 ## Design considerations
 
@@ -177,10 +190,6 @@ order of items is random.
         one data point
     -   x parallel loop within graph, modify graph. this is different
         from dynamic containment
-
--   read/write: integrate input from and output to ROS, OSC, &#x2026;
-    -   robots
-    -   ros systems
 
 -   sync / async block execution
     -   x research: rate/blocksize/ibuf/obuf,
@@ -303,7 +312,16 @@ order of items is random.
     -   x expr: make windowed infth analysis: manifold\_timespread\_windowed.py
 
 
-<a id="orgd3f96a6"></a>
+<a id="org060b17d"></a>
+
+### Read/write: integrate input from and output to ROS, OSC, &#x2026;
+
+-   x basic simulated robots: pointmass, simplearm, bha
+-   x ros systems: STDRCircular, LPZBarrel
+-   OSC in/out?
+
+
+<a id="org6bdf688"></a>
 
 ### Base block
 
@@ -325,7 +343,7 @@ graph, and whose nodes' attributes contain the original configuration
 plus the runtime block instance.
 
 
-<a id="orgfe91f72"></a>
+<a id="orgda21f47"></a>
 
 ## Notes
 
@@ -347,7 +365,7 @@ include
     experiments deviating from that schema. Is where we are ;)
 
 
-<a id="org9da324f"></a>
+<a id="org53e36e7"></a>
 
 # API documentation
 

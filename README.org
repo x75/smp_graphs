@@ -51,12 +51,11 @@ block, including the block itself, allowing recurrent connections.
 
 The graph-based representation provides good separation of the
 experiment's algorithm and the implementation. The project is
-work-in-progress and stilll moving. In principle the configuration is
-independent of this specific implementation and could also be used
-to generate or assemble an implementation in another language or
-particular hardware etc. The most important drawback right now is the
-verbosity of the configuration dictionary but clearly this can also be
-optimized to allow very terse formulations.
+work-in-progress. In principle the configuration is independent of
+this specific implementation and could be run on other virtual
+machines than python. The most important drawback right now is the
+verbosity of the configuration dictionary. This can be improved and is
+planned to be done for future versions.
 
 ** Installation
 

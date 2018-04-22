@@ -5,8 +5,11 @@
 
 
 
-1 smp\_graphs
+smp\_graphs
 -------------
+
+smp what?
+~~~~~~~~~~~~~
 
 This is an experimental framework for specifying sensorimotor learning
 experiments as a computation graph. The nodes represent functions
@@ -44,19 +47,18 @@ block, including the block itself, allowing recurrent connections.
 
 The graph-based representation provides good separation of the
 experiment's algorithm and the implementation. The project is
-work-in-progress and stilll moving. In principle the configuration is
-independent of this specific implementation and could also be used
-to generate or assemble an implementation in another language or
-particular hardware etc. The most important drawback right now is the
-verbosity of the configuration dictionary but clearly this can also be
-optimized to allow very terse formulations.
+work-in-progress. In principle the configuration is independent of
+this specific implementation and could be run on other virtual
+machines than python. The most important drawback right now is the
+verbosity of the configuration dictionary. This can be improved and is
+planned to be done for future versions.
 
-1.1 Installation
+Installation
 ~~~~~~~~~~~~~~~~
 
 Depends on 
 
-- External: numpy, scipy, networkx, pandas, matplotlib, sklearn, seaborn, rlspy, jpype/infodynamics.jar, mdp/Oger, ros, pyunicorn, hyperopt, cma, igmm
+- External: numpy, scipy, networkx, pandas, matplotlib, sklearn, seaborn, rlspy, jpype/infodynamics.jar, mdp/Oger, ros, pyunicorn, hyperopt, cma
 
 - smp world: smp\_base, smp\_sys
 
@@ -66,7 +68,26 @@ smp stuff is 'installed' by cloning the repositories and setting the PYTHONPATH 
 
     export PYTHONPATH=/path/to/smp_base:/path/to/smp_graphs:$PYTHONPATH
 
-1.2 Examples
+Simulators and robots
+
+- stdr simulator (FIXME: fetch config from smq)
+
+- lpzrobots
+
+- sphero\_ros
+
+- MORSE
+
+TODO
+
+- prepare requirements.txt: numpy, scipy, sklearn scikit-learn,
+  seaborn, fix: rlspy from git, jpype = jpypex, link infodynamics,
+  mdp = MDP, fix Oger from git, cma is cma, add: colorcet, pyunicorn
+  deps: weave, igraph/jgraph
+
+- clean path for running without ROS
+
+Examples
 ~~~~~~~~~~~~
 
 Go into smp\_graphs/experiments directory where experiments are run from
@@ -104,7 +125,7 @@ directory.
 
 \FIXME Provide the data for the examples as a .zip file on osf
 
-1.3 Design considerations
+Design considerations
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This is a dynamic list which I use both to sketch (TODO) and document
@@ -196,12 +217,6 @@ order of items is random.
 
   - x parallel loop within graph, modify graph. this is different
     from dynamic containment
-
-- read/write: integrate input from and output to ROS, OSC, ...
-
-  - robots
-
-  - ros systems
 
 - sync / async block execution
 
@@ -401,7 +416,16 @@ order of items is random.
 
   - x expr: make windowed infth analysis: manifold\_timespread\_windowed.py
 
-1.3.1 DONE Base block
+DONE Read/write: integrate input from and output to ROS, OSC, ...
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- x basic simulated robots: pointmass, simplearm, bha
+
+- x ros systems: STDRCircular, LPZBarrel
+
+- OSC in/out?
+
+DONE Base block
 ^^^^^^^^^^^^^^^^^^^^^
 
 The basic block class is Block2. Blocks come in two fundamental
@@ -421,7 +445,7 @@ dictionary is converted into the execution graph, which as a networkx
 graph, and whose nodes' attributes contain the original configuration
 plus the runtime block instance.
 
-1.4 Notes
+Notes
 ~~~~~~~~~
 
 This is approximately my 5th attempt at defining a framework for
@@ -443,5 +467,5 @@ include
   left us too inflexible and obviosuly couldn't accomodate any
   experiments deviating from that schema. Is where we are ;)
 
-2 API documentation
+API documentation
 -------------------
