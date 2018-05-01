@@ -1,12 +1,25 @@
 """smp_graphs configuration
 
-baseline behaviour - open-loop uniform random search in finite isotropic space
+.. moduleauthor:: Oswald Berthold, 2018
 
 id:thesis_smpx0001
 
-Oswald Berthold 2017
+Baseline behaviour - open-loop uniform random search in finite
+isotropic space. Special case of kinesis with coupling = 0 between
+measurement and action.
 
-special case of kinesis with coupling = 0 between measurement and action
+TODO
+1. loop over randseed
+2. loop over budget vs. density (space limits, distance threshold), hyperopt
+3. loop over randseed with fixed optimized parameters
+4. loop over kinesis variants [bin, cont] and system variants ord [0, 1, 2, 3?] and ndim = [1,2,3,4,8,16,...,ndim_max]
+
+TODO low-level
+- block groups
+- experiment sig, make hash, store config and logfile with that hash
+- compute experiment hash: if exists, use logfile, else compute
+- compute experiment/model_i hash: if exists, use pickled model i, else train
+- pimp smp_graphs graph visualisation
 """
 
 from smp_graphs.block import FuncBlock2
@@ -62,21 +75,6 @@ dim_s0 = systemblock['params']['dims']['s0']['dim']
 dim_s1 = systemblock['params']['dims']['s0']['dim']
 # dim_s_goal   = dim_s1
 dim_s_goal    = dim_s0
-
-# print "sysblock", systemblock['params']['dims']['s0']['dim']
-
-# TODO
-# 1. loop over randseed
-# 2. loop over budget vs. density (space limits, distance threshold), hyperopt
-# 3. loop over randseed with fixed optimized parameters
-# 4. loop over kinesis variants [bin, cont] and system variants ord [0, 1, 2, 3?] and ndim = [1,2,3,4,8,16,...,ndim_max]
-
-# TODO low-level
-# block groups
-# experiment sig, make hash, store config and logfile with that hash
-# compute experiment hash: if exists, use logfile, else compute
-# compute experiment/model_i hash: if exists, use pickled model i, else train
-# pimp smp_graphs graph visualisation
 
 # graph
 graph = OrderedDict([

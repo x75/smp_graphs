@@ -1,6 +1,5 @@
 #+AUTHOR: Oswald Berthold
-#+DATE: 20170621
-
+#+DATE: <2018-05-01 Di>
 
 #+OPTIONS: ^:nil 
 # toc:nil
@@ -337,4 +336,3 @@ include
    experiments deviating from that schema. Is where we are ;)
 
 * API documentation
-

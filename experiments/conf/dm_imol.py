@@ -1,25 +1,23 @@
 """dm_imol - developmental model (dm) using internal model online learning (imol)
 
-smp_graphs config, converted from smp/imol
+.. moduleauthor:: Oswald Berthold, 2018
 
-TODO:
-- Embedding: implement embedding at block boundaries
+smp_graphs configurables, converted from smp/imol
 
-experiment variations
+Experiment variations:
 - algo
 - system
 - system order
 - dimensions
 - number of modalities
 
-# robustness
-# fix: target properties like frequency matched to body (attainable / not attainable)
-# fix: eta
-# fix: motor / sensor limits, how does the model learn the limits
-
-# priors: timing, limits
-
-    
+TODO:
+- Embedding: implement embedding at block boundaries
+- robustness
+- fix: target properties like frequency matched to body (attainable / not attainable)
+- fix: eta
+- fix: motor / sensor limits, how does the model learn the limits
+- fix: priors: timing, limits, ...
 """
 
 import copy

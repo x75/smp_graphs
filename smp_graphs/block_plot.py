@@ -1120,11 +1120,15 @@ class PlotBlock2(FigPlotBlock2):
                 # check axis inversion
                 ax_invert(ax, **subplotconf)
                 
-                # fix legends
-                # ax.legend(labels)
+                # legend: location
                 loc = 'left'
                 if sb.has_key('legend_loc'):
                     loc = sb['legend_loc']
+
+                # legend: spacing
+                legend_space = 0.9
+                if sb.has_key('legend_space'):
+                    legend_space = sb['legend_space']
                     
                 # twin axes headache
                 if len(sb['p1_axs']) == 1:
@@ -1142,7 +1146,7 @@ class PlotBlock2(FigPlotBlock2):
                     custom_legend(
                         labels = labels,
                         handles = handles,
-                        ax = ax, resize_by = 0.9,
+                        ax = ax, resize_by = legend_space,
                         loc = loc)
                     ax_set_aspect(ax, **subplotconf)
                 else:
@@ -1164,7 +1168,7 @@ class PlotBlock2(FigPlotBlock2):
                         loc_ = loc
                         custom_legend(
                             labels = labels, # sb['p1_plotlabels'],
-                            ax = ax, resize_by = 0.9,
+                            ax = ax, resize_by = legend_space,
                             loc = loc_, lg = lg_)
                         lg_ = ax.get_legend()
 
