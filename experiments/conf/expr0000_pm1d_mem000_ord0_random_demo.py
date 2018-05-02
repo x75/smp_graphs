@@ -60,11 +60,17 @@ lim = lconf['lim'] # 1.0
 
 desc = """The baseline of agent behaviour is open-loop uniform random
 search in finite isotropic space. The minimal function required for
-this behaviour is \\\emph{{goal recognition}}. This experiment
-consists of an episode of short duration with only 100 time steps and
-is intended to introduce the style of documentation of experiments
-in this thesis. Each row in the plot of
-\\\autoref{{fig:smp-expr0000-pm1d-mem000-ord0-random-demo-plot}}""".format()
+this behaviour is \\emph{{goal recognition}}. This experiment consists
+of an episode of short duration with only 100 time steps and is
+intended to introduce the style of documentation of experiments in
+this thesis. Each row in the plot of
+\\autoref{{fig:smp-expr0000-pm1d-mem000-ord0-random-demo-plot}}
+corresponds to one selection of variable, with the data plotted as
+timeseries on the left column and as a histogram on the right
+column. The name of the experiment says, that this is an
+smp-experiment with the number 0 (0000), a single pointmass system of
+zeroth order with one DoF and zero memory, and a (uniform) random
+brain.""".format()
 
 # outputs = lconf['outputs']
 outputs = {
@@ -215,6 +221,7 @@ graph = OrderedDict([
                             partial(timeseries, linewidth = 2.0, alpha = 1.0, xlabel = None, marker = 'o', xticks = False)],
                         'title': 'two-level prediction and measurement (timeseries)',
                         'title_pos': 'top_out',
+                        'ylabel': 'Acceleration [a]',
                         'legend_space': 0.8,
                     },
                     {
@@ -235,6 +242,7 @@ graph = OrderedDict([
                         'title_pos': 'top_out',
                         'desc': 'Single episode pm1d baseline \\autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
                         'xlabel': 'time step [t]',
+                        'ylabel': 'coins [c]',
                         'legend_space': 0.8,
                     },
                     {'input': 'credit_l1', 'plot': partial(

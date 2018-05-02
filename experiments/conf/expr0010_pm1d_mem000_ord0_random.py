@@ -58,7 +58,7 @@ desc = """This experiment is a full episode of the baseline
 behaviour. The length of the episode is greater than the agent's
 budget so the strategy must statistically be good enough to let the
 agent survive beyond the number of steps of the null
-policy. \FIXMET{include null behaviour}"""
+policy. \FIXMET{include null behaviour}""".format()
 
 outputs = {
     'latex': {'type': 'latex',},
