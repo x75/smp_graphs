@@ -196,9 +196,11 @@ graph = OrderedDict([
         'block': PlotBlock2,
         'params': {
             'id': 'plot',
+            'debug': True,
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'pdf',
+            'savesize': (8, 4),
             'wspace': 0.15,
             'hspace': 0.15,
             'inputs': {

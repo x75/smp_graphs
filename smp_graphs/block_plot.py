@@ -7,6 +7,26 @@ Plotting blocks
 Available blocks: :class:`AnalysisBlock2`, :class:`BaseplotBlock2`,
 :class:`FigPlotBlock2`, :class:`PlotBlock2`, :class:`ImgPlotBlock2`,
 :class:`MatrixPlotBlock2`, :class:`SnsMatrixPlotBlock2`
+
+The two main plot blocks are PlotBlock2 and ImgPlotBlock2. Each is
+configured with a set of figure parameters and with a 2D array of
+subplot configurations.
+
+Figure params:
+ - figtitle (title)
+ - figsize (plotsize)
+ - figbbox_inches ('tight')
+ - fontsizes: figure.titlesize
+ - hor. and vert. spacing
+ - padding?
+
+Subplot params:
+ - subplot title loc and fontsize
+ - tick loc and fontsize
+ - label loc and fontsize
+ - legend loc, fontsize
+ - plotfunc
+ - slicing / selecting
 """
 import re, time, inspect
 from collections import OrderedDict
@@ -50,8 +70,14 @@ import smp_graphs.utils_logging as log
 #   - modality-timedelay matrix is: modalities on x, timedelay on y
 #   - modality-timedelay matrix is: different dependency measures xcorr, expansion-xcorr, mi, rp, kldiv, ...
 #   - information decomposition matrix (ica?)
-# 
-rcParams['figure.titlesize'] = 11
+
+"""plot docs
+
+Plot layout configurable items:
+ - figure title (suptitle) fontsize (titlesize)
+"""
+
+rcParams['figure.titlesize'] = 12 # 11 # suptitle
 
 axes_spines = False
 # smp_graphs style
@@ -439,11 +465,22 @@ class FigPlotBlock2(BaseplotBlock2):
      - subplots(list): an array of arrays, each cell of that matrix contains one subplot configuration dict
      - subplotconf(dict): dict with entries *inputs*, a list of input keys, *plot*, a plot function pointer
     """
+    defaults = {
+        'bbox_inches': None, # 'tight',
+        'wspace': 0.0,
+        'hspace': 0.0,
+    }
+        
     @decInit()
     def __init__(self, conf = {}, paren = None, top = None):
-        # defaults
-        self.wspace = 0.0
-        self.hspace = 0.0
+        # update child class 'self' defaults
+        defaults = {}
+        defaults.update(AnalysisBlock2.defaults, **self.defaults)
+        self.defaults = defaults
+
+        # # defaults
+        # self.wspace = 0.0
+        # self.hspace = 0.0
         BaseplotBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
         # configure figure and plot axes
@@ -487,22 +524,24 @@ class FigPlotBlock2(BaseplotBlock2):
 
         # get filename from instance
         filename = plotinst.filename
-        
+
         plotinst._debug("%s-%s.save filename = %s" % (plotinst.cname, plotinst.id, filename))
 
         if not hasattr(plotinst, 'savesize'):
             savescale = 3
             plotinst.savesize = (
                 min(plotinst.fig_cols * 2.5 * savescale, 24),
-                min(plotinst.fig_rows * 1.0 * savescale, 12))
+                min(plotinst.fig_rows * 1.25 * savescale, 12))
 
-        plotinst._debug("savesize w/h = %f/%f, fig_cols/fig_rows = %s/%s" % (plotinst.savesize[0], plotinst.savesize[1], plotinst.fig_cols, plotinst.fig_rows))
+        plotinst._debug('fig savesize w/h = %f/%f' % (plotinst.savesize[0], plotinst.savesize[1]))
+        plotinst._debug('fig cols/rows = %s/%s' % (plotinst.fig_cols, plotinst.fig_rows))
+        plotinst._debug('fig bbox_inches = %s' % (plotinst.bbox_inches))
         plotinst.fig.set_size_inches(plotinst.savesize)
 
         # write the figure to file
         try:
             plotinst._info("%s.savefig saving plot %s to filename = %s" % (plotinst.id, re.sub('\n', ' ', plotinst.title), filename))
-            plotinst.fig.savefig(filename, dpi=300, bbox_inches="tight")
+            plotinst.fig.savefig(filename, dpi=300, bbox_inches=plotinst.bbox_inches)
         except Exception, e:
             logger.error("%s.savefig saving failed with %s" % (plotinst.id, e))
 
@@ -643,6 +682,10 @@ class PlotBlock2(FigPlotBlock2):
         'subplots': [[{}]],
         'plot_subplots_pass_1_flag': False,
         'plot_subplots_pass_2_flag': False,
+        'bbox_inches': 'tight',
+        'wspace': 0.0,
+        'hspace': 0.0,
+        
     }
 
     defaults_subplotconf = {
