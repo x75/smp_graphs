@@ -535,6 +535,7 @@ def init_budget(ref, mref, conf, mconf):
     params = conf['params']
     mref.credit = np.ones((1, 1)) * params['credit']
     mref.credit_ = mref.credit.copy()
+    mref.resets = np.ones((1, 1))
 
 def step_budget(ref, mref, *args, **kwargs):
     if hasattr(ref, 'rate'):
@@ -552,8 +553,10 @@ def step_budget(ref, mref, *args, **kwargs):
         # print ref.__class__.__name__, ref.id, "lo, hi, out shapes", lo.shape, hi.shape, outv['shape']
         # setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
         mref.credit = mref.credit_.copy()
+        mref.resets = mdltr.copy()
     else:
         mref.credit -= 1
+        mref.resets = np.zeros_like(mdltr)
         # if ref.credit
             
     

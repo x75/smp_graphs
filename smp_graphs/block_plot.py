@@ -77,7 +77,7 @@ Plot layout configurable items:
  - figure title (suptitle) fontsize (titlesize)
 """
 
-rcParams['figure.titlesize'] = 12 # 11 # suptitle
+rcParams['figure.titlesize'] = 10 # suptitle
 
 axes_spines = False
 # smp_graphs style

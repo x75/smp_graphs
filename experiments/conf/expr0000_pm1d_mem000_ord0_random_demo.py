@@ -118,6 +118,7 @@ graph = OrderedDict([
                             },
                         'outputs': {
                             'credit': {'shape': (1,1)},
+                            'resets': {'shape': (dim_s0,1)},
                         },
                         'models': {
                             'budget': {'type': 'budget_linear'},
@@ -134,6 +135,7 @@ graph = OrderedDict([
                         'blockphase': [0],
                         'rate': 1,
                         # 'ros': ros,
+                        # goal recognition
                         'goalsize': 0.1, # np.power(0.01, 1.0/dim_s0), # area of goal
                         'inputs': {
                             'credit': {'bus': 'budget/credit'},
@@ -172,6 +174,16 @@ graph = OrderedDict([
     # # robot
     # ('robot1', systemblock),
 
+    # # filter state by d(goal) < goalsize
+    # ('filter_s_p', {
+    #     'block': FilterBlock2,
+    #     'params': {
+    #         'inputs': {
+    #             's0': {'bus': 'robot1/s0', 'shape': (dim_s0, 1)},
+    #         }
+    #     }
+    # }),
+
     # measures
     ('measure', {
         'block': MomentBlock2,
@@ -200,7 +212,7 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'pdf',
-            'savesize': (8, 4),
+            'savesize': (12, 7),
             'wspace': 0.15,
             'hspace': 0.15,
             'inputs': {
@@ -209,14 +221,16 @@ graph = OrderedDict([
                 'pre_l0': {'bus': 'pre_l0/pre', 'shape': (dim_s_goal, numsteps)},
                 'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
                 'credit_l1': {'bus': 'budget/credit', 'shape': (1, numsteps)},
+                'resets_l1': {'bus': 'budget/resets', 'shape': (1, numsteps)},
                 },
             'desc': 'Baseline agent illustration',
             'hspace': 0.3,
             'hspace': 0.3,
             'subplots': [
+                
                 [
                     {
-                        'input': ['pre_l0', 's_p', 'pre_l1'],
+                        'input': ['pre_l1', 'pre_l0', 's_p', 'resets_l1'],
                         'plot': [
                             partial(timeseries, linewidth = 1.0, alpha = 1.0, xlabel = None, marker = 'o'),
                             partial(timeseries, linewidth = 1.0, alpha = 1.0, xlabel = None, marker = 'o'),
@@ -224,38 +238,44 @@ graph = OrderedDict([
                         'title': 'two-level prediction and measurement (timeseries)',
                         'title_pos': 'top_out',
                         'ylabel': 'Acceleration [a]',
-                        'legend_space': 0.8,
+                        'legend_space': 0.75,
                     },
+                    
                     {
-                        'input': ['pre_l0', 's_p', 'pre_l1'],
+                        'input': ['pre_l1', 'pre_l0', 's_p'],
                         'plot': [partial(
                             histogram, orientation = 'horizontal', histtype = 'stepfilled',
                             yticks = False, xticks = False, alpha = 1.0, normed = False) for _ in range(3)],
                         'title': 'two-level prediction and measurement (histogram)',
                         'title_pos': 'top_out',
                         'desc': 'Single episode pm1d baseline \\autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
-                        'legend_space': 0.8,
+                        'legend_space': 0.75,
                         # 'mode': 'stack'
                     },
+                    
                 ],
                 [
-                    {'input': 'credit_l1', 'plot': partial(timeseries, ylim = (0, 1000), alpha = 1.0),
-                         'title': 'agent budget (timeseries)',
+                    {
+                        'input': 'credit_l1', 'plot': partial(timeseries, ylim = (0, 1000), alpha = 1.0),
+                        'title': 'agent budget (timeseries)',
                         'title_pos': 'top_out',
                         'desc': 'Single episode pm1d baseline \\autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
                         'xlabel': 'time step [t]',
                         'ylabel': 'coins [c]',
-                        'legend_space': 0.8,
+                        'legend_space': 0.75,
                     },
-                    {'input': 'credit_l1', 'plot': partial(
-                        histogram, orientation = 'horizontal', histtype = 'stepfilled',
-                        yticks = False, ylim = (0, 1000), alpha = 1.0, normed = False),
+                    
+                    {
+                        'input': 'credit_l1', 'plot': partial(
+                            histogram, orientation = 'horizontal', histtype = 'stepfilled',
+                            yticks = False, ylim = (0, 1000), alpha = 1.0, normed = False),
                         'title': 'agent budget (histogram)',
                         'title_pos': 'top_out',
                         'xlabel': 'count [n]',
                         'desc': 'Single episode pm1d baseline \\autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
-                        'legend_space': 0.8,
+                        'legend_space': 0.75,
                     },
+                    
                 ]
             ],
         },
