@@ -71,13 +71,7 @@ import smp_graphs.utils_logging as log
 #   - modality-timedelay matrix is: different dependency measures xcorr, expansion-xcorr, mi, rp, kldiv, ...
 #   - information decomposition matrix (ica?)
 
-"""plot docs
-
-Plot layout configurable items:
- - figure title (suptitle) fontsize (titlesize)
-"""
-
-rcParams['figure.titlesize'] = 10 # suptitle
+rcParams['figure.titlesize'] = 11 # suptitle
 
 axes_spines = False
 # smp_graphs style
@@ -161,7 +155,8 @@ class AnalysisBlock2(PrimBlock2):
         if not hasattr(self, 'title'):
             # self.title = "%s - %s-%s" % (self.top.id, self.cname, self.id)
             # self.title = "%s of %s" % (self.cname, self.top.id[:20], )
-            self.title = "%s of %s\nnumsteps = %d, caching = %s" % (self.id, self.top.id, self.top.numsteps, self.top.docache)
+            # self.title = "%s %s\nnumsteps = %d, caching = %s" % (self.id, self.top.id, self.top.numsteps, self.top.docache)
+            self.title = "%s %s numsteps = %d" % (self.top.id, self.id, self.top.numsteps)
         
     def save(self):
         """Save the analysis, redirect to corresponding class method, passing the instance
@@ -701,13 +696,43 @@ class PlotBlock2(FigPlotBlock2):
     def __init__(self, conf = {}, paren = None, top = None):
         FigPlotBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
+    def plot_coding_event(self, subplotconf, input_ink, (i, j, k)):
+        # event based recoding (plot only)
+        if 'event' not in subplotconf: return input_ink
+            
+        if type(subplotconf['event']) is list:
+            event = subplotconf['event'][k]
+        else:
+            event = subplotconf['event']
+                
+        # recode as event sequence if configured as event
+        if not event: return input_ink
+
+        data = myt(input_ink['val'])
+        # condition is x != 0
+        datanz = (data != 0.0).ravel()
+        self._debug('datanz = %s' % (datanz))
+        self._debug('data = %s' % (data.shape,))
+        # numsteps
+        t_ = np.arange(0, data.shape[0])
+        datanz_idx = t_[datanz]
+        datanz_val = data[datanz]
+        # return what: input_ink is inputs
+        input_ink['t'] = datanz_idx
+        input_ink['val'] = datanz_val
+        # fix xslice, shape
+        return input_ink
+       
     def plot_subplots(self):
-        """loop over configured subplots and plot the data according to the configuration
+        """PlotBlock2.plot_subplots
+
+        Loop over configured subplots and plot the input data
+        according to the configuration.
 
         The function does not take any arguments. Instead, the args
         are taken from the :data:`subplots` member.
 
-        subplots is a list of lists, specifying a the subplot
+        subplots is a list of lists, specifying a subplot
         grid. `subplots[:]` are rows and `subplots[:][:]` are the
         columns.
 
@@ -740,16 +765,16 @@ class PlotBlock2(FigPlotBlock2):
         self.fig.set_size_inches(default_plot_size)
 
         # subplots pass 1: the hard work, iterate over subplot config and build the plot
-        for i, subplot in enumerate(self.subplots):   # rows are lists of dicts
-            for j, subplotconf_ in enumerate(subplot): # columns are dicts
+        for i, subplot in enumerate(self.subplots):    # rows are lists (of dicts)
+            for j, subplotconf_ in enumerate(subplot): # cols are dicts (of k,v tuples; columns)
+
+                # subplotconf defaults
                 if type(subplotconf_) is dict:
                     subplotconf = {}
                     subplotconf.update(self.defaults_subplotconf)
                     subplotconf.update(subplotconf_)
                     subplotconf_.update(subplotconf)
                     
-                # assert subplotconf.has_key('input'), "PlotBlock2 needs 'input' key in the plot spec = %s" % (subplotconf,)
-                # assert subplotconf.has_key('plot'), "PlotBlock2 needs 'plot' key in the plot spec = %s" % (subplotconf,)
                 # empty gridspec cell
                 if subplotconf is None or len(subplotconf) < 1:
                     self._warning('plot_subplots pass 1 subplot[%d,%d] no plot configured, subplotconf = %s' % (i, j, subplotconf))
@@ -805,7 +830,10 @@ class PlotBlock2(FigPlotBlock2):
                     # vars: input, ndslice, shape, xslice, ...
                     input_ink = self.check_plot_input(ink, [i, j, k])
                     if not input_ink: continue
-                    
+
+                    # check for event recoding
+                    input_ink = self.plot_coding_event(subplotconf, input_ink, (i, j, k))
+
                     # get numsteps of data for the input
                     if not input_ink.has_key('shape'):
                         input_ink['shape'] = input_ink['val'].shape
@@ -885,14 +913,16 @@ class PlotBlock2(FigPlotBlock2):
                         ndslice = subplotconf['ndslice'][k]
                         self._debug("plot_subplots pass 1 subplot[%d,%d] input[%d] = %s ndslice ndslice = %s" % (
                             i, j, k, ink, ndslice))
+                        # get the data
                         plotdata[ink_] = myt(input_ink['val'])[ndslice]
                         self._debug("plot_subplots pass 1 subplot[%d,%d] input[%d] = %s ndslice sb['ndslice'] = %s, numslice = %d" % (
                             i, j, k, ink, subplotconf['ndslice'][k], len(subplotconf['ndslice'])))
                         self._debug("plot_subplots pass 1 subplot[%d,%d] input[%d] = %s ndslice plotdata[ink_] = %s, input = %s" % (
                             i, j, k, ink, plotdata[ink_].shape, input_ink['val'].shape, ))
                     else:
+                        # get the data
                         plotdata[ink_] = myt(input_ink['val'])[xslice] # .reshape((xslice.stop - xslice.start, -1))
-                        
+
                     # dual plotdata record
                     axd = axs['main']
                     # ax_ = axs['main']['ax']
@@ -937,7 +967,10 @@ class PlotBlock2(FigPlotBlock2):
                     
                     # store ax, labels for legend
                     plotdatad[ink_] = {'data': plotdata[ink_], 'ax': ax_, 'labels': l}
+                # end loop over subplot input
+                ################################################################################
 
+                # labels
                 if len(labels) == 1:
                     labels = labels[0]
                 elif len(labels) > 1:
@@ -947,9 +980,6 @@ class PlotBlock2(FigPlotBlock2):
                 self._debug("plot_subplots pass 1 subplot[%d,%d] labels after subplotconf.input = %s" % (
                     i, j, labels, ))
                 subplotconf['labels'] = labels
-                # end loop over subplot 'input'
-                ################################################################################
-
                 
                 ################################################################################
                 # combine inputs into one backend plot call to automate color cycling etc
@@ -1060,12 +1090,19 @@ class PlotBlock2(FigPlotBlock2):
                     #     if len(label_) > 16:
                     #         label_ = label_[:16]
                     #     labels.append(label_)
+
+                    if 't' in plotdatad:
+                        t_ = plotdatad['t']
+                    else:
+                        t_ = t
                         
                     # this is the plot function array from the config
                     if not plotdata.has_key('_stacked'):
                         # print "    plot_subplots plotfunc", plotfunc_conf[plotfunc_idx]
                         # print "                      args", ax, inv, t, title, kwargs
-                        plotfunc_conf[plotfunc_idx](ax = ax, data = inv, ordinate = t, title = title_, **kwargs)
+                        plotfunc_conf[plotfunc_idx](
+                            ax = ax, data = inv, ordinate = t_,
+                            title = title_, **kwargs)
                         # avoid setting title multiple times
                         # title_ = None
 

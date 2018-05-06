@@ -105,6 +105,67 @@ class CodingBlock2(PrimBlock2):
                         sig = getattr(self, 'x_sig')
                         setattr(self, outk, (inv['val'] - mu) / sig)
 
+class EventCodingBlock2(PrimBlock2):
+    """EventCodingBlock2
+
+    FIXME: fix underlying execution model to be able to do event based scheduling
+
+    Convert continuous time coding to events for sparse zero/non-zero
+    spike data.
+
+    .. note:: I think it only makes sense in batch mode, since
+    scheduling doesn't know about non-input steps / non-steps.
+
+    Convert
+    x: 0 1 0 0 0 0.7 0 0
+    t: 0 1 2 3 4 5   6 7
+
+    to:
+    x: 1 0.7
+    t: 1 5  
+    """
+    @decInit()
+    def __init__(self, conf = {}, paren = None, top = None):
+        
+        PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
+
+        # prealloc
+        
+        for ink, inv in self.inputs.items():
+            # print inv
+            for outk in ["aer"]:
+                setattr(self, "%s_%s" % (ink, outk), np.zeros(inv['shape']))
+        
+    @decStep()
+    def step(self, x = None):
+        self._debug(
+            "%s.step:\n\tx = %s,\n\tbus = %s,\n\tinputs = %s,\n\toutputs = %s",
+            (
+                self.__class__.__name__,
+                self.outputs.keys(),
+                self.bus,
+                self.inputs,
+                self.outputs
+            )
+        )
+
+        # FIXME: relation rate / blocksize, remember cnt from last step, check difference > rate etc
+        
+        if self.cnt % self.blocksize in self.blockphase:
+            for ink, inv in self.inputs.items():
+                for outk_ in ['aer']:
+                    outk = "%s_%s" % (ink, outk_)
+                    outv_ = getattr(self, outk)
+
+                    if outk.endswith("mu"):
+                        setattr(self, outk, 0.99 * outv_ + 0.01 * inv['val'])
+                    elif outk.endswith("sig"):
+                        setattr(self, outk, 0.99 * outv_ + 0.01 * np.sqrt(np.square(inv['val'] - getattr(self, ink + "_mu"))))
+                    elif outk.endswith("std"):
+                        mu = getattr(self, 'x_mu')
+                        sig = getattr(self, 'x_sig')
+                        setattr(self, outk, (inv['val'] - mu) / sig)
+
 class ModelBlock2(PrimBlock2):
     """Basic Model block
 

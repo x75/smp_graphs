@@ -212,20 +212,18 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'pdf',
-            'savesize': (12, 7),
-            'wspace': 0.15,
-            'hspace': 0.15,
+            'savesize': (8, 5),
+            'wspace': 0.3,
+            'hspace': 0.5,
             'inputs': {
                 's_p': {'bus': 'robot1/s0', 'shape': (dim_s0, numsteps)},
                 's_e': {'bus': 'robot1/s1', 'shape': (dim_s1, numsteps)},
                 'pre_l0': {'bus': 'pre_l0/pre', 'shape': (dim_s_goal, numsteps)},
                 'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
                 'credit_l1': {'bus': 'budget/credit', 'shape': (1, numsteps)},
-                'resets_l1': {'bus': 'budget/resets', 'shape': (1, numsteps)},
+                'resets_l1': {'bus': 'budget/resets', 'shape': (1, numsteps), 'event': True},
                 },
             'desc': 'Baseline agent illustration',
-            'hspace': 0.3,
-            'hspace': 0.3,
             'subplots': [
                 
                 [
@@ -235,6 +233,7 @@ graph = OrderedDict([
                             partial(timeseries, linewidth = 1.0, alpha = 1.0, xlabel = None, marker = 'o'),
                             partial(timeseries, linewidth = 1.0, alpha = 1.0, xlabel = None, marker = 'o'),
                             partial(timeseries, linewidth = 2.0, alpha = 1.0, xlabel = None, marker = 'o', xticks = False)],
+                        'event': [False] * 3 +  [True],
                         'title': 'two-level prediction and measurement (timeseries)',
                         'title_pos': 'top_out',
                         'ylabel': 'Acceleration [a]',
