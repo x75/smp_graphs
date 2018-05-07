@@ -237,7 +237,7 @@ graph = OrderedDict([
                             partial(linesegments),
                         ],
                         'lineseg_val': [None] * 4 + [('pre_l0', 's_p')],
-                        'lineseg_idx': [None] * 4 + [[(18, 20), (19, 21), (20, 22)]],
+                        'lineseg_idx': [None] * 4 + [[(19, 21), (21, 23), (23, 25)]],
                         'event': [False] * 3 +  [True] + [False],
                         'title': 'Goal, action, result, goal-hit',
                         'title_pos': 'top_out',
