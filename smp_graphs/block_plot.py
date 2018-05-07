@@ -652,17 +652,28 @@ class FigPlotBlock2(BaseplotBlock2):
                 t = np.linspace(xslice.start, xslice.start+plotlen-1, plotlen)[xslice]
         return t
                 
-    def subplotconf2kwargs(self, subplotconf, i, j):
+    def subplotconf2kwargs(self, subplotconf, i, j, k=None):
         kwargs = {}
         for kw in [
                 'aspect', 'orientation', 'labels',
                 'title_pos',
                 'xlabel', 'xlim', 'xticks', 'xticklabels', 'xinvert', 'xtwin',
-                'ylabel', 'ylim', 'yticks', 'yticklabels', 'yinvert', 'ytwin', ]:
+                'ylabel', 'ylim', 'yticks', 'yticklabels', 'yinvert', 'ytwin',
+                'lineseg_val', 'lineseg_idx',
+            ]:
             if subplotconf.has_key(kw):
-                kwargs[kw] = subplotconf[kw]
+                if k is not None:
+                    kwargs[kw] = listify(subplotconf[kw], k)
+                else:
+                    kwargs[kw] = subplotconf[kw]
             elif hasattr(self, kw):
-                kwargs[kw] = getattr(self, kw)
+                if k is not None:
+                    kwargs[kw] = listify(getattr(self, kw), k)
+                else:
+                    kwargs[kw] = getattr(self, kw)
+
+            # if k is not None:
+            #     kwargs[kw] = listify(kwargs[kw], k)
                 
             self._debug("plot_subplots pass 1 subplot[%d,%d] kwargs = %s" % (i, j, kwargs))
         return kwargs
@@ -714,6 +725,25 @@ class PlotBlock2(FigPlotBlock2):
     def __init__(self, conf = {}, paren = None, top = None):
         FigPlotBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
+    def plot_coding_lineseg(self, subplotconf, input_ink, (i, j, k)):
+        """PlotBlock2.plot_coding_lineseg
+        """
+        if subplotconf.has_key('lineseg_val') and subplotconf.has_key('lineseg_idx'):
+            lineseg_val_k = listify(subplotconf['lineseg_val'], k)
+            if lineseg_val_k is None: return input_ink
+
+            # else, do work
+            l_ = []
+            for lineseg_input in lineseg_val_k:
+                self._debug('lineseg_input = %s' % (lineseg_input))
+                l_.append(self.inputs[lineseg_input]['val'])
+            self._debug('lineseg_input l_ = %s' % (l_))
+            input_ink['val'] = np.vstack(l_)
+            input_ink['shape'] = input_ink['val'].shape
+            self._debug('input_ink val   = %s' % (input_ink['val']))
+            self._debug('input_ink shape = %s' % (input_ink['shape'],))
+        return input_ink
+        
     def plot_coding_event(self, subplotconf, input_ink, (i, j, k)):
         """PlotBlock2.plot_coding_event
 
@@ -875,6 +905,9 @@ class PlotBlock2(FigPlotBlock2):
 
                     # check for event recoding
                     input_ink = self.plot_coding_event(subplotconf, input_ink, (i, j, k))
+
+                    # check for linesegment recoding
+                    input_ink = self.plot_coding_lineseg(subplotconf, input_ink, (i, j, k))
 
                     # get numsteps of data for the input
                     if not input_ink.has_key('shape'):
@@ -1185,7 +1218,10 @@ class PlotBlock2(FigPlotBlock2):
                     #     t_ = plotdatad['t']
                     # else:
                     #     t_ = t
-                        
+
+                    # transfer plot_subplot configuration keywords subplotconf to plot kwargs
+                    kwargs = self.subplotconf2kwargs(subplotconf, i, j, k)
+                    
                     # this is the plot function array from the config
                     if not plotdata.has_key('_stacked'):
                         # print "    plot_subplots plotfunc", plotfunc_conf[plotfunc_idx]

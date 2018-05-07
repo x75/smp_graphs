@@ -228,14 +228,17 @@ graph = OrderedDict([
                 
                 [
                     {
-                        'input': ['pre_l1', 'pre_l0', 's_p', 'resets_l1'],
+                        'input': ['pre_l1', 'pre_l0', 's_p', 'resets_l1', 'pre_l1'],
                         'plot': [
                             partial(timeseries, linewidth = 2.0,    alpha = 0.6, xlabel = None, marker = ''),
                             partial(timeseries, linewidth = 1.0,    alpha = 0.7, xlabel = None, marker = '.'),
                             partial(timeseries, linewidth = 1.0,    alpha = 0.7, xlabel = None, marker = '.', xticks = False),
-                            partial(timeseries, linestyle = 'none', alpha = 0.8, xlabel = None, marker = 'o', xticks = False, color='r')
+                            partial(timeseries, linestyle = 'none', alpha = 0.8, xlabel = None, marker = 'o', xticks = False, color='r'),
+                            partial(linesegments),
                         ],
-                        'event': [False] * 3 +  [True],
+                        'lineseg_val': [None] * 4 + [('pre_l0', 's_p')],
+                        'lineseg_idx': [None] * 4 + [[(18, 20), (19, 21), (20, 22)]],
+                        'event': [False] * 3 +  [True] + [False],
                         'title': 'Goal, action, result, goal-hit',
                         'title_pos': 'top_out',
                         'ylabel': 'Acceleration [a]',

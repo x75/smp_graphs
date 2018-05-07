@@ -37,7 +37,7 @@ from smp_graphs.block_models import ModelBlock2
 
 from smp_graphs.funcs import f_sin, f_motivation, f_motivation_bin, f_random_uniform
 
-from smp_base.plot import timeseries, histogram, histogramnd
+from smp_base.plot import timeseries, histogram, histogramnd, linesegments
 
 debug = False
 showplot = True
@@ -677,7 +677,7 @@ def listify(obj, k):
                              and wrapped index for len-1 lists
     ```
     """
-    assert obj is not None, 'listify: obj is %s, failing' % (type(obj))
+    # assert obj is not None, 'listify: obj is %s, failing' % (type(obj))
     if type(obj) in [list]:
         assert k < len(obj), "listify: index %s out of bounds %s, failing" % (k, len(obj))
         if len(obj) == 1:
