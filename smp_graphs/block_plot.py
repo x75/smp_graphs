@@ -50,7 +50,7 @@ from smp_base.plot       import makefig, timeseries, histogram, plot_img, plotfu
 from smp_base.plot       import get_colorcycler, fig_interaction
 from smp_base.plot       import ax_invert, ax_set_aspect
 
-from smp_graphs.common import code_compile_and_run
+from smp_graphs.common import code_compile_and_run, listify
 from smp_graphs.block import decStep, decInit, block_cmaps, get_input
 from smp_graphs.block import PrimBlock2
 from smp_graphs.utils import myt, mytupleroll
@@ -115,16 +115,20 @@ import logging
 logger = get_module_logger(modulename = 'block_plot', loglevel = logging_DEBUG)
 
 def subplot_input_fix(input_spec):
-    """subplot configuration convenience function
+    """subplot_input_fix
+
+    Subplot configuration convenience function.
     
-    Convert subplot configuration items into a list if they are singular types like numbers, strs and tuples
+    Convert subplot configuration items into a list if they are
+    singular types like numbers, strs and tuples.
+
+    See also: smp_graphs.common.listify (FIXME: merge)
     """
     # assert input an array 
     if type(input_spec) is str or type(input_spec) is tuple:
         return [input_spec]
     else:
         return input_spec
-
 
 class AnalysisBlock2(PrimBlock2):
     defaults = {
@@ -165,6 +169,10 @@ class AnalysisBlock2(PrimBlock2):
             FigPlotBlock2.savefig(self)
 
     def check_plot_input(self, ink, args):
+        """check_plot_input
+
+        Input sanity check that requested item 'ink' exists.
+        """
         i, j, k = args[:3]
         if not self.inputs.has_key(ink):
             # self._debug("    triggered: bus[%s] = %s, buskeys = %s" % (buskey, xself.bus[v['buskey']], bus.keys()))
@@ -174,9 +182,12 @@ class AnalysisBlock2(PrimBlock2):
         return self.inputs[ink]
 
     def check_plot_type(self, conf, defaults = {}):
-        """subplot plotfunc configuration type fix function part 1: raw conf
+        """check_plot_type
 
-        Get subplot configuration item 'plot' and make sure it is a list of function pointers
+        Subplot plotfunc configuration type fix function part 1: raw conf
+
+        Get subplot configuration item 'plot' and make sure it is a
+        list of function pointers
 
         Returns:
          - list of plotfunc pointers
@@ -206,9 +217,12 @@ class AnalysisBlock2(PrimBlock2):
         return conf_plot
 
     def check_plot_type_single(self, f):
-        """subplot plotfunc configuration type fix function part 2: single list item
+        """check_plot_type_single
 
-        Get subplot configuration item 'plot' and, if necessary, type-fix the value by translating strings to functions.
+        Subplot plotfunc configuration type fix function part 2: single list item
+
+        Get subplot configuration item 'plot' and, if necessary,
+        type-fix the value by translating strings to functions.
 
         Returns:
          - single function pointer
@@ -226,6 +240,10 @@ class AnalysisBlock2(PrimBlock2):
             return f
 
     def get_title_from_plot_type(self, plotfunc_conf):
+        """get_title_from_plot_type
+
+        Get title component from the plot type for automatic titling.
+        """
         title = ""
         for plotfunc in plotfunc_conf:
             # get the plot type from the plotfunc type
@@ -697,30 +715,51 @@ class PlotBlock2(FigPlotBlock2):
         FigPlotBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
     def plot_coding_event(self, subplotconf, input_ink, (i, j, k)):
-        # event based recoding (plot only)
+        """PlotBlock2.plot_coding_event
+
+        Event based recoding of incoming timeseries. Events are
+        identified by a condition e.g. y[t] != 0 and two new arrays
+        are created coding the time and the values / properties of the
+        event. These have a new shape with length equal to the number
+        of events.
+
+        TODO: Generalize from plot internal to eventcoding block, but
+        this involves touching the entire execution model, which we
+        want to be event aware anyway.
+        """
         if 'event' not in subplotconf: return input_ink
-            
-        if type(subplotconf['event']) is list:
-            event = subplotconf['event'][k]
-        else:
-            event = subplotconf['event']
+
+        # FIXME: robust dict
+        event = listify(subplotconf['event'], k)
                 
-        # recode as event sequence if configured as event
+        # return if event type is not set for this subplot input channel
         if not event: return input_ink
 
+        # recode as event (aer) sequence if this subplot input channel
+        # is configured as event type
         data = myt(input_ink['val'])
-        # condition is x != 0
+        
+        # apply condition, default condition is non-zeroness, y[x] != 0
         datanz = (data != 0.0).ravel()
         self._debug('datanz = %s' % (datanz))
         self._debug('data = %s' % (data.shape,))
-        # numsteps
+        # create full index t axis / axis
         t_ = np.arange(0, data.shape[0])
+        # grab index positions of condition matches from the full index
         datanz_idx = t_[datanz]
+        # grab the event data at the corresponding index positions
         datanz_val = data[datanz]
-        # return what: input_ink is inputs
+        self._debug('datanz_idx = %s' % (datanz_idx.shape,))
+        self._debug('datanz_val = %s' % (datanz_val.shape,))
+        # modify input item
         input_ink['t'] = datanz_idx
         input_ink['val'] = datanz_val
-        # fix xslice, shape
+        input_ink['shape'] = datanz_val.T.shape
+        # fix plotlen, xslice, shape
+        self._debug('subplotconf %s' % (subplotconf.keys(),))
+        self._debug('  input_ink %s' % (input_ink.keys(),))
+        
+        # return the modified input item 'input_ink'
         return input_ink
        
     def plot_subplots(self):
@@ -781,12 +820,15 @@ class PlotBlock2(FigPlotBlock2):
                     return
 
                 # convert conf items into list if they aren't (convenience)
-                for input_spec_key in ['input', 'ndslice', 'shape']:
+                for input_spec_key in [
+                        'input', 'ndslice', 'shape',
+                        'xslice', 'event',
+                    ]:
                     if subplotconf.has_key(input_spec_key):
                         subplotconf[input_spec_key] = subplot_input_fix(subplotconf[input_spec_key])
                         # print "    id: %s, subplotconf[%s] = %s" % (self.id, input_spec_key, subplotconf[input_spec_key])
 
-                # linear axes index from subplot row_i * col_j
+                # linear (flattened) axes index from subplot row_i * col_j
                 idx = (i*self.fig_cols)+j
                     
                 # remember axes and their labels created during pass 1 e.g. by twin[xy]()
@@ -837,7 +879,9 @@ class PlotBlock2(FigPlotBlock2):
                     # get numsteps of data for the input
                     if not input_ink.has_key('shape'):
                         input_ink['shape'] = input_ink['val'].shape
+                    # plotlen intrinsic
                     plotlen = input_ink['shape'][-1] # numsteps at shape[-1]
+                    # plotlen extent
 
                     # set default slice
                     xslice = slice(0, plotlen)
@@ -849,14 +893,18 @@ class PlotBlock2(FigPlotBlock2):
                     # x axis slice spec
                     if subplotconf.has_key('xslice'):
                         # get slice conf
-                        if type(subplotconf['xslice']) is list:
-                            subplotconf_xslice = subplotconf['xslice'][k]
-                        else:
-                            subplotconf_xslice = subplotconf['xslice']
+                        # if type(subplotconf['xslice']) is list:
+                        #     subplotconf_xslice = subplotconf['xslice'][k]
+                        # else:
+                        #     subplotconf_xslice = subplotconf['xslice']
+                        subplotconf_xslice = listify(subplotconf['xslice'], k)
+                        
                         # set slice
                         xslice = slice(subplotconf_xslice[0], subplotconf_xslice[1])
+                        
                         # update plot length
                         plotlen = xslice.stop - xslice.start
+                        
                         # and plot shape
                         plotshape = (plotlen, ) + tuple((b for b in plotshape[1:]))
                     
@@ -866,15 +914,19 @@ class PlotBlock2(FigPlotBlock2):
                     # explicit shape key
                     # FIXME: shape overrides xslice
                     if subplotconf.has_key('shape'):
-                        if len(subplotconf['shape']) > 1:
-                            subplotconf_shape = subplotconf['shape'][k]
-                        else:
-                            subplotconf_shape = subplotconf['shape'][0]
-                        # get the shape spec, custom transpose from horiz t to row t
+                        # if len(subplotconf['shape']) > 1:
+                        #     subplotconf_shape = subplotconf['shape'][k]
+                        # else:
+                        #     subplotconf_shape = subplotconf['shape'][0]
+                        subplotconf_shape = listify(subplotconf['shape'], k)
+                            
+                        # update the plot shape 'plotshape' via custom transpose from column t [-1] to row t [0] repr
                         plotshape = mytupleroll(subplotconf_shape)
-                        # update plot length
+                        
+                        # update plot length 'plotlen'
                         plotlen = plotshape[0]
-                        # and xsclice
+                        
+                        # update x-slice 'xslice'
                         xslice = slice(0, plotlen)
 
                     self._debug("plot_subplots pass 1 subplot[%d,%d] input[%d] = %s shape xslice = %s, plotlen = %d, plotshape = %s" % (
@@ -894,8 +946,11 @@ class PlotBlock2(FigPlotBlock2):
                     #     else:
                     #         t = np.linspace(xslice.start, xslice.start+plotlen-1, plotlen)[xslice]
 
-                    # get t axis
-                    t = self.get_xaxis(subplotconf, xslice, plotlen, (i, j, k))
+                    # get t axis / xaxis
+                    if 't' in input_ink:
+                        t_ = input_ink['t']
+                    else:
+                        t_ = self.get_xaxis(subplotconf, xslice, plotlen, (i, j, k))
                     
                     # print "%s.plot_subplots k = %s, ink = %s" % (self.cname, k, ink)
                     # plotdata[ink] = input_ink['val'].T[xslice]
@@ -910,39 +965,49 @@ class PlotBlock2(FigPlotBlock2):
                     if subplotconf.has_key('ndslice'):
                         # plotdata[ink_] = myt(self.inputs[ink_]['val'])[-1,subplotconf['ndslice'][0],subplotconf['ndslice'][1],:] # .reshape((21, -1))
                         # slice the data to spec, custom transpose from h to v time
-                        ndslice = subplotconf['ndslice'][k]
+                        # ndslice = subplotconf['ndslice'][k]
+                        ndslice = listify(subplotconf['ndslice'], k)
                         self._debug("plot_subplots pass 1 subplot[%d,%d] input[%d] = %s ndslice ndslice = %s" % (
                             i, j, k, ink, ndslice))
-                        # get the data
+                        
+                        # get the data nd-sliced
                         plotdata[ink_] = myt(input_ink['val'])[ndslice]
                         self._debug("plot_subplots pass 1 subplot[%d,%d] input[%d] = %s ndslice sb['ndslice'] = %s, numslice = %d" % (
                             i, j, k, ink, subplotconf['ndslice'][k], len(subplotconf['ndslice'])))
                         self._debug("plot_subplots pass 1 subplot[%d,%d] input[%d] = %s ndslice plotdata[ink_] = %s, input = %s" % (
                             i, j, k, ink, plotdata[ink_].shape, input_ink['val'].shape, ))
                     else:
-                        # get the data
+                        # get the data en bloc
                         plotdata[ink_] = myt(input_ink['val'])[xslice] # .reshape((xslice.stop - xslice.start, -1))
 
-                    # dual plotdata record
+                    # dual plotdata record hack
                     axd = axs['main']
                     # ax_ = axs['main']['ax']
                     if subplotconf.has_key('xtwin'):
-                        if type(subplotconf['xtwin']) is list:
-                            if subplotconf['xtwin'][k]:
-                                if not axs.has_key('xtwin'):
-                                    axs['xtwin'] = {'ax': axs['main']['ax'].twinx(), 'labels': []}
-                                axd = axs['xtwin'] # ['ax']
+                        subplotconf_xtwin = listify(subplotconf['xtwin'], k)
+                        if subplotconf_xtwin:
+                            if not axs.has_key('xtwin'):
+                                axs['xtwin'] = {'ax': axs['main']['ax'].twinx(), 'labels': []}
+                            axd = axs['xtwin'] # ['ax']
+                            
+                        # if type(subplotconf['xtwin']) is list:
+                        #     if subplotconf['xtwin'][k]:
+                        #         if not axs.has_key('xtwin'):
+                        #             axs['xtwin'] = {'ax': axs['main']['ax'].twinx(), 'labels': []}
+                        #         axd = axs['xtwin'] # ['ax']
                                 
-                        else:
-                            if subplotconf['xtwin']:
-                                if not axs.has_key('xtwin'):
-                                    axs['xtwin'] = {'ax': axs['main']['ax'].twinx(), 'labels': []}
-                                axd = axs['xtwin'] # ['ax']
+                        # else:
+                        #     if subplotconf['xtwin']:
+                        #         if not axs.has_key('xtwin'):
+                        #             axs['xtwin'] = {'ax': axs['main']['ax'].twinx(), 'labels': []}
+                        #         axd = axs['xtwin'] # ['ax']
 
                     assert plotdata[ink_].shape != (0,), "no data to plot"
                     # print "      input = %s" % input_ink['val']
                     # print "      id %s, ink = %s, plotdata = %s, plotshape = %s" % (self.id, ink_, plotdata[ink_], plotshape)
                     # plotdata[ink_] = plotdata[ink_].reshape((plotshape[1], plotshape[0])).T
+
+                    # reshape the data
                     plotdata[ink_] = plotdata[ink_].reshape(plotshape)
                     
                     # fix nans
@@ -965,12 +1030,21 @@ class PlotBlock2(FigPlotBlock2):
                     axd['labels'] += l # .append(l)
                     ax_ = axd['ax']
                     
-                    # store ax, labels for legend
-                    plotdatad[ink_] = {'data': plotdata[ink_], 'ax': ax_, 'labels': l}
+                    # store fully prepared / ready to plot subplot
+                    # input, e.g. for pass 2 consolidation. Storing: ax, data, legend labels, t axis
+                    # FIXME: in sync with subplotconf, initialize as
+                    #        copy and updated from option triggered computations
+                    plotdatad[ink_] = {
+                        'ax': ax_,
+                        'data': plotdata[ink_],
+                        'labels': l,
+                        't': t_,
+                    }
                 # end loop over subplot input
                 ################################################################################
 
-                # labels
+                ############################################################
+                # finalize labels
                 if len(labels) == 1:
                     labels = labels[0]
                 elif len(labels) > 1:
@@ -982,7 +1056,8 @@ class PlotBlock2(FigPlotBlock2):
                 subplotconf['labels'] = labels
                 
                 ################################################################################
-                # combine inputs into one backend plot call to automate color cycling etc
+                # mode: stacking, combine inputs into one backend
+                #       plot call to automate color cycling etc
                 if subplotconf.has_key('mode'):
                     """FIXME: fix dangling effects of stacking"""
                     # ivecs = tuple(myt(input_ink['val'])[xslice] for k, ink in enumerate(subplotconf['input']))
@@ -990,19 +1065,29 @@ class PlotBlock2(FigPlotBlock2):
                     # plotdata = {}
                     if subplotconf['mode'] in ['stack', 'combine', 'concat']:
                         plotdata['_stacked'] = np.hstack(ivecs)
-                        plotdatad['_stacked'] = {'data': plotdata['_stacked'], 'ax': plotdatad[plotdata.keys()[0]]['ax'], 'labels': labels}
+                        plotdatad['_stacked'] = {
+                            'ax': plotdatad[plotdata.keys()[0]]['ax'],
+                            'data': plotdata['_stacked'],
+                            'labels': labels,
+                            't': t_,
+                        }
 
-                # if type(subplotconf['input']) is list:
+                # get explicit xaxis (t)
+                # FIXME: overrides xslice (?), shape (?), plotshape/plotlen, event
                 if subplotconf.has_key('xaxis'):
+                    # xaxis given as another input signal via bus key
                     if type(subplotconf['xaxis']) is str and subplotconf['xaxis'] in self.inputs.keys():
                         inv = self.inputs[subplotconf['xaxis']]
+                    # xaxis given directly here (check)
                     else:
                         inv = self.inputs[ink]
-                        
+
+                    # titles
                     if inv.has_key('bus'):
                         plotvar += " over %s" % (inv['bus'], )
                     else:
                         plotvar += " over %s" % (inv['val'], )
+                        
                     # plotvar = ""
                     # # FIXME: if len == 2 it is x over y, if len > 2 concatenation
                     # for k, inputvar in enumerate(subplotconf['input']):
@@ -1049,10 +1134,13 @@ class PlotBlock2(FigPlotBlock2):
                     )
                 )
                 
-                # stacked data?
+                # stacked data plot
                 if plotdata.has_key('_stacked'):
                     self._debug("plot_subplots pass 1 subplot[%d,%d] plotting stacked" % (i, j, ))
-                    plotfunc_conf[0](ax, data = plotdata['_stacked'], ordinate = t, title = title, **kwargs)
+                    # ordinate = t, t axis, xaxis
+                    t_ = plotdatad['_stacked']['t']
+                    data_ = plotdatad['_stacked']['data'] # plotdata['_stacked']
+                    plotfunc_conf[0](ax, data=data_, ordinate=t_, title=title, **kwargs)
                     # interaction
                     fig_interaction(self.fig, ax, plotdata['_stacked'])
 
@@ -1062,8 +1150,9 @@ class PlotBlock2(FigPlotBlock2):
                 inv_accum = []
                 for ink, inv in plotdata.items():
                     ax = plotdatad[ink]['ax']
+                    t_ = plotdatad[ink]['t']
                     self._debug("plot_subplots pass 1 subplot[%d,%d] plotdata[%s] = inv.sh = %s, plotvar = %s, t.sh = %s" % (
-                        i, j, ink, inv.shape, plotvar, t.shape))
+                        i, j, ink, inv.shape, plotvar, t_.shape))
 
                     # if multiple input groups, increment color group and compensate for implicit cycle state
                     if inkc > 0:
@@ -1091,10 +1180,11 @@ class PlotBlock2(FigPlotBlock2):
                     #         label_ = label_[:16]
                     #     labels.append(label_)
 
-                    if 't' in plotdatad:
-                        t_ = plotdatad['t']
-                    else:
-                        t_ = t
+                    # # get t / xaxis from plotdatad
+                    # if 't' in plotdatad:
+                    #     t_ = plotdatad['t']
+                    # else:
+                    #     t_ = t
                         
                     # this is the plot function array from the config
                     if not plotdata.has_key('_stacked'):
@@ -1115,10 +1205,13 @@ class PlotBlock2(FigPlotBlock2):
                     inkc += 1
 
                 if len(plotdata) > 0:
-                    inv_accum_ = np.hstack(inv_accum)
+                    # changed 20180507: don't stack but dict
+                    # inv_accum_ = np.hstack(inv_accum)
                     
                     # interaction
-                    fig_interaction(self.fig, ax, inv_accum_)
+                    # fig_interaction(self.fig, ax, inv_accum_)
+                    # call with data dict plotdatad
+                    fig_interaction(self.fig, ax, plotdatad)
                     
                 # reset to main axis
                 ax = axs['main']['ax']

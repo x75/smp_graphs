@@ -663,6 +663,28 @@ def conf_strip_variables(conf, omits = ['PlotBlock2']):
             conf_.append(vtransform(v))
             
     return conf_
+
+def listify(obj, k):
+    """listify
+
+    Common configuration task: 1) get conf item, 2) check if it is compound
+    (list, array, collection, ...) or atomic (str, number, scalar,
+    ...), 3) if list get element at index k, 4) else return obj
+
+    v1 based on
+    ```
+    block_plot.py:729 FIXME: robust listify-list-or-string-on-the-fly
+                             and wrapped index for len-1 lists
+    ```
+    """
+    assert obj is not None, 'listify: obj is %s, failing' % (type(obj))
+    if type(obj) in [list]:
+        assert k < len(obj), "listify: index %s out of bounds %s, failing" % (k, len(obj))
+        if len(obj) == 1:
+            return obj[0]
+        return obj[k]
+    else:
+        return obj
         
 def read_puppy_hk_pickles(lfile, key = None):
     """smp_graphs.common.read pickled log dicts from andi's puppy experiments"""

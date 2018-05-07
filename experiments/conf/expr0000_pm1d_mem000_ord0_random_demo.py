@@ -32,12 +32,12 @@ from smp_graphs.utils_conf import get_systemblock
 
 # global parameters can be overwritten from the commandline
 ros = False
-numsteps = 10000/100
+numsteps = 30 # 10000/400
 recurrent = True
 debug = False
 showplot = True
 saveplot = True
-randseed = 126
+randseed = 127
 
 lconf = {
     'dim': 1,
@@ -230,50 +230,58 @@ graph = OrderedDict([
                     {
                         'input': ['pre_l1', 'pre_l0', 's_p', 'resets_l1'],
                         'plot': [
-                            partial(timeseries, linewidth = 1.0, alpha = 1.0, xlabel = None, marker = 'o'),
-                            partial(timeseries, linewidth = 1.0, alpha = 1.0, xlabel = None, marker = 'o'),
-                            partial(timeseries, linewidth = 2.0, alpha = 1.0, xlabel = None, marker = 'o', xticks = False)],
+                            partial(timeseries, linewidth = 2.0,    alpha = 0.6, xlabel = None, marker = ''),
+                            partial(timeseries, linewidth = 1.0,    alpha = 0.7, xlabel = None, marker = '.'),
+                            partial(timeseries, linewidth = 1.0,    alpha = 0.7, xlabel = None, marker = '.', xticks = False),
+                            partial(timeseries, linestyle = 'none', alpha = 0.8, xlabel = None, marker = 'o', xticks = False, color='r')
+                        ],
                         'event': [False] * 3 +  [True],
-                        'title': 'two-level prediction and measurement (timeseries)',
+                        'title': 'Goal, action, result, goal-hit',
                         'title_pos': 'top_out',
                         'ylabel': 'Acceleration [a]',
                         'legend_space': 0.75,
                     },
                     
-                    {
-                        'input': ['pre_l1', 'pre_l0', 's_p'],
-                        'plot': [partial(
-                            histogram, orientation = 'horizontal', histtype = 'stepfilled',
-                            yticks = False, xticks = False, alpha = 1.0, normed = False) for _ in range(3)],
-                        'title': 'two-level prediction and measurement (histogram)',
-                        'title_pos': 'top_out',
-                        'desc': 'Single episode pm1d baseline \\autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
-                        'legend_space': 0.75,
-                        # 'mode': 'stack'
-                    },
+                    # {
+                    #     'input': ['pre_l1', 'pre_l0', 's_p'],
+                    #     'plot': [partial(
+                    #         histogram, orientation = 'horizontal', histtype = 'stepfilled',
+                    #         yticks = False, xticks = False, alpha = 1.0, normed = False) for _ in range(3)],
+                    #     'title': '',
+                    #     'title_pos': 'top_out',
+                    #     'desc': 'Single episode pm1d baseline \\autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
+                    #     'legend_space': 0.75,
+                    #     # 'mode': 'stack'
+                    # },
                     
                 ],
                 [
                     {
-                        'input': 'credit_l1', 'plot': partial(timeseries, ylim = (0, 1000), alpha = 1.0),
-                        'title': 'agent budget (timeseries)',
+                        'input': ['credit_l1', 'credit_l1'],
+                        # 'plot': partial(timeseries, ylim = (0, 1000), alpha = 1.0),
+                        'plot': [
+                            partial(timeseries, alpha = 0.8, linestyle='none', marker='$\$$', color='orange'),
+                            partial(timeseries, alpha = 0.8, linestyle='none', marker='o', fillstyle='none', markersize=10, color='orange'),
+                        ],
+                        'title': 'Agent budget',
                         'title_pos': 'top_out',
                         'desc': 'Single episode pm1d baseline \\autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
                         'xlabel': 'time step [t]',
-                        'ylabel': 'coins [c]',
+                        'ylabel': 'unit budget [c]',
+                        'legend': {'unit budget': 0},
                         'legend_space': 0.75,
                     },
                     
-                    {
-                        'input': 'credit_l1', 'plot': partial(
-                            histogram, orientation = 'horizontal', histtype = 'stepfilled',
-                            yticks = False, ylim = (0, 1000), alpha = 1.0, normed = False),
-                        'title': 'agent budget (histogram)',
-                        'title_pos': 'top_out',
-                        'xlabel': 'count [n]',
-                        'desc': 'Single episode pm1d baseline \\autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
-                        'legend_space': 0.75,
-                    },
+                    # {
+                    #     'input': 'credit_l1', 'plot': partial(
+                    #         histogram, orientation = 'horizontal', histtype = 'stepfilled',
+                    #         yticks = False, ylim = (0, 1000), alpha = 1.0, normed = False),
+                    #     'title': 'agent budget (histogram)',
+                    #     'title_pos': 'top_out',
+                    #     'xlabel': 'count [n]',
+                    #     'desc': 'Single episode pm1d baseline \\autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
+                    #     'legend_space': 0.75,
+                    # },
                     
                 ]
             ],
