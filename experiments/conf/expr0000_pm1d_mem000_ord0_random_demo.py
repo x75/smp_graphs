@@ -241,8 +241,11 @@ graph = OrderedDict([
                         'event': [False] * 3 +  [True] + [False],
                         'title': 'Goal, action, result, goal-hit',
                         'title_pos': 'top_out',
-                        'ylabel': 'Acceleration [a]',
+                        'ylabel': 'unit action [a]',
                         'legend_space': 0.75,
+                        'legend': {
+                            'goal $\hat{s}^{l_1}_p$': 0, 'action $\hat{s}^{l_0}_p$': dim_s0, 'measured $s_p$': 2 * dim_s0,
+                            'goal hit': 3 * dim_s0, 'coupling': 4 * dim_s0},
                     },
                     
                     # {
@@ -260,9 +263,10 @@ graph = OrderedDict([
                 ],
                 [
                     {
-                        'input': ['credit_l1', 'credit_l1'],
+                        'input': ['credit_l1', 'credit_l1', 'credit_l1'],
                         # 'plot': partial(timeseries, ylim = (0, 1000), alpha = 1.0),
                         'plot': [
+                            partial(timeseries, alpha = 0.5, linewidth=0.8),
                             partial(timeseries, alpha = 0.8, linestyle='none', marker='$\$$', color='orange'),
                             partial(timeseries, alpha = 0.8, linestyle='none', marker='o', fillstyle='none', markersize=10, color='orange'),
                         ],
@@ -271,7 +275,7 @@ graph = OrderedDict([
                         'desc': 'Single episode pm1d baseline \\autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
                         'xlabel': 'time step [t]',
                         'ylabel': 'unit budget [c]',
-                        'legend': {'unit budget': 0},
+                        'legend': {'unit budget': 1},
                         'legend_space': 0.75,
                     },
                     
