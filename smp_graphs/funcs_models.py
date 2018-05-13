@@ -564,11 +564,17 @@ def step_budget(ref, mref, *args, **kwargs):
 def init_random_uniform_modulated(ref, mref, conf, mconf):
     params = conf['params']
     # for outk, outv in params['outputs'].items():
+    
     outk = 'pre'
     outv = params['outputs'][outk]
     lo = -np.ones(( outv['shape'] )) * 1e-3
     hi = np.ones(( outv['shape'] )) * 1e-3
     setattr(mref, outk, np.random.uniform(lo, hi, size = outv['shape']))
+    
+    outk_1 = 'd_pre'
+    outv = params['outputs'][outk_1]
+    setattr(mref, outk_1, getattr(mref, outk))
+ 
     # ref.credit = np.ones((1, 1)) * params['credit']
     # ref.credit_ = ref.credit.copy()
     mref.goalsize = params['goalsize']
@@ -600,6 +606,10 @@ def step_random_uniform_modulated(ref, mref, *args, **kwargs):
         # print ref.__class__.__name__, ref.id, "lo, hi, out shapes", lo.shape, hi.shape, outv['shape']
         setattr(mref, outk, np.random.uniform(lo, hi, size = outv['shape']))
         # ref.credit = ref.credit_.copy()
+        setattr(mref, 'd_pre', getattr(mref, outk))
+    else:
+        setattr(mref, 'd_pre', np.zeros_like(getattr(mref, outk)))
+        
     # else:
     #     ref.credit -= 1
     #     # if ref.credit

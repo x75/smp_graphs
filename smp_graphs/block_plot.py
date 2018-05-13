@@ -1339,9 +1339,10 @@ class PlotBlock2(FigPlotBlock2):
                 if sb.has_key('legend_space'):
                     legend_space = sb['legend_space']
                     
-                # twin axes headache
+                # check for twin axes
                 if len(sb['p1_axs']) == 1:
-                    if 'legend' in sb:
+                    # single axis
+                    if 'legend' in sb and sb['legend']:
                         assert type(sb['legend']) is dict, 'Legend param needs to be a dict = {\'label\': [ax handles, ...]}'
                         labels = sb['legend'].keys()
                         # artists
@@ -1351,14 +1352,19 @@ class PlotBlock2(FigPlotBlock2):
                     else:
                         labels = sb['p1_plotlabels']
                         handles = None
-                    
-                    custom_legend(
-                        labels = labels,
-                        handles = handles,
-                        ax = ax, resize_by = legend_space,
-                        loc = loc)
+
+                    if 'legend' in sb and not sb['legend']:
+                        pass
+                    else:
+                        custom_legend(
+                            labels = labels,
+                            handles = handles,
+                            ax = ax, resize_by = legend_space,
+                            loc = loc)
+                        
                     ax_set_aspect(ax, **subplotconf)
                 else:
+                    # twin axes
                     lg_ = None
                     # for axk, ax in sb['p1_axs'].items():
                     # for pdk, pdv in sb['plotdatad'].items():

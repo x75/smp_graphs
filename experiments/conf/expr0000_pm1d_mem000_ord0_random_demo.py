@@ -58,19 +58,28 @@ lim = lconf['lim'] # 1.0
 
 # print "expr0000 __doc__", __doc__
 
-desc = """The baseline of agent behaviour is open-loop uniform random
-search in finite isotropic space. The minimal function required for
-this behaviour is \\emph{{goal recognition}}. This experiment consists
-of an episode of short duration with only 100 time steps and is
-intended to introduce the style of documentation of experiments in
-this thesis. Each row in the plot of
-\\autoref{{fig:smp-expr0000-pm1d-mem000-ord0-random-demo-plot}}
-corresponds to one selection of variable, with the data plotted as
-timeseries on the left column and as a histogram on the right
-column. The name of the experiment says, that this is an
-smp-experiment with the number 0 (0000), a single pointmass system of
-zeroth order with one DoF and zero memory, and a (uniform) random
-brain.""".format()
+desc = """A very short episode ({0} steps) of behaviour of the
+baseline agent is demonstrated in this experiment. The agent consists
+of the baseline strategy, performing open-loop uniform random search
+in finite isotropic space. The minimal function required for this
+behaviour is \\emph{{goal recognition}}. This is modelled as regions
+around \\emph{{target}} points by thresholding the distance between
+state and target. The top plot shows the goal position
+$\\hat{{s}}^{{l_1}}_p$ as a thick blue line, the action
+$\\hat{{s}}^{{l_0}}_p$ in dark green, and the resulting measurement $s_p$
+in light green. The measurement is delayed by two time steps with
+respect to the action, highlighted by yellow causality lines for three
+action-measurement pairs, starting at time $t = 19$. The big red
+circles indicate points where the goal was met closely enough. The
+resource is consumed and another one appears in a random location. The
+bottom plots shows the timeseries of the agent's resource budget in
+units of the internal minimum resource consumption. The name of the
+experiment is given by the smp\\_graphs configuration filename and
+encodes an id and important global parameters.""".format(numsteps)
+
+# that this is an smp-experiment with the number 0 (0000), a single
+# pointmass system of zeroth order with one DoF and zero memory, and a
+# (uniform) random brain.
 
 # outputs = lconf['outputs']
 outputs = {
@@ -208,7 +217,7 @@ graph = OrderedDict([
         'block': PlotBlock2,
         'params': {
             'id': 'plot',
-            'debug': True,
+            # 'debug': True,
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'pdf',
@@ -223,7 +232,16 @@ graph = OrderedDict([
                 'credit_l1': {'bus': 'budget/credit', 'shape': (1, numsteps)},
                 'resets_l1': {'bus': 'budget/resets', 'shape': (1, numsteps), 'event': True},
                 },
-            'desc': 'Baseline agent illustration',
+            'desc': """Illustration of the baseline agent
+behaviour. The top plot shows the goal position $\\hat{{s}}^{{l_1}}_p$
+as a thick blue line, the action $\\hat{{s}}^{{l_0}}_p$ in dark green,
+and the resulting measurement $s_p$ in light green. The measurement is
+delayed by two time steps with respect to the action, highlighted by
+yellow causality lines for three action-measurement pairs, starting at
+time $t = 19$. The big red circles indicate points where the goal was
+met closely enough. The bottom plots shows the timeseries of the
+agent's resource budget in units of the internal minimum resource
+consumption.""".format(),
             'subplots': [
                 
                 [
