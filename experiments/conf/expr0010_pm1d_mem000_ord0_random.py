@@ -237,44 +237,46 @@ graph = OrderedDict([
                     },
                     
                     {
-                        'input': ['d_pre_l1', 'pre_l0', 's_p', 'resets_l1'],
+                        # 'input': ['d_pre_l1', 'pre_l0', 's_p', 'resets_l1'],
+                        # 'event': [True, False, False, False],
+                        'input': ['d_pre_l1', 'resets_l1'],
+                        'event': [True, False],
                         'plot': [
                             partial(
                                 histogram, histtype = 'stepfilled', bins=21,
                                 orientation = 'horizontal',
-                                yticks = False, xticks = False,
+                                # yticks = False, xticks = False,
                                 alpha = 0.5, density = True
-                            ) for _ in range(3)
+                            ) for _ in range(1)
                         ] + [
                             partial(
                                 histogram, histtype = 'stepfilled', bins=21,
                                 orientation = 'horizontal',
-                                yticks = False, xticks = False,
+                                # yticks = False, xticks = False,
                                 alpha = 0.5, density = True, color='r'
                             )
                         ],
-                        'event': [True, False, False, False],
                         'title': '',
                         'title_pos': 'top_out',
                         'desc': 'Single episode pm1d baseline \\autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
+                        'xlim': None,
                         # 'xlabel': 'time step [t]',
                         # 'ylabel': 'unit budget [c]',
                         'legend': False,
                         # 'legend': {'unit budget': 1},
                         # 'legend_space': 0.75,
                         # 'mode': 'stack'
-                        'xlim_share': False,
                     },
                 ],
                 
                 [
                     {
-                        'input': ['credit_l1', 'credit_l1'], # 'credit_l1'],
+                        'input': ['credit_l1'], # , 'credit_l1', 'credit_l1'],
                         # 'plot': partial(timeseries, ylim = (0, 1000), alpha = 1.0),
                         'plot': [
                             partial(timeseries, alpha = 0.5, linewidth=0.8),
                             # partial(timeseries, alpha = 0.8, linestyle='none', marker='$\$$', color='orange'),
-                            partial(timeseries, alpha = 0.8, linestyle='none', marker='o', fillstyle='none', markersize=10, color='orange'),
+                            # partial(timeseries, alpha = 0.8, linestyle='none', marker='o', fillstyle='none', markersize=10, color='orange'),
                         ],
                         'title': 'Agent budget',
                         'title_pos': 'top_out',
@@ -298,7 +300,6 @@ graph = OrderedDict([
                         'title': 'Agent budget',
                         'title_pos': 'top_out',
                         'xlabel': 'count [n]',
-                        'xlim_share': False,
                         'desc': 'Single episode pm1d baseline \\autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
                         'legend': False,
                         'legend_space': 0.75,
