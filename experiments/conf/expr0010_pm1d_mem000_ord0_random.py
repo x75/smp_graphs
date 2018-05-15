@@ -195,6 +195,9 @@ graph = OrderedDict([
             'savesize': (12, 7),
             'wspace': 0.15,
             'hspace': 0.5,
+            'fig_rows': 2,
+            'fig_cols': 3,
+            'axesspec': [(0, slice(0, 2)), (0, 2), (1, slice(0, 2)), (1, 2)], 
             'desc': """Full episode of the baseline agent behaviour
             covering an episode length of {0} time
             steps.""".format(numsteps),
@@ -218,8 +221,8 @@ graph = OrderedDict([
                         'input': ['pre_l1', 'pre_l0', 's_p', 'resets_l1',],
                         'plot': [
                             partial(timeseries, linewidth = 2.0,    alpha = 0.8, xlabel = None, marker = ''),
-                            partial(timeseries, linewidth = 1.0,    alpha = 0.5, xlabel = None, marker = '.'),
-                            partial(timeseries, linewidth = 1.0,    alpha = 0.5, xlabel = None, marker = '.', xticks = False),
+                            partial(timeseries, linewidth = 0.0,    alpha = 0.35, xlabel = None, marker = '.'),
+                            partial(timeseries, linewidth = 0.0,    alpha = 0.35, xlabel = None, marker = '.', xticks = False),
                             partial(timeseries, linestyle = 'none', alpha = 0.5, xlabel = None, marker = 'o', xticks = False, color='r'),
                             # partial(linesegments),
                             # partial(timeseries, linewidth = 1.0, alpha = 1.0, xlabel = None),
@@ -231,6 +234,7 @@ graph = OrderedDict([
                         'title_pos': 'top_out',
                         'ylabel': 'unit action [a]',
                         'legend_space': 0.75,
+                        'legend_loc': 'right',
                         'legend': {
                             'goal $\hat{s}^{l_1}_p$': 0, 'action $\hat{s}^{l_0}_p$': dim_s0, 'measured $s_p$': 2 * dim_s0,
                             'goal hit': 3 * dim_s0},
@@ -245,22 +249,22 @@ graph = OrderedDict([
                             partial(
                                 histogram, histtype = 'stepfilled', bins=21,
                                 orientation = 'horizontal',
-                                # yticks = False, xticks = False,
+                                yticks = False, # xticks = False,
                                 alpha = 0.5, density = True
                             ) for _ in range(1)
                         ] + [
                             partial(
                                 histogram, histtype = 'stepfilled', bins=21,
                                 orientation = 'horizontal',
-                                # yticks = False, xticks = False,
+                                yticks = False, # xticks = False,
                                 alpha = 0.5, density = True, color='r'
                             )
                         ],
-                        'title': '',
+                        'title': None,
                         'title_pos': 'top_out',
                         'desc': 'Single episode pm1d baseline \\autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
                         'xlim': None,
-                        # 'xlabel': 'time step [t]',
+                        'xlabel': 'rel. frequency [n/N]',
                         # 'ylabel': 'unit budget [c]',
                         'legend': False,
                         # 'legend': {'unit budget': 1},
@@ -284,6 +288,7 @@ graph = OrderedDict([
                         'xlabel': 'time step [t]',
                         'ylabel': 'unit budget [c]',
                         'legend': {'unit budget': 0},
+                        'legend_loc': 'right',
                         'legend_space': 0.75,
                     },
                     
@@ -297,7 +302,7 @@ graph = OrderedDict([
                                 alpha = 0.5, density = True,
                             ),
                         ],
-                        'title': 'Agent budget',
+                        'title': None,
                         'title_pos': 'top_out',
                         'xlabel': 'count [n]',
                         'desc': 'Single episode pm1d baseline \\autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',

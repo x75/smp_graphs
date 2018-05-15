@@ -482,6 +482,7 @@ class FigPlotBlock2(BaseplotBlock2):
         'bbox_inches': None, # 'tight',
         'wspace': 0.0,
         'hspace': 0.0,
+        'axesspec': None,
     }
         
     @decInit()
@@ -497,14 +498,17 @@ class FigPlotBlock2(BaseplotBlock2):
         BaseplotBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
         # configure figure and plot axes
-        self.fig_rows = len(self.subplots)
-        self.fig_cols = len(self.subplots[0])
+        if self.axesspec is not None and hasattr(self, 'fig_rows') and hasattr(self, 'fig_cols'):
+            pass
+        else:
+            self.fig_rows = len(self.subplots)
+            self.fig_cols = len(self.subplots[0])
 
         # create figure
         self.fig = makefig(
             rows = self.fig_rows, cols = self.fig_cols,
             wspace = self.wspace, hspace = self.hspace,
-            title = self.title)
+            title = self.title, axesspec=self.axesspec)
         # self.fig.tight_layout(pad = 1.0)
         # self.debug_print("fig.axes = %s", (self.fig.axes, ))
 
@@ -859,7 +863,8 @@ class PlotBlock2(FigPlotBlock2):
                         # print "    id: %s, subplotconf[%s] = %s" % (self.id, input_spec_key, subplotconf[input_spec_key])
 
                 # linear (flattened) axes index from subplot row_i * col_j
-                idx = (i*self.fig_cols)+j
+                # idx = (i*self.fig_cols)+j
+                idx = (i*len(subplot))+j
                     
                 # remember axes and their labels created during pass 1 e.g. by twin[xy]()
                 axs = {
@@ -875,17 +880,19 @@ class PlotBlock2(FigPlotBlock2):
                 plotdatad = OrderedDict()
                 # remember distinct input variables
                 plotvar = ' '
-                # create a plot title
-                title = ''
-                if subplotconf.has_key('title'): title += subplotconf['title']
-
+                
                 # get this subplot's plotfunc configuration and make sure its a list
                 plotfunc_conf = self.check_plot_type(subplotconf)
                 # print "%s-%s plotfunc_conf = %s" % (self.cname, self.id, plotfunc_conf)
                 assert type(plotfunc_conf) is list, "plotfunc_conf must be a list, not %s" % (type(plotfunc_conf), )
 
-                # add plotfunc type to default title
-                if title == '':
+                # create a plot title
+                title = ''
+                if subplotconf.has_key('title'):
+                    if subplotconf['title'] is not None: title += subplotconf['title']
+                else:
+                    # add plotfunc type to default title
+                    # if title == '':
                     title += self.get_title_from_plot_type(plotfunc_conf)
 
                 # generate labels all at once
@@ -1292,6 +1299,7 @@ class PlotBlock2(FigPlotBlock2):
         # adjust xaxis
         for i, subplot in enumerate(self.subplots):
             idx = (i*self.fig_cols)            
+            # idx = (i*len(fig.axes)/len(self.subplots))
             for j, subplotconf in enumerate(subplot):
                 # subplot handle shortcut
                 sb = self.subplots[i][j]
@@ -1299,7 +1307,8 @@ class PlotBlock2(FigPlotBlock2):
                 self._debug("    0 subplotconf.keys = %s" % (subplotconf.keys(), ))
                 
                 # subplot index from rows*cols
-                idx = (i*self.fig_cols)+j
+                # idx = (i*self.fig_cols)+j
+                idx = (i*len(subplot))+j
                     
                 # axis handle shortcut
                 ax = self.fig.axes[idx]
