@@ -383,7 +383,7 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'pdf',
-            'savesize': (8, 3),
+            'savesize': (9, 3),
             'hspace': 0.8,
             'wspace': 0.15,
             'fig_rows': 1,
@@ -438,7 +438,7 @@ graph = OrderedDict([
                         'xlabel': 'Relative frequency',
                         'yticks': False,
                         'legend': False,
-                        'aspect': 0.008175,
+                        'aspect': 0.0086,
                         # 'aspect': 'auto',
                     }
                     

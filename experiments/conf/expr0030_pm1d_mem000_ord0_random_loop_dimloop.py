@@ -30,8 +30,11 @@ from smp_graphs.utils_conf import get_systemblock
 from smp_graphs.utils_conf import get_systemblock_pm
 from smp_graphs.utils_conf import get_systemblock_sa
 
-numloop = 2 # 7
-numloop_inner = 2 # 20
+numloop = 7
+numloop_inner = 20
+
+plot_legends = [{'$\min_i c_i$': 0, '$E(c_i)$': 1, '$\max_i c_i$': 2}]
+plot_legends += [{} for i in range(numloop-1)]
 
 desc = """This experiment is a structural variation of expr0020,
 computing the budget statistics over {0} episodes each, for all
@@ -359,18 +362,27 @@ graph = OrderedDict([
         'block': PlotBlock2,
         'params': {
             'id': 'plot',
-            'debug': True,
+            # 'debug': True,
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'pdf',
-            'wspace': 0.35,
-            'hspace': 0.25,
+            'savesize': (9, 10),
+            'wspace': 0.15,
+            'hspace': 0.3,
+            'fig_rows': numloop,
+            'fig_cols': 3,
+            'axesspec': reduce(lambda x, y: x + y, [[(i, slice(0, 2)), (i, 2)] for i in range(numloop)], []),
+            'desc': """The budget statistics as in expr0020 for each
+            configuration of the sensorimotor dimension
+            $d$ with $d \in [1, ..., {0}]$""".format(numloop),
+
             'inputs': {
                 'mins_s': {'bus': 'b5/credit_min', 'shape': (1, numloop * numloop_inner)},
                 'maxs_s': {'bus': 'b5/credit_max', 'shape': (1, numloop * numloop_inner)},
                 'mus_s':  {'bus': 'b5/credit_mu',  'shape': (1, numloop * numloop_inner)},
                 # 'mins_p': {'bus': 'b3/credit_min', 'shape': (1, numloop)},
                 },
+                
             'subplots': [
                 [
                     {
@@ -378,23 +390,32 @@ graph = OrderedDict([
                         'xslice': (i * numloop_inner, (i+1) * numloop_inner),
                         'plot': partial(
                             timeseries,
-                            ylim = (-30, 1030),
+                            ylim = (-100, 1100),
                             yscale = 'linear',
                             linestyle = 'none',
-                            marker = 'o')
+                            marker = 'o'),
+                        'title_pos': 'top_out',
+                        'legend_space': 1.0,
+                        'legend_loc': (-0.2, 1.0),
+                        'legend': plot_legends[i],
+                        
                     },
+                    
                     {
                         'input': ['mins_s', 'maxs_s', 'mus_s'],
                         'xslice': (i * numloop_inner, (i+1) * numloop_inner),
                         'plot': partial(
                             histogram,
                             title = 'mean/min budget hist',
-                            ylim = (-30, 1030),
+                            ylim = (-100, 1100),
                             yscale = 'linear',
-                            orientation = 'horizontal')
+                            orientation = 'horizontal'),
+                        'title_pos': 'top_out',
+                        'legend': False,
                     },]
                 for i in range(numloop)
         ],
+        
         },
     })
     

@@ -2134,7 +2134,7 @@ class Block2(object):
         texbuf = ''
         # for k, v in self.latex_conf.items():
         id_ = re.sub('_', '-', self.id)
-        texbuf = '\\section*{%s}\n\\label{sec:%s}\n\n' % (id_, id_, )
+        texbuf = '\\subsection*{%s}\n\\label{sec:%s}\n\n' % (id_, id_, )
 
         # copy expr description from conf
         id_base_ = '\_'.join(self.id.split('_')[0:2])
