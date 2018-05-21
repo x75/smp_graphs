@@ -30,12 +30,12 @@ from smp_graphs.utils_conf import get_systemblock
 from smp_graphs.utils_conf import get_systemblock_pm
 from smp_graphs.utils_conf import get_systemblock_sa
 
-numloop = 7
-numloop_inner = 20
+numloop = 2 # 7
+numloop_inner = 2 # 20
 
-desc = "This experiment is a structural variation of expr0020,
+desc = """This experiment is a structural variation of expr0020,
 computing the budget statistics over {0} episodes each, for all
-configurations of the sensorimotor dimension $d = {1}$".format(
+configurations of the sensorimotor dimension $d = {1}$""".format(
     numloop_inner, range(1, numloop + 1)
 )
 

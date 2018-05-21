@@ -679,7 +679,8 @@ def listify(obj, k):
     """
     # assert obj is not None, 'listify: obj is %s, failing' % (type(obj))
     if type(obj) in [list]:
-        assert k < len(obj), "listify: index %s out of bounds %s, failing" % (k, len(obj))
+        # logger.info('listify: obj = %s, k = %s', obj, k)
+        # assert k < len(obj), "listify: index %s out of bounds %s, failing" % (k, len(obj))
         if len(obj) == 1:
             return obj[0]
         return obj[k]
