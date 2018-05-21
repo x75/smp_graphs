@@ -498,11 +498,12 @@ class FigPlotBlock2(BaseplotBlock2):
         BaseplotBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
         # configure figure and plot axes
-        if self.axesspec is not None and hasattr(self, 'fig_rows') and hasattr(self, 'fig_cols'):
+        if hasattr(self, 'axesspec') and self.axesspec is not None and hasattr(self, 'fig_rows') and hasattr(self, 'fig_cols'):
             pass
         else:
             self.fig_rows = len(self.subplots)
             self.fig_cols = len(self.subplots[0])
+            self.axesspec = None # (self.fig_rows, self.fig_cols)
 
         # create figure
         self.fig = makefig(

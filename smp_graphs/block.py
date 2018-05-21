@@ -723,7 +723,7 @@ class decStep():
                 shapes = []
                 for outk, outv in xself.outputs.items():
                     # only ndarray type outputs
-                    if self.output_is_type(outk, outv):
+                    if xself.output_is_type(outk, outv):
                         continue
                     setattr(xself, outk, xself.cache_data[outk][xself.cnt-xself.blocksize:xself.cnt,...].T)
                     # print "cache out key", outk, getattr(xself, outk)

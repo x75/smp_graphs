@@ -19,7 +19,7 @@ from smp_graphs.funcs import f_sin, f_motivation, f_motivation_bin
 
 # global parameters can be overwritten from the commandline
 ros = False
-numsteps = 10000/10
+numsteps = 10000/5
 recurrent = True
 debug = False
 showplot = True
@@ -30,13 +30,15 @@ from smp_graphs.utils_conf import get_systemblock
 from smp_graphs.utils_conf import get_systemblock_pm
 from smp_graphs.utils_conf import get_systemblock_sa
 
-numloop = 5
-numloop_inner = 10
+numloop = 7
+numloop_inner = 20
 
-desc = "Experiment expr0030 computes the budget statistics over {0} episodes for sensorimotor dimension $d = {1}$".format(
-    numloop_inner,
-    range(1, numloop + 1),
+desc = "This experiment is a structural variation of expr0020,
+computing the budget statistics over {0} episodes each, for all
+configurations of the sensorimotor dimension $d = {1}$".format(
+    numloop_inner, range(1, numloop + 1)
 )
+
 outputs = {
     'latex': {'type': 'latex',},
 }

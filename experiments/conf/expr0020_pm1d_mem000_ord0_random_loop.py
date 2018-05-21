@@ -1,12 +1,9 @@
-"""smp_graphs configuration
+"""smp experiment expr0020
 
-id:thesis_smpx0002
+.. moduleauthor:: Oswald Berthold 2018
 
-Baseline statistics for randseed start ... start + numloop of id:thesis_smpx0001
-
-Oswald Berthold 2017
-
-Multiple runs of baseline behaviour varying seed
+Multiple runs of baseline behaviour varying seed. Baseline statistics
+for randseed starts ... start + numloop of expr0010.
 """
 
 # from collections import OrderedDict
@@ -19,7 +16,7 @@ from smp_graphs.funcs import f_sin, f_motivation, f_motivation_bin
 
 # global parameters can be overwritten from the commandline
 ros = False
-numsteps = 10000/10
+numsteps = 10000/5
 recurrent = True
 debug = False
 showplot = True
@@ -47,7 +44,11 @@ lconf_ = {
     'order': 0,
 }
 
-desc = "Experiment expr0020 shows the budget statistics over %d runs of expr0010." % (numloop, )
+desc = """This experiments computes budget statistics over %d runs of
+expr0010, each run being configured identically, except for a unique
+random seed. The result serves to illustrate the viability of the
+uniform random strategy.""".format(numloop, )
+
 outputs = {
     'latex': {'type': 'latex',},
 }
@@ -382,30 +383,65 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'pdf',
-            'hspace': 0.2,
-            'wspace': 0.2,
+            'savesize': (8, 3),
+            'hspace': 0.8,
+            'wspace': 0.15,
+            'fig_rows': 1,
+            'fig_cols': 3,
+            'axesspec': [(0, slice(0, 2)), (0, 2)],
+            'desc': """Statistics over 20 runs of experiment expr0010,
+            showing the minimum, mean, and maximum budget values
+            during each episode on the left, and the histogram over
+            these measurements on the right. This is clearly
+            viable in this very simple system.""".format(),
+            
             'inputs': {
                 'mins_s': {'bus': 'b4/credit_min', 'shape': (1, numloop)},
                 'maxs_s': {'bus': 'b4/credit_max', 'shape': (1, numloop)},
                 'mus_s': {'bus': 'b4/credit_mu', 'shape': (1, numloop)},
                 # 'mins_p': {'bus': 'b3/credit_min', 'shape': (1, numloop)},
                 },
+                
             'subplots': [
                 [
                     {
-                    'input': ['mins_s', 'maxs_s', 'mus_s'],
-                    'plot': partial(
-                        timeseries,
-                        ylim = (-30, 1030),
-                        yscale = 'linear',
-                        linestyle = 'none',
-                        marker = 'o')},
-                    {'input': ['mins_s', 'maxs_s', 'mus_s'], 'plot': partial(
-                        histogram,
-                        title = 'mean/min budget hist',
-                        ylim = (-30, 1030),
-                        yscale = 'linear',
-                        orientation = 'horizontal')}
+                        'input': ['mins_s', 'maxs_s', 'mus_s'],
+                        'plot': partial(
+                            timeseries,
+                            # ylim = (-30, 1030),
+                            yscale = 'linear',
+                            linestyle = 'none',
+                            marker = 'o'
+                        ),
+                        'title': 'Budget min, mean, max over episodes',
+                        'title_pos': 'top_out',
+                        'xlabel': 'episode #',
+                        'ylabel': 'unit budget [c]',
+                        'legend_space': 0.8,
+                        'legend_loc': 'right',
+                        'legend': {
+                            '$\min_i c_i$': 0, '$E(c_i)$': 1, '$\max_i c_i$': 2},
+                        'aspect': 0.1,
+                    },
+                        
+                    {
+                        'input': ['mins_s', 'maxs_s', 'mus_s'],
+                        'plot': partial(
+                            histogram,
+                            title = 'mean/min budget hist',
+                            # ylim = (-30, 1030),
+                            yscale = 'linear',
+                            orientation = 'horizontal'
+                        ),
+                        'title': 'and histogram',
+                        'title_pos': 'top_out',
+                        'xlabel': 'Relative frequency',
+                        'yticks': False,
+                        'legend': False,
+                        'aspect': 0.008175,
+                        # 'aspect': 'auto',
+                    }
+                    
                 ],
             ],
         },

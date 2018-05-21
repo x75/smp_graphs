@@ -200,7 +200,12 @@ graph = OrderedDict([
             'axesspec': [(0, slice(0, 2)), (0, 2), (1, slice(0, 2)), (1, 2)], 
             'desc': """Full episode of the baseline agent behaviour
             covering an episode length of {0} time
-            steps.""".format(numsteps),
+            steps. In the top left, the raw sensorimotor timeseries is
+            shown, and in the top right the histograms of goal hits is
+            plotted on top of the unique goal histogram, showing no
+            obvious mismatch. The bottom row contains the same types
+            of plots but for the budget variable, which never even
+            gets close to a critical value.""".format(numsteps),
             
             # inputs
             'inputs': {
