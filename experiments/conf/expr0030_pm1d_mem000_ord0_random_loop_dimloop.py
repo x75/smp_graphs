@@ -35,6 +35,10 @@ numloop_inner = 20
 
 plot_legends = [{'$\min_i c_i$': 0, '$E(c_i)$': 1, '$\max_i c_i$': 2}]
 plot_legends += [{} for i in range(numloop-1)]
+plot_xticks = [False for i in range(numloop-1)]
+plot_xticks += [None]
+plot_titles = ['Budget statistics (min, mean, max)']
+plot_titles += ['' for i in range(numloop-1)]
 
 desc = """This experiment is a structural variation of expr0020,
 computing the budget statistics over {0} episodes each, for all
@@ -366,15 +370,19 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'pdf',
-            'savesize': (9, 10),
+            'savesize': (9, 11),
             'wspace': 0.15,
-            'hspace': 0.3,
+            'hspace': 0.5,
             'fig_rows': numloop,
             'fig_cols': 3,
             'axesspec': reduce(lambda x, y: x + y, [[(i, slice(0, 2)), (i, 2)] for i in range(numloop)], []),
             'desc': """The budget statistics as in expr0020 for each
             configuration of the sensorimotor dimension
-            $d$ with $d \in [1, ..., {0}]$""".format(numloop),
+            $d$ with $d \in [1, ..., {0}]$, increasing from top to
+            bottom. This picture tells the same story as
+            \\autoref{{fig:smp-expr-agent-baseline-proba}}, zeroth
+            order random search failing with increasing
+            dimension.""".format(numloop),
 
             'inputs': {
                 'mins_s': {'bus': 'b5/credit_min', 'shape': (1, numloop * numloop_inner)},
@@ -394,11 +402,12 @@ graph = OrderedDict([
                             yscale = 'linear',
                             linestyle = 'none',
                             marker = 'o'),
+                        'title': plot_titles[i],
                         'title_pos': 'top_out',
                         'legend_space': 1.0,
                         'legend_loc': (-0.2, 1.0),
                         'legend': plot_legends[i],
-                        
+                        'xticks': plot_xticks[i],
                     },
                     
                     {
@@ -410,7 +419,10 @@ graph = OrderedDict([
                             ylim = (-100, 1100),
                             yscale = 'linear',
                             orientation = 'horizontal'),
+                        'title': '',
                         'title_pos': 'top_out',
+                        'yticks': False,
+                        'xticks': plot_xticks[i],
                         'legend': False,
                     },]
                 for i in range(numloop)

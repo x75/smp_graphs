@@ -32,13 +32,16 @@ saveplot = True
 randseed = 126
 
 desc = """The purpose of this and the next few experiments is to
-illustrate the effect of map distortions and external entropy on the
-information distance between two corresponding variables, e.g. sensory
-modalities. Here, an abstract parameterized model is introduced that
-is able to produce these effects. The model consists of a transfer
-function whose values over the interval [-1, 1] can be controlled by
-three groups of parameters associated with unimodal gaussian
-deformation, colored noise, and point-wise independent noise."""
+illustrate the effect of divergence through motor to sensor mapping
+distortions, and external entropy. The effect can be measured via the
+\\emph{{information distance}}
+\\parencite{{crutchfield_information_1990}} between two corresponding
+variables, e.g. sensory modalities. Here, parameters are introduced to
+the basic system model which control the production of these effects
+in the model system. The divergence is modelled by a transfer function
+whose values over the interval $[-1, 1]$ are controlled by three
+groups of parameters associated with (unimodal) gaussian deformation,
+colored noise, and point-wise independent noise."""
 
 dim_s0 = 1
 numelem = 1001
@@ -198,6 +201,7 @@ graph = OrderedDict([
                             },
                         'outputs': {
                             'pre': {'shape': (dim_s_proprio, 1)},
+                            'd_pre': {'shape': (dim_s0, 1)},
                         },
                         'models': {
                             'goal': {'type': 'random_uniform_modulated'}
