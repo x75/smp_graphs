@@ -23,7 +23,7 @@ from smp_graphs.utils_conf import get_systemblock
 
 # global parameters can be overwritten from the commandline
 ros = False
-numsteps = 10000/10
+numsteps = 10000/5
 numbins = 21
 recurrent = True
 debug = False
@@ -32,16 +32,23 @@ saveplot = True
 randseed = 126
 
 desc = """The purpose of this and the next few experiments is to
-illustrate the effect of divergence through motor to sensor mapping
-distortions, and external entropy. The effect can be measured via the
-\\emph{{information distance}}
-\\parencite{{crutchfield_information_1990}} between two corresponding
-variables, e.g. sensory modalities. Here, parameters are introduced to
-the basic system model which control the production of these effects
-in the model system. The divergence is modelled by a transfer function
-whose values over the interval $[-1, 1]$ are controlled by three
-groups of parameters associated with (unimodal) gaussian deformation,
-colored noise, and point-wise independent noise."""
+illustrate the effect of divergence through tight control of the motor
+to sensor mapping distortions, and the amount external entropy
+injected. The effect is then measured using mutual information,
+information distance, root mean squared error, and the earth mover's
+distance between a sensorimotor state prediction (action) and a state
+measurement by a sensor. Parameters are introduced to the basic $pm_0$
+system model which control the magnitude of these effects in the model
+system. The divergence is modelled by a transfer function whose values
+over the interval $[-1, 1]$ are controlled by three groups of
+parameters associated with (unimodal) gaussian deformation, colored
+noise, and point-wise independent noise. The principal senorimotor
+delay is controlled by the lag parameter. External entropy is modelled
+as a noise term $\nu_t$. This experiment extends expr0010 by applying
+these measurements to the otherwise unmodified pm$_0$ system of
+\\autoref{{eq:smp-expr0000-B}}. The half-Gaussian leakage at the left-
+and rightmost bin edges are due to local Gaussian noise present in the
+system.""".format()
 
 dim_s0 = 1
 numelem = 1001
@@ -65,7 +72,7 @@ lconf = {
         's_f': 3.0,
         'e': 0.0,
     },
-    'div_meas': 'chisq', # 'kld'
+    'div_meas': 'pyemd', # 'chisq', # 'kld'
 }
 
 div_meas = lconf['div_meas']
@@ -415,8 +422,8 @@ graph = OrderedDict([
             'saveplot': saveplot,
             'savetype': 'pdf',
             'savesize': (8, 6),
-            'wspace': 0.15,
-            'hspace': 0.1,
+            'wspace': 0.3,
+            'hspace': 0.3,
             'xlim_share': True,
             'ylim_share': True,
             'inputs': {
@@ -444,38 +451,60 @@ graph = OrderedDict([
                 'm_div': {'bus': 'm_div/y', 'shape': (1, numbins)},
                 'm_sum_div': {'bus': 'm_sum_div/y', 'shape': (1, 1)},
             },
-            'desc': 'resulting trajectory and distributions. The signals $x$ and $y$ are identical except for a noise term \
-                indicated by an error of close to zero.',
+            
+            'desc': """An episode of {0} steps of a basic agent on the
+                pm$_0$ point mass system. The vertical timeseries $x$
+                in the left column of the second row is the
+                proprioceptive state prediction. The top left plot
+                represents the system model's transfer function
+                $h$. The timeseries $y$ plot adjacent to the right of
+                the transfer function is the resulting
+                measurement. The prediction and result are identical
+                except for a noise term that is visible in the error
+                panel in the center of the figure. The bin-wise
+                divergence is plotted in the bottom right panel.""",
+                
             # subplot
             'subplots': [
                 # row 1: transfer func, out y time, out y histo
                 [
                     {
                         'input': ['pre_l2_h'], 'plot': timeseries,
-                        'title': 'transfer function $h$', 'aspect': 1.0, 
+                        'title': 'transfer function $h$',
+                        'title_pos': 'top_out',
+                        'aspect': 1.0, 
                         'xaxis': np.linspace(-1, 1, 1001), # 'xlabel': 'input [x]',
                         'xlim': (-1.1, 1.1), 'xticks': True, 'xticklabels': False,
                         'ylabel': 'output $y = h(x)$',
                         'ylim': (-1.1, 1.1), 'yticks': True,
+                        'legend': False,
                         'legend_loc': 'right',
                     },
+                    
                     {
                         'input': ['pre_l2'], 'plot': timeseries,
-                        'title': 'timeseries $y$', 'aspect': 'auto', # (1*numsteps)/(2*2.2),
+                        'title': 'timeseries $y$',
+                        'title_pos': 'top_out',
+                        'aspect': 'auto', # (1*numsteps)/(2*2.2),
                         'xlim': None, 'xticks': False, 'xticklabels': False,
                         # 'xlabel': 'time step $k$',
                         'ylim': (-1.1, 1.1),
                         'yticks': True, 'yticklabels': False,
+                        # 'legend': False,
+                        'legend': {'$s^{l_0}_p$': 0},
                         'legend_loc': 'left',
                     },
                     {
                         'input': ['pre_l2'], 'plot': histogram,
-                        'title': 'histogram $y$', 'aspect': 'auto', # (1*numsteps)/(2*2.2),
+                        'title': 'histogram $y$',
+                        'title_pos': 'top_out',
+                        'aspect': 'auto', # (1*numsteps)/(2*2.2),
                         'orientation': 'horizontal',
                         'xlim': None, # 'xticks': False, 'xticklabels': None,
                         'xlabel': 'count $c$',
                         'ylim': (-1.1, 1.1),
                         'yticks': True, 'yticklabels': False,
+                        # 'legend': {'$s^{l_0}_p$': 0},
                         'legend_loc': 'left',
                     },
                 ],
@@ -485,17 +514,20 @@ graph = OrderedDict([
                     {
                         'input': ['s0'], 'plot': timeseries,
                         'title': 'timeseries $x$',
+                        'title_pos': 'top_out',
                         'aspect': 2.2/numsteps,
                         'orientation': 'vertical',
                         'xlim': None, 'xticks': False, # 'xticklabels': False,
                         # 'xlabel': 'time step $k$',
                         'yticks': False,
                         'ylim': (-1.1, 1.1),
+                        # 'legend': {'action $\hat{s}^{l_0}_p$': 0},
                         'legend_loc': 'right',
                     },
                     {
                         'input': ['m_err'], 'plot': timeseries,
                         'title': 'error $x - y$',
+                        'title_pos': 'top_out',
                         # 'aspect': 'auto',
                         # 'orientation': 'horizontal',
                         'xlim': None, # 'xticks': False, # 'xticklabels': False,
@@ -503,6 +535,7 @@ graph = OrderedDict([
                         # 'yticks': False,
                         # normalize to original range
                         'ylim': (-1.1, 1.1), # None,
+                        # 'legend': {'$e_{l0}(\hat{s}^{l_0}_p, s_p)$': 0},
                         # 'legend_loc': 'right',
                     },
                     {},
@@ -513,11 +546,13 @@ graph = OrderedDict([
                     {
                         'input': ['s0'], 'plot': histogram,
                         'title': 'histogram $x$', 'aspect': 'shared', # (1*numsteps)/(2*2.2),
+                        'title_pos': 'top_out',
                         'orientation': 'vertical',
                         'xlim': (-1.1, 1.1), 'xinvert': False, # 'xticks': False, 'xticklabels': None, #
                         'xlabel': 'input $x \in [-1, ..., 1]$', 
                         'ylim': None, 'yinvert': True,  # 'yticks': None, 'yticklabels': None,
                         'ylabel': 'count $c$',
+                        # 'legend': {'action $\hat{s}^{l_0}_p$': 0},
                         'legend_loc': 'right',
                     },
                     {
@@ -530,6 +565,7 @@ graph = OrderedDict([
                     {
                         'input': ['m_div'], 'plot': partial(timeseries, linestyle = 'none', marker = 'o'),
                         'title': 'histogram divergence %s $h1 - h2$' % (div_meas, ),
+                        'title_pos': 'top_out',
                         'shape': (1, numbins),
                         # 'aspect': 'auto',
                         # 'orientation': 'horizontal',
