@@ -414,6 +414,7 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'pdf',
+            'savesize': (8, 6),
             'wspace': 0.15,
             'hspace': 0.1,
             'xlim_share': True,

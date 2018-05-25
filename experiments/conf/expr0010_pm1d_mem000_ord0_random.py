@@ -54,14 +54,14 @@ order = lconf['order']
 budget = lconf['budget'] # 510
 lim = lconf['lim'] # 1.0
 
-desc = """This is the full version of the previous experiment,
-consisting of an episode of {0} time steps of the baseline
-behaviour. The length of the episode is greater than the agent's
-initial budget. The strategy must statistically be good enough to let
-the agent survive for a number of steps larger than then the initial
-budget, which would be consumed after the same number of steps when
-following a null strategy, that is, do nothing with a zero or other
-single constant action.""".format(numsteps)
+desc = """This is a full length run of a configuration otherwise
+identical to experiment expr000, consisting of an episode of {0} time
+steps of the baseline behaviour. The length of the episode is greater
+than the agent's initial budget. The strategy must statistically be
+good enough to let the agent survive for a number of steps larger than
+then the initial budget, which would be consumed after the same number
+of steps when following a null strategy, that is, do nothing with a
+zero or other single constant action.""".format(numsteps)
 
 outputs = {
     'latex': {'type': 'latex',},
