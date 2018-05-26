@@ -20,18 +20,18 @@ from smp_graphs.utils_conf import get_systemblock
 
 # global parameters can be overwritten from the commandline
 ros = False
-numsteps = 10000/10
+numsteps = 10000/5
 recurrent = True
 debug = False
 showplot = True
 saveplot = True
-randseed = 126
+randseed = 127
 
 lconf = {
     'dim': 1,
     'dt': 0.1,
     'lag': 1,
-    'budget': 1000/1,
+    'budget': 2000/1,
     'lim': 1.0,
     'order': 0,
     'd_i': 0.0,
@@ -44,20 +44,27 @@ budget = lconf['budget'] # 510
 lim = lconf['lim'] # 1.0
 numloop = lconf['numloop'] # 1.0
 
-desc = """This experiment is looping expr0045 over the parameters that
-control the information distance between to spaces illustrating each
-parameter's effects on information distance."""
+desc = """This experiment is using expr0045 as a starting point and
+iterating system configuration parameters controlling the shape of the
+transfer function. The shape produces an effect that is reflected in
+the error, the divergence of $X$ and $Y$ distributions, and also in the
+information distance between the two distribution."""
 
 outputs = {
     'latex': {'type': 'latex',},
 }
 
-
-# for stats
-l_as = [0.5, 0.0, 0.5, 0.75]
+# configuration name
+l_names = ['wide sigmoid', 'narrow sigmoid', '1/f transfer noise', 'dynamic noise']
+# linear component mixture amplitude
+l_as = [0.5, 0.0, 0.9, 0.75]
+# gaussian component mixture amplitude
 d_as = [0.5, 1.0, 0.0, 0.0]
+# gaussian component spread amplitude (sigma)
 d_ss = [0.8, 0.5, 1.0, 1.0]
-s_as = [0.0, 0.0, 0.2, 0.0]
+# noise component mixture amplitude
+s_as = [0.0, 0.0, 0.1, 0.0]
+# noise component color (1/color)
 s_fs = [0.0, 0.0, 1.0, 0.0]
 es   = [0.0, 0.0, 0.0, 0.5]
 
@@ -81,6 +88,11 @@ loop = [('lconf', {
         'e': es[i],
     },
     'div_meas': 'chisq',
+    'plot_desc': """Motor to sensor prediction divergence for the {0}
+        configuration of the transfer function $h$. Please refer to
+        \\autoref{{fig:smp-expr0045-pm1d-mem000-ord0-random-infodist-id-plot}}
+        for a full description of the structure of this
+        experiment.""".format(l_names[i]),
 }) for i in range(numloop)]
 
 loopblock = {

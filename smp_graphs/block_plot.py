@@ -1357,8 +1357,11 @@ class PlotBlock2(FigPlotBlock2):
                         labels = sb['legend'].keys()
                         # artists
                         lines = list(sb['p1_axs']['main']['ax'].get_lines())
-                        # print "lines sb", i, j, lines
-                        handles = [lines[l] for l in sb['legend'].values()]
+                        self._info('|lines| = %s' % (len(lines)))
+                        if len(lines) < 1:
+                            handles = None
+                        else:
+                            handles = [lines[l] for l in sb['legend'].values()]
                     else:
                         labels = sb['p1_plotlabels']
                         handles = None

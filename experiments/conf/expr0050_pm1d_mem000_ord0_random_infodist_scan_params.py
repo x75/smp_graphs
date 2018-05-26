@@ -1,12 +1,14 @@
 """smp_graphs configuration
 
-baseline behaviour - open-loop uniform random search in finite isotropic space
+baseline behaviour - open-loop uniform random search in finite
+isotropic space
 
 id:thesis_smp_expr0050
 
 Oswald Berthold 2017
 
-special case of kinesis with coupling = 0 between measurement and action
+special case of kinesis with coupling = 0 between measurement and
+action
 """
 
 from smp_graphs.block import FuncBlock2
@@ -21,7 +23,7 @@ from smp_graphs.utils_conf import get_systemblock
 
 # global parameters can be overwritten from the commandline
 ros = False
-numsteps = 10000/10
+numsteps = 10000/5
 recurrent = True
 debug = False
 showplot = True
@@ -33,13 +35,21 @@ randseed = 126
 
 # for stats
 # FIXME: construct systematically, include linear amp 1.0 ... 0.0
-l_as = [1.0, 0.5, 0.2, 0.1, 0.0, 0.0, 0.99, 0.9, 0.85, 0.8, 0.6, 0.5, 1.0, 1.00, 1.00, 1.0, 1.0, 1.0, ]
-d_as = [0.0, 0.5, 0.8, 0.9, 1.0, 1.0, 0.00, 0.0, 0.00, 0.0, 0.0, 0.0, 1.0, 0.00, 0.00, 0.0, 0.0, 0.0, ]
-d_ss = [1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 1.00, 1.0, 0.90, 0.6, 0.3, 0.1, 0.1, 1.00, 1.00, 0.9, 0.6, 0.3, ]
-s_as = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.01, 0.1, 0.15, 0.2, 0.4, 0.5, 0.0, 0.00, 0.00, 0.0, 0.0, 0.0, ]
-s_fs = [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.00, 1.8, 2.00, 2.5, 3.0, 4.0, 0.0, 0.00, 3.00, 2.5, 2.0, 1.0, ]
-es   = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.00, 0.0, 0.00, 0.0, 0.0, 0.0, 0.0, 0.01, 0.05, 0.1, 0.2, 0.5, ]
+# l_as = [1.0, 0.5, 0.2, 0.1, 0.0, 0.0, 0.99, 0.9, 0.85, 0.8, 0.6, 0.5, 1.0, 1.00, 1.00, 1.0, 1.0, 1.0, ]
+# d_as = [0.0, 0.5, 0.8, 0.9, 1.0, 1.0, 0.00, 0.0, 0.00, 0.0, 0.0, 0.0, 1.0, 0.00, 0.00, 0.0, 0.0, 0.0, ]
+# d_ss = [1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 1.00, 1.0, 0.90, 0.6, 0.3, 0.1, 0.1, 1.00, 1.00, 0.9, 0.6, 0.3, ]
+# s_as = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.01, 0.1, 0.15, 0.2, 0.4, 0.5, 0.0, 0.00, 0.00, 0.0, 0.0, 0.0, ]
+# s_fs = [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.00, 1.8, 2.00, 2.5, 3.0, 4.0, 0.0, 0.00, 3.00, 2.5, 2.0, 1.0, ]
+# es   = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.00, 0.0, 0.00, 0.0, 0.0, 0.0, 0.0, 0.01, 0.05, 0.1, 0.2, 0.5, ]
+
+l_as = [0.0, 0.0, 0.1, 0.2, 0.5, 1.0, 0.5, 0.6, 0.8, 0.85, 0.9, 0.99, 1.0, 1.0, 1.0, 1.00, 1.00, 1.0, ]
+d_as = [1.0, 1.0, 0.9, 0.8, 0.5, 0.0, 0.0, 0.0, 0.0, 0.00, 0.0, 0.00, 0.0, 0.0, 0.0, 0.00, 0.00, 1.0, ]
+d_ss = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 0.1, 0.3, 0.6, 0.90, 1.0, 1.00, 0.3, 0.6, 0.9, 1.00, 1.00, 0.1, ]
+s_as = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.4, 0.2, 0.15, 0.1, 0.01, 0.0, 0.0, 0.0, 0.00, 0.00, 0.0, ]
+s_fs = [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 4.0, 3.0, 2.5, 2.00, 1.8, 1.00, 1.0, 2.0, 2.5, 3.00, 0.00, 0.0, ]
+es   = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.00, 0.0, 0.00, 0.5, 0.2, 0.1, 0.05, 0.01, 0.0, ]
 numloop_types = 3
+numloop_types_names = ['sigmoid', 'transfer noise', 'dynamic noise']
 numloop_param = 6
 
 # # for testing
@@ -86,7 +96,10 @@ m_inputs = OrderedDict(
     ]
 )
 
-desc = """This experiment is looping expr0045 over the parameters that control the information distance between to spaces."""
+desc = """This experiment extends expr0046 by performing a scan over
+{0} types of distortion parameters, {1}, that affect the information
+distance between the variable distributions.""".format(numloop_types,
+','.join(numloop_types_names))
 
 outputs = {
     'latex': {'type': 'latex',},
@@ -112,6 +125,16 @@ loop = [('lconf', {
         'e': es[i],
     },
     'div_meas': 'chisq',
+
+    'plot_desc': '',
+    # 'plot_desc': """A sweep scan over three types of distortion
+    #     parameters, %s, each type shown in one row of plots and each
+    #     parameter value shown in a different color. The transfer
+    #     function visualization of the external entropy in the bottom
+    #     row is to be taken metaphorically, as the plot only shows one
+    #     realization of the external entropy random variable, whose
+    #     distribution is resampled at every time step for the state
+    #     update.""".format(','.join(numloop_types_names)),
 }) for i in range(numloop)]
 
 loopblock = {
@@ -230,13 +253,22 @@ graph = OrderedDict([
     ('plot', {
         'block': PlotBlock2,
         'params': {
-            'id': 'plot',
             'debug': True,
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'pdf',
-            'hspace': 0.2,
+            'hspace': 0.3,
             'wspace': 0.2,
+            'savesize': (8, 5),
+            'desc': """A sweep scan over three types of distortion
+        parameters, %s, each type shown in one row of plots and each
+        parameter value shown in a different color. The transfer
+        function visualization of the external entropy in the bottom
+        row is to be taken metaphorically, as the plot only shows one
+        realization of the external entropy random variable, whose
+        distribution is resampled at every time step for the state
+        update.""".format(','.join(numloop_types_names)),
+        
             'inputs': {
                 'm_mi': {'bus': 'b4/gm_mi', 'shape': (1, 1, numloop)},
                 'm_di': {'bus': 'b4/gm_di', 'shape': (1, 1, numloop)},
@@ -249,6 +281,7 @@ graph = OrderedDict([
                 # 'mus_s': {'bus': 'b4/credit_mu', 'shape': (1, numloop)},
                 # 'mins_p': {'bus': 'b3/credit_min', 'shape': (1, numloop)},
             },
+            
             'subplots': [
                 [
                     {
@@ -261,10 +294,13 @@ graph = OrderedDict([
                         # 'shape': (dim_s_proprio, lconf['loop_pre_l2_numelem']),
                         'plot': timeseries,
                         'title': 'transfer functions $h_i$', 'aspect': 1.0,
+                        'title_pos': 'top_out',
                         'xaxis': np.linspace(-1, 1, lconf['loop_pre_l2_numelem']), # 'xlabel': 'input [x]',
                         'xlim': (-1.1, 1.1), 'xticks': True, 'xticklabels': False,
                         'ylabel': 'output $y = h(x)$',
                         'ylim': (-1.1, 1.1), 'yticks': True,
+                        'legend': dict([('$h_{%d, %d}$' % (j, i), i) for i in range(numloop_param)]),
+                        'legend_space': 0.75,
                         'legend_loc': 'right',
                     },
 
@@ -278,7 +314,8 @@ graph = OrderedDict([
                             # (slice(j * numloop_param, (j + 1) * numloop_param), slice(None), 0),
                         ],
                         'shape': (1, numloop_param),
-                        'title': 'measures series',
+                        'title': 'error and divergence measures',
+                        'title_pos': 'top_out',
                         # 'ylim': (-30, 1030),
                         'plot': [
                             partial(

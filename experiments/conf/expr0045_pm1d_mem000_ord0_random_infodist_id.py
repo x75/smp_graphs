@@ -73,9 +73,22 @@ lconf = {
         'e': 0.0,
     },
     'div_meas': 'pyemd', # 'chisq', # 'kld'
+    'plot_desc': """An episode of {0} steps of a basic agent on the
+        pm$_0$ point mass system. The vertical timeseries realizations
+        of $X$ in the left column of the second row is the
+        proprioceptive state prediction $\\hat{{s}}^{{l_0}}_p$. The
+        top left plot represents the system's transfer function
+        $h$. The timeseries plot of $Y$ adjacent to the right of the
+        transfer function is the resulting measurement
+        $s^{{l_0}}_p$. The prediction and result are identical except
+        for a noise term. The point wise error $X-Y$ is shown in the
+        error panel in the center of the figure. The bin-wise
+        divergence is plotted in the bottom right
+        panel.""".format(numsteps),
 }
 
 div_meas = lconf['div_meas']
+plot_desc = lconf['plot_desc']
 
 m_hist_bins       = np.linspace(-1.1, 1.1, numbins + 1)
 m_hist_bincenters = m_hist_bins[:-1] + np.mean(np.abs(np.diff(m_hist_bins)))/2.0
@@ -422,7 +435,7 @@ graph = OrderedDict([
             'saveplot': saveplot,
             'savetype': 'pdf',
             'savesize': (8, 6),
-            'wspace': 0.3,
+            'wspace': 0.4,
             'hspace': 0.3,
             'xlim_share': True,
             'ylim_share': True,
@@ -452,17 +465,7 @@ graph = OrderedDict([
                 'm_sum_div': {'bus': 'm_sum_div/y', 'shape': (1, 1)},
             },
             
-            'desc': """An episode of {0} steps of a basic agent on the
-                pm$_0$ point mass system. The vertical timeseries $x$
-                in the left column of the second row is the
-                proprioceptive state prediction. The top left plot
-                represents the system model's transfer function
-                $h$. The timeseries $y$ plot adjacent to the right of
-                the transfer function is the resulting
-                measurement. The prediction and result are identical
-                except for a noise term that is visible in the error
-                panel in the center of the figure. The bin-wise
-                divergence is plotted in the bottom right panel.""",
+            'desc': plot_desc,
                 
             # subplot
             'subplots': [
@@ -475,7 +478,7 @@ graph = OrderedDict([
                         'aspect': 1.0, 
                         'xaxis': np.linspace(-1, 1, 1001), # 'xlabel': 'input [x]',
                         'xlim': (-1.1, 1.1), 'xticks': True, 'xticklabels': False,
-                        'ylabel': 'output $y = h(x)$',
+                        'ylabel': 'output $Y \sim h(X)$',
                         'ylim': (-1.1, 1.1), 'yticks': True,
                         'legend': False,
                         'legend_loc': 'right',
@@ -483,7 +486,7 @@ graph = OrderedDict([
                     
                     {
                         'input': ['pre_l2'], 'plot': timeseries,
-                        'title': 'timeseries $y$',
+                        'title': 'timeseries $Y$',
                         'title_pos': 'top_out',
                         'aspect': 'auto', # (1*numsteps)/(2*2.2),
                         'xlim': None, 'xticks': False, 'xticklabels': False,
@@ -496,15 +499,15 @@ graph = OrderedDict([
                     },
                     {
                         'input': ['pre_l2'], 'plot': histogram,
-                        'title': 'histogram $y$',
+                        'title': 'histogram $Y$',
                         'title_pos': 'top_out',
                         'aspect': 'auto', # (1*numsteps)/(2*2.2),
                         'orientation': 'horizontal',
                         'xlim': None, # 'xticks': False, 'xticklabels': None,
-                        'xlabel': 'count $c$',
+                        'xlabel': 'Rel. freq.',
                         'ylim': (-1.1, 1.1),
                         'yticks': True, 'yticklabels': False,
-                        # 'legend': {'$s^{l_0}_p$': 0},
+                        'legend': {'$s^{l_0}_p$': 0},
                         'legend_loc': 'left',
                     },
                 ],
@@ -513,7 +516,7 @@ graph = OrderedDict([
                 [
                     {
                         'input': ['s0'], 'plot': timeseries,
-                        'title': 'timeseries $x$',
+                        'title': 'timeseries $X$',
                         'title_pos': 'top_out',
                         'aspect': 2.2/numsteps,
                         'orientation': 'vertical',
@@ -521,21 +524,21 @@ graph = OrderedDict([
                         # 'xlabel': 'time step $k$',
                         'yticks': False,
                         'ylim': (-1.1, 1.1),
-                        # 'legend': {'action $\hat{s}^{l_0}_p$': 0},
+                        'legend': {'$\hat{s}^{l_0}_p$': 0},
                         'legend_loc': 'right',
                     },
                     {
                         'input': ['m_err'], 'plot': timeseries,
-                        'title': 'error $x - y$',
+                        'title': 'error $X - Y$',
                         'title_pos': 'top_out',
                         # 'aspect': 'auto',
                         # 'orientation': 'horizontal',
                         'xlim': None, # 'xticks': False, # 'xticklabels': False,
-                        'xlabel': 'time step $k$',
+                        'xlabel': 'time step $[k]$',
                         # 'yticks': False,
                         # normalize to original range
                         'ylim': (-1.1, 1.1), # None,
-                        # 'legend': {'$e_{l0}(\hat{s}^{l_0}_p, s_p)$': 0},
+                        'legend': {'$e^{l_0}(\hat{s}^{l_0}_p, s_p)$': 0},
                         # 'legend_loc': 'right',
                     },
                     {},
@@ -551,8 +554,8 @@ graph = OrderedDict([
                         'xlim': (-1.1, 1.1), 'xinvert': False, # 'xticks': False, 'xticklabels': None, #
                         'xlabel': 'input $x \in [-1, ..., 1]$', 
                         'ylim': None, 'yinvert': True,  # 'yticks': None, 'yticklabels': None,
-                        'ylabel': 'count $c$',
-                        # 'legend': {'action $\hat{s}^{l_0}_p$': 0},
+                        'ylabel': 'Rel. freq.',
+                        'legend': {'$\hat{s}^{l_0}_p$': 0},
                         'legend_loc': 'right',
                     },
                     {
@@ -564,7 +567,7 @@ graph = OrderedDict([
                     },
                     {
                         'input': ['m_div'], 'plot': partial(timeseries, linestyle = 'none', marker = 'o'),
-                        'title': 'histogram divergence %s $h1 - h2$' % (div_meas, ),
+                        'title': 'divergence$(P_X, P_Y)$',
                         'title_pos': 'top_out',
                         'shape': (1, numbins),
                         # 'aspect': 'auto',
@@ -573,7 +576,8 @@ graph = OrderedDict([
                         'xaxis': m_hist_bincenters, 'xlabel': 'bins $k$',
                         # 'yticks': False,
                         # normalize to original range
-                        'ylim': None, 'ylabel': 'divergence'
+                        'ylim': None, 'ylabel': 'amount of div',
+                        'legend': {'%s$(P_X, P_Y)$' % (div_meas, ): 0},
                         # 'legend_loc': 'right',
                     },
                 ],
@@ -591,7 +595,9 @@ graph = OrderedDict([
             'saveplot': saveplot,
             'savetype': 'tex',
             'title': 'Results expr0064 for direct and model-based predictions',
-            'desc': 'Budget statistics, information closeness / distance (mi/di), root mean squared prediction error and mean divergence.',
+            'desc': """Budget statistics, information closeness /
+            distance (mi/di), root mean squared prediction error and
+            mean divergence.""".format(),
             'inputs': {
                 # global budget stats
                 'budget_mu': {'bus': 'm_budget/y_mu', 'shape': (1, 1)},
