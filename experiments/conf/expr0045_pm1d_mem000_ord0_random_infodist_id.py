@@ -55,6 +55,7 @@ numelem = 1001
 
 # local conf dict for looping
 lconf = {
+    'expr_number': 'expr0045',
     'dim': dim_s0,
     'dt': 0.1,
     'lag': 1,
@@ -72,7 +73,7 @@ lconf = {
         's_f': 3.0,
         'e': 0.0,
     },
-    'div_meas': 'pyemd', # 'chisq', # 'kld'
+    'div_meas': 'chisq', # 'pyemd', # 'kld'
     'plot_desc': """An episode of {0} steps of a basic agent on the
         pm$_0$ point mass system. The vertical timeseries realizations
         of $X$ in the left column of the second row is the
@@ -87,6 +88,7 @@ lconf = {
         panel.""".format(numsteps),
 }
 
+expr_number = lconf['expr_number']
 div_meas = lconf['div_meas']
 plot_desc = lconf['plot_desc']
 
@@ -407,7 +409,7 @@ graph = OrderedDict([
     }),
     
     # m: sum divergence
-    ('m_sum_div', {
+    ('m_div_sum', {
         'block': FuncBlock2,
         'params': {
             'blocksize': numsteps,
@@ -594,10 +596,13 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'tex',
-            'title': 'Results expr0064 for direct and model-based predictions',
-            'desc': """Budget statistics, information closeness /
-            distance (mi/di), root mean squared prediction error and
-            mean divergence.""".format(),
+            # 'title': """{0} episode measures""".format(expr_number),
+            'title': """Episode measures of {0}. From top to bottom,
+this table gives the budget descriptive statistics in the top four
+rows, followed by the mutual information, information distance, root
+means square error, and divergence of the proprioceptive state
+prediction and measurement.""".format(expr_number),
+            'desc': '',
             'inputs': {
                 # global budget stats
                 'budget_mu': {'bus': 'm_budget/y_mu', 'shape': (1, 1)},

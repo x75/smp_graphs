@@ -260,13 +260,14 @@ graph = OrderedDict([
             'hspace': 0.3,
             'wspace': 0.2,
             'savesize': (8, 5),
-            'desc': """A sweep scan over three types of distortion
-        parameters, %s, each type shown in one row of plots and each
-        parameter value shown in a different color. The transfer
-        function visualization of the external entropy in the bottom
-        row is to be taken metaphorically, as the plot only shows one
-        realization of the external entropy random variable, whose
-        distribution is resampled at every time step for the state
+            'desc': """A sweep scan over the three main types of
+        distortion parameters %s, of the model system. Each type scan
+        is shown in one row of plots and each parameter value shown in
+        a different color. The transfer function visualization of the
+        external entropy in the bottom row is not to be taken
+        strictly, as the plot only shows one realization of the
+        external entropy random variable, whose distribution is
+        resampled at every time step for the state
         update.""".format(','.join(numloop_types_names)),
         
             'inputs': {
