@@ -84,12 +84,12 @@ budget = lconf['budget'] # 510
 lim = lconf['lim'] # 1.0
 # numloop = lconf['numloop'] # 1.0
 
-# m_inputs = OrderedDict([('m_sum_div', {'xtwin': False,}), ('m_mi', {'xtwin': True}), ('m_di', {'xtwin': True})])
-# m_inputs = OrderedDict([('m_sum_div', {'xtwin': False,}), ('m_di', {'xtwin': True})])
+# m_inputs = OrderedDict([('m_div_sum', {'xtwin': False,}), ('m_mi', {'xtwin': True}), ('m_di', {'xtwin': True})])
+# m_inputs = OrderedDict([('m_div_sum', {'xtwin': False,}), ('m_di', {'xtwin': True})])
 # m_inputs = OrderedDict([('m_di', {'xtwin': False})])
 m_inputs = OrderedDict(
     [
-        ('m_sum_div', {'xtwin': False,}),
+        ('m_div_sum', {'xtwin': False,}),
         ('m_budget_mu', {'xtwin': False,}),
         ('m_rmse', {'xtwin': True,}),
         ('m_di', {'xtwin': True}),
@@ -107,6 +107,7 @@ outputs = {
 
 # final: random sampling in d space with loopblock lconf
 loop = [('lconf', {
+    'expr_number': 'expr0050-{0}'.format(i+1),
     'dim': 1,
     'dt': 0.1,
     'lag': 1,
@@ -161,7 +162,7 @@ loopblock = {
         'outputs': {
             'gm_mi': {'shape': (1, 1, 1), 'buscopy': 'm_mi/mi'},
             'gm_di': {'shape': (1, 1, 1), 'buscopy': 'm_di/infodist'},
-            'gm_sum_div': {'shape': (1, 1), 'buscopy': 'm_sum_div/y'},
+            'gm_div_sum': {'shape': (1, 1), 'buscopy': 'm_div_sum/y'},
             'gm_rmse': {'shape': (1, 1), 'buscopy': 'm_rmse/y'},
             'gm_budget_mu': {'shape': (1, 1), 'buscopy': 'm_budget/y_mu'},
             'pre_l2_h': {'shape': (dim_s_proprio, lconf['loop_pre_l2_numelem']), 'buscopy': 'pre_l2/h'},
@@ -206,7 +207,7 @@ graph = OrderedDict([
             'outputs': {
                 'gm_mi': {'shape': (1, 1, numloop)},
                 'gm_di': {'shape': (1, 1, numloop)},
-                'gm_sum_div': {'shape': (1, numloop)},
+                'gm_div_sum': {'shape': (1, numloop)},
                 'gm_rmse': {'shape': (1, numloop)},
                 'gm_budget_mu': {'shape': (1, numloop)},
                 'pre_l2_h': {'shape': (dim_s_proprio, lconf['loop_pre_l2_numelem'] * numloop)},
@@ -257,8 +258,8 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'pdf',
-            'hspace': 0.3,
-            'wspace': 0.2,
+            'hspace': 0.5,
+            'wspace': 0.35,
             'savesize': (8, 5),
             'desc': """A sweep scan over the three main types of
         distortion parameters %s, of the model system. Each type scan
@@ -273,7 +274,7 @@ graph = OrderedDict([
             'inputs': {
                 'm_mi': {'bus': 'b4/gm_mi', 'shape': (1, 1, numloop)},
                 'm_di': {'bus': 'b4/gm_di', 'shape': (1, 1, numloop)},
-                'm_sum_div': {'bus': 'b4/gm_sum_div', 'shape': (1, numloop)},
+                'm_div_sum': {'bus': 'b4/gm_div_sum', 'shape': (1, numloop)},
                 'm_rmse': {'bus': 'b4/gm_rmse', 'shape': (1, numloop)},
                 'm_budget_mu': {'bus': 'b4/gm_budget_mu', 'shape': (1, numloop)},
                 'pre_l2_h': {'bus': 'b4/pre_l2_h', 'shape': (dim_s_proprio, lconf['loop_pre_l2_numelem'] * numloop)},

@@ -52,7 +52,7 @@ from smp_graphs.utils_conf import get_systemblock
 
 # global parameters can be overwritten from the commandline
 ros = False
-numsteps = 10000/10
+numsteps = 10000/5
 numbins = 21
 recurrent = True
 debug = False
@@ -67,21 +67,29 @@ p_vars = ['robot1/s0']
 # m_vars = ['robot1/s0']
 m_vars = ['pre_l2/y']
 
-desc = """This experiment extends \\ref{{{4}}} with an
-adaptive model s2s. The model is used in the agent's brain as a map
-taking measurements to their causes in prediction space. This is
-achieved by assigning measurements {1} to the model's inputs $X$ and
-predictions {2} to the models targets $Y$. The experiment contains an
-episode of {0} steps like
-\\ref{{{4}}}, with a
-model fitting and prediction step appended at the end of the
-episode. The resulting model's characteristics are shown as a transfer
-function which is obtained by sampling the model after fitting. The
-models predictions are shown as a timeseries and the error {2} - {3}
-is superimposed on the original error. These show that the adaptive
-model indeed manages to learn an adequate inverse mapping of the
-original transfer function and to reduce the resulting prediction
-error.""".format(numsteps, re.sub(r'_', r'\\_', str(m_vars)), re.sub(r'_', r'\\_', str(p_vars)), ['mdl1/y'], 'sec:smp-expr0045-pm1d-mem000-ord0-random-infodist-id')
+p_vars_math = "$\\hat{\\bm{s}}$"   # ^{l_2}$"
+m_vars_math = "$\\check{\\bm{s}}$" # ^{l_0}$"
+# p_vars_math = re.sub(r'_', r'\\_', str(p_vars))
+# m_vars_math = re.sub(r'_', r'\\_', str(m_vars))
+
+desc = """The configuration of expr0045 is extended with an adaptive
+model $M_{{1}}$. The model is a map taking measurements to their
+"causes" in motor space. This is achieved by assigning the
+measurements {2} to the model's inputs $X$ and predictions {1} to the
+models targets $Y$. The experiment contains an episode of {0} steps
+like \\ref{{{4}}}, with a model fitting and prediction step appended
+at the end of the episode. The resulting model's characteristics are
+shown as a transfer function which is obtained by sampling the model
+after fitting. The models predictions are shown as a timeseries and
+the error {2} - {3} is superimposed on the original error. These show
+that the adaptive model indeed manages to learn an adequate inverse
+mapping of the original transfer function and to reduce the resulting
+prediction error.""".format(
+    numsteps, m_vars_math,
+    p_vars_math,
+    ['mdl1/y'],
+    'sec:smp-expr0045-pm1d-mem000-ord0-random-infodist-id'
+)
 
 dim_s0 = 1
 numelem = 1001
@@ -280,6 +288,7 @@ graph = OrderedDict([
                             },
                         'outputs': {
                             'pre': {'shape': (dim_s0, 1)},
+                            'd_pre': {'shape': (dim_s0, 1)},
                         },
                         'models': {
                             'goal': {'type': 'random_uniform_modulated'}
@@ -531,8 +540,9 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'pdf',
-            'wspace': 0.15,
-            'hspace': 0.1,
+            'savesize': (8, 5),
+            'wspace': 0.5,
+            'hspace': 0.5,
             'xlim_share': True,
             'ylim_share': True,
             'inputs': {
@@ -572,34 +582,42 @@ graph = OrderedDict([
                 [
                     {
                         'input': ['pre_l2_h'], 'plot': timeseries,
-                        'title': 'transfer function $h$', 'aspect': 1.0, 
+                        'title': 'transfer function $h$', 'aspect': 1.0,
+                        'title_pos': 'top_out',
                         'xaxis': np.linspace(-1, 1, 1001), # 'xlabel': 'input [x]',
                         'xlim': (-1.1, 1.1), 'xticks': True, 'xticklabels': False,
                         'ylabel': 'output $y = h(x)$',
                         'ylim': (-1.1, 1.1), 'yticks': True,
+                        'legend_space': 0.9,
                         'legend_loc': 'right',
                     },
+                    
                     {
                         'input': ['pre_l2'], 'plot': timeseries,
                         'title': 'timeseries $y$', 'aspect': 'auto', # (1*numsteps)/(2*2.2),
+                        'title_pos': 'top_out',
                         'xlim': None, 'xticks': False, 'xticklabels': False,
                         # 'xlabel': 'time step $k$',
                         'ylim': (-1.1, 1.1),
                         'yticks': True, 'yticklabels': False,
                         'legend_loc': 'left',
                     },
+                    
                     {
                         'input': ['mdl1_h'], 'plot': timeseries,
                         'title': 'transfer function $h$', 'aspect': 1.0, 
+                        'title_pos': 'top_out',
                         'xaxis': np.linspace(-1, 1, 1001), # 'xlabel': 'input [x]',
                         'xlim': (-1.1, 1.1), 'xticks': True, 'xticklabels': False,
                         'ylabel': 'output $y = h(x)$',
                         'ylim': (-1.1, 1.1), 'yticks': True,
                         'legend_loc': 'left',
                     },
+                    
                     {
                         'input': ['pre_l2'], 'plot': histogram,
                         'title': 'histogram $y$', 'aspect': 'auto', # (1*numsteps)/(2*2.2),
+                        'title_pos': 'top_out',
                         'orientation': 'horizontal',
                         'xlim': None, # 'xticks': False, 'xticklabels': None,
                         'xlabel': 'count $c$',

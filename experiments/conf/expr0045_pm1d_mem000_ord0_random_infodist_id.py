@@ -464,7 +464,7 @@ graph = OrderedDict([
                 'm_err': {'bus': 'm_err/y', 'shape': (1, numsteps)},
                 'm_rmse': {'bus': 'm_rmse/y', 'shape': (1, 1)},
                 'm_div': {'bus': 'm_div/y', 'shape': (1, numbins)},
-                'm_sum_div': {'bus': 'm_sum_div/y', 'shape': (1, 1)},
+                'm_div_sum': {'bus': 'm_div_sum/y', 'shape': (1, 1)},
             },
             
             'desc': plot_desc,
@@ -561,8 +561,8 @@ graph = OrderedDict([
                         'legend_loc': 'right',
                     },
                     {
-                        # 'input': ['budget_%s' % (outk,) for outk in ['mu', 'var', 'min', 'max']] + ['m_mi', 'm_di', 'm_rmse', 'm_sum_div'],
-                        # 'shape': [(1, 1) for outk in ['mu', 'var', 'min', 'max', 'm_mi', 'm_di', 'm_rmse', 'm_sum_div']],
+                        # 'input': ['budget_%s' % (outk,) for outk in ['mu', 'var', 'min', 'max']] + ['m_mi', 'm_di', 'm_rmse', 'm_div_sum'],
+                        # 'shape': [(1, 1) for outk in ['mu', 'var', 'min', 'max', 'm_mi', 'm_di', 'm_rmse', 'm_div_sum']],
                         # 'mode': 'stack',
                         # 'title': 'measures', 'title_pos': 'bottom',
                         # 'plot': table,
