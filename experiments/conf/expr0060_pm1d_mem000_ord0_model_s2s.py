@@ -73,7 +73,7 @@ m_vars_math = "$\\check{\\bm{s}}$" # ^{l_0}$"
 # m_vars_math = re.sub(r'_', r'\\_', str(m_vars))
 
 desc = """The configuration of expr0045 is extended with an adaptive
-model $M_{{1}}$. The model is a map taking measurements to their
+model $s2s$. The model is a map taking measurements to their
 "causes" in motor space. This is achieved by assigning the
 measurements {2} to the model's inputs $X$ and predictions {1} to the
 models targets $Y$. The experiment contains an episode of {0} steps
@@ -112,7 +112,7 @@ lconf = {
         's_f': 2.0,
         'e': 0.0,
     },
-    'div_meas': 'kld', # 'chisq'
+    'div_meas': 'chisq', # 'kld'
     'model_s2s_params': {
         # 'debug': True,
         'blocksize': numsteps,
@@ -513,7 +513,7 @@ graph = OrderedDict([
     }),
     
     # m: sum divergence
-    ('m_sum_div', {
+    ('m_div_sum', {
         'block': FuncBlock2,
         'params': {
             'blocksize': numsteps,
@@ -572,7 +572,7 @@ graph = OrderedDict([
                 'm_err': {'bus': 'm_err/y', 'shape': (1, numsteps)},
                 'm_rmse': {'bus': 'm_rmse/y', 'shape': (1, 1)},
                 'm_div': {'bus': 'm_div/y', 'shape': (1, numbins)},
-                'm_sum_div': {'bus': 'm_sum_div/y', 'shape': (1, 1)},
+                'm_div_sum': {'bus': 'm_div_sum/y', 'shape': (1, 1)},
             },
             'desc': 'result. In the lower left part of the figure the prediction histogram and timeseries are shown. In the experiment, the signal is transferred by the transfer function pre\_l2/$h$ and is transformed into the signal $y$ whose histogram diverges by the amount shown in the lower right corner divergence plot. In the error timeseries panel, the original prediction error and the error after the adaptive model\'s transformation are shown on top of each other, together with a magnitude estimate of the second error shown as a red line.',
 
@@ -679,8 +679,8 @@ graph = OrderedDict([
                         'legend_loc': 'right',
                     },
                     {
-                        # 'input': ['budget_%s' % (outk,) for outk in ['mu', 'var', 'min', 'max']] + ['m_mi', 'm_di', 'm_rmse', 'm_sum_div'],
-                        # 'shape': [(1, 1) for outk in ['mu', 'var', 'min', 'max', 'm_mi', 'm_di', 'm_rmse', 'm_sum_div']],
+                        # 'input': ['budget_%s' % (outk,) for outk in ['mu', 'var', 'min', 'max']] + ['m_mi', 'm_di', 'm_rmse', 'm_div_sum'],
+                        # 'shape': [(1, 1) for outk in ['mu', 'var', 'min', 'max', 'm_mi', 'm_di', 'm_rmse', 'm_div_sum']],
                         # 'mode': 'stack',
                         # 'title': 'measures', 'title_pos': 'bottom',
                         # 'plot': table,
@@ -713,7 +713,7 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'tex',
-            'title': 'Results expr0064 for direct and model-based predictions',
+            'title': 'Results expr0060 for direct and model-based predictions',
             'desc': 'Budget statistics, information closeness / distance (mi/di), root mean squared prediction error and mean divergence.',
             'inputs': {
                 # global budget stats

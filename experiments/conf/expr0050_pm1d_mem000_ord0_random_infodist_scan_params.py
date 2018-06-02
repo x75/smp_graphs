@@ -99,7 +99,7 @@ m_inputs = OrderedDict(
 desc = """This experiment extends expr0046 by performing a scan over
 {0} types of distortion parameters, {1}, that affect the information
 distance between the variable distributions.""".format(numloop_types,
-','.join(numloop_types_names))
+', '.join(numloop_types_names))
 
 outputs = {
     'latex': {'type': 'latex',},

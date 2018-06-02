@@ -360,7 +360,7 @@ class Experiment(object):
             self.conf['params']['id'],
             self.conf['params']['md5'],
         )
-        self.conf['params']['datafile_expr'] = '%s/%s_%s_%s' % (
+        self.conf['params']['datafile_expr'] = '{0}/{1}_{2}_{3}'.format(
             self.conf['params']['datadir_expr'],
             self.conf['params']['id'],
             self.conf['params']['md5'],

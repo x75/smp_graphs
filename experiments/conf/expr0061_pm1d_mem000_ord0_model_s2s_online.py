@@ -20,7 +20,7 @@ from smp_graphs.utils_conf import get_systemblock
 
 # global parameters can be overwritten from the commandline
 ros = False
-numsteps = 10000/10
+numsteps = 10000/5
 recurrent = True
 debug = False
 showplot = True
@@ -135,7 +135,7 @@ loop = [('lconf', {
         's_f': 2.0,
         'e': 0.0,
     },
-    'div_meas': 'kld', # 'chisq'
+    'div_meas': 'chisq', # 'kld'
     # 'model_s2s': {
     #     'block': repr(ModelBlock2),
     'model_s2s_params': {

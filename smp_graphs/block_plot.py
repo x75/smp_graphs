@@ -303,6 +303,7 @@ class BaseplotBlock2(AnalysisBlock2):
         if self.saveplot:
             # generate filename
             self.filename = '%s_%s.%s' % (self.top.datafile_expr, self.id, self.savetype)
+            # self.filename = '%s.%s' % (self.top.datafile_expr, self.savetype)
             # register as top block output
             self.top.outputs['%s' % (self.id, )] = {
                 'type': 'fig',
@@ -341,7 +342,7 @@ class TextBlock2(BaseplotBlock2):
         # prepare for saving
         # self.prepare_saveplot()
         if self.saveplot:
-            # self.filename = '%s_%s.%s' % (self.top.datafile_expr, self.id, self.savetype)
+            # self.filename = '%s.%s' % (self.top.datafile_expr, self.savetype)
             self.filename = '%s/%s_%s.%s' % (self.top.datadir_expr, self.top.id, self.id, self.savetype)
             self._info('Filename set to %s' % (self.filename, ))
 
