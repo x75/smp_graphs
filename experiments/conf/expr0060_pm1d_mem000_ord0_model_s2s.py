@@ -73,15 +73,15 @@ m_vars_math = "$\\check{\\bm{s}}$" # ^{l_0}$"
 # m_vars_math = re.sub(r'_', r'\\_', str(m_vars))
 
 desc = """The configuration of expr0045 is extended with an adaptive
-model $s2s$. The model is a map taking measurements to their
+model $M$. The model is a map taking measurements to their
 "causes" in motor space. This is achieved by assigning the
-measurements {2} to the model's inputs $X$ and predictions {1} to the
+measurements {1} to the model's inputs $X$ and predictions {2} to the
 models targets $Y$. The experiment contains an episode of {0} steps
 like \\ref{{{4}}}, with a model fitting and prediction step appended
 at the end of the episode. The resulting model's characteristics are
 shown as a transfer function which is obtained by sampling the model
 after fitting. The models predictions are shown as a timeseries and
-the error {2} - {3} is superimposed on the original error. These show
+the error {1} - {3} is superimposed on the original error. These show
 that the adaptive model indeed manages to learn an adequate inverse
 mapping of the original transfer function and to reduce the resulting
 prediction error.""".format(
@@ -96,6 +96,7 @@ numelem = 1001
 
 # local conf dict for looping
 lconf = {
+    'expr_number': 'expr0060',
     'dim': 1,
     'dt': 0.1,
     'lag': 1,
@@ -146,6 +147,7 @@ lconf = {
     }
 }
 
+expr_number = lconf['expr_number']
 div_meas = lconf['div_meas']
 numelem = lconf['infodistgen']['numelem']
 
@@ -713,8 +715,10 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'tex',
-            'title': 'Results expr0060 for direct and model-based predictions',
-            'desc': 'Budget statistics, information closeness / distance (mi/di), root mean squared prediction error and mean divergence.',
+            'title': """Episode measures of budget and adaptation
+            performance for {0}""".format(expr_number),
+            # 'desc': 'Budget statistics, information closeness / distance (mi/di), root mean squared prediction error and mean divergence.',
+            'desc': '',
             'inputs': {
                 # global budget stats
                 'budget_mu': {'bus': 'm_budget/y_mu', 'shape': (1, 1)},
