@@ -107,7 +107,7 @@ lconf = {
     'sys': {
         # global
         # 'debug': True,
-        'budget': 1000/1,
+        'budget': 2000/1,
         'dim': dim_s0,
         'dims': {
             # expr0063: setting proprio lag to zero (<< environment minlag 1 resp.) models
@@ -332,6 +332,7 @@ graph = OrderedDict([
                             },
                         'outputs': {
                             'pre': {'shape': (dim_s0, 1)},
+                            'd_pre': {'shape': (dim_s0, 1)},
                         },
                         'models': {
                             'goal': {'type': 'random_uniform_modulated'}
@@ -401,8 +402,9 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'pdf',
-            'wspace': 0.15,
-            'hspace': 0.1,
+            'savesize': (8, 5),
+            'wspace': 0.5,
+            'hspace': 0.5,
             'xlim_share': True,
             'ylim_share': True,
             'inputs': {

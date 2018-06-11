@@ -113,7 +113,7 @@ loop = [('lconf', {
     'dim': dim_s0,
     'dt': 0.1,
     'lag': 1,
-    'budget': 1000/1,
+    'budget': 2000/1,
     'lim': 1.0,
     'order': 0,
     # 'infodistgen': {

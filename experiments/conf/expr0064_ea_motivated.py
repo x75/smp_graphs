@@ -65,7 +65,7 @@ from smp_graphs.utils_conf_meas import get_measures_block
 
 # global parameters can be overwritten from the commandline
 ros = False
-numsteps = 10000/10
+numsteps = 10000/5
 numbins = 21
 recurrent = True
 debug = False
@@ -383,6 +383,7 @@ graph = OrderedDict([
                             },
                         'outputs': {
                             'pre': {'shape': (dim_s0, 1)},
+                            'd_pre': {'shape': (dim_s0, 1)},
                         },
                         'models': {
                             'goal': {'type': 'random_uniform_modulated'}
@@ -470,8 +471,9 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'pdf',
-            'wspace': 0.15,
-            'hspace': 0.1,
+            'savesize': (8, 5),
+            'wspace': 0.5,
+            'hspace': 0.5,
             'xlim_share': True,
             'ylim_share': True,
             'inputs': {
