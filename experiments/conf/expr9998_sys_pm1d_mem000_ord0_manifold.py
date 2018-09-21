@@ -1,4 +1,7 @@
+"""smp_graphs config
 
+sensorimotor manifold of n-dimensional point mass
+"""
 from smp_graphs.utils_conf import get_systemblock
 
 randseed = 2
@@ -23,6 +26,8 @@ systemblock = get_systemblock['pm'](
 
 dim_s_proprio = systemblock['params']['dim_s_proprio']
 dim_s_extero  = systemblock['params']['dim_s_extero']
+dim_s0 = dim_s_proprio
+dim_s1 = dim_s_extero
 m_mins = np.array([systemblock['params']['m_mins']]).T
 m_maxs = np.array([systemblock['params']['m_maxs']]).T
 
@@ -40,20 +45,20 @@ sweep system subgraph
  - system block is the system we want to sweep
 """
 sweepsys_steps = 1000 # 6
-sweepsys_input_flat = np.power(sweepsys_steps, dim_s_proprio)
+sweepsys_input_flat = np.power(sweepsys_steps, dim_s0)
 sweepsys = ('robot0', copy.deepcopy(systemblock))
 sweepsys[1]['params']['blocksize'] = sweepsys_input_flat
 sweepsys[1]['params']['debug'] = False
 sweepsys[1]['params']['inputs'] = {'u': {'bus': 'sweepsys_grid/meshgrid'}}
-sweepsys[1]['params']['outputs']['s_proprio']['shape'] = (dim_s_proprio, sweepsys_input_flat)
-sweepsys[1]['params']['outputs']['s_extero']['shape']  = (dim_s_extero, sweepsys_input_flat)
+sweepsys[1]['params']['outputs']['s0']['shape'] = (dim_s0, sweepsys_input_flat)
+sweepsys[1]['params']['outputs']['s1']['shape']  = (dim_s1, sweepsys_input_flat)
 
 sweepmdl_steps = 1000
-sweepmdl_input_flat = sweepmdl_steps # np.power(sweepmdl_steps, dim_s_proprio * 2)
+sweepmdl_input_flat = sweepmdl_steps # np.power(sweepmdl_steps, dim_s0 * 2)
 sweepmdl_func = f_random_uniform
 
 # sweepmdl_steps = 3
-# sweepmdl_input_flat = np.power(sweepmdl_steps, dim_s_proprio * 2)
+# sweepmdl_input_flat = np.power(sweepmdl_steps, dim_s0 * 2)
 # sweepmdl_func = f_meshgrid
 
 loopblock = {
@@ -68,7 +73,7 @@ loopblock = {
         'blockphase': [0],        # phase = 0
         'outputs': {
             'meshgrid': {
-                'shape': (dim_s_proprio, sweepsys_input_flat),
+                'shape': (dim_s0, sweepsys_input_flat),
                 'buscopy': 'sweepsys_grid/meshgrid',
             },
         },
@@ -87,10 +92,10 @@ loopblock = {
                     'numsteps': sweepsys_input_flat,
                     'blocksize': sweepsys_input_flat,
                     'inputs': {
-                        'ranges': {'val': np.array([[-1, 1]] * dim_s_proprio)},
+                        'ranges': {'val': np.array([[-1, 1]] * dim_s0)},
                         'steps':  {'val': sweepsys_steps},
                         },
-                    'outputs': {'meshgrid': {'shape': (dim_s_proprio, sweepsys_input_flat)}},
+                    'outputs': {'meshgrid': {'shape': (dim_s0, sweepsys_input_flat)}},
                     # 'func': f_meshgrid
                     'func': f_random_uniform,
                 },
@@ -109,8 +114,8 @@ loopblock = {
                     'inputs': {
                         # 'y0': {'bus': 'sweepsys_grid/meshgrid', 'delay': [0], },
                         'y': {'bus': 'sweepsys_grid/meshgrid', 'delay': [0, 1, 2], },
-                        's_proprio0': {'bus': 'robot0/s_proprio', 'delay': 0, },
-                        's_proprio1': {'bus': 'robot0/s_proprio', 'delay': 1, },
+                        's00': {'bus': 'robot0/s0', 'delay': 0, },
+                        's01': {'bus': 'robot0/s0', 'delay': 1, },
                         },
                     }
                 }),
@@ -122,7 +127,7 @@ loopblock = {
                     'id': 'sdiff',
                     'blocksize': sweepsys_input_flat, # 1,
                     'inputs': {
-                        's_extero': {'bus': 'robot0/s_extero', },
+                        's1': {'bus': 'robot0/s1', },
                         },
                     'd': 1/dt,
                     # 'leak': 0.01,
@@ -149,7 +154,7 @@ graph = OrderedDict([
             'numsteps':  numsteps,          # numsteps      / loopblocksize = looplength
             'loopblocksize': loopblocksize, # loopblocksize * looplength    = numsteps
             # can't do this dynamically yet without changing init passes
-            'outputs': {'meshgrid': {'shape': (dim_s_proprio, sweepsys_input_flat)}},
+            'outputs': {'meshgrid': {'shape': (dim_s0, sweepsys_input_flat)}},
             'loop': [('none', {}) for i in range(3)], # lambda ref, i, obj: ('none', {}),
             'loopmode': 'sequential',
             'loopblock': loopblock,
@@ -171,52 +176,52 @@ graph = OrderedDict([
                 # 'meshgrid_d0': {
                 #     # 'bus': 'sweepsys/meshgrid',
                 #     'bus': 'motordel_ll0/dy0',
-                #     'shape': (dim_s_proprio, 3, sweepsys_input_flat)},
+                #     'shape': (dim_s0, 3, sweepsys_input_flat)},
                 'meshgrid_d1': {
                     'bus': 'motordel_ll0/dy',
-                    'shape': (dim_s_proprio, 3, sweepsys_input_flat)},
-                's_proprio0': {
-                    'bus': 'motordel_ll0/ds_proprio0',
-                    'shape': (dim_s_proprio, sweepsys_input_flat)},
-                's_proprio1': {
-                    'bus': 'motordel_ll0/ds_proprio1',
-                    'shape': (dim_s_proprio, sweepsys_input_flat)},
-                's_extero': {
-                    'bus': 'robot0_ll0/s_extero',
-                    'shape': (dim_s_extero, sweepsys_input_flat)},
-                'ds_extero': {
-                    'bus': 'sdiff_ll0/ds_extero',
-                    'shape': (dim_s_extero, sweepsys_input_flat)},
+                    'shape': (dim_s0, 3, sweepsys_input_flat)},
+                's00': {
+                    'bus': 'motordel_ll0/ds00',
+                    'shape': (dim_s0, sweepsys_input_flat)},
+                's01': {
+                    'bus': 'motordel_ll0/ds01',
+                    'shape': (dim_s0, sweepsys_input_flat)},
+                's1': {
+                    'bus': 'robot0_ll0/s1',
+                    'shape': (dim_s1, sweepsys_input_flat)},
+                'ds1': {
+                    'bus': 'sdiff_ll0/ds1',
+                    'shape': (dim_s1, sweepsys_input_flat)},
                 },
                 'hspace': 0.2,
                 'subplots': [
                     [
-                        # {'input': ['meshgrid_d0', 's_proprio0'],
-                        #      'shape': (dim_s_proprio, sweepsys_input_flat),
+                        # {'input': ['meshgrid_d0', 's00'],
+                        #      'shape': (dim_s0, sweepsys_input_flat),
                         # 'plot': timeseries},
                         # {'input': ['meshgrid_d1',],
                         #      'ndslice': (slice(None), slice(None), slice(None)),
-                        #      'shape': (dim_s_proprio * 3, sweepsys_input_flat),
+                        #      'shape': (dim_s0 * 3, sweepsys_input_flat),
                         {
                             'input': [
-                                'meshgrid_d1', 's_proprio0'],
+                                'meshgrid_d1', 's00'],
                             'ndslice': [
                                 (slice(None), slice(None), slice(None)),
                                 (slice(None), slice(None)),],
                             'shape': [
-                                (dim_s_proprio * 3, sweepsys_input_flat),
-                                (dim_s_proprio * 1, sweepsys_input_flat),],
+                                (dim_s0 * 3, sweepsys_input_flat),
+                                (dim_s0 * 1, sweepsys_input_flat),],
                             'plot': timeseries
                         },
                     ],
                     # [
-                    #     {'input': ['s_proprio0'], 'plot': timeseries},
+                    #     {'input': ['s00'], 'plot': timeseries},
                     # ],
                     # [
-                    #     {'input': ['s_proprio0', 'ds_extero'], 'plot': timeseries},
+                    #     {'input': ['s00', 'ds1'], 'plot': timeseries},
                     # ],
                     # [
-                    #     {'input': ['s_extero'], 'plot': timeseries},
+                    #     {'input': ['s1'], 'plot': timeseries},
                     # ],
                     ],
             }
@@ -236,38 +241,38 @@ graph = OrderedDict([
                 # 'meshgrid_d0': {
                 #     #'bus': 'sweepsys_grid/meshgrid',
                 #     'bus': 'motordel_ll0/dy0',
-                #     'shape': (dim_s_proprio, 3, sweepsys_input_flat)},
+                #     'shape': (dim_s0, 3, sweepsys_input_flat)},
                 'meshgrid_d1': {
                     'bus': 'motordel_ll0/dy',
-                    'shape': (dim_s_proprio, 3, sweepsys_input_flat)},
-                's_proprio0': {
-                    'bus': 'motordel_ll0/ds_proprio0',
-                    'shape': (dim_s_proprio, sweepsys_input_flat)},
-                's_proprio1': {
-                    'bus': 'motordel_ll0/ds_proprio1',
-                    'shape': (dim_s_proprio, sweepsys_input_flat)},
-                's_extero': {
-                    'bus': 'robot0_ll0/s_extero',
-                    'shape': (dim_s_extero, sweepsys_input_flat)},
-                'ds_extero': {
-                    'bus': 'sdiff_ll0/ds_extero',
-                    'shape': (dim_s_extero, sweepsys_input_flat)},
+                    'shape': (dim_s0, 3, sweepsys_input_flat)},
+                's00': {
+                    'bus': 'motordel_ll0/ds00',
+                    'shape': (dim_s0, sweepsys_input_flat)},
+                's01': {
+                    'bus': 'motordel_ll0/ds01',
+                    'shape': (dim_s0, sweepsys_input_flat)},
+                's1': {
+                    'bus': 'robot0_ll0/s1',
+                    'shape': (dim_s1, sweepsys_input_flat)},
+                'ds1': {
+                    'bus': 'sdiff_ll0/ds1',
+                    'shape': (dim_s1, sweepsys_input_flat)},
                 },
             'outputs': {},#'x': {'shape': 3, 1)}},
             'subplots': [
                 [
                     # stack inputs into one vector (stack, combine, concat)
-                    # {'input': ['meshgrid_d0', 'meshgrid_d1', 's_proprio0', 's_proprio1', 's_extero', 'ds_extero'], 'mode': 'stack',
+                    # {'input': ['meshgrid_d0', 'meshgrid_d1', 's00', 's01', 's1', 'ds1'], 'mode': 'stack',
                     #      'plot': 'hist2d'},
                     {
-                        'input': ['meshgrid_d1', 's_proprio0'], 'mode': 'stack',
+                        'input': ['meshgrid_d1', 's00'], 'mode': 'stack',
                          'ndslice': [
                              (slice(None), slice(None), slice(None)),
                              (slice(None), slice(None)),
                              ],
                          'shape': [
-                             (dim_s_proprio * 3, sweepsys_input_flat),
-                             (dim_s_proprio * 1, sweepsys_input_flat),
+                             (dim_s0 * 3, sweepsys_input_flat),
+                             (dim_s0 * 1, sweepsys_input_flat),
                              ],
                     'plot': 'hist2d'},
                 ],
