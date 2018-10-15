@@ -926,32 +926,32 @@ graph = OrderedDict([
                                 # training on past goal, prediction with current goal
                                 # should be possible inside step_model to use current
                                 # goal
-                                'shape': (dim_s0, maxlag), 'lag': range(lag_past[0], lag_past[1])},
+                                'shape': (dim_s0, maxlag), 'lag': list(range(lag_past[0], lag_past[1]))},
                             # ascending prediction error
                             'pre_l0': {
                                 'bus': 'pre_l0/pre',
                                 # 'shape': (dim_s0, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)},
-                                'shape': (dim_s0, maxlag), 'lag': range(lag_past[0] + 1, lag_past[1] + 1)},
+                                'shape': (dim_s0, maxlag), 'lag': list(range(lag_past[0] + 1, lag_past[1] + 1))},
                             # ascending prediction error
                             'prerr_l0': {
                                 'bus': 'pre_l0/err',
                                 # 'shape': (dim_s0, maxlag), 'lag': range(-maxlag + 1, -minlag + 1)},
-                                'shape': (dim_s0, maxlag), 'lag': range(lag_past[0] + 1, lag_past[1] + 1)},
+                                'shape': (dim_s0, maxlag), 'lag': list(range(lag_past[0] + 1, lag_past[1] + 1))},
                             # measurement
                             'meas_l0': {
                                 'bus': 'robot1/s0',
                                 # 'shape': (dim_s0, maxlag), 'lag': range(-laglen, 0)}
-                                'shape': (dim_s0, maxlag), 'lag': range(lag_future[0], lag_future[1])
+                                'shape': (dim_s0, maxlag), 'lag': list(range(lag_future[0], lag_future[1]))
                             },
                             'pre_l0_fwd': {
                                 'bus': 'pre_l0/pre_fwd',
                                 'shape': (dim_s0 * (lag_future[1] - lag_future[0]), maxlag),
-                                'lag': range(lag_past[0] + 1, lag_past[1] + 1),
+                                'lag': list(range(lag_past[0] + 1, lag_past[1] + 1)),
                             },
                             'prerr_l0_fwd': {
                                 'bus': 'pre_l0/prerr_fwd',
                                 'shape': (dim_s0 * (lag_future[1] - lag_future[0]), maxlag),
-                                'lag': range(lag_past[0] + 1, lag_past[1] + 1),
+                                'lag': list(range(lag_past[0] + 1, lag_past[1] + 1)),
                             },
                         },
                         'outputs': {

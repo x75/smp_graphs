@@ -176,7 +176,7 @@ class WindowedBlock2(PrimBlock2):
 
     @decStep()
     def step(self, x = None):
-        for k, v in self.inputs.items():
+        for k, v in list(self.inputs.items()):
             self._debug("%s.step[%d] k = %s, v = %s/%s, bus = %s" % (self.cname, self.cnt, k, v['val'].shape, v['shape'], self.bus[v['bus']].shape))
             setattr(self, k, np.abs(TFBlock2.step_fft({k: v['val']})[k.upper()]) / float(self.blocksize))
             # print "step_fft", getattr(self, k).shape
@@ -185,7 +185,7 @@ class TFBlock2(PrimBlock2):
     @staticmethod
     def step_fft(data = {}):
         DATA = {}
-        for k, v in data.items():
+        for k, v in list(data.items()):
             DATA[k.upper()] = np.fft.fft(a = v)
         return DATA
 
@@ -234,7 +234,7 @@ class MomentBlock2(PrimBlock2):
     @decStep()
     def step(self, x = None):
         # print "MomentBlock2"
-        for k, v in self.inputs.items():
+        for k, v in list(self.inputs.items()):
             logstr = "%s.step[%d] k = %s, v = %s/%s, bus = %s" % (self.cname, self.cnt, k, v['val'].shape, v['shape'], self.bus[v['bus']].shape)
             self._debug(logstr)
             data = v['val']
@@ -417,7 +417,7 @@ class MeasBlock2(PrimBlock2):
         """
         self._debug('self.measures     is type = %s, length = %s' % (type(self.measures), len(self.measures)))
         self._debug('self.measures[%s] is type = %s, length = %s' % (self.meas, type(self.measures[self.meas]), len(self.measures[self.meas])))
-        for ink, inv in self.inputs.items():
+        for ink, inv in list(self.inputs.items()):
             x = self.get_input(ink)
             self._debug('    calling %s on (x = %s, bins = %s)' % (self.measures[self.meas]['func'], x.shape, self.bins))
             _h = self.measures[self.meas]['func'](x, bins = self.bins)

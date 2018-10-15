@@ -19,8 +19,8 @@ try:
     import essentia.standard as estd
     # import essentia.streaming as estd
     HAVE_ESSENTIA = True
-except ImportError, e:
-    print "Failed to import essentia and essentia.standard", e
+except ImportError as e:
+    print("Failed to import essentia and essentia.standard", e)
 
 from smp_graphs.block import decInit, decStep, Block2, PrimBlock2
 from smp_graphs.block_ols import FileBlock2
@@ -33,7 +33,7 @@ class eFileBlock2(FileBlock2):
         if filetype == 'mp3':
 
             # default samplerate
-            if not conf['params']['file'].has_key('samplerate'):
+            if 'samplerate' not in conf['params']['file']:
                 conf['params']['file']['samplerate'] = 44100
 
             # load data
@@ -41,7 +41,7 @@ class eFileBlock2(FileBlock2):
             data = loader.compute()
 
             # if not length is given, create random slice of 60 sec minimal length if file length allows
-            if not conf['params']['file'].has_key('length') or conf['params']['file']['length'] is None or conf['params']['file']['length'] == 0:
+            if 'length' not in conf['params']['file'] or conf['params']['file']['length'] is None or conf['params']['file']['length'] == 0:
                 conf['params']['file']['length'] = min(
                     data.shape[0],
                     np.random.randint(
@@ -50,10 +50,10 @@ class eFileBlock2(FileBlock2):
 
             # compute slice
             sl = slice(conf['params']['file']['offset'], conf['params']['file']['offset'] + conf['params']['file']['length'])
-            print "%sFileBlock2-%s fileypte mp3 sl = %s" % (self.nesting_indent, self.id, sl, )
+            print("%sFileBlock2-%s fileypte mp3 sl = %s" % (self.nesting_indent, self.id, sl, ))
             # select data
             self.data = {'x': data[sl]} # , 'y': data[sl]}
-            print "%sFileBlock2-%s data = %s, self.data['x'] = %s" % (self.nesting_indent, self.id, data.shape, self.data['x'].shape)
+            print("%sFileBlock2-%s data = %s, self.data['x'] = %s" % (self.nesting_indent, self.id, data.shape, self.data['x'].shape))
             # set step callback
             self.step = self.step_wav
     
@@ -73,8 +73,8 @@ class EssentiaBlock2(PrimBlock2):
         # FFT() would return the complex FFT, here we just want the magnitude spectrum
         self.spectrum = estd.Spectrum()
         
-        for outk, outv in self.outputs.items():
-            if not outv.has_key('etype'): continue
+        for outk, outv in list(self.outputs.items()):
+            if 'etype' not in outv: continue
             if outv['etype'] == 'mfcc':
                 outv['func'] = estd.MFCC(numberCoefficients = 13)
             elif outv['etype'] == 'centroid':
@@ -97,8 +97,8 @@ class EssentiaBlock2(PrimBlock2):
         # print "EssentiaBlock2 step[%d] input %s = %s" % (
         #     self.cnt, 'x', self.inputs['x'].keys())
         frame_ = self.inputs['x']['val']
-        print "EssentiaBlock2 step[%d] input.val = %s" % (
-            self.cnt, self.inputs['x']['val'].shape)
+        print("EssentiaBlock2 step[%d] input.val = %s" % (
+            self.cnt, self.inputs['x']['val'].shape))
 
         spec = []
         for frame in estd.FrameGenerator(
@@ -112,12 +112,12 @@ class EssentiaBlock2(PrimBlock2):
             spec.append(spec_)
         self.spec = np.array(spec)
 
-        print "   EssentiaBlock2 spectrum = %s" % (self.spec.shape, )
+        print("   EssentiaBlock2 spectrum = %s" % (self.spec.shape, ))
             
         # outputs
-        for outk, outv in self.outputs.items():
-            print "    EssentiaBlock2 step[%d] output %s = %s" % (
-                self.cnt, outk, outv.keys())
+        for outk, outv in list(self.outputs.items()):
+            print("    EssentiaBlock2 step[%d] output %s = %s" % (
+                self.cnt, outk, list(outv.keys())))
 
             # frame_ = v['val']
             # print "                        frame_ = %s" % (frame_.shape, )
@@ -161,7 +161,7 @@ class EssentiaBlock2(PrimBlock2):
                 y_ = y_.T
 
             setattr(self, outk, y_.copy())
-            print "    %s/%s = %s" % (self.id, outk, getattr(self, outk).shape)
+            print("    %s/%s = %s" % (self.id, outk, getattr(self, outk).shape))
             # setattr(self, 'y', self.pool['rhythm.danceability'])
             # setattr(self, 'y', y)
 
@@ -183,13 +183,13 @@ class AdhocMixBlock2(PrimBlock2):
         
     @decStep()
     def step(self, x = None):
-        print "adhoc inputs", self.inputs['mus']['val'].shape
+        print("adhoc inputs", self.inputs['mus']['val'].shape)
         x = self.inputs['mus']['val']
         # print "x", x
         x_zeromean = x - np.mean(x, axis = 0)
         x_std = x_zeromean / np.std(x_zeromean, axis = 0)
 
-        print "x_std", x_std
+        print("x_std", x_std)
         
         # x_emb = self.tsne.fit_transform(x_std)
         x_emb = x
@@ -216,8 +216,8 @@ class AdhocMixBlock2(PrimBlock2):
                 points.append(d_corr)
                 points_start.append((i, j))
 
-        print "adhoc inputs x_emb_start", x_emb_start
-        print "adhoc inputs x_emb_end", x_emb_end
+        print("adhoc inputs x_emb_start", x_emb_start)
+        print("adhoc inputs x_emb_end", x_emb_end)
 
         # write mix sequence
         trk_cnt = 0
@@ -228,7 +228,7 @@ class AdhocMixBlock2(PrimBlock2):
         
         trk = np.random.randint(x.shape[0]/2)
         trk_mat[:,trk] = 1000
-        print "trk_mat", trk_mat
+        print("trk_mat", trk_mat)
         while trk_do:
             trk_visited.append((trk, self.filearray[trk][0]))
             if len(trk_visited) == x.shape[0]/2:
@@ -237,19 +237,19 @@ class AdhocMixBlock2(PrimBlock2):
             trk_ = np.argmin(trk_mat[trk,:])
             trk_mat[:,trk_] = 1000
             trk = trk_
-            print "trk_mat", trk_mat
+            print("trk_mat", trk_mat)
 
         trk_seq = "trk_seq = [\n"
         for seqnum, seqfile in trk_visited:
             trk_seq += "    (%d, '%s'),\n" % (seqnum, seqfile)
         trk_seq += "]\n"
         
-        print "trk_visited", trk_seq
+        print("trk_visited", trk_seq)
         f = open('trk_seq_%d.txt' % np.random.randint(1000), 'w')
         f.write(trk_seq)
         f.flush()
         f.close()
-        print "trk_mat", trk_mat
+        print("trk_mat", trk_mat)
             
         # setattr(self, outk, y_.copy())
 

@@ -72,7 +72,7 @@ logger = get_module_logger(modulename = 'graph', loglevel = loglevel_DEFAULT)
 def nxgraph_nodes_iter_recursive(G, filt = None, data = False, level = 0, iterfunc = None):
     if iterfunc is None:
         def iterfunc(node, data, level):
-            print "node = %s, data = %s, level = %d" % (node, data, level)
+            print("node = %s, data = %s, level = %d" % (node, data, level))
             return level
 
     r = []
@@ -98,11 +98,11 @@ def nxgraph_nodes_iter(G, filt = None, data = False):
         return G.nodes(data = data)
     else:
         if data:
-            node_filt_key = lambda G, n, filt: G.node[n[0]].has_key(filt)
-            return filter(lambda n: not node_filt_key(G, n, filt) or (node_filt_key(G, n, filt) and G.node[n[0]][filt]), G.nodes(data = data))
+            node_filt_key = lambda G, n, filt: filt in G.node[n[0]]
+            return [n for n in G.nodes(data = data) if not node_filt_key(G, n, filt) or (node_filt_key(G, n, filt) and G.node[n[0]][filt])]
         else:
-            node_filt_key = lambda G, n, filt: G.node[n].has_key(filt)
-            return filter(lambda n: not node_filt_key(G, n, filt) or (node_filt_key(G, n, filt) and G.node[n][filt]), G.nodes())
+            node_filt_key = lambda G, n, filt: filt in G.node[n]
+            return [n for n in G.nodes() if not node_filt_key(G, n, filt) or (node_filt_key(G, n, filt) and G.node[n][filt])]
         # nodes_filtered = [nid for nid, ndata in G.nodes(data = True) if filter ndata.keys()]
 
 def nxgraph_add_nodes_from_dict(conf, G, nc):
@@ -120,15 +120,15 @@ def nxgraph_add_nodes_from_dict(conf, G, nc):
     """
     # assert conf.has_key('params'), "config needs params dict"
     
-    for k, v in conf.items():
+    for k, v in list(conf.items()):
         assert type(v) is dict, "Block config not a dict, check configuration"
-        assert v.has_key('block')
+        assert 'block' in v
         (G, nc) = nxgraph_add_node_from_conf(k, v, G, nc)
     return (G, nc)
 
 def nxgraph_add_node_from_conf(k, v, G, nc):
     assert type(v) is dict, "Expected type(v) = dict, got type %s, %s\n    node conf not a tuple?" % (type(v), v)
-    if not v.has_key('params'): v['params'] = {}
+    if 'params' not in v: v['params'] = {}
     v['params']['id'] = k
     # print "graphs.py: adding node = %s" % (v['params']['id'],)
     G.add_node(nc, **v)
@@ -136,15 +136,15 @@ def nxgraph_add_node_from_conf(k, v, G, nc):
     return (G, nc)
 
 def check_loopblock_parallel(conf):
-    return conf['params'].has_key('loopblock') \
-      and conf['params'].has_key('loopmode') \
+    return 'loopblock' in conf['params'] \
+      and 'loopmode' in conf['params'] \
       and conf['params']['loopmode'] is not 'sequential' \
       and type(conf['params']['loop']) is list # FIXME: list and func
 
 def check_graph_subgraph(conf, G, nc):
     # node order: fixed with numeric keys, alternative: key array
     # slightly different types: graph, subgraph, loopblock
-    if conf['params'].has_key('graph') or conf['params'].has_key('subgraph'):
+    if 'graph' in conf['params'] or 'subgraph' in conf['params']:
         # two subordinate cases
         # 1 standard graph as dict
         # 2 existing node which we want to clone
@@ -266,7 +266,7 @@ def nxgraph_from_smp_graph(conf):
 def nxgraph_get_layout(G, layout_type):
     """get an nx.graph layout from a config string
     """
-    print "nxgraph_get_layout layout_type = %s" % (layout_type)
+    print("nxgraph_get_layout layout_type = %s" % (layout_type))
     if layout_type == "spring":
         # spring
         layout = nx.spring_layout(G)
@@ -283,7 +283,7 @@ def nxgraph_get_layout(G, layout_type):
             else:
                 s1.append(node)
                 
-        print "s1", s1, "s2", s2
+        print("s1", s1, "s2", s2)
         layout = nx.shell_layout(G, [s1, s2])
     elif layout_type == "pygraphviz":
         # pygraphviz
@@ -310,7 +310,7 @@ def nxgraph_get_layout(G, layout_type):
         y_ = -1
         snodes = sorted(G.nodes())
         # snodes.sort()
-        print "snodes", snodes
+        print("snodes", snodes)
         for node in snodes:
             lvl = int(node[1:2])
             lvln[node] = lvl
@@ -329,8 +329,8 @@ def nxgraph_get_layout(G, layout_type):
             # y_ += 1
             
             # start each level's y at parent's y
-            if not lvly.has_key(lvl): # new level, search parent
-                print "lvl %d first = %s" % (lvl, node)
+            if lvl not in lvly: # new level, search parent
+                print("lvl %d first = %s" % (lvl, node))
                 
                 # parentnode = None
                 # # # assume edge
@@ -355,7 +355,7 @@ def nxgraph_get_layout(G, layout_type):
                 
                 # numedges = len(G.edge[node].keys())
                 Gedges = G.edges(node, data=True, keys=True)
-                print "Gedges for node %s = %s, %s" % (node, type(Gedges), Gedges)
+                print("Gedges for node %s = %s, %s" % (node, type(Gedges), Gedges))
                 numedges = len(Gedges)
                 y_ = lvly[lvl]
                 if numedges > 0:
@@ -392,7 +392,7 @@ def nxgraph_flatten(G):
     # generate ids
     ids = list(ids_gen)
     # map nx ids to smp_graph ids
-    mapping = dict(zip(G.nodes(), ids))
+    mapping = dict(list(zip(G.nodes(), ids)))
     # relabel nodes
     rG = nx.relabel_nodes(G, mapping)
     # merge this graph into flat graph
@@ -481,7 +481,7 @@ def nxgraph_add_edges(G):
         # get child nodes of the current node by matching block ids indicating loop interaction
         childgen = None
         # if G.node[node].has_key('block_'):
-        childgen = (n for n in G if G.node[n].has_key('block_') and G.node[n]['block_'].id.startswith(node))
+        childgen = (n for n in G if 'block_' in G.node[n] and G.node[n]['block_'].id.startswith(node))
         # loop child nodes
         for childnode in list(childgen):
             # print "graph.nxgraph_add_edges: node = %s, childnode = %s" %(node, childnode,)
@@ -494,13 +494,13 @@ def nxgraph_add_edges(G):
                 G.add_edge(node, childnode, type = 'loop')
 
         # get child nodes of the current nodes by matching input bus ids indicating signal-based interaction
-        for k, v in cnode.inputs.items():
+        for k, v in list(cnode.inputs.items()):
             # ignore constant inputs
             # if not v.has_key('bus') and not v.has_key('trigger'): continue
 
             # get node id and output variable of current input source
             k_from_str = ''
-            if v.has_key('bus'):
+            if 'bus' in v:
                 k_from_str, v_from_str = v['bus'].split('/')
                 etype = 'data'
                 
@@ -513,7 +513,7 @@ def nxgraph_add_edges(G):
 
             # check that from-nodes exist
             # k_from = (n for n in G if G.node[n]['params']['id'] == k_from_str)
-            k_from = (n for n in G if G.node[n].has_key('block_') and G.node[n]['block_'].id == k_from_str)
+            k_from = (n for n in G if 'block_' in G.node[n] and G.node[n]['block_'].id == k_from_str)
             k_from_l = list(k_from)
             
             # check that to-nodes exist
@@ -524,7 +524,7 @@ def nxgraph_add_edges(G):
             
             # check from nodes for trigger
             for n in k_from_l:
-                if G.node[n]['block_'].outputs.has_key(v_from_str) and G.node[n]['block_'].outputs[v_from_str].has_key('trigger'):
+                if v_from_str in G.node[n]['block_'].outputs and 'trigger' in G.node[n]['block_'].outputs[v_from_str]:
                     k_from_trig, v_from_trig = G.node[n]['block_'].outputs[v_from_str]['trigger'].split('/')
                     m_l = nxgraph_node_by_id_recursive(G, k_from_trig)
                     # m_l = nxgraph_node_by_id(G, k_from_trig)
@@ -621,9 +621,9 @@ def nxgraph_plot(G, ax = None, pos = None, layout_type = "spring", node_color = 
         # nodetype_0 = re.search(r'[%s]' % (loop_delim, ), G.node[edge[0]]['params']['id'])
         # nodetype_1 = re.search(r'[%s]' % (loop_delim, ), G.node[edge[1]]['params']['id'])
 
-        if type(edge[2]) is dict and edge[2].has_key('type'):
+        if type(edge[2]) is dict and 'type' in edge[2]:
             if edge[2]['type'] == 'hier':
-                if edge[2].has_key('main') and edge[2]['main']:
+                if 'main' in edge[2] and edge[2]['main']:
                     typededges[edge[2]['type']].append(edge)
             else:
                 typededges[edge[2]['type']].append(edge)
@@ -663,14 +663,14 @@ def nxgraph_plot(G, ax = None, pos = None, layout_type = "spring", node_color = 
     # ax.set_yticklabels([]) 
 
 def scale(pos = {}, sf = 1):
-    for k, v in pos.items():
+    for k, v in list(pos.items()):
         # print "nxgraph.scale k, v", k, v,
         v = v * sf
         # print v
         pos[k] = v
 
 def shift(pos = {}, cl = 0):
-    for k, v in pos.items():
+    for k, v in list(pos.items()):
         # print "nxgraph.shift k, v", k, v,
         v = v + array(cl)
         # print v
@@ -734,7 +734,7 @@ def recursive_hierarchical(G, lvlx = 0, lvly = 0, layout_type = 'linear_hierarch
     # layout_type = 'random_hierarchical'
     # layout_type = 'linear_hierarchical' # shell, pygraphviz, random
 
-    print "recursive_hierarchical layout_type = %s" % (layout_type)
+    print("recursive_hierarchical layout_type = %s" % (layout_type))
     
     G_ = nx.MultiDiGraph()
 
@@ -847,11 +847,11 @@ def nxgraph_strip(G):
     G_ = type(G)()
     
     for n in G.nodes(data = False):
-        print "n", n
+        print("n", n)
         # node_ = type(G.node[n])()
         node_ = conf_strip_variables(G.node[n], omits = [])
         # print "node_", node_
-        if node_.has_key('block_'):
+        if 'block_' in node_:
             # block_ = node_['block_']
             o_ = Dummy()
             # if hasattr(block_, 'nxgraph'):
@@ -862,12 +862,12 @@ def nxgraph_strip(G):
             # del node_['block_']
             
         # G_.add_node(n, **G.node[n])
-        if node_.has_key('params'):
+        if 'params' in node_:
             G_.add_node(n, **node_)
         # print "G_.node[n]", G_.node[n]
         
     for e_ in G.edges(data = True):
-        print "e", e_
+        print("e", e_)
         e = (e_[0], e_[1])
         # avoid to reintroduce skipped nodes
         if len(G_.node[e[0]]) > 0 and len(G_.node[e[1]]) > 0:
@@ -881,10 +881,10 @@ def nxgraph_get_node_colors(G):
     Get the block's color from 'block_color' attribute and return it
     """
     G_cols = []
-    pcks = plot_colors.keys()
+    pcks = list(plot_colors.keys())
     pcks.sort()
     for i, n in enumerate(G.nodes()):
-        if G.node[n].has_key('block_') and hasattr(G.node[n]['block_'], 'block_color'):
+        if 'block_' in G.node[n] and hasattr(G.node[n]['block_'], 'block_color'):
             block_color = G.node[n]['block_'].block_color
         # elif G.node[n].has_key('layout') and G.node[n]['layout'].has_key('block_color'):
         #     block_color = G.node[n]['layout']['block_color']
@@ -917,16 +917,16 @@ def nxgraph_store(conf = None, G = None, layout_type='linear_hierarchical'):
       "nxgraph_store bad_argument: needs valid configuration dict 'conf' with 'datadir', 'datadir_expr', and 'datafile_expr' entries"
     assert G is not None, "nxgraph_store bad_argument: needs a graph G to store"
     # graph_io = {(k, {'read': graph_io_funcs[k]['read'], 'read': graph_io_funcs[k]['write']}) for i, k in enumerate(graph_io_funcs.keys())}
-    print "nxgraph_store layout_type = %s" % (layout_type, )
-    print "nxgraph_store graph_io_funcs = %s" % (graph_io_funcs, )
+    print("nxgraph_store layout_type = %s" % (layout_type, ))
+    print("nxgraph_store graph_io_funcs = %s" % (graph_io_funcs, ))
     graph_filetype = 'pickle' # 'gml' # , 'json', 'yaml'
     graph_filename = '%s_%s.%s' % (conf['datafile_md5'], 'nxgraph', graph_filetype)
 
     def iterfunc(node, data, level):
         levelspace = " " * 4 * level
         # print "%snode = %s, data = %s" % (" " * 4 * level, node.keys(), data.keys())
-        print "%snode = %s" % (levelspace, node.keys(), ),
-        print " block_.id = %s, params['id'] = %s" % (node['block_'].id, node['params']['id'])
+        print("%snode = %s" % (levelspace, list(node.keys()), ), end=' ')
+        print(" block_.id = %s, params['id'] = %s" % (node['block_'].id, node['params']['id']))
         # for k, v in node['block_'].items():
         #     print "%s    k = %s, v = %s" % (levelspace, k, v)
         return node['params']['id']

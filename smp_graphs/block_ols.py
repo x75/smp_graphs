@@ -28,8 +28,8 @@ class FileBlock2(Block2):
     def __init__(self, conf = {}, paren = None, top = None):
         # ad hoc default
         # if not conf['params'].has_key('type'): conf['params']['type'] = 'puppy'
-        assert conf['params'].has_key('file') and len(conf['params']['file']) > 0, "FileBlock2 requires a 'file' parameter"
-        assert conf['params'].has_key('type'), "FileBlock2 requires a file 'type' parameter"
+        assert 'file' in conf['params'] and len(conf['params']['file']) > 0, "FileBlock2 requires a 'file' parameter"
+        assert 'type' in conf['params'], "FileBlock2 requires a file 'type' parameter"
         # multiple files: concat? block manipulation blocks?
         self.file = []
         self.nesting_indent = "        "
@@ -47,7 +47,7 @@ class FileBlock2(Block2):
         
         ############################################################
         # puppy homeokinesis (andi)
-        if conf['params']['file'].has_key('filetype'):
+        if 'filetype' in conf['params']['file']:
             filetype = conf['params']['file']['filetype']
         else:
             filetype = conf['params']['type']
@@ -57,12 +57,12 @@ class FileBlock2(Block2):
         # FIXME: perform quick check of data
             
         # init states
-        for k, v in conf['params']['outputs'].items(): # ['x', 'y']:
+        for k, v in list(conf['params']['outputs'].items()): # ['x', 'y']:
             # print "key", self.data[k]
             # setattr(self, k, np.zeros((self.data[k].shape[1], 1)))
             # print "v", v
             assert type(v) is dict, "FileBlock2 outputs need a configuration dictionary, not %s" % (type(v),)
-            assert v.has_key('shape'), "FileBlock2 outputs need a 'shape' key"
+            assert 'shape' in v, "FileBlock2 outputs need a 'shape' key"
             if v['shape'] is None:
                 # self.outputs[k][0] = (self.data[k].shape[1], 1)
                 # print "data", self.data[k].shape[1]
@@ -79,7 +79,7 @@ class FileBlock2(Block2):
     def init_load_file(self, filetype, lfile, conf):
         if filetype == 'puppy':
             offset = 0
-            if conf['params']['outputs'].has_key('log'):
+            if 'log' in conf['params']['outputs']:
                 del conf['params']['outputs']['log']
             (self.data, self.rate, self.offset, length) = read_puppy_hk_pickles(lfile)
 
@@ -90,12 +90,12 @@ class FileBlock2(Block2):
             logger.debug("init_load_file loaded puppy data, data['y'] = %s" % (self.data['y'].shape, ))
              
             # check offset
-            if conf['params']['file'].has_key('offset'):
+            if 'offset' in conf['params']['file']:
                 offset = conf['params']['file']['offset']
                 
             # check length
             length = None # 0
-            if conf['params']['file'].has_key('length'):
+            if 'length' in conf['params']['file']:
                 length = conf['params']['file']['length']
 
             # reslice
@@ -121,7 +121,7 @@ class FileBlock2(Block2):
                 # setattr(self, 'x', self.data['x'])
                 # print "fileblock 'puppy' data.keys()", self.data.keys(), conf['params']['blocksize']
 
-                if not conf['params']['outputs'][k].has_key('shape'):
+                if 'shape' not in conf['params']['outputs'][k]:
                     conf['params']['outputs'][k] = {'shape': self.data[k].T.shape} # [:-1]
                 # conf['params']['outputs']['y'] = {'shape': self.data['y'].T.shape} # [:-1]
             
@@ -155,7 +155,7 @@ class FileBlock2(Block2):
             self.data = np.load(lfile)
             # print "fileblock self.data testdata1", self.data.keys()
             del conf['params']['outputs']['log']
-            for k in self.data.keys():
+            for k in list(self.data.keys()):
             # for k in ['x', 'zn', 't']:
                 sl = slice(None)
                 k_ = k
@@ -198,15 +198,15 @@ class FileBlock2(Block2):
             # else:
             if len(conf['params']['outputs']) < 1:
                 # conf['params']['storekeys'] = {}
-                conf['params']['storekeys'] = dict(zip(self.store.keys(), self.store.keys()))
+                conf['params']['storekeys'] = dict(list(zip(list(self.store.keys()), list(self.store.keys()))))
             else:
-                conf['params']['storekeys'] = dict([(k, v['storekey']) for k, v in conf['params']['outputs'].items() if v.has_key('storekey')])
+                conf['params']['storekeys'] = dict([(k, v['storekey']) for k, v in list(conf['params']['outputs'].items()) if 'storekey' in v])
                 
             logger.debug('params[\'storekeys\'] = %s', conf['params']['storekeys'])
-            logger.debug('store keys = %s', self.store.keys())
+            logger.debug('store keys = %s', list(self.store.keys()))
             
             # for k in self.store.keys():
-            for k, v in conf['params']['storekeys'].items():
+            for k, v in list(conf['params']['storekeys'].items()):
                 # if not k in conf['params']['storekeys']: continue
                 # process key from selflog format: remove the block id in the beginning of the key
                 # print "FileBlock2 selflog", conf['params']['blocksize']
@@ -224,7 +224,7 @@ class FileBlock2(Block2):
                     
                 # print "%s.init store_key = %s, raw key = %s, shape = %s" % (self.__class__.__name__, k, k_, self.store[k].shape)
                 # conf['params']['outputs'][k_] = {'shape': self.store[k].T.shape[:-1]}
-                if conf['params'].has_key('blocksize'):
+                if 'blocksize' in conf['params']:
                     conf['params']['outputs'][k_] = {'shape': self.store[v].T.shape[:-1] + (conf['params']['blocksize'],)}
                 else:
                     conf['params']['outputs'][k_] = {'shape': self.store[v].T.shape}
@@ -283,7 +283,7 @@ class FileBlock2(Block2):
     def step_wav(self, x = None):
         # print "step_wav[%d]" % (self.cnt, )
         if (self.cnt % self.blocksize) == 0: # (self.blocksize - 1):
-            for k, v in self.outputs.items():                
+            for k, v in list(self.outputs.items()):                
                 sl = slice(self.cnt-self.blocksize, self.cnt)
                 # print "self.blocksize", self.blocksize
                 # print "step_wav[%d].outputs[%s][%s] = %s (%s)" % (self.cnt, k, sl, self.data[k][sl].T.shape, self.file)
@@ -300,7 +300,7 @@ class FileBlock2(Block2):
         # self.x = np.atleast_2d(self.data[[self.cnt]]).T #?
         # self.debug_print("self.x = %s", (self.x,))
         if (self.cnt % self.blocksize) == 0: # (self.blocksize - 1):
-            for k, v in self.outputs.items():                
+            for k, v in list(self.outputs.items()):                
                 # sl = slice(self.cnt-self.blocksize, self.cnt)
                 windowlen = v['shape'][-1]
                 if self.cnt < windowlen: continue
@@ -315,7 +315,7 @@ class FileBlock2(Block2):
         # self.x = np.atleast_2d(self.data[[self.cnt]]).T #?
         self.debug_print("self.x = %s", (self.x,))
         if (self.cnt % self.blocksize) == 0: # (self.blocksize - 1):
-            for k, v in self.outputs.items():
+            for k, v in list(self.outputs.items()):
                 sl = slice(self.cnt-self.blocksize, self.cnt)
                 sl2 = slice(None)
                 k_ = k
@@ -334,7 +334,7 @@ class FileBlock2(Block2):
         # self.x = np.atleast_2d(self.data[[self.cnt]]).T #?
         self.debug_print("self.x = %s", (self.x,))
         if (self.cnt % self.blocksize) == 0: # (self.blocksize - 1):
-            for k, v in self.outputs.items():
+            for k, v in list(self.outputs.items()):
                 k_ = k
                 sl = slice(self.cnt-self.blocksize, self.cnt)
                 sl2 = slice(None)
@@ -346,7 +346,7 @@ class FileBlock2(Block2):
             # import matplotlib.pyplot as plt
             # fig = plt.figure()
             # ax = fig.add_subplot(1,1,1)
-            for k, v in self.outputs.items():
+            for k, v in list(self.outputs.items()):
                 storek = self.storekeys[k]
                 self._debug("step[%d] k = %s, storek = %s, val = %s" % (self.cnt, k, storek, self.store[storek].shape))
 
@@ -370,10 +370,10 @@ class FileBlock2(Block2):
         self.debug_print("%s.step: x = %s, bus = %s", (self.__class__.__name__, x, self.bus))
         if (self.cnt % self.blocksize) == 0:
             # print self.store.keys()
-            for k, v in self.outputs.items():
-                print "trying k = %s, v = %s" % (k, v)
+            for k, v in list(self.outputs.items()):
+                print("trying k = %s, v = %s" % (k, v))
                 if k.startswith('conf'):
-                    print "%s = %s\n" % (k, self.store.get_storer(k).attrs.conf,)
+                    print("%s = %s\n" % (k, self.store.get_storer(k).attrs.conf,))
 
 
 class SequencerBlock2(PrimBlock2):
@@ -391,8 +391,8 @@ class SequencerBlock2(PrimBlock2):
         self.sequences = conf['params']['sequences']
         conf['params']['outputs'] = {}
 
-        for k, v in self.sequences.items():
-            if v['events'].has_key(0):
+        for k, v in list(self.sequences.items()):
+            if 0 in v['events']:
                 val = v['events'][0]
             else:
                 val = np.zeros(v['shape'])
@@ -403,11 +403,11 @@ class SequencerBlock2(PrimBlock2):
         
     @decStep()
     def step(self, x = None):
-        for k, v in self.sequences.items():
+        for k, v in list(self.sequences.items()):
             # print "k", k, "v", self.id
-            if self.cnt in v['events'].keys():
+            if self.cnt in list(v['events'].keys()):
                 val = np.ones(v['shape']) * v['events'][self.cnt]
-                print "Sequencer out = %s changed to %s @%d" % (k, val, self.cnt)
+                print("Sequencer out = %s changed to %s @%d" % (k, val, self.cnt))
                 setattr(self, k, val)
     
 

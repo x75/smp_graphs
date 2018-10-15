@@ -306,7 +306,7 @@ graph = OrderedDict([
                     },
 
                     {
-                        'input': m_inputs.keys(),
+                        'input': list(m_inputs.keys()),
                         'ndslice': [
                             (slice(j * numloop_param, (j + 1) * numloop_param), slice(None)),
                             (slice(j * numloop_param, (j + 1) * numloop_param), slice(None)),
@@ -323,8 +323,8 @@ graph = OrderedDict([
                                 timeseries,
                                 yscale = 'linear',
                                 linestyle = 'none', marker = 'o'
-                            ) for k, v in m_inputs.items()],
-                        'xtwin': [v['xtwin'] for k, v in m_inputs.items()],
+                            ) for k, v in list(m_inputs.items())],
+                        'xtwin': [v['xtwin'] for k, v in list(m_inputs.items())],
                     },
                     
                     # {

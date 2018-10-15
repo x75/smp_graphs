@@ -90,17 +90,17 @@ def code_compile_and_run(code = '', gv = {}, lv = {}, return_keys = []):
         return lv
     # single key given, return just the value of this entry
     elif len(return_keys) == 1:
-        if lv.has_key(return_keys[0]):
+        if return_keys[0] in lv:
             return lv[return_keys[0]]
     # several keys given, filter local variables dict by these keys and return
     else:
-        return dict([(k, lv[k]) for k in return_keys if lv.has_key(k)])
+        return dict([(k, lv[k]) for k in return_keys if k in lv])
 
 # AST rewriting
 class RewriteDict(ast.NodeTransformer):
 
     def visit_Dict(self, node):
-        print "node dict", node, dir(node)
+        print("node dict", node, dir(node))
         # return ast.copy_location(ast.Subscript(
         #     value=ast.Name(id='data', ctx=ast.Load()),
         #     slice=ast.Index(value=ast.Str(s=node.id)),
@@ -111,9 +111,9 @@ class RewriteName(ast.NodeTransformer):
 
     def visit_Name(self, node):
         if node.id == 'lconf':
-            print "node name", node.id, node.ctx # dir(node)
+            print("node name", node.id, node.ctx) # dir(node)
             if isinstance(node.ctx, ast.Store):
-                print "hu store", ast.parse(node.ctx)
+                print("hu store", ast.parse(node.ctx))
         # return ast.copy_location(ast.Subscript(
         #     value=ast.Name(id='data', ctx=ast.Load()),
         #     slice=ast.Index(value=ast.Str(s=node.id)),
@@ -182,8 +182,8 @@ def get_config_raw(conf, confvar = 'conf', lconf = None, fexec = True):
     # open and read config file containing a python dictionary
     try:
         s_ = open(conf, "r").read()
-    except Exception, e:
-        print e
+    except Exception as e:
+        print(e)
         sys.exit(1)
 
     # compile and evaluate the dictionary code string and return the dict object
@@ -251,9 +251,9 @@ def get_config_raw_from_string(conf, confvar = 'conf', lconf = None):
         # print "code.freevars", code.co_freevars
         # print "code.nlocals", code.co_nlocals
         
-    except Exception, e:
-        print "\n%s" % (e.text)
-        print "Compilation of %s failed with %s in %s at line %d" % (conf, e.msg, e.filename, e.lineno)
+    except Exception as e:
+        print("\n%s" % (e.text))
+        print("Compilation of %s failed with %s in %s at line %d" % (conf, e.msg, e.filename, e.lineno))
         sys.exit(1)
 
     # prepare variables
@@ -269,12 +269,12 @@ def get_config_raw_from_string(conf, confvar = 'conf', lconf = None):
     # run the code
     try:
         exec(code, global_vars, local_vars)
-    except Exception, e:
+    except Exception as e:
         # FIXME: how to get more stack context?
         traceback.print_exc(limit = 10)
         # print traceback
-        print "Error running config code: %s" % (repr(e),)
-        print "Probably causes:\n    missing parentheses or comma\n    dict key followed by , instead of :\nin config"
+        print("Error running config code: %s" % (repr(e),))
+        print("Probably causes:\n    missing parentheses or comma\n    dict key followed by , instead of :\nin config")
         sys.exit(1)
 
     # print "get_config_raw_from_string local_vars", local_vars.keys()
@@ -293,7 +293,7 @@ def get_input(inputs, inkey):
     """
     assert type(inputs) in [dict, OrderedDict]
     assert inkey is not None
-    assert inputs.has_key(inkey)
+    assert inkey in inputs
     return inputs[inkey]['val']
 
 def compress_loop_id(k):
@@ -313,14 +313,14 @@ def dict_search_recursive(d, k):
 
     # print "#" * 80
     # print "searching k = %s " % (k,),
-    if d.has_key(k):
+    if k in d:
         # print "found k = %s, params = %s" % (k, d[k]['params'].keys())
         return d[k]
     else:
         # print "d.keys()", d.keys()
-        for k_, v_ in d.items():
+        for k_, v_ in list(d.items()):
             # if v_[
-            if v_['params'].has_key('graph'): #  or v_['params'].has_key('subgraph'):
+            if 'graph' in v_['params']: #  or v_['params'].has_key('subgraph'):
                 # print "k_", k_, "v_", v_['params'].keys()
                 return dict_search_recursive(v_['params']['graph'], k)
     # None found
@@ -337,7 +337,7 @@ def dict_replace_nodekeys(d, xid, idmap = {}):
     """
 
     # loop over dictionary items
-    for k, v in d.items():
+    for k, v in list(d.items()):
         # print "dict_replace_nodekeys: k = %s, v = %s, idmap = %s" % (k, v.keys(), idmap)
         # new id from old id
         if type(xid) is tuple:
@@ -358,11 +358,11 @@ def dict_replace_nodekeys(d, xid, idmap = {}):
         idmap[k] = k_
         
         # descend into graph hierarchy
-        if d[k_]['params'].has_key('graph'):
+        if 'graph' in d[k_]['params']:
             d[k_]['params']['graph'], idmap = dict_replace_nodekeys(d[k_]['params']['graph'], xid, idmap)
 
         # descend into loopblock
-        if d[k_]['params'].has_key('loopblock') and d[k_]['params']['loopblock']['params'].has_key('graph'):
+        if 'loopblock' in d[k_]['params'] and 'graph' in d[k_]['params']['loopblock']['params']:
             d[k_]['params']['loopblock']['params']['graph'], idmap = dict_replace_nodekeys(d[k_]['params']['loopblock']['params']['graph'], xid, idmap)
             # print "\n\n\n\n\n\n\n", d[k_]['params']['loopblock']['params']['graph']
 
@@ -380,13 +380,13 @@ def dict_replace_nodekeyrefs(d, xid, idmap):
     """
     
     # loop over dictionary items
-    for k_, v in d.items():
+    for k_, v in list(d.items()):
         # fix bus references in inputs
-        if d[k_]['params'].has_key('inputs'):
-            for ink, inv in [(ink, inv) for ink, inv in d[k_]['params']['inputs'].items() if inv.has_key('bus')]:
+        if 'inputs' in d[k_]['params']:
+            for ink, inv in [(ink, inv) for ink, inv in list(d[k_]['params']['inputs'].items()) if 'bus' in inv]:
                 # if inv.has_key('bus'):
                 invbuss = inv['bus'].split("/")
-                if invbuss[0] in idmap.keys():
+                if invbuss[0] in list(idmap.keys()):
                     # print "ink, inv", ink, inv
                     # print "idmap", idmap
                     buskey = "%s/%s" % (idmap[invbuss[0]], invbuss[1])
@@ -394,13 +394,13 @@ def dict_replace_nodekeyrefs(d, xid, idmap):
                     inv['bus'] = buskey
                     
         # fix bus references in outputs
-        if d[k_]['params'].has_key('outputs'):
-            for ink, inv in [(ink, inv) for ink, inv in d[k_]['params']['outputs'].items() if dict_has_keys_any(inv, ['buscopy', 'trigger'])]:
+        if 'outputs' in d[k_]['params']:
+            for ink, inv in [(ink, inv) for ink, inv in list(d[k_]['params']['outputs'].items()) if dict_has_keys_any(inv, ['buscopy', 'trigger'])]:
                 # if inv.has_key('bus'):
                 for replkey in ['buscopy', 'trigger']:
-                    if not inv.has_key(replkey): continue
+                    if replkey not in inv: continue
                     invbuss = inv[replkey].split("/")
-                    if invbuss[0] in idmap.keys():
+                    if invbuss[0] in list(idmap.keys()):
                         # print "ink, inv", ink, inv
                         # print "idmap", idmap
                         buskey = "%s/%s" % (idmap[invbuss[0]], invbuss[1])
@@ -409,23 +409,23 @@ def dict_replace_nodekeyrefs(d, xid, idmap):
                     # print "\n\n\n\n\n\n\noutputs, buscopy", d[k_]['params']
 
         # fix id references in 'copy' models (want to copy the model from the block with that id)
-        if d[k_]['params'].has_key('models'):
-            for ink, inv in [(ink, inv) for ink, inv in d[k_]['params']['models'].items() if inv.has_key('copyid')]:
+        if 'models' in d[k_]['params']:
+            for ink, inv in [(ink, inv) for ink, inv in list(d[k_]['params']['models'].items()) if 'copyid' in inv]:
                 inv['copyid'] = idmap[inv['copyid']]
             # print "\n\n\n\n\n\nfound model", d[k_]['params']['id'], d[k_]['params']['models']
 
         # descend into graph hierarchy
-        if d[k_]['params'].has_key('graph'):
+        if 'graph' in d[k_]['params']:
             d[k_]['params']['graph'], idmap = dict_replace_nodekeyrefs(d[k_]['params']['graph'], xid, idmap)
 
         # descend into loopblock
-        if d[k_]['params'].has_key('loopblock') and d[k_]['params']['loopblock']['params'].has_key('graph'):
-            for ink, inv in d[k_]['params']['loopblock']['params']['outputs'].items():
+        if 'loopblock' in d[k_]['params'] and 'graph' in d[k_]['params']['loopblock']['params']:
+            for ink, inv in list(d[k_]['params']['loopblock']['params']['outputs'].items()):
                 # if dict_has_keys_any(inv, ['buscopy', 'trigger']):
                 for replkey in ['buscopy', 'trigger']:
-                    if not inv.has_key(replkey): continue
+                    if replkey not in inv: continue
                     invbuss = inv[replkey].split("/")
-                    if invbuss[0] in idmap.keys():
+                    if invbuss[0] in list(idmap.keys()):
                         # print "ink, inv", ink, inv
                         # print "idmap", idmap
                         buskey = "%s/%s" % (idmap[invbuss[0]], invbuss[1])
@@ -439,7 +439,7 @@ def dict_replace_nodekeyrefs(d, xid, idmap):
     return d, idmap
 
 def dict_has_keys_any(d, keys):
-    return len([k_ for k_ in d.keys() if k_ in keys]) > 0
+    return len([k_ for k_ in list(d.keys()) if k_ in keys]) > 0
 
 def dict_replace_idstr_recursive2(d, xid, idmap = {}):
     """smp_graphs.common.dict_replace_idstr_recursive2
@@ -473,7 +473,7 @@ def dict_replace_idstr_recursive(d, cid, xid):
     Returns:
     - d(dict): the modified dict 'd'
     """
-    assert d.has_key('params')
+    assert 'params' in d
     # assert d['params'].has_key('id')
 
     # print "dict_replace_idstr_recursive", print_dict(d)
@@ -487,11 +487,11 @@ def dict_replace_idstr_recursive(d, cid, xid):
     logger.debug("dict_replace_idstr_recursive newid = %s", d['params']['id'])
 
     # change param 'inputs'
-    if d['params'].has_key('inputs'):
-        for ink, inv in d['params']['inputs'].items():
+    if 'inputs' in d['params']:
+        for ink, inv in list(d['params']['inputs'].items()):
             # print "        cid = %s, id = %s, ink = %s, inv = %s" % (
             #    cid, d['params']['id'], ink, inv.keys())
-            if inv.has_key('bus'):
+            if 'bus' in inv:
                 # print "        bus old", inv['bus']
                 inv['bus'] = re.sub(
                     r'%s' % (cid, ),
@@ -502,12 +502,12 @@ def dict_replace_idstr_recursive(d, cid, xid):
         # change param '?'
 
     # change params 'outputs'
-    if d['params'].has_key('outputs'):
-        for outk, outv in d['params']['outputs'].items():
+    if 'outputs' in d['params']:
+        for outk, outv in list(d['params']['outputs'].items()):
             # print "        cid = %s, id = %s, outk = %s, outv = %s" % (
             #    cid, d['params']['id'], outk, outv.keys())
             # if outv.has_key('bus'):
-            for outvk in [k_ for k_ in outv.keys() if k_ in ['trigger', 'buscopy']]:
+            for outvk in [k_ for k_ in list(outv.keys()) if k_ in ['trigger', 'buscopy']]:
                 # if outv.has_key('bus'):
                 #     print "        bus old", outv['bus']
                 outv[outvk] = re.sub(
@@ -516,9 +516,9 @@ def dict_replace_idstr_recursive(d, cid, xid):
                     outv[outvk])
                 # print "        bus new", outv['bus']
                 
-    if d['params'].has_key('graph') and type(d['params']['graph']) is not str:
+    if 'graph' in d['params'] and type(d['params']['graph']) is not str:
         tgraph = OrderedDict()
-        for k, v in d['params']['graph'].items():
+        for k, v in list(d['params']['graph'].items()):
             # v['params']['id'] = k
 
             # replace ids in dict val
@@ -543,7 +543,7 @@ def dict_get_nodekeys_recursive(d):
     for nk in nodekeys:
         # print "nodekey", nk
         # print "graphkeys", d[nk]['params'].keys()
-        if d[nk]['params'].has_key('graph'):
+        if 'graph' in d[nk]['params']:
             # print "graphkeys", d[nk]['params']['graph'].keys()
             nodekeys = nodekeys.union(dict_get_nodekeys_recursive(d[nk]['params']['graph']))
     return nodekeys
@@ -558,7 +558,7 @@ def dict_replace_nodekeys_loop(d = {}, nodekeys = set(), loopiter = 0):
         loopiter = loopiter_[1]
 
     # iterate input dict
-    for k, v in d.items():
+    for k, v in list(d.items()):
         # new id from old id
         # k_ = "%s%s%s" % (k, loop_delim, xid)
         # if key in nodekeys
@@ -611,9 +611,9 @@ def vtransform(v):
         # print "vtype", vtype, dir(smp_graphs)
         if vtype is partial: # functools.partial
             # print "    type partial"
-            v_ = 'partial.func.%s' % v.func.func_name
+            v_ = 'partial.func.%s' % v.func.__name__
         elif vtype is FunctionType:
-            v_ = 'func.%s' % v.func_name
+            v_ = 'func.%s' % v.__name__
             # print "    type FunctionType", v, v_
         # FIXME: this produces import error when block_models isnt
         # imported in config?
@@ -641,7 +641,7 @@ def conf_strip_variables(conf, omits = ['PlotBlock2']):
     
     if conftype is dict or conftype is OrderedDict:
         # strip analysis blocks / PlotBlock2 from hashing
-        if conf.has_key('block'):
+        if 'block' in conf:
             for omit in omits:
                 # if 'PlotBlock2' in str(conf['block']): return conf_
                 if omit in str(conf['block']): return conf_
@@ -650,7 +650,7 @@ def conf_strip_variables(conf, omits = ['PlotBlock2']):
         #     if conf.has_key(ok):
         #         conf.pop(ok)
                     
-        for k, v in conf.items():
+        for k, v in list(conf.items()):
             if k in omit_keys: continue
             # print "v", v
             # if k == 'block' and 'PlotBlock2' in v: continue
@@ -721,8 +721,8 @@ def create_datadir(datadir = None):
     assert datadir is not None, "create_datadir needs a datadir argument"
     try:
         os.mkdir(datadir)
-    except OSError, e:
-        print "Couldn't create datadir = %s with error %s" % (datadir, e)
+    except OSError as e:
+        print("Couldn't create datadir = %s with error %s" % (datadir, e))
         return False
     
     return True
@@ -741,7 +741,7 @@ def check_datadir(conf = {}):
      - status(bool): True if ok, False on error
     """
     for k in ['datadir', 'datadir_expr', 'datafile_expr']:
-        assert conf.has_key(k), "check_datadir expects key %s in its 'conf' argument, conf.keys = %s" % (k, conf.keys(), )
+        assert k in conf, "check_datadir expects key %s in its 'conf' argument, conf.keys = %s" % (k, list(conf.keys()), )
 
     r = True
     
@@ -761,7 +761,7 @@ def escape_backslash(s):
 
 if __name__ == '__main__':
 
-    print "testing function composition"
+    print("testing function composition")
 
     def double(x):
         return x * 2
@@ -773,11 +773,11 @@ if __name__ == '__main__':
         return x - 1
 
     inc_and_double = compose2(double, inc)
-    print "double(inc(10)) = %s" % (inc_and_double(10), )
+    print("double(inc(10)) = %s" % (inc_and_double(10), ))
     
     inc_double_and_dec = compose2(compose2(dec, double), inc)
     inc_double_and_dec(10)
-    print "dec(double(inc(10))) = %s" % (inc_double_and_dec(10), )
+    print("dec(double(inc(10))) = %s" % (inc_double_and_dec(10), ))
     
     inc_double_and_dec = compose(dec, double, inc )
-    print "dec(double(inc(10))) = %s with compose(*functions)" % (inc_double_and_dec(10), )
+    print("dec(double(inc(10))) = %s with compose(*functions)" % (inc_double_and_dec(10), ))

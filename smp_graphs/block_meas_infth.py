@@ -54,7 +54,7 @@ class decStepInfthPrim():
             meas = f(xself, *args, **kwargs)
             meas = np.array(meas)
             xself._debug("%s meas.shape = %s" % (xself.cname, meas.shape))
-            for outk, outv in xself.outputs.items():
+            for outk, outv in list(xself.outputs.items()):
                 # self.jh = meas.reshape()
                 setattr(xself, outk, meas.reshape(outv['shape']))
         return wrap
@@ -73,7 +73,7 @@ class InfthPrimBlock2(PrimBlock2):
         jhinv = 1.0
         if self.norm_out:
             # normalize from external input, overrides stepwise norm_out
-            if self.inputs.has_key('norm'):
+            if 'norm' in self.inputs:
                 jhinv = 1.0 / self.get_input('norm').T
                 
             # normalize over input block
@@ -320,7 +320,7 @@ class CTEBlock2(InfthPrimBlock2):
             # cte = compute_conditional_transfer_entropy(dst, src, cond)
             cte = compute_conditional_transfer_entropy(src, dst, cond, delay = i, xcond = self.xcond)
             ctes.append(cte.copy())
-        print ""
+        print("")
 
         ctes = np.array(ctes)
         # print "%s-%s.step ctes.shape = %s / %s" % (self.cname, self.id, ctes.shape, ctes.T.shape)
@@ -355,10 +355,10 @@ class MIMVBlock2(InfthPrimBlock2):
         # normalize
         jh = self.normalize(src, dst)
         
-        print "%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by" % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape),
+        print("%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by" % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape), end=' ')
         
         for i in range(self.shift[0], self.shift[1]):
-            print "%d" % (i, ),
+            print("%d" % (i, ), end=' ')
             sys.stdout.flush()
             
             # print "self.inputs['x']['val'].T.shape", self.inputs['x']['val'].T.shape
@@ -374,7 +374,7 @@ class MIMVBlock2(InfthPrimBlock2):
                 mi = compute_mi_multivariate(data = {'X': src, 'Y': dst}, estimator = "kraskov2", normalize = True, delay = i)
             # print "mimv = %s" % mi
             mimvs.append(mi)
-        print ""
+        print("")
         mimvs = np.array(mimvs)
         # print "@%d mimvs.shape = %s" % (self.cnt, mimvs.shape, )
         # print "@%d mimvs       = %s" % (self.cnt, mimvs, )
@@ -431,13 +431,13 @@ class CMIMVBlock2(InfthPrimBlock2):
             self._debug("step[%d] cond_delay = %s" % (self.cnt, cond_delay.shape))
 
         # legacy debug
-        print "%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by" % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape),
+        print("%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by" % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape), end=' ')
 
         # norm
         jh = self.normalize(src, dst)
         
         for i in range(self.shift[0], self.shift[1]):
-            print "%d" % (i, ),
+            print("%d" % (i, ), end=' ')
             sys.stdout.flush()
             
             dst_ = np.roll(dst, shift = -i, axis = 0)
@@ -454,7 +454,7 @@ class CMIMVBlock2(InfthPrimBlock2):
             
             mi = compute_cond_mi_multivariate({'X': src, 'Y': dst_, 'C': cond_combined}, delay = 0)
             cmis.append(mi)
-        print ""
+        print("")
         cmis = np.array(cmis)
         # self.temv[0,shiftsl] = cmis.flatten()
         self.cmimv[0,shiftsl] = cmis.flatten() * jh
@@ -478,13 +478,13 @@ class TEMVBlock2(InfthPrimBlock2):
         src = self.inputs['y']['val'].T
         dst = self.inputs['x']['val'].T
         
-        print "%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by" % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape),
+        print("%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by" % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape), end=' ')
 
         # norm
         jh = self.normalize(src, dst)
         
         for i in range(self.shift[0], self.shift[1]):
-            print "%d" % (i, ),
+            print("%d" % (i, ), end=' ')
             sys.stdout.flush()
             
             # dst_ = np.roll(dst, shift = i, axis = 0)
@@ -497,7 +497,7 @@ class TEMVBlock2(InfthPrimBlock2):
                 k = self.k, k_tau=self.k_tau, l=self.l, l_tau=self.l_tau
             )
             temvs.append(mi)
-        print ""
+        print("")
         temvs = np.array(temvs)
         # self.temv[0,shiftsl] = temvs.flatten()
         self.temv[0,shiftsl] = temvs.flatten() * jh

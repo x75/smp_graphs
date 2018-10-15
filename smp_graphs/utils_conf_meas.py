@@ -275,5 +275,5 @@ def get_measures_block(*args, **kwargs):
 if __name__ == '__main__':
     for i in range(2):
         kwargs['measblockid'] = i
-        print "bla[%d]" % (i, ), get_measures_block(**kwargs)
+        print("bla[%d]" % (i, ), get_measures_block(**kwargs))
 

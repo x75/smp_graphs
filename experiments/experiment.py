@@ -20,7 +20,7 @@ if __name__ == "__main__":
     
     import signal
     def handler(signum, frame):
-        print 'Signal handler called with signal = %s' % (signum, )
+        print(('Signal handler called with signal = %s' % (signum, )))
         # al.savelogs()
         # l.isrunning = False
         # if not args.batch:
@@ -38,7 +38,7 @@ if __name__ == "__main__":
         'graphviz': main_graphviz
         }
         
-    assert args.mode in modes.keys()
+    assert args.mode in list(modes.keys())
     
     modes[args.mode](args)
 

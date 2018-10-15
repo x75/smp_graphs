@@ -58,6 +58,7 @@ from smp_graphs.funcs import f_sin, f_motivation, f_motivation_bin, f_meansquare
 
 from smp_graphs.utils_conf import get_systemblock
 from smp_graphs.utils_conf_meas import get_measures_block
+from functools import reduce
 
 # global parameters can be overwritten from the commandline
 ros = False

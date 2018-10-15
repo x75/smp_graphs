@@ -13,7 +13,7 @@ robot1 = get_systemblock['pm'](dim_s0 = 1, dim_s1 = 1, lag = 2)
 robot1['params']['transfer'] = 4 # cosine
 robot1['params']['dims']['s1']['dissipation'] = 0.2
 
-print "robot1 dims", robot1['params']['dims']
+print(("robot1 dims", robot1['params']['dims']))
 dim_s0 = robot1['params']['dims']['s0']['dim']
 dim_m0 = robot1['params']['dims']['m0']['dim']
 dim_s1 = robot1['params']['dims']['s1']['dim']
@@ -250,7 +250,7 @@ graph = OrderedDict([
                         # 'xticks': (np.arange(scanlen) + 0.5).tolist(),
                         # 'xlabel': 'time shift [steps]',
                         'xticks': False, 'xlabel': None,
-                        'xticklabels': range(scanstart, scanstop),
+                        'xticklabels': list(range(scanstart, scanstop)),
                         'yticks': False, 'ylabel': None,
                         'colorbar': True, 'colorbar_orientation': 'vertical',
                     } for i in range(dim_m0)]
@@ -267,7 +267,7 @@ graph = OrderedDict([
                         # 'vmin': 0.0, 'vmax': 1.0,
                         'vaxis': 'cols',
                         'xticks': (np.arange(0, scanlen, 5) + 0.5).tolist(),
-                        'xticklabels': range(scanstart, scanstop, 5),
+                        'xticklabels': list(range(scanstart, scanstop, 5)),
                         'xlabel': 'time shift [steps]', 'ylog': True,
                         'yticks': False, 'ylabel': None,
                         'colorbar': True, 'colorbar_orientation': 'vertical',

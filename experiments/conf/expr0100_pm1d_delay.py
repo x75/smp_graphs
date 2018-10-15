@@ -50,7 +50,7 @@ graph = OrderedDict([
                 [
                     {
                         'input': ['s0p', 's0'], 'plot': [partial(timeseries, marker = 'o')] * 2,
-                        'xticks': range(0, numsteps, 2),
+                        'xticks': list(range(0, numsteps, 2)),
                     },
                 ]
             ],

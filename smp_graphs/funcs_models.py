@@ -42,8 +42,8 @@ from smp_base.measures_probes import meas_linear_regression_probe
 try:
     from smp_base.models_actinf import smpOTLModel, smpSOESGP, smpSTORKGP
     HAVE_SOESGP = True
-except ImportError, e:
-    print "couldn't import online GP models", e
+except ImportError as e:
+    print("couldn't import online GP models", e)
     HAVE_SOESGP = False
 
 # merge with embedding code and move to smp_base
@@ -121,7 +121,7 @@ def init_musig(ref, mref, conf, mconf):
     params = conf['params']
     # params = mconf
     mref.a1 = mconf['a1']
-    for ink, inv in params['inputs'].items():
+    for ink, inv in list(params['inputs'].items()):
         # print "init_musig", inv
         for outk in ["mu", "sig"]:
             # outk_full = "%s/%s_%s" % (mref.modelkey, ink, outk)
@@ -133,7 +133,7 @@ def init_musig(ref, mref, conf, mconf):
 
 def step_musig(ref, mref, *args, **kwargs):
     # for ink, inv in ref.inputs.items():
-    for ink, inv in mref.mconf['inputs'].items():
+    for ink, inv in list(mref.mconf['inputs'].items()):
         for outk_ in ["mu", "sig"]:
             outk = "%s_%s" % (ink, outk_)
             outv_ = getattr(mref, outk)
@@ -154,14 +154,14 @@ def init_msr(ref, mref, conf, mconf):
     # params = mconf
     # expansion spec: mu, sigma, residual
     axis = -1
-    mref.expansion = dict(zip(['m', 's', 'r'], [
+    mref.expansion = dict(list(zip(['m', 's', 'r'], [
         lambda x: np.mean(x, axis=axis, keepdims=True) + np.zeros_like(x),
         lambda x: np.std(x, axis=axis, keepdims=True) + np.zeros_like(x),
         lambda x: x - np.mean(x, axis=axis, keepdims=True),
-    ]))
+    ])))
     
     # for each input
-    for ink, inv in params['inputs'].items():
+    for ink, inv in list(params['inputs'].items()):
         # compute msr
         for outk in mref.expansion:
             # outk_full = "%s/%s_%s" % (mref.modelkey, ink, outk)
@@ -174,7 +174,7 @@ def init_msr(ref, mref, conf, mconf):
 
 def step_msr(ref, mref, *args, **kwargs):
     # for ink, inv in ref.inputs.items():
-    for ink, inv in mref.mconf['inputs'].items():
+    for ink, inv in list(mref.mconf['inputs'].items()):
         for outk_ in mref.expansion:
             outk = "%s_%s" % (ink, outk_)
             setattr(mref, outk, mref.expansion[outk_](inv['val']))
@@ -286,7 +286,7 @@ def init_function_generator(ref, mref, conf, mconf):
     ref.funcargs = {}
 
     # outputs
-    for outk, outv in params['outputs'].items():
+    for outk, outv in list(params['outputs'].items()):
         lo = -np.ones(( outv['shape'] ))
         hi = np.ones(( outv['shape'] ))
         setattr(ref, outk, np.zeros(outv['shape']))
@@ -304,7 +304,7 @@ def step_function_generator(ref, mref, *args, **kwargs):
     # evaluate function
     funcval = ref.func(ref.inputs)
     
-    for outk, outv in ref.outputs.items():
+    for outk, outv in list(ref.outputs.items()):
         setattr(ref, outk, funcval)
         # logger.debug('step_function_generator outk %s = %s' % (outk, getattr(ref, outk)))
         
@@ -345,7 +345,7 @@ def init_random_lookup(ref, mref, conf, mconf):
     from scipy.stats import norm
     # setup
     params = conf['params']
-    if not mconf.has_key('numelem'):
+    if 'numelem' not in mconf:
         mconf['numelem'] = 1001
     inshape = params['inputs']['x']['shape']
     # logger.debug("init_random_lookup: inshape = %s", inshape)
@@ -448,7 +448,7 @@ def do_random_lookup(ref, mref):
 # model func: random_uniform model
 def init_random_uniform(ref, mref, conf, mconf):
     params = conf['params']
-    for outk, outv in params['outputs'].items():
+    for outk, outv in list(params['outputs'].items()):
         lo = -np.ones(( outv['shape'] ))
         hi = np.ones(( outv['shape'] ))
         setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
@@ -461,7 +461,7 @@ def step_random_uniform(ref, mref, *args, **kwargs):
             
     lo = ref.inputs['lo']['val'] # .T
     hi = ref.inputs['hi']['val'] # .T
-    for outk, outv in ref.outputs.items():
+    for outk, outv in list(ref.outputs.items()):
         if ref.cnt % (ref.rate * 1) == 0:
             # logger.debug('lo = %s, hi = %s, out = %s', lo.shape, hi.shape, outv['shape'])
             assert lo.shape == hi.shape, "lo/hi shapes need to agree %s/%s" % (lo.shape, hi.shape)
@@ -481,7 +481,7 @@ def step_random_uniform(ref, mref, *args, **kwargs):
 # model func: random_uniform_pi_2 model
 def init_random_uniform_pi_2(ref, conf, mconf):
     params = conf['params']
-    for outk, outv in params['outputs'].items():
+    for outk, outv in list(params['outputs'].items()):
         lo = -np.ones(( outv['shape'] ))
         hi = np.ones(( outv['shape'] ))
         setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
@@ -496,7 +496,7 @@ def step_random_uniform_pi_2(ref):
     lo = ref.inputs['lo']['val'] # .T
     hi = ref.inputs['hi']['val'] # .T
     meas_l0 = ref.inputs['meas_l0']['val'][...,[-1]]
-    for outk, outv in ref.outputs.items():
+    for outk, outv in list(ref.outputs.items()):
         if ref.cnt % (ref.rate * 1) == 0:
             # pred = np.random.normal(0, 0.05, size = outv['shape'])
             # pred[1,0] = pred[0,0]
@@ -507,9 +507,9 @@ def step_random_uniform_pi_2(ref):
             np.roll(ref.prerr_, -1, axis = 1)
             ref.prerr_[...,[-1]] = prerr.copy()
             pred = ref.pre
-            print "uniform_pi_2 small error", prerr, np.mean(np.abs(ref.prerr_))
+            print("uniform_pi_2 small error", prerr, np.mean(np.abs(ref.prerr_)))
             if np.mean(np.abs(ref.prerr_)) < 0.1:
-                print "uniform_pi_2 small error sampling"
+                print("uniform_pi_2 small error sampling")
                 pred = np.random.normal(meas_l0, scale = np.mean(np.abs(ref.prerr_))) # , size = outv['shape']) # * 1e-3
             else:
                 # pred = np.random.normal(meas_l0, scale = 0.001) # , size = outv['shape']) # * 1e-3
@@ -519,7 +519,7 @@ def step_random_uniform_pi_2(ref):
             
             # pred = np.zeros(outv['shape'])
             setattr(ref, outk, pred)
-            print "step_random_uniform_pi_2 ref.outk", getattr(ref, outk)
+            print("step_random_uniform_pi_2 ref.outk", getattr(ref, outk))
         else:
             setattr(ref, outk, np.random.uniform(-1e-3, 1e-3, size = outv['shape']))
         
@@ -592,7 +592,7 @@ def step_random_uniform_modulated(ref, mref, *args, **kwargs):
     lo = ref.inputs['lo']['val'] # .T
     hi = ref.inputs['hi']['val'] # .T
     mdltr = ref.inputs['mdltr']['val'] # .T
-    refk = ref.outputs.keys()[0]
+    refk = list(ref.outputs.keys())[0]
     mdltr_ref = getattr(mref, 'pre')
     # print "refk", refk, "mdltr_ref", mdltr_ref
     d_raw = mdltr - mdltr_ref
@@ -617,7 +617,7 @@ def step_random_uniform_modulated(ref, mref, *args, **kwargs):
 # model func: alternating_sign model
 def init_alternating_sign(ref, mref, conf, mconf):
     params = conf['params']
-    for outk, outv in params['outputs'].items():
+    for outk, outv in list(params['outputs'].items()):
         lo = -np.ones(( outv['shape'] ))
         hi = np.ones(( outv['shape'] ))
         # setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
@@ -630,7 +630,7 @@ def step_alternating_sign(ref, mref, *args, **kwargs):
             
     lo = ref.inputs['lo']['val'] # .T
     hi = ref.inputs['hi']['val'] # .T
-    for outk, outv in ref.outputs.items():
+    for outk, outv in list(ref.outputs.items()):
         # setattr(ref, outk, np.random.uniform(lo, hi, size = outv['shape']))
         
         # setattr(ref, outk, np.random.choice([-1.0, 1.0], size = outv['shape']))
@@ -676,7 +676,7 @@ def init_smpModel(ref, mref, conf, mconf):
     """
     # check conf, set defaults
     for required in ['algo', 'idim', 'odim']:
-        if not mconf.has_key(required):
+        if required not in mconf:
             mconf[required] = smpmodel_defaults[required]
             
     # shortcut handles
@@ -699,11 +699,11 @@ def init_smpModel(ref, mref, conf, mconf):
     elif algo == "hebbsom":
         # mconf.update({'numepisodes': 1, 'mapsize_e': 140, 'mapsize_p': 60, 'som_lr': 1e-1, 'visualize': False})
         mconf.update({'numepisodes': 1, 'mapsize_e': 40, 'mapsize_p': 100, 'som_lr': 1e-0, 'som_nhs': 0.05, 'visualize': False})
-        print "mconf", mconf
+        print("mconf", mconf)
         mdl = smpHebbianSOM(conf = mconf)
         # mdl = smpHebbianSOM(idim, odim, numepisodes = 1, mapsize_e = 1000, mapsize_p = 100, som_lr = 1e-1)
     elif algo == "soesgp":
-        print "soesgp conf", mconf
+        print("soesgp conf", mconf)
         mdl = smpSOESGP(conf = mconf)
     elif algo == "storkgp":
         mdl = smpSTORKGP(conf = mconf)
@@ -727,7 +727,7 @@ def init_smpModel(ref, mref, conf, mconf):
         #         ref.top.nxgraph.node[0]['block_'].nxgraph.node[n]['block_'].nxgraph.nodes(), )
             
         targetnode = nxgraph_node_by_id_recursive(ref.top.nxgraph, targetid)
-        print "targetid", targetid, "targetnode", targetnode
+        print("targetid", targetid, "targetnode", targetnode)
         if len(targetnode) > 0:
             # print "    targetnode id = %d, node = %s" % (
             #     targetnode[0][0],
@@ -739,7 +739,7 @@ def init_smpModel(ref, mref, conf, mconf):
     elif algo == 'homeokinesis':
         mdl = HK(conf = mconf)
     else:
-        print "unknown model algorithm %s, exiting" % (algo, )
+        print("unknown model algorithm %s, exiting" % (algo, ))
         # import sys
         # sys.exit(1)
         mdl = None
@@ -762,7 +762,7 @@ def tapping_SM(ref, mode = 'm1'):
     """
     
     # current goal[t] prediction descending from layer above
-    if ref.inputs.has_key('blk_mode') and ref.inputs['blk_mode']['val'][0,0] == 2.0:
+    if 'blk_mode' in ref.inputs and ref.inputs['blk_mode']['val'][0,0] == 2.0:
         # that's a wild HACK for switching the top down goal input of the current predictor
         ref.pre_l1_inkey = 'e2p_l1'
     else:
@@ -788,14 +788,14 @@ def tapping_SM(ref, mode = 'm1'):
     pre_l1_tap_flat = pre_l1_tap_full.reshape((-1, 1))
 
     # target
-    pre_l1_tap_full_target = ref.inputs[ref.pre_l1_inkey]['val'][...,range(-ref.laglen_future - 1, -1)]
+    pre_l1_tap_full_target = ref.inputs[ref.pre_l1_inkey]['val'][...,list(range(-ref.laglen_future - 1, -1))]
     pre_l1_tap_flat_target = pre_l1_tap_full_target.reshape((-1, 1))
 
     # meas
     meas_l0_tap_spec = ref.inputs['meas_l0']['lag']
     meas_l0_tap_full = ref.inputs['meas_l0']['val'][...,meas_l0_tap_spec]
     meas_l0_tap_flat = meas_l0_tap_full.reshape((ref.odim, 1))
-    meas_l0_tap_full_input = ref.inputs['meas_l0']['val'][...,range(-ref.laglen_past, 0)]
+    meas_l0_tap_full_input = ref.inputs['meas_l0']['val'][...,list(range(-ref.laglen_past, 0))]
     meas_l0_tap_flat_input = meas_l0_tap_full_input.reshape((-1, 1))
 
     # pre_l0
@@ -1028,7 +1028,7 @@ def step_actinf(ref, mref, *args, **kwargs):
         # prerr = prerr_l0_.reshape((ref.odim / ref.laglen, -1))[...,[-1]]
         # FIXME: actually, if ref.mdl.hasmemory
         if isinstance(ref.mdl, smpOTLModel) or isinstance(ref.mdl, smpSHL):
-            print "Fitting without update"
+            print("Fitting without update")
             ref.mdl.fit(X.T, Y.T, update = False)
         else:
             ref.mdl.fit(X.T, Y.T)
@@ -1322,8 +1322,8 @@ def step_homeokinesis(ref, mref, *args, **kwargs):
 # sklearn based model
 def init_sklearn(ref, mref, conf, mconf):
     # insert defaults
-    assert mconf.has_key('skmodel')
-    assert mconf.has_key('skmodel_params')
+    assert 'skmodel' in mconf
+    assert 'skmodel_params' in mconf
     # sklearn models are saveable with pickle
     mref.saveable = True
     # check mconf
@@ -1351,8 +1351,8 @@ def init_sklearn(ref, mref, conf, mconf):
     
     # set trigger callback
     trigger_funcs = {'h': partial(trig_sklearn_h, mref = mref)}
-    for outk, outv in conf['params']['outputs'].items():
-        if outv.has_key('trigger') and outv.has_key('trigger_func'):
+    for outk, outv in list(conf['params']['outputs'].items()):
+        if 'trigger' in outv and 'trigger_func' in outv:
             outv['trigger_func'] = trigger_funcs[outv['trigger_func']] # code_compile_and_run('trig_sklearn_{0}'.format(outv['trigger_func']), gv)
             logger.debug('converted trigger_func to %s' % (outv['trigger_func'], ))
 
@@ -1396,7 +1396,7 @@ def load_sklearn(ref, mref):
         try:
             mref.mdl = joblib.load(modelfilenamefull)
             mref.mdl_init = True
-        except Exception, e:
+        except Exception as e:
             ref._error('load_sklearn failed with %s' % (e, ))
     
 def save_sklearn(ref, mref):
@@ -1427,7 +1427,7 @@ def step_e2p(ref):
 
     # if ref.inputs['blk_mode']['val'] == 2.0:
     # if True:
-    if ref.inputs.has_key('blk_mode') and ref.inputs['blk_mode']['val'][0,0] == 2.0:
+    if 'blk_mode' in ref.inputs and ref.inputs['blk_mode']['val'][0,0] == 2.0:
         if ref.cnt % 400 == 0:
             # uniform prior
             # extero_ = np.random.uniform(-1e-1, 1e-1, extero.shape)
@@ -1540,7 +1540,7 @@ def init_imol_submodel(ref, mref, conf, mconf, mk):
         ref.mdl[mk]['selsize'] = params['outputs']['hidden']['shape'][0]
         # 2. one-time random projection indices
         ref.mdl[mk]['hidden_output_index'] = np.random.choice(
-            range(ref.mdl[mk]['modelsize']),
+            list(range(ref.mdl[mk]['modelsize'])),
             ref.mdl[mk]['selsize'],
             replace=False
         )
@@ -1983,7 +1983,7 @@ def fit_predict_imol(ref, mref, mk='inv', *args, **kwargs):
         # amp = 0.0
         
         if ref.cnt % 100 == 0:
-            print "soesgp var", ref.mdl[mk]['inst_'].var, ref.cnt # np.sqrt(np.mean(ref.mdl[mk]['inst_'].var))
+            print("soesgp var", ref.mdl[mk]['inst_'].var, ref.cnt) # np.sqrt(np.mean(ref.mdl[mk]['inst_'].var))
         
         # if np.sqrt(np.mean(ref.mdl[mk]['inst_'].var)) < 0.4:
         #     pre_l0_var = np.random.normal(0.0, 1.0, size = pre_l0.shape) * 0.1
@@ -2060,7 +2060,7 @@ def init_eh(ref, mref, conf, mconf):
 
     
     logger.debug('ModelBlock2.model.init_eh mconf = {')
-    for k, v in mconf.items():
+    for k, v in list(mconf.items()):
             logger.debug('   %s = %s', k, v)
     # print "mconf.eta", mconf['eta']
     # print "mconf.eta_init", mconf['eta_init']
@@ -2127,7 +2127,7 @@ def init_eh(ref, mref, conf, mconf):
     ref.selsize = params['outputs']['hidden']['shape'][0]
     # hidden state output random projection
     ref.hidden_output_index = np.random.choice(
-        range(mconf['modelsize']), ref.selsize, replace=False)
+        list(range(mconf['modelsize'])), ref.selsize, replace=False)
     # initialize tapping (devmdl)
     ref.tapping_SM = partial(tapping_SM, mode = ref.type)
     ref.tapping_EH = partial(tapping_EH)
@@ -2169,9 +2169,9 @@ def step_eh(ref, mref, *args, **kwargs):
         # # this also works because goals change slowly
         # pre_l1 = ref.inputs['pre_l1']['val'][...,range(ref.lag_future[0] - 1, ref.lag_future[1] - 1)]
         # future - lag offset
-        pre_l1 = ref.inputs['pre_l1']['val'][...,range(ref.lag_future[0] - ref.lag_off, ref.lag_future[1] - ref.lag_off)]
+        pre_l1 = ref.inputs['pre_l1']['val'][...,list(range(ref.lag_future[0] - ref.lag_off, ref.lag_future[1] - ref.lag_off))]
         # pre_l1 = ref.inputs['pre_l1']['val'][...,range(ref.lag_past[0]-1, ref.lag_past[1]-1)]
-        meas_l0 = ref.inputs['meas_l0']['val'][...,range(ref.lag_future[0], ref.lag_future[1])]
+        meas_l0 = ref.inputs['meas_l0']['val'][...,list(range(ref.lag_future[0], ref.lag_future[1]))]
         return(pre_l1, meas_l0)
 
     (pre_l1_t, meas_l0_t) = tapping_EH_target(ref)
@@ -2180,8 +2180,8 @@ def step_eh(ref, mref, *args, **kwargs):
         # pre_l1 = ref.inputs['pre_l1']['val'][...,np.array(ref.inputs['meas_l0']['lag'])-1]
         # meas_l0 = ref.inputs['meas_l0']['val'][...,ref.inputs['meas_l0']['lag']]
         lag_error = (-100, 0)
-        pre_l1 = ref.inputs['pre_l1']['val'][...,range(lag_error[0]-1, lag_error[1]-1)]
-        meas_l0 = ref.inputs['meas_l0']['val'][...,range(lag_error[0], lag_error[1])]
+        pre_l1 = ref.inputs['pre_l1']['val'][...,list(range(lag_error[0]-1, lag_error[1]-1))]
+        meas_l0 = ref.inputs['meas_l0']['val'][...,list(range(lag_error[0], lag_error[1]))]
         # meas_l0
         return(pre_l1, meas_l0)
 
@@ -2307,7 +2307,7 @@ def step_eh(ref, mref, *args, **kwargs):
     setattr(ref, 'wo_norm', wo_norm)
     
     if ref.cnt % 500 == 0:
-        print "iter[%d]: |W_o| = %f, eta = %f" % (ref.cnt, wo_norm, ref.mdl.eta, )
+        print("iter[%d]: |W_o| = %f, eta = %f" % (ref.cnt, wo_norm, ref.mdl.eta, ))
     
     # return to execute prediction on system and wait for new measurement
 
@@ -2328,8 +2328,8 @@ def init_smpmodel(ref, mref, conf, mconf):
     
     # set trigger callback
     trigger_funcs = {'h': partial(trig_smpmodel_h, mref = mref)}
-    for outk, outv in conf['params']['outputs'].items():
-        if outv.has_key('trigger') and outv.has_key('trigger_func'):
+    for outk, outv in list(conf['params']['outputs'].items()):
+        if 'trigger' in outv and 'trigger_func' in outv:
             outv['trigger_func'] = trigger_funcs[outv['trigger_func']] # code_compile_and_run('trig_smpmodel_{0}'.format(outv['trigger_func']), gv)
             logger.debug('converted trigger_func to %s' % (outv['trigger_func'], ))
 
@@ -2352,7 +2352,7 @@ def step_smpmodel(ref, mref, *args, **kwargs):
     Y_ = mref.mdl.predict(X)
 
     # get predict input handles and use separate input if available
-    if ref.inputs.has_key('x_in2'):
+    if 'x_in2' in ref.inputs:
         X2 = ref.get_input('x_in2')
         # predict
         Y2_ = mref.mdl.predict(X2)
@@ -2556,8 +2556,8 @@ class model(object):
         mconf_.update(mconf)
         mconf.update(mconf_)
         
-        assert mconf['type'] in self.models.keys(), "in %s.init: unknown model type, %s not in %s" % (self.__class__.__name__, mconf['type'], self.models.keys())
-        assert 'numelem' in mconf.keys(), "in %s.init: %s not in mconf %s" % (self.__class__.__name__, 'numelem', mconf.keys())
+        assert mconf['type'] in list(self.models.keys()), "in %s.init: unknown model type, %s not in %s" % (self.__class__.__name__, mconf['type'], list(self.models.keys()))
+        assert 'numelem' in list(mconf.keys()), "in %s.init: %s not in mconf %s" % (self.__class__.__name__, 'numelem', list(mconf.keys()))
         # FIXME: ignoring multiple entries taking 'last' one, in dictionary order
         if mref is None:
             mref = self.__class__.__name__
@@ -2584,14 +2584,14 @@ class model(object):
         #         ref.top.datadir_expr, ref.id, self.modelstr, self.modelkey, self.mconf['skmodel'], ref.md5)
 
     def load(self, ref):
-        if hasattr(self, 'saveable') and self.saveable and self.models[self.modelstr].has_key('load'):
+        if hasattr(self, 'saveable') and self.saveable and 'load' in self.models[self.modelstr]:
             ref._info("Trying to load model %s from file %s" % (self.modelstr, self.modelfilename))
             self.models[self.modelstr]['load'](ref, self)
             
     def save(self, ref):
         """Dump the model into a file
         """
-        if hasattr(self, 'saveable') and self.saveable and not self.mdl_init and self.models[self.modelstr].has_key('save'):
+        if hasattr(self, 'saveable') and self.saveable and not self.mdl_init and 'save' in self.models[self.modelstr]:
             ref._info("funcs_models: saving model %s into file %s" % (self.modelstr, self.modelfilename))
             self.models[self.modelstr]['save'](ref, self)
         

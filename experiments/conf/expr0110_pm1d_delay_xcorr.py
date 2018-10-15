@@ -116,7 +116,7 @@ graph = OrderedDict([
                         'vmin': -1.0, 'vmax': 1.0, 'vaxis': 'cols',
                         'yticks': False, 'yticklabels': None, 'ylabel': None,
                         'xticks': (arange(scanlen) + 0.5).tolist(),
-                        'xticklabels': range(scanstart, scanstop),
+                        'xticklabels': list(range(scanstart, scanstop)),
                         'colorbar': True,
                     } for j in range(dim_m0)] # 'seismic'
             for i in range(dim_s0)],

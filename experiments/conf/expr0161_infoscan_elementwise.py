@@ -110,7 +110,7 @@ numsteps = cnf['numsteps']
 xdim = cnf['xdim']
 ydim = cnf['ydim']
 xdim_eff = cnf['xdim_eff']
-if cnf.has_key('sys_slicespec'):
+if 'sys_slicespec' in cnf:
     sys_slicespec = cnf['sys_slicespec']
 else:
     sys_slicespec = {'x': {'acc': slice(0, 3), 'gyr': slice(3, xdim)}}
@@ -123,8 +123,8 @@ delay_embed_len = lconf['delay_embed_len']
 
 # prepare scan plot xticks depending on input size
 plot_infoscan_xticks_step = scanlen // 5
-plot_infoscan_xticks = range(0, scanlen, plot_infoscan_xticks_step)
-plot_infoscan_xticklabels = range(scanstart*1, scanstop*1, plot_infoscan_xticks_step*1)
+plot_infoscan_xticks = list(range(0, scanlen, plot_infoscan_xticks_step))
+plot_infoscan_xticklabels = list(range(scanstart*1, scanstop*1, plot_infoscan_xticks_step*1))
 
 lrp_alpha = 0.01
 tap_thr = 0.3

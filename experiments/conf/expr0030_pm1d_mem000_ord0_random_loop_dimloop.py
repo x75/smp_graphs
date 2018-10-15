@@ -16,6 +16,7 @@ from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2
 from smp_graphs.block_models import ModelBlock2
 
 from smp_graphs.funcs import f_sin, f_motivation, f_motivation_bin
+from functools import reduce
 
 # global parameters can be overwritten from the commandline
 ros = False
@@ -43,7 +44,7 @@ plot_titles += ['' for i in range(numloop-1)]
 desc = """This experiment is a structural variation of expr0020,
 computing the budget statistics over {0} episodes each, for all
 configurations of the sensorimotor dimension $d = {1}$""".format(
-    numloop_inner, range(1, numloop + 1)
+    numloop_inner, list(range(1, numloop + 1))
 )
 
 outputs = {
@@ -289,7 +290,7 @@ loop = [('lconf', {
             'order': 0,
             'numloop': numloop_inner,
         }) for i in range(numloop)]
-print "loop", loop
+print(("loop", loop))
 
 graph = OrderedDict([
     # # concurrent loop

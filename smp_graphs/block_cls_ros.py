@@ -8,8 +8,8 @@ import numpy as np
 try:
     import rospy
     from tf.transformations import euler_from_quaternion, quaternion_from_euler
-except Exception, e:
-    print "Import rospy failed with %s" % (e, )
+except Exception as e:
+    print("Import rospy failed with %s" % (e, ))
 
 from smp_graphs.block import decStep, PrimBlock2
 from smp_graphs.block_cls import SysBlock2
@@ -51,7 +51,7 @@ class STDRCircularBlock2(SysBlock2):
             # print "x", self.x
             
             # real output variables defined by config
-            for k in self.outputs.keys():
+            for k in list(self.outputs.keys()):
                 k_ = getattr(self, k)
                 # print "k", k, "k_", k_, "k_[:,[i]]", k_[:,[i]], "self.x[k]", self.x[k]
                 k_[:,[i]] = self.x[k]
@@ -94,7 +94,7 @@ class LPZBarrelBlock2(SysBlock2):
             # print "x", self.x
             
             # real output variables defined by config
-            for k in self.outputs.keys():
+            for k in list(self.outputs.keys()):
                 k_ = getattr(self, k)
                 # print "k", k, "k_", k_, "k_[:,[i]]", k_[:,[i]], "self.x[k]", self.x[k]
                 k_[:,[i]] = self.x[k]
@@ -137,7 +137,7 @@ class SpheroBlock2(SysBlock2):
             # print "x", self.x
             
             # real output variables defined by config
-            for k in self.outputs.keys():
+            for k in list(self.outputs.keys()):
                 k_ = getattr(self, k)
                 # print "k", k, "k_", k_, "k_[:,[i]]", k_[:,[i]], "self.x[k]", self.x[k]
                 k_[:,[i]] = self.x[k].T

@@ -169,7 +169,7 @@ graph = OrderedDict([
                         'shape': (dim_s0, scanlen), 'cmap': 'Greys', 'title': 'Mutual information',
                         'vmin': 0.0, 'vmax': 1.0, 'vaxis': 'cols',
                         'xticks': (np.arange(scanlen) + 0.5).tolist(),
-                        'xticklabels': range(scanstart, scanstop),
+                        'xticklabels': list(range(scanstart, scanstop)),
                         'xlabel': 'time shift [steps]',
                         'yticks': False, 'ylabel': None,
                         'colorbar': True, 'colorbar_orientation': 'vertical',

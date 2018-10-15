@@ -47,12 +47,12 @@ def tap(ref, inkey = None, lag = None, off = 0, source='inputs', outidx=None):
     Returns:
     - tapped inputs, structured
     """
-    if source == 'inputs': assert inkey in ref.inputs, "block_models.tap needs valid input key, %s not in %s" % (inkey, ref.inputs.keys())
+    if source == 'inputs': assert inkey in ref.inputs, "block_models.tap needs valid input key, %s not in %s" % (inkey, list(ref.inputs.keys()))
     assert type(lag) in [tuple, list], "block_models.tap needs tapping 'lag' tuple or list, %s given" % (type(lag))
 
     # handle tapping specs
     if type(lag) is tuple:
-        tapping = range(lag[0] + off, lag[1] + off)
+        tapping = list(range(lag[0] + off, lag[1] + off))
     elif type(lag) is list:
         tapping = np.array(lag) + off
 
@@ -408,23 +408,23 @@ def tapping_imol_pre_inv(ref):
     # most recent top-down prediction on the input
     pre_l1 = ref.inputs['pre_l1']['val'][
         ...,
-        range(
+        list(range(
             ref.mdl['inv']['lag_past'][0] + ref.mdl['inv']['lag_off_f2p'],
-            ref.mdl['inv']['lag_past'][1] + ref.mdl['inv']['lag_off_f2p'])].copy()
+            ref.mdl['inv']['lag_past'][1] + ref.mdl['inv']['lag_off_f2p']))].copy()
 
     # most recent state measurements
     meas_l0 = ref.inputs['meas_l0']['val'][
         ...,
-        range(
+        list(range(
             ref.mdl['inv']['lag_past'][0] + ref.mdl['inv']['lag_off_f2p'],
-            ref.mdl['inv']['lag_past'][1] + ref.mdl['inv']['lag_off_f2p'])].copy()
+            ref.mdl['inv']['lag_past'][1] + ref.mdl['inv']['lag_off_f2p']))].copy()
     
     # most 1-recent pre_l1/meas_l0 errors
     prerr_l0 = ref.inputs['prerr_l0']['val'][
         ...,
-        range(
+        list(range(
             ref.mdl['inv']['lag_past'][0] + ref.mdl['inv']['lag_off_f2p'],
-            ref.mdl['inv']['lag_past'][1] + ref.mdl['inv']['lag_off_f2p'])].copy()
+            ref.mdl['inv']['lag_past'][1] + ref.mdl['inv']['lag_off_f2p']))].copy()
     
     # momentary pre_l1/meas_l0 error
     prerr_l0 = np.roll(prerr_l0, -1, axis = -1)
@@ -447,30 +447,30 @@ def tapping_imol_fit_inv(ref):
     # most recent goal top-down prediction as input
     pre_l1 = ref.inputs['meas_l0']['val'][
         ...,
-        range(
+        list(range(
             ref.mdl['inv']['lag_past'][0] + ref.mdl['inv']['lag_off_f2p'],
-            ref.mdl['inv']['lag_past'][1] + ref.mdl['inv']['lag_off_f2p'])].copy()
+            ref.mdl['inv']['lag_past'][1] + ref.mdl['inv']['lag_off_f2p']))].copy()
     # logger.debug('tapping_imol_fit_inv pre_l1 = %s', pre_l1)
     # corresponding starting state k steps in the past
     meas_l0 = ref.inputs['meas_l0']['val'][
         ...,
-        range(
+        list(range(
             ref.mdl['inv']['lag_past'][0],
-            ref.mdl['inv']['lag_past'][1])].copy()
+            ref.mdl['inv']['lag_past'][1]))].copy()
     # corresponding error k steps in the past, 1-delay for recurrent
     # rate = -1
     prerr_l0 = ref.inputs['prerr_l0']['val'][
         ...,
-        range(
+        list(range(
             ref.mdl['inv']['lag_past'][0] + rate,
-            ref.mdl['inv']['lag_past'][1] + rate)].copy()
+            ref.mdl['inv']['lag_past'][1] + rate))].copy()
     # logger.debug('tapping_imol_fit_inv prerr_l0 = %s', prerr_l0)
     # rate = 1
     # Y
     # corresponding output k steps in the past, 1-delay for recurrent
     pre_l0 = ref.inputs['pre_l0']['val'][
         ...,
-        range(ref.mdl['inv']['lag_future'][0] - ref.mdl['inv']['lag_off_f2p'] + rate, ref.mdl['inv']['lag_future'][1] - ref.mdl['inv']['lag_off_f2p'] + rate)].copy()
+        list(range(ref.mdl['inv']['lag_future'][0] - ref.mdl['inv']['lag_off_f2p'] + rate, ref.mdl['inv']['lag_future'][1] - ref.mdl['inv']['lag_off_f2p'] + rate))].copy()
     # range(ref.mdl['inv']['lag_future'][0], ref.mdl['inv']['lag_future'][1])].copy()
     
     return {
@@ -492,24 +492,24 @@ def tapping_imol_recurrent_fit_inv(ref):
 
     prerr_l0 = ref.inputs['prerr_l0']['val'][
         ...,
-        range(ref.mdl['inv']['lag_past'][0] + ref.mdl['inv']['lag_off_f2p'], ref.mdl['inv']['lag_past'][1] + ref.mdl['inv']['lag_off_f2p'])].copy()
+        list(range(ref.mdl['inv']['lag_past'][0] + ref.mdl['inv']['lag_off_f2p'], ref.mdl['inv']['lag_past'][1] + ref.mdl['inv']['lag_off_f2p']))].copy()
     
     if ref.cnt < ref.thr_predict:
         # take current state measurement
         pre_l1 = ref.inputs['meas_l0']['val'][
             ...,
-            range(ref.mdl['inv']['lag_past'][0] + ref.mdl['inv']['lag_off_f2p'], ref.mdl['inv']['lag_past'][1] + ref.mdl['inv']['lag_off_f2p'])].copy()
+            list(range(ref.mdl['inv']['lag_past'][0] + ref.mdl['inv']['lag_off_f2p'], ref.mdl['inv']['lag_past'][1] + ref.mdl['inv']['lag_off_f2p']))].copy()
         # add noise (input exploration)
         pre_l1 += np.random.normal(0.0, 1.0, pre_l1.shape) * 0.01
     else:
         # take top-down prediction
         pre_l1_1 = ref.inputs['pre_l1']['val'][
             ...,
-            range(ref.mdl['inv']['lag_past'][0] + ref.mdl['inv']['lag_off_f2p'], ref.mdl['inv']['lag_past'][1] + ref.mdl['inv']['lag_off_f2p'])].copy()
+            list(range(ref.mdl['inv']['lag_past'][0] + ref.mdl['inv']['lag_off_f2p'], ref.mdl['inv']['lag_past'][1] + ref.mdl['inv']['lag_off_f2p']))].copy()
         # and current state
         pre_l1_2 = ref.inputs['meas_l0']['val'][
             ...,
-            range(ref.mdl['inv']['lag_past'][0] + ref.mdl['inv']['lag_off_f2p'], ref.mdl['inv']['lag_past'][1] + ref.mdl['inv']['lag_off_f2p'])].copy()
+            list(range(ref.mdl['inv']['lag_past'][0] + ref.mdl['inv']['lag_off_f2p'], ref.mdl['inv']['lag_past'][1] + ref.mdl['inv']['lag_off_f2p']))].copy()
         mdltr = np.square(max(0, 1.0 - np.mean(np.abs(prerr_l0))))
         # print "mdltr", mdltr
         # explore input around current state depending on pe state
@@ -518,7 +518,7 @@ def tapping_imol_recurrent_fit_inv(ref):
     # most recent measurements
     meas_l0 = ref.inputs['meas_l0']['val'][
         ...,
-        range(ref.mdl['inv']['lag_past'][0] + ref.mdl['inv']['lag_off_f2p'], ref.mdl['inv']['lag_past'][1] + ref.mdl['inv']['lag_off_f2p'])].copy()
+        list(range(ref.mdl['inv']['lag_past'][0] + ref.mdl['inv']['lag_off_f2p'], ref.mdl['inv']['lag_past'][1] + ref.mdl['inv']['lag_off_f2p']))].copy()
 
     # update prediction errors
     prerr_l0 = np.roll(prerr_l0, -1, axis = -1)
@@ -528,7 +528,7 @@ def tapping_imol_recurrent_fit_inv(ref):
     # FIXME check - 1?
     pre_l0 = ref.inputs['pre_l0']['val'][
         ...,
-        range(ref.mdl['inv']['lag_future'][0] - ref.mdl['inv']['lag_off_f2p'], ref.mdl['inv']['lag_future'][1] - ref.mdl['inv']['lag_off_f2p'])].copy()
+        list(range(ref.mdl['inv']['lag_future'][0] - ref.mdl['inv']['lag_off_f2p'], ref.mdl['inv']['lag_future'][1] - ref.mdl['inv']['lag_off_f2p']))].copy()
     # range(ref.mdl['inv']['lag_future'][0] - ref.mdl['inv']['lag_off_f2p'] + rate, ref.mdl['inv']['lag_future'][1] - ref.mdl['inv']['lag_off_f2p'] + rate)].copy()
 
     # print "tapping_imol_recurrent_fit_inv shapes", pre_l1.shape, meas_l0.shape, prerr_l0.shape, pre_l0.shape
@@ -552,15 +552,15 @@ def tapping_imol_recurrent_fit_inv_2(ref):
 
     pre_l1 = ref.inputs['meas_l0']['val'][
         ...,
-        range(ref.mdl['inv']['lag_past'][0] + ref.mdl['inv']['lag_off_f2p'], ref.mdl['inv']['lag_past'][1] + ref.mdl['inv']['lag_off_f2p'])].copy()
+        list(range(ref.mdl['inv']['lag_past'][0] + ref.mdl['inv']['lag_off_f2p'], ref.mdl['inv']['lag_past'][1] + ref.mdl['inv']['lag_off_f2p']))].copy()
     
     meas_l0 = ref.inputs['meas_l0']['val'][
         ...,
-        range(ref.mdl['inv']['lag_past'][0], ref.mdl['inv']['lag_past'][1])].copy()
+        list(range(ref.mdl['inv']['lag_past'][0], ref.mdl['inv']['lag_past'][1]))].copy()
     
     prerr_l0 = ref.inputs['prerr_l0']['val'][
         ...,
-        range(ref.mdl['inv']['lag_past'][0] + ref.mdl['inv']['lag_off_f2p'], ref.mdl['inv']['lag_past'][1] + ref.mdl['inv']['lag_off_f2p'])].copy()
+        list(range(ref.mdl['inv']['lag_past'][0] + ref.mdl['inv']['lag_off_f2p'], ref.mdl['inv']['lag_past'][1] + ref.mdl['inv']['lag_off_f2p']))].copy()
     # range(ref.mdl['inv']['lag_past'][0] + rate, ref.mdl['inv']['lag_past'][1] + rate)]
     prerr_l0 = np.roll(prerr_l0, -1, axis = -1)
     prerr_l0[...,[-1]] = pre_l1[...,[-1]] - meas_l0[...,[-1]]
@@ -569,7 +569,7 @@ def tapping_imol_recurrent_fit_inv_2(ref):
     # Y
     pre_l0 = ref.inputs['pre_l0']['val'][
         ...,
-        range(ref.mdl['inv']['lag_future'][0] - ref.mdl['inv']['lag_off_f2p'], ref.mdl['inv']['lag_future'][1] - ref.mdl['inv']['lag_off_f2p'])].copy()
+        list(range(ref.mdl['inv']['lag_future'][0] - ref.mdl['inv']['lag_off_f2p'], ref.mdl['inv']['lag_future'][1] - ref.mdl['inv']['lag_off_f2p']))].copy()
     # range(ref.mdl['inv']['lag_future'][0] - ref.mdl['inv']['lag_off_f2p'] + rate, ref.mdl['inv']['lag_future'][1] - ref.mdl['inv']['lag_off_f2p'] + rate)].copy()
     
     return {

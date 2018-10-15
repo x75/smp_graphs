@@ -8,7 +8,7 @@ https://stackoverflow.com/questions/10636024/python-pandas-gui-for-viewing-a-dat
 https://github.com/bluenote10/PandasDataFrameGUI
 """
 
-from __future__ import absolute_import, division, print_function
+
 
 """
 If you are getting wx related import errors when running in a virtualenv:
@@ -58,7 +58,7 @@ def load_hdf(args):
     if os.path.exists(args.file):
         h5f = pd.HDFStore(args.file)
     else:
-        print("Couldn't load file %s" % (args.file, ))
+        print(("Couldn't load file %s" % (args.file, )))
     return h5f
 
 def main_list_groups(args):
@@ -66,12 +66,12 @@ def main_list_groups(args):
 
     if h5f is None: return 1
 
-    print("Datafile = %s" % (h5f.filename))
-    print("    Keys = %s" % (h5f.keys()))    
-    print("  Groups = %s" % (h5f.groups()))    
+    print(("Datafile = %s" % (h5f.filename)))
+    print(("    Keys = %s" % (list(h5f.keys()))))    
+    print(("  Groups = %s" % (h5f.groups())))    
     
 def main_show_group(args):
-    print("show_group args = %s" % (args, ))
+    print(("show_group args = %s" % (args, )))
     h5f = load_hdf(args)
     
     # dfs['experiments'] = '/experiments'
@@ -79,11 +79,11 @@ def main_show_group(args):
         
     if h5f is None: return 1
 
-    print("HDFStore.keys = %s" % (h5f.keys(), ))
+    print(("HDFStore.keys = %s" % (list(h5f.keys()), )))
 
     df = None
-    if args.group in h5f.keys():
-        print("Found group %s in h5f.keys" % (args.group, ))
+    if args.group in list(h5f.keys()):
+        print(("Found group %s in h5f.keys" % (args.group, )))
         df = h5f[args.group]
 
     if df is None: return 1
@@ -108,4 +108,4 @@ if __name__ == '__main__':
         main_show_group(args)
         # sleep(-1)
     else:
-        print("unknown mode %s" % (args.mode, ))
+        print(("unknown mode %s" % (args.mode, )))

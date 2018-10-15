@@ -139,7 +139,7 @@ else:
     ydim_eff = ydim
 
 # slice out gyro data from imu group
-if cnf.has_key('sys_slicespec'):
+if 'sys_slicespec' in cnf:
     sys_slicespec = cnf['sys_slicespec']
 else:
     sys_slicespec = {'x': {'acc': slice(0, xdim/2), 'gyr': slice(xdim/2, xdim)}}
@@ -152,8 +152,8 @@ delay_embed_len = lconf['delay_embed_len']
 
 # prepare scan plot xticks depending on input size
 plot_infoscan_xticks_step = scanlen // 5
-plot_infoscan_xticks = range(0, scanlen, plot_infoscan_xticks_step)
-plot_infoscan_xticklabels = range(scanstart*1, scanstop*1, plot_infoscan_xticks_step*1)
+plot_infoscan_xticks = list(range(0, scanlen, plot_infoscan_xticks_step))
+plot_infoscan_xticklabels = list(range(scanstart*1, scanstop*1, plot_infoscan_xticks_step*1))
 
 lrp_alpha = 0.01
 tap_thr = 0.3
@@ -298,9 +298,9 @@ graph = OrderedDict([
                 'y': {'bus': 'puppylog/y', 'shape': (ydim, numsteps)}
             },
             'delays': {
-                'x': range(1, delay_embed_len+1), # [1],
+                'x': list(range(1, delay_embed_len+1)), # [1],
                 # 'y': range(1, delay_embed_len+1), # [1, 0, -1, -2, -3], # * delay_embed_len, # [1],
-                'y': range(0, delay_embed_len), # [1, 0, -1, -2, -3], # * delay_embed_len, # [1],
+                'y': list(range(0, delay_embed_len)), # [1, 0, -1, -2, -3], # * delay_embed_len, # [1],
             },
         }
     }),
@@ -997,8 +997,8 @@ graph = OrderedDict([
                     
                     {
                         'input': 'd1', 'xslice': (0, scanlen),
-                        'xticks': range(0, scanlen, 5),
-                        'xticklabels': range(scanstart*1, scanstop*1, 5*1),
+                        'xticks': list(range(0, scanlen, 5)),
+                        'xticklabels': list(range(scanstart*1, scanstop*1, 5*1)),
                         'xlabel': 'Lag [n]',
                         'yslice': (0, 1),
                         'ylabel': None,
@@ -1011,8 +1011,8 @@ graph = OrderedDict([
                     {
                         'input': 'd3',
                         'xslice': (0, scanlen),
-                        'xticks': range(0, scanlen, 5),
-                        'xticklabels': range(scanstart*1, scanstop*1, 5*1),
+                        'xticks': list(range(0, scanlen, 5)),
+                        'xticklabels': list(range(scanstart*1, scanstop*1, 5*1)),
                         'xlabel': 'Lag [n]',
                         'yslice': (0, 1),
                         'ylabel': None,
@@ -1025,8 +1025,8 @@ graph = OrderedDict([
                     {
                         'input': 'd2',
                         'xslice': (0, scanlen),
-                        'xticks': range(0, scanlen, 5),
-                        'xticklabels': range(scanstart*1, scanstop*1, 5*1),
+                        'xticks': list(range(0, scanlen, 5)),
+                        'xticklabels': list(range(scanstart*1, scanstop*1, 5*1)),
                         'xlabel': 'Lag [n]',
                         'yslice': (0, 1),
                         'ylabel': None,

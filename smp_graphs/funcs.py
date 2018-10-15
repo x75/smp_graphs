@@ -25,7 +25,7 @@ from smp_graphs.common import get_input
 
 def fu_check_required_args(args, reqs, funcname = "unknown"):
     for k in reqs:
-        assert args.has_key(k), "function %s wants a param '%s'" % (funcname, k,)
+        assert k in args, "function %s wants a param '%s'" % (funcname, k,)
     return True
 
 ################################################################################
@@ -66,7 +66,7 @@ def f_sin(args):
 def f_sin_noise(args):
     fu_check_required_args(args, ['x','f','sigma'], 'f_sin_noise')
     # print "args", args
-    if args.has_key('amp') and args.has_key('offset'):
+    if 'amp' in args and 'offset' in args:
         x = (f_sin(args) * args['amp']['val']) + args['offset']['val']
     else:
         x = f_sin(args)
@@ -182,12 +182,12 @@ def f_meshgrid_mdl(args):
     full_axes = np.meshgrid(*tuple(dim_axes), indexing='ij')
     
     for i in range(len(full_axes)):
-        print i, full_axes[i].shape
-        print i, full_axes[i].flatten()
+        print(i, full_axes[i].shape)
+        print(i, full_axes[i].flatten())
 
     # return proxy
     error_grid = np.vstack([full_axes[i].flatten() for i in range(len(full_axes))])
-    print "error_grid", error_grid.shape
+    print("error_grid", error_grid.shape)
 
     # draw state / goal configurations
     X_accum = []
@@ -223,7 +223,7 @@ def f_meshgrid_mdl(args):
     # print "self.X_model_sweep.shape", self.X_model_sweep.shape
     # return proxy
     full_axes_flat = np.vstack([full_axes[i].flatten() for i in range(len(full_axes))])
-    print "func", full_axes_flat
+    print("func", full_axes_flat)
     return {'meshgrid': full_axes_flat} # .T
 
 def f_random_uniform(args):
@@ -276,7 +276,7 @@ def f_motivation(args):
     # element-wise if goal dims and proprio dims are the same
     # if args['x']['shape'][0] == args['x__']['shape'][0]:
     d = x_ - x
-    if args.has_key('x__'):
+    if 'x__' in args:
         # else distance norm
         d = np.ones_like(args['x__']['val']) * np.linalg.norm(d, 2)
     return {'y': d, 'y1': -d}
@@ -307,7 +307,7 @@ def f_envelope(args):
     """
     # option 1: np.abs(hilbert(x))
     fu_check_required_args(args, ['x'], 'f_envelope')
-    if not args.has_key('c'): args['c'] = {'val': 0.5}
+    if 'c' not in args: args['c'] = {'val': 0.5}
     c = args['c']['val']
     # print "funcs.py f_envelope c = %s" % (c, )
     b, a  = butter(4, c)

@@ -12,7 +12,7 @@ class Wumba(object):
         self.name = 1
 
     def blub(self):
-        print self.name
+        print((self.name))
     
 randseed = 24
 # reused variables

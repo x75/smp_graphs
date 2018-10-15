@@ -22,16 +22,16 @@ tapspecfile_base = tapspecfile[:-4]
 tappings = pd.read_csv(tapspecfile)
 
 # debug
-print('plot_tappings: tappings = \n%s' % tappings.describe())
+print(('plot_tappings: tappings = \n%s' % tappings.describe()))
 
 # get model keys
 # mks = ['inv', 'fwd']
 mks = list(tappings.mk.unique())
-print('plot_tappings: model keys = %s' % mks)
-mtapk = dict(zip(tappings.tapk.unique(), range(len(tappings.tapk.unique()))))
-print('plot_tappings: model taps = %s' % mtapk)
-mvars = dict(zip(sorted(tappings.ch.unique()), range(len(tappings.ch.unique()))))
-print('plot_tappings: model vars = %s' % mvars)
+print(('plot_tappings: model keys = %s' % mks))
+mtapk = dict(list(zip(tappings.tapk.unique(), list(range(len(tappings.tapk.unique()))))))
+print(('plot_tappings: model taps = %s' % mtapk))
+mvars = dict(list(zip(sorted(tappings.ch.unique()), list(range(len(tappings.ch.unique()))))))
+print(('plot_tappings: model vars = %s' % mvars))
 
 # limits
 tmin = 0
@@ -39,11 +39,11 @@ tmax = 0
 vmin = 0
 vmax = 0
 
-print('tappings.tapi.dtype = %s' % tappings.tapi.dtype)
-print('tappings.tapi.unqiue = %s' % (tappings.tapi.unique()))
+print(('tappings.tapi.dtype = %s' % tappings.tapi.dtype))
+print(('tappings.tapi.unqiue = %s' % (tappings.tapi.unique())))
 tapi_list = np.array([eval(l) for l in list(tappings.tapi)])
 # tapi_list = np.array([l + str(tappings.loc[i].ch).startswith('attr') for i, l in enumerate(tapi_list)])
-print('tapi_list = %s' % tapi_list.T)
+print(('tapi_list = %s' % tapi_list.T))
 # tappings.tapi = tapi_list
 # print('tapi', tappings.tapi.unique())
 
@@ -51,7 +51,7 @@ print('tapi_list = %s' % tapi_list.T)
 # tmax = tappings.tapi.max()
 tmin = np.min(tapi_list)
 tmax = np.max(tapi_list)
-print('plot_tappings: tap index min/max = %s / %s' % (tmin, tmax))
+print(('plot_tappings: tap index min/max = %s / %s' % (tmin, tmax)))
 
 # tapo = list(tappings.tapo)
 # print('plot_tappings: tapo = %s' % (tapo, ))
@@ -80,13 +80,13 @@ print('plot_tappings: tap index min/max = %s / %s' % (tmin, tmax))
 # for i, k in enumerate(mvars):
 #     mvars[k] = i
     
-print('mvars = %s' % mvars)
-print('mks = %s' % mks)
-print('tmax = %s %s' % (type(tmax), tmax))
-print('tmin = %s %s' % (type(tmin), tmin))
+print(('mvars = %s' % mvars))
+print(('mks = %s' % mks))
+print(('tmax = %s %s' % (type(tmax), tmax)))
+print(('tmin = %s %s' % (type(tmin), tmin)))
 
 numtaps = tmax - tmin
-print('numtaps = %s' % numtaps)
+print(('numtaps = %s' % numtaps))
         
 # create figure
 # fig = plt.figure()
@@ -134,13 +134,13 @@ for i, mk in enumerate(mks):
         t_index_ = t_.index.values # .tolist()
         tapi__ = tapi_list[t_index_].ravel()
         
-        print('t_.index = %s' % t_.index.values)
-        print('tapi__ = %s' % tapi__)
-        print('tapi___ = %s' % tapi___)
-        print('tapo = %s' % tapo)
+        print(('t_.index = %s' % t_.index.values))
+        print(('tapi__ = %s' % tapi__))
+        print(('tapi___ = %s' % tapi___))
+        print(('tapo = %s' % tapo))
 
         ys_ = np.array([mvars[k] for k in list(t_.ch)]) # + (j * 0.1)
-        print('ys_ = %s' % ys_)
+        print(('ys_ = %s' % ys_))
         tapi__ = tapi__.astype(np.float) + (j * 0.33 - 0.33)
         for _i, ch_i in enumerate(list(t_.ch)):
             # print('ch_i = %s' % ch_i)
@@ -155,7 +155,7 @@ for i, mk in enumerate(mks):
 
         [ax.text(tapi__[i_] - 0.05, ys_[i_] - 0.15, tapo[i_]) for i_ in tapo]
                 
-    [ax.axhspan(mval - 0.5, mval+ 0.5, color='k', edgecolor=None, alpha=altval[mval%2]) for mval in mvars.values()]
+    [ax.axhspan(mval - 0.5, mval+ 0.5, color='k', edgecolor=None, alpha=altval[mval%2]) for mval in list(mvars.values())]
     [ax.axvspan(tval - 0.5, tval+ 0.5, color='k', edgecolor=None, alpha=altval[tval%2]) for tval in range(tmin, tmax+1)]
 
     ax.set_aspect(0.33)
@@ -170,7 +170,7 @@ for i, mk in enumerate(mks):
     # ax.legend()
     put_legend_out_right(ax=ax)
     if i == len(mks)-1:
-        ax.set_xticks(range(tmin, tmax+1))
+        ax.set_xticks(list(range(tmin, tmax+1)))
         ax.set_xlabel('time steps')
 
     
