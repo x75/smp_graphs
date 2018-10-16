@@ -714,7 +714,8 @@ def md5(obj):
     # print "self.conf", str(self.conf)
     # if type(obj) is not str:
     #     obj = str(obj)
-    m = hashlib.md5(obj)
+    # print('type(obj)', type(obj))
+    m = hashlib.md5(obj.encode())
     return m
 
 def create_datadir(datadir = None):

@@ -186,8 +186,12 @@ def log_pd_init_block(tbl_name, tbl_dim, tbl_columns = None, numsteps=100, block
     global log_store, log_lognodes, log_lognodes_idx, log_blocksize, log_lognodes_blockidx
     # np.prod(tbl_dim[:-1]), # flattened dim without blocksize
 
-    # print "logging.log_pd_init_block: adding %s to log_lognodes with columns %s" % (tbl_name, tbl_columns)
-    log_lognodes[tbl_name] = pd.DataFrame(columns=tbl_columns, index = list(range(numsteps)), dtype=float)
+    # print('type(numsteps)', type(numsteps))
+    numsteps = int(numsteps)
+    tbl_index = list(range(numsteps))
+    # print("logging.log_pd_init_block: adding %s to log_lognodes with index = %s, columns = %s" % (
+    #     tbl_name, tbl_index, tbl_columns))
+    log_lognodes[tbl_name] = pd.DataFrame(columns=tbl_columns, index=tbl_index, dtype=float)
     # log_logarray[tbl_name] = np.zeros((len(tbl_columns), log_blocksize))
     # log_logarray[tbl_name] = np.zeros((len(tbl_columns), numsteps))
     log_logarray[tbl_name] = np.zeros((np.prod(tbl_dim[:-1]), numsteps))

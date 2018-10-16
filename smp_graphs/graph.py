@@ -925,7 +925,7 @@ def nxgraph_store(conf = None, G = None, layout_type='linear_hierarchical'):
     def iterfunc(node, data, level):
         levelspace = " " * 4 * level
         # print "%snode = %s, data = %s" % (" " * 4 * level, node.keys(), data.keys())
-        print("%snode = %s" % (levelspace, list(node.keys()), ), end=' ')
+        print("%snode = %s" % (levelspace, list(node.keys())))
         print(" block_.id = %s, params['id'] = %s" % (node['block_'].id, node['params']['id']))
         # for k, v in node['block_'].items():
         #     print "%s    k = %s, v = %s" % (levelspace, k, v)

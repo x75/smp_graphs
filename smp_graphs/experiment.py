@@ -770,7 +770,7 @@ class Experiment(object):
                 print("%snode = %s" % (indent, G.node[node]['params']['id'], ))
 
     def printgraph(self, G = None):
-        print("\nPrinting graph\n", end=' ')
+        print("\nPrinting graph\n")
         # if G is None:
         #     G = self.top.nxgraph
         assert G is not None

@@ -355,10 +355,10 @@ class MIMVBlock2(InfthPrimBlock2):
         # normalize
         jh = self.normalize(src, dst)
         
-        print("%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by" % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape), end=' ')
+        print("%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by" % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape))
         
         for i in range(self.shift[0], self.shift[1]):
-            print("%d" % (i, ), end=' ')
+            print("%d" % (i, ))
             sys.stdout.flush()
             
             # print "self.inputs['x']['val'].T.shape", self.inputs['x']['val'].T.shape
@@ -431,13 +431,13 @@ class CMIMVBlock2(InfthPrimBlock2):
             self._debug("step[%d] cond_delay = %s" % (self.cnt, cond_delay.shape))
 
         # legacy debug
-        print("%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by" % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape), end=' ')
+        print("%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by" % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape))
 
         # norm
         jh = self.normalize(src, dst)
         
         for i in range(self.shift[0], self.shift[1]):
-            print("%d" % (i, ), end=' ')
+            print("%d" % (i, ))
             sys.stdout.flush()
             
             dst_ = np.roll(dst, shift = -i, axis = 0)
@@ -478,13 +478,13 @@ class TEMVBlock2(InfthPrimBlock2):
         src = self.inputs['y']['val'].T
         dst = self.inputs['x']['val'].T
         
-        print("%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by" % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape), end=' ')
+        print("%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by" % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape))
 
         # norm
         jh = self.normalize(src, dst)
         
         for i in range(self.shift[0], self.shift[1]):
-            print("%d" % (i, ), end=' ')
+            print("%d" % (i, ))
             sys.stdout.flush()
             
             # dst_ = np.roll(dst, shift = i, axis = 0)
