@@ -91,16 +91,18 @@ block_groups = {
     'output': {'cmap': block_cmaps['sequential2'][9]}, # 'copper'},
 }
 
-################################################################################
-# smp_graphs types: create some types for use in configurations like const, bus, generator, func, ...
+####################################################################
+# smp_graphs types: create some types for use in configurations like
+# const, bus, generator, func, ...
 
-################################################################################
+##################################################################################
 # bus class
 # from http://stackoverflow.com/questions/3387691/how-to-perfectly-override-a-dict
 class Bus(MutableMapping):
     """Bus class
 
-    A dictionary that applies an arbitrary key-altering function before accessing the keys
+    A dictionary that applies an arbitrary key-altering function
+    before accessing the keys.
     """
 
     def __init__(self, *args, **kwargs):
