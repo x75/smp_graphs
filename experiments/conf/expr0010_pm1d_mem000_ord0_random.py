@@ -31,6 +31,9 @@ from smp_graphs.funcs import f_sin, f_motivation, f_motivation_bin
 
 from smp_graphs.utils_conf import get_systemblock
 
+import functools
+from functools import partial
+
 # global parameters can be overwritten from the commandline
 ros = False
 numsteps = 10000/5
@@ -256,7 +259,7 @@ graph = OrderedDict([
                                 orientation = 'horizontal',
                                 yticks = False, # xticks = False,
                                 alpha = 0.5, density = True
-                            ) for _ in range(1)
+                            )
                         ] + [
                             partial(
                                 histogram, histtype = 'stepfilled', bins=21,

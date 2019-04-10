@@ -38,6 +38,7 @@ from smp_graphs.common import set_attr_from_dict, loop_delim, compress_loop_id
 from smp_graphs.common import dict_get_nodekeys_recursive, dict_replace_nodekeys_loop
 from smp_graphs.common import dict_search_recursive, dict_replace_idstr_recursive2
 from smp_graphs.common import dict_replace_idstr_recursive
+from smp_graphs.common import tuple2inttuple
 
 from smp_graphs.graph import nxgraph_from_smp_graph, nxgraph_to_smp_graph
 from smp_graphs.graph import nxgraph_node_by_id, nxgraph_node_by_id_recursive
@@ -1793,7 +1794,10 @@ class Block2(object):
                         #        input clamp necessary at all?
                         if self.inputs_clamp:
                             v['shape'] = (v['shape'][0], min(self.top.numsteps, v['shape'][1]))
-                        
+
+                        v['shape'] = tuple2inttuple(v['shape'])
+                            
+                        print('v shape = {0}'.format(v['shape']))
                         # initialize input buffer
                         v['val'] = np.zeros(v['shape']) # ibuf >= blocksize
                         

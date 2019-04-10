@@ -50,9 +50,8 @@ class PointmassBlock2(SysBlock2):
         # systems new state space
         # print "dims", self.system.x # .keys()
         for k,v in list(self.system.dims.items()):
-            print("PointmassBlock2.init: adding output k={0}, shape={1}".format(k, self.system.x.shape[0]))
-            # conf['params']['outputs'][k] = {'shape': self.system.x[k].shape}
-            conf['params']['outputs'][k] = {'shape': (self.system.x.shape[0], conf['params']['blocksize'])}
+            # print("PointmassBlock2.init: adding output k={0}, shape={1}".format(k, self.system.x[k].shape))
+            conf['params']['outputs'][k] = {'shape': (self.system.x[k].shape[0], conf['params']['blocksize'])}
             # setattr(self, k, self.x[k])
             
         SysBlock2.__init__(self, conf = conf, paren = paren, top = top)

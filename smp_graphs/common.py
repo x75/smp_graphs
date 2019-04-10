@@ -17,6 +17,11 @@ from smp_graphs.utils import print_dict
 
 logger = get_module_logger(modulename = 'common', loglevel = logging.INFO)
 
+def tuple2inttuple(tpl):
+    tpl = tuple((int(_) for _ in tpl))
+    return tpl
+
+
 ################################################################################
 # static config templates
 conf_header = """from smp_graphs.experiment import make_expr_id

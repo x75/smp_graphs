@@ -24,6 +24,7 @@ Log variables are global in smp_graphs. There are two logging mechanisms
 
 import numpy as np
 import tables as tb
+import pandas as pd
 
 import logging
 from logging import INFO as logging_INFO
@@ -114,7 +115,6 @@ Arguments:
 
 ################################################################################
 # pandas tables based logging
-import pandas as pd
 
 log_store = 0
 log_lognodes_idx = {}
@@ -203,7 +203,7 @@ def log_pd_init_block(tbl_name, tbl_dim, tbl_columns = None, numsteps=100, block
     if blocksize == 1:
         log_blocksize[tbl_name]    = 50
     else:
-        log_blocksize[tbl_name]    = blocksize
+        log_blocksize[tbl_name]    = int(blocksize)
         
     # store original shape in table attribute
     # FIXME: doesn't seem to work?
@@ -337,7 +337,7 @@ def log_pd(tbl_name, data):
         # logger.debug("log_pd cnt mod log_blocksize: log_logarray[%s] = %s,         slice = %s", tbl_name, log_logarray[tbl_name], sl)
 
         # logging-block index
-        dloc = log_lognodes_blockidx[tbl_name]
+        dloc = int(log_lognodes_blockidx[tbl_name])
         # logarray slice
         sl = slice(dloc, dloc + log_blocksize[tbl_name])
         # pandas slice
