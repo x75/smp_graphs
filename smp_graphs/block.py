@@ -1708,6 +1708,7 @@ class Block2(object):
             v['logging'] = True
                 
         # set self attribute to that shape
+        v['shape'] = tuple2inttuple(v['shape'])
         if not hasattr(self, k) or getattr(self, k).shape != v['shape']:
             setattr(self, k, np.zeros(v['shape']))
             
@@ -1795,9 +1796,9 @@ class Block2(object):
                         if self.inputs_clamp:
                             v['shape'] = (v['shape'][0], min(self.top.numsteps, v['shape'][1]))
 
+                        # tuple of ints to make sure
                         v['shape'] = tuple2inttuple(v['shape'])
                             
-                        print('v shape = {0}'.format(v['shape']))
                         # initialize input buffer
                         v['val'] = np.zeros(v['shape']) # ibuf >= blocksize
                         
@@ -2811,7 +2812,7 @@ class SeqLoopBlock2(Block2):
             
             # this is needed for using SeqLoop as a sequencer / timeline with full sideway time
             # run the block starting from cnt = 1
-            for j in range(1, self.dynblock.numsteps+1):
+            for j in range(1, int(self.dynblock.numsteps)+1):
                 # print "%s-%s trying %s-%s.step[%d]" % (self.cname, self.id, self.dynblock.cname, self.dynblock.id, j)
                 # print self.dynblock.x.shape, self.dynblock.y.shape
                 self.dynblock.step()
@@ -2878,7 +2879,7 @@ class SeqLoopBlock2(Block2):
         then = time.time()
         # print "%s-%s.step[%d]" % (self.cname, self.id, self.cnt)
         # loopblock loop
-        for i in range(self.numsteps/self.loopblocksize):
+        for i in range(int(self.numsteps/self.loopblocksize)):
             # sys.stdout.flush()
             then = time.time()
 

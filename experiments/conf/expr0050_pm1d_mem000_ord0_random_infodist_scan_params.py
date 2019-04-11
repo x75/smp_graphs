@@ -32,6 +32,8 @@ randseed = 126
 
 ################################################################################
 # raw loop params
+global l_as, d_as, d_ss, s_as, s_fs, es
+global numloop_param, timeseries, np, m_inputs, partial
 
 # for stats
 # FIXME: construct systematically, include linear amp 1.0 ... 0.0
@@ -65,6 +67,7 @@ numloop_param = 6
 numloop = len(l_as)
 
 # looper lconf
+global lconf
 lconf = {
     'dim': 1,
     'dt': 0.1,
@@ -90,6 +93,7 @@ lim = lconf['lim'] # 1.0
 m_inputs = OrderedDict(
     [
         ('m_sum_div', {'xtwin': False,}),
+#        ('m_div_sum', {'xtwin': False,}),
         ('m_budget_mu', {'xtwin': False,}),
         ('m_rmse', {'xtwin': True,}),
         ('m_di', {'xtwin': True}),
@@ -107,6 +111,7 @@ outputs = {
 
 # final: random sampling in d space with loopblock lconf
 loop = [('lconf', {
+    'expr_number': 'expr0050-{0}'.format(i+1),
     'dim': 1,
     'dt': 0.1,
     'lag': 1,
@@ -161,7 +166,8 @@ loopblock = {
         'outputs': {
             'gm_mi': {'shape': (1, 1, 1), 'buscopy': 'm_mi/mi'},
             'gm_di': {'shape': (1, 1, 1), 'buscopy': 'm_di/infodist'},
-            'gm_sum_div': {'shape': (1, 1), 'buscopy': 'm_sum_div/y'},
+            #'gm_sum_div': {'shape': (1, 1), 'buscopy': 'm_sum_div/y'},
+            'gm_sum_div': {'shape': (1, 1), 'buscopy': 'm_div_sum/y'},
             'gm_rmse': {'shape': (1, 1), 'buscopy': 'm_rmse/y'},
             'gm_budget_mu': {'shape': (1, 1), 'buscopy': 'm_budget/y_mu'},
             'pre_l2_h': {'shape': (dim_s_proprio, lconf['loop_pre_l2_numelem']), 'buscopy': 'pre_l2/h'},

@@ -10,6 +10,7 @@ Multiple runs of baseline behaviour varying seed
 """
 
 # from collections import OrderedDict
+global partial, timeseries, plot_titles, plot_legends, plot_xticks, histogram
 
 from smp_graphs.block import FuncBlock2
 from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2
@@ -32,6 +33,7 @@ from smp_graphs.utils_conf import get_systemblock_pm
 from smp_graphs.utils_conf import get_systemblock_sa
 
 numloop = 7
+global numloop_inner
 numloop_inner = 20
 
 plot_legends = [{'$\min_i c_i$': 0, '$E(c_i)$': 1, '$\max_i c_i$': 2}]
@@ -281,7 +283,10 @@ loopblock = {
 # )])
         
 # loop = [('dim', i) for i in range(1, numloop + 1)]
-loop = [('lconf', {
+loop = []
+for i in range(numloop):
+    loop.append(
+        ('lconf', {
             'dim': i + 1,
             'dt': 0.1,
             'lag': 1,
@@ -289,7 +294,9 @@ loop = [('lconf', {
             'lim': 1.0,
             'order': 0,
             'numloop': numloop_inner,
-        }) for i in range(numloop)]
+        })
+    )
+    
 print(("loop", loop))
 
 graph = OrderedDict([

@@ -464,7 +464,8 @@ graph = OrderedDict([
                 'm_err': {'bus': 'm_err/y', 'shape': (1, numsteps)},
                 'm_rmse': {'bus': 'm_rmse/y', 'shape': (1, 1)},
                 'm_div': {'bus': 'm_div/y', 'shape': (1, numbins)},
-                'm_sum_div': {'bus': 'm_sum_div/y', 'shape': (1, 1)},
+                # 'm_sum_div': {'bus': 'm_sum_div/y', 'shape': (1, 1)},
+                'm_sum_div': {'bus': 'm_div_sum/y', 'shape': (1, 1)},
             },
             
             'desc': plot_desc,
@@ -614,6 +615,7 @@ prediction and measurement.""".format(expr_number),
                 'm_mi': {'bus': 'm_mi/mi', 'shape': (dim_s0, 1, 1)},
                 'm_rmse': {'bus': 'm_rmse/y', 'shape': (1, 1)},
                 'm_div_sum': {'bus': 'm_div_sum/y', 'shape': (1, 1)},
+                # 'm_sum_div': {'bus': 'm_sum_div/y', 'shape': (1, 1)},
             },
             'layout': {
                 'numrows': 8,

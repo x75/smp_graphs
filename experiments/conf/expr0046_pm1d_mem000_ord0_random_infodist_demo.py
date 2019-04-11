@@ -54,6 +54,7 @@ outputs = {
     'latex': {'type': 'latex',},
 }
 
+global l_names, l_as, d_as, d_ss, s_as, s_fs, es
 # configuration name
 l_names = ['wide sigmoid', 'narrow sigmoid', '1/f transfer noise', 'dynamic noise']
 # linear component mixture amplitude
