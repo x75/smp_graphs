@@ -50,7 +50,7 @@ from smp_base.plot       import makefig, timeseries, histogram, plot_img, plotfu
 from smp_base.plot       import get_colorcycler, fig_interaction
 from smp_base.plot       import ax_invert, ax_set_aspect
 
-from smp_graphs.common import code_compile_and_run, listify
+from smp_graphs.common import code_compile_and_run, listify, tuple2inttuple
 from smp_graphs.block import decStep, decInit, block_cmaps, get_input
 from smp_graphs.block import PrimBlock2
 from smp_graphs.utils import myt, mytupleroll
@@ -642,6 +642,9 @@ class FigPlotBlock2(BaseplotBlock2):
         """
         if idxtup is not None:
             (i, j, k) = idxtup
+
+        # xslice.start = int(xslice.start)
+        # xslice.stop = int(xslice.stop)
              
         # configure x axis, default implicit number of steps
         if 'xaxis' in subplotconf:
@@ -655,6 +658,7 @@ class FigPlotBlock2(BaseplotBlock2):
             if xslice.stop > plotlen:
                 t = np.linspace(0, plotlen - 1, plotlen)
             else:
+                # print('xslice = {0}'.format(xslice))
                 t = np.linspace(xslice.start, xslice.start+plotlen-1, plotlen)[xslice]
         return t
                 
@@ -968,10 +972,13 @@ class PlotBlock2(FigPlotBlock2):
                         plotshape = mytupleroll(subplotconf_shape)
                         
                         # update plot length 'plotlen'
-                        plotlen = plotshape[0]
+                        plotlen = int(plotshape[0])
                         
                         # update x-slice 'xslice'
                         xslice = slice(0, plotlen)
+
+                    # convert to int
+                    plotshape = tuple2inttuple(plotshape)
 
                     self._debug("plot_subplots pass 1 subplot[%d,%d] input[%d] = %s shape xslice = %s, plotlen = %d, plotshape = %s" % (
                         i, j, k, ink, xslice, plotlen, plotshape))

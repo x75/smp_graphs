@@ -18,6 +18,8 @@ from smp_graphs.funcs import f_sin, f_motivation, f_motivation_bin
 
 from smp_graphs.utils_conf import get_systemblock
 
+global dim_s0, m_vars, p_vars, numelem
+
 # global parameters can be overwritten from the commandline
 ros = False
 numsteps = 10000/10

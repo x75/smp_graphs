@@ -332,6 +332,7 @@ graph = OrderedDict([
                             },
                         'outputs': {
                             'pre': {'shape': (dim_s0, 1)},
+                            'd_pre': {'shape': (dim_s0, 1)},
                         },
                         'models': {
                             'goal': {'type': 'random_uniform_modulated'}

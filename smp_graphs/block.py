@@ -3185,7 +3185,7 @@ class DelayBlock2(PrimBlock2):
             else:
                 outshape = (inshape[0], delay_num, inshape[1] )
             params['outputs']["d%s" % ink] = {'shape': outshape}
-            bufshape = (inshape[0], inshape[1] + (delay_max + 0) ) # delay_max) #
+            bufshape = tuple2inttuple((inshape[0], inshape[1] + (delay_max + 0) ))
             setattr(self, "%s_buf" % ink, np.zeros(bufshape))
 
         # rename to canonical
@@ -3203,7 +3203,7 @@ class DelayBlock2(PrimBlock2):
             # delay_tap = -np.array(v) - 1
             delay_tap = -np.array(v) - 0
             assert 'shape' in self.inputs[k], "%s-%s requires input 'shape' attribute' for input %s with attributes %s" % (self.__class__.__name__, self.id, k, list(self.inputs[k].keys()))
-            blocksize_input = self.inputs[k]['shape'][-1]
+            blocksize_input = int(self.inputs[k]['shape'][-1])
             # blocksize_input = self.blocksize
             delay_tap_bs = (delay_tap - np.tile(np.array(list(range(blocksize_input, 0, -1))), (delay_tap.shape[0],1)).T).T
             if self.flat or self.flat2:

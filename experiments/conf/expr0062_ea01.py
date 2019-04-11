@@ -60,6 +60,8 @@ from smp_graphs.utils_conf import get_systemblock
 from smp_graphs.utils_conf_meas import get_measures_block
 from functools import reduce
 
+global np, ExpSineSquared
+
 # global parameters can be overwritten from the commandline
 ros = False
 numsteps = 10000/10
@@ -332,6 +334,7 @@ graph = OrderedDict([
                             },
                         'outputs': {
                             'pre': {'shape': (dim_s0, 1)},
+                            'd_pre': {'shape': (dim_s0, 1)},
                         },
                         'models': {
                             'goal': {'type': 'random_uniform_modulated'}
