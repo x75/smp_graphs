@@ -20,7 +20,7 @@ import copy
 
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
-import PIL
+# import PIL
 from PIL import Image, ImageDraw, ImageFont
 
 import numpy as np
@@ -30,7 +30,8 @@ import pandas as pd
 from numpy import array
 
 from smp_base.common import get_module_logger
-from smp_base.plot import set_interactive, makefig
+from smp_base.plot import makefig
+from smp_base.plot_utils import set_interactive
 
 from smp_graphs.block import Block2
 from smp_graphs.utils import print_dict
@@ -132,6 +133,9 @@ def set_config_defaults(conf):
         
     if 'desc' not in conf['params']:
         conf['params']['desc'] = conf['params']['id']
+        
+    if 'expr_name' not in conf['params']:
+        conf['params']['expr_name'] = conf['params']['id']
         
     if 'plotgraph_layout' not in conf['params']:
         conf['params']['plotgraph_layout'] = 'linear_hierarchical'
@@ -291,7 +295,7 @@ class Experiment(object):
         logger.info("experiment.Experiment init with conf = %s" % (list(self.conf.keys()), ))
         
         # topblock outputs: new types in addition to np.ndarray signals: 'text', 'plot', ...
-        for paramkey in ['outputs', 'desc', 'plotgraph_layout']:
+        for paramkey in ['outputs', 'desc', 'expr_name', 'plotgraph_layout']:
             if paramkey in self.conf_vars:
                 self.conf['params'][paramkey] = self.conf_vars[paramkey]
                 logger.debug("    vars -> params found %s, %s" % (paramkey, self.conf['params'][paramkey], ))
@@ -686,7 +690,9 @@ class Experiment(object):
 
             # init image objects
             # image = Image.new("RGBA", (width,height), (255,255,255))
-            image = Image.new(mode = "L", size = (width, height), color = 1.0)
+            sizetup = tuple((width, height))
+            print('    size = {0}'.format(sizetup))
+            image = Image.new(mode = "L", size = sizetup, color = 255)
             draw = ImageDraw.Draw(image)
             # font = ImageFont.truetype("/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf", fontsize)
             font_normal = ImageFont.truetype("DejaVuSans.ttf", fontsize)
@@ -745,7 +751,7 @@ class Experiment(object):
                     logger.info("Saving experiment graph plot of type = %s to %s" % (type(fig_), filename, ))
                     if type(fig_) is Figure:
                         fig_.savefig(filename, dpi=300, bbox_inches="tight")
-                    elif type(fig_) is PIL.Image.Image:
+                    elif type(fig_) is Image.Image:
                         fig_.save(filename)
                     else:
                         print("            watn scheis\n\n\n\n")

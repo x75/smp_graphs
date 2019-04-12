@@ -13,7 +13,7 @@ from smp_graphs.block_cls import PointmassBlock2, SimplearmBlock2
 
 import logging
 from smp_base.common import get_module_logger
-logger = get_module_logger(modulename = 'utils_conf', loglevel = logging.DEBUG)
+logger = get_module_logger(modulename = 'utils_conf', loglevel = logging.INFO)
 
 """system block
  - a robot

@@ -58,6 +58,7 @@ lim = lconf['lim'] # 1.0
 
 # print "expr0000 __doc__", __doc__
 
+expr_name = 'Experiment 1: Random agent short episode'
 desc = """A very short episode ({0} steps) of behaviour of the
 baseline agent is demonstrated in this experiment. The agent consists
 of the baseline strategy, performing open-loop uniform random search
@@ -73,9 +74,7 @@ action-measurement pairs, starting at time $t = 19$. The big red
 circles indicate points where the goal was met closely enough. The
 resource is consumed and another one appears in a random location. The
 bottom plots shows the timeseries of the agent's resource budget in
-units of the internal minimum resource consumption. The name of the
-experiment is given by the smp\\_graphs configuration filename and
-encodes an id and important global parameters.""".format(numsteps)
+units of the internal minimum resource consumption.""".format(numsteps)
 
 # that this is an smp-experiment with the number 0 (0000), a single
 # pointmass system of zeroth order with one DoF and zero memory, and a
@@ -218,6 +217,7 @@ graph = OrderedDict([
         'block': PlotBlock2,
         'params': {
             'id': 'plot',
+            'title': expr_name,
             # 'debug': True,
             'blocksize': numsteps,
             'saveplot': saveplot,

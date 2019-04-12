@@ -57,8 +57,9 @@ order = lconf['order']
 budget = lconf['budget'] # 510
 lim = lconf['lim'] # 1.0
 
+expr_name = 'Experiment 2: Random agent full episode'
 desc = """This is a full length run of a configuration otherwise
-identical to experiment expr000, consisting of an episode of {0} time
+identical to Experiment 1, consisting of an episode of {0} time
 steps of the baseline behaviour. The length of the episode is greater
 than the agent's initial budget. The strategy must statistically be
 good enough to let the agent survive for a number of steps larger than
@@ -201,6 +202,7 @@ graph = OrderedDict([
             'fig_rows': 2,
             'fig_cols': 3,
             'axesspec': [(0, slice(0, 2)), (0, 2), (1, slice(0, 2)), (1, 2)], 
+            'title': expr_name,
             'desc': """Full episode of the baseline agent behaviour
             covering an episode length of {0} time
             steps. In the top left, the raw sensorimotor timeseries is

@@ -26,7 +26,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from smp_base.common import get_module_logger
-from smp_base.plot import plot_colors, makefig, set_interactive
+from smp_base.plot import plot_colors, makefig
+from smp_base.plot_utils import set_interactive
 
 import smp_graphs.utils_logging as log
 from smp_graphs.utils import print_dict, ordereddict_insert, xproduct, myt
@@ -184,7 +185,8 @@ class Bus(MutableMapping):
         for k in storekeys:
             v = loop_compressor[k]
             # ret += "k = %s, v.shape = %s, mu = %s, var = %s\n" % (k, v.shape, np.mean(v, axis = -1), np.var(v, axis = -1))
-            ret += "{0:<20}[{2}] | {1:<20}\n".format(k, v['v'].shape, v['cnt'])
+            # print('    {0:<20}[{2}] | {1:<20}'.format(k, str(v['v'].shape), v['cnt']))
+            ret += "{0:<20}[{2}] | {1:<20}\n".format(k, str(v['v'].shape), v['cnt'])
         return ret
 
     def keys_loop_compress(self):
@@ -2142,7 +2144,7 @@ class Block2(object):
         texbuf = ''
         # for k, v in self.latex_conf.items():
         id_ = re.sub('_', '-', self.id)
-        texbuf = '\\subsection*{%s}\n\\label{sec:%s}\n\n' % (id_, id_, )
+        texbuf = '\\subsection*{%s}\n\\label{sec:%s}\n\n' % (self.expr_name, id_, )
 
         # copy expr description from conf
         id_base_ = '\_'.join(self.id.split('_')[0:2])

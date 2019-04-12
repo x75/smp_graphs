@@ -43,6 +43,7 @@ plot_xticks += [None]
 plot_titles = ['Budget statistics (min, mean, max)']
 plot_titles += ['' for i in range(numloop-1)]
 
+expr_name = 'Experiment 4: Random agent dimension statistics'
 desc = """This experiment is a structural variation of expr0020,
 computing the budget statistics over {0} episodes each, for all
 configurations of the sensorimotor dimension $d = {1}$""".format(
@@ -384,10 +385,11 @@ graph = OrderedDict([
             'fig_rows': numloop,
             'fig_cols': 3,
             'axesspec': reduce(lambda x, y: x + y, [[(i, slice(0, 2)), (i, 2)] for i in range(numloop)], []),
-            'desc': """The budget statistics as in expr0020 for each
-            configuration of the sensorimotor dimension
-            $d$ with $d \in [1, ..., {0}]$, increasing from top to
-            bottom. This picture tells the same story as
+            'title': expr_name,
+            'desc': """The budget statistics as in Experiment 3 for
+            each configuration of the sensorimotor dimension $d$ with
+            $d \in [1, ..., {0}]$, increasing from top to bottom. This
+            picture tells the same story as
             \\autoref{{fig:smp-expr-agent-baseline-proba}}, zeroth
             order random search failing with increasing
             dimension.""".format(numloop),
@@ -397,7 +399,7 @@ graph = OrderedDict([
                 'maxs_s': {'bus': 'b5/credit_max', 'shape': (1, numloop * numloop_inner)},
                 'mus_s':  {'bus': 'b5/credit_mu',  'shape': (1, numloop * numloop_inner)},
                 # 'mins_p': {'bus': 'b3/credit_min', 'shape': (1, numloop)},
-                },
+            },
                 
             'subplots': [
                 [

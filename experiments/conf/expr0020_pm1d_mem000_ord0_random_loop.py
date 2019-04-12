@@ -44,10 +44,11 @@ lconf_ = {
     'order': 0,
 }
 
+expr_name = 'Experiment 3: Random agent episode statistics'
 desc = """This experiments computes budget statistics over %d runs of
-expr0010, each run being configured identically, except for a unique
-random seed. The result serves to illustrate the viability of the
-uniform random strategy.""".format(numloop, )
+Experiment 2, each run being configured identically, except for a
+unique random seed. The result serves to illustrate the viability of
+the uniform random strategy.""".format(numloop, )
 
 outputs = {
     'latex': {'type': 'latex',},
@@ -389,6 +390,7 @@ graph = OrderedDict([
             'fig_rows': 1,
             'fig_cols': 3,
             'axesspec': [(0, slice(0, 2)), (0, 2)],
+            'title': expr_name,
             'desc': """Statistics over 20 runs of experiment expr0010,
             showing the minimum, mean, and maximum budget values
             during each episode on the left, and the histogram over
