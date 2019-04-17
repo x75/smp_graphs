@@ -104,6 +104,7 @@ graph = OrderedDict([
                             },
                         'outputs': {
                             'pre': {'shape': (dim_s_proprio, 1)},
+                            'd_pre': {'shape': (dim_s_proprio, 1)},
                             'credit': {'shape': (1,1)}},
                         'models': {
                             'goal': {'type': 'random_uniform_modulated'}

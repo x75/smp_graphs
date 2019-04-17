@@ -65,6 +65,11 @@ from smp_graphs.graph        import nxgraph_node_by_id_recursive
 from logging import DEBUG as LOGLEVEL
 logger = get_module_logger(modulename = 'block_models', loglevel = LOGLEVEL - 0)
 
+# caching joblib
+from joblib import Memory
+location = './cachedir'
+memory = Memory(location, verbose=0)
+
 class CodingBlock2(PrimBlock2):
     """CodingBlock2
 
@@ -242,6 +247,7 @@ class ModelBlock2(PrimBlock2):
             PrimBlock2.__init__(self, conf = conf, paren = paren, top = top)
 
             self.step = self.step_single
+            # self.step = memory.cache(self.step_single)
             
             # print "\n self.models = %s" % (self.models, )
             # for mk, mv in self.models.items():

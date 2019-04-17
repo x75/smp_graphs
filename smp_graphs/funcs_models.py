@@ -56,6 +56,11 @@ from smp_graphs.tapping import tap_imol, tap_stack
 from logging import DEBUG as LOGLEVEL
 logger = get_module_logger(modulename = 'funcs_models', loglevel = LOGLEVEL - 0)
 
+# joblib caching
+from joblib import Memory
+location = './cachedir'
+memory = Memory(location, verbose=0)
+
 def array_fix(a = None, col = True):
     """smp_graphs.common.array_fix
 
@@ -2466,6 +2471,13 @@ def step_linear_regression_probe(ref, mref, *args, **kwargs):
     mref.w_norm = np.array([[w_norm]])
     mref.b_norm = np.array([[i_norm]])
     # done
+
+def f_cache(f):
+    f_cache_flag = False
+    if f_cache_flag:
+        return memory.cache(f)
+    else:
+        return f
     
 class model(object):
     """model class
@@ -2487,53 +2499,53 @@ class model(object):
     # maybe using classes is appropriate? ;)
     models = {
         # open-loop models
-        # 'identity': {'init': init_identity, 'step': step_identity},
+        # 'identity': {'init': init_identity, 'step':  f_cache(step_identity)},
         # expansions
-        'musig': {'init': init_musig, 'step': step_musig},
-        'msr': {'init': init_msr, 'step': step_msr},
-        'res': {'init': init_res, 'step': step_res},
-        'polyexp': {'init': init_polyexp, 'step': step_polyexp},
+        'musig': {'init': init_musig, 'step':  f_cache(step_musig)},
+        'msr': {'init': init_msr, 'step':  f_cache(step_msr)},
+        'res': {'init': init_res, 'step':  f_cache(step_res)},
+        'polyexp': {'init': init_polyexp, 'step':  f_cache(step_polyexp)},
         'random_lookup': {
-            'init': init_random_lookup, 'step': step_random_lookup},
+            'init': init_random_lookup, 'step':  f_cache(step_random_lookup)},
         # budget
         'budget_linear': {
-            'init': init_budget, 'step': step_budget},
+            'init': init_budget, 'step':  f_cache(step_budget)},
         # constants
         'alternating_sign': {
-            'init': init_alternating_sign, 'step': step_alternating_sign},
+            'init': init_alternating_sign, 'step':  f_cache(step_alternating_sign)},
         # function generators
         'function_generator': {
-            'init': init_function_generator, 'step': step_function_generator},
+            'init': init_function_generator, 'step':  f_cache(step_function_generator)},
         # active randomness
         'random_uniform': {
-            'init': init_random_uniform, 'step': step_random_uniform},
+            'init': init_random_uniform, 'step':  f_cache(step_random_uniform)},
         'random_uniform_pi_2': {
-            'init': init_random_uniform_pi_2, 'step': step_random_uniform_pi_2},
+            'init': init_random_uniform_pi_2, 'step':  f_cache(step_random_uniform_pi_2)},
         'random_uniform_modulated': {
             'init': init_random_uniform_modulated,
-            'step': step_random_uniform_modulated},
+            'step':  f_cache(step_random_uniform_modulated)},
         # smp model
-        'smpmodel': {'init': init_smpmodel, 'step': step_smpmodel},
+        'smpmodel': {'init': init_smpmodel, 'step':  f_cache(step_smpmodel)},
         # closed-loop models
         # active inference
-        'actinf_m1': {'init': init_actinf, 'step': step_actinf_2},
-        'actinf_m2': {'init': init_actinf, 'step': step_actinf},
-        'actinf_m3': {'init': init_actinf, 'step': step_actinf},
-        'e2p':       {'init': init_e2p,    'step': step_e2p},
+        'actinf_m1': {'init': init_actinf, 'step':  f_cache(step_actinf_2)},
+        'actinf_m2': {'init': init_actinf, 'step':  f_cache(step_actinf)},
+        'actinf_m3': {'init': init_actinf, 'step':  f_cache(step_actinf)},
+        'e2p':       {'init': init_e2p,    'step':  f_cache(step_e2p)},
         'sklearn':   {
-            'init': init_sklearn, 'step': step_sklearn,
+            'init': init_sklearn, 'step':  f_cache(step_sklearn),
             'save': save_sklearn, 'load': load_sklearn},
         # direct forward/inverse model pair learning
-        'imol': {'init': init_imol, 'step': step_imol},
+        'imol': {'init': init_imol, 'step':  f_cache(step_imol)},
         # reward based learning
-        'eh':        {'init': init_eh,     'step': step_eh},
+        'eh':        {'init': init_eh,     'step':  f_cache(step_eh)},
         # self-organization of behaviour: hk, pimax/tipi, infth_pi, infth_ais, ...
-        'homeokinesis': {'init': init_homoekinesis, 'step': step_homeokinesis},
+        'homeokinesis': {'init': init_homoekinesis, 'step':  f_cache(step_homeokinesis)},
 
         # unspervised
-        'qtap': {'init': init_qtap, 'step': step_qtap},
+        'qtap': {'init': init_qtap, 'step':  f_cache(step_qtap)},
         'linear_regression_probe': {
-            'init': init_linear_regression_probe, 'step': step_linear_regression_probe},
+            'init': init_linear_regression_probe, 'step':  f_cache(step_linear_regression_probe)},
     }
 
     def __init__(self, ref, conf, mref = None, mconf = {}):

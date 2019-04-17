@@ -2,12 +2,13 @@
 
 .. moduleauthor:: Oswald Berthold, 2017
 
-Experiment class provides the basic shell for running an experiment with methods for
- - running a graph
- - loading and drawing a graph (networkx)
+Experiment class provides the basic shell for running an experiment
+with methods for
 
-FIXME:
- - do caching with joblib funcs?
+- running a graph
+- loading and drawing a graph (networkx)
+
+.. todo:: joblib caching
 """
 
 import argparse, os, re, sys
@@ -52,6 +53,11 @@ from logging import DEBUG as logging_DEBUG
 loglevel_DEFAULT = logging_INFO
 # loglevel_DEFAULT = logging_DEBUG
 logger = get_module_logger(modulename = 'experiment', loglevel = loglevel_DEFAULT)
+
+# caching joblib
+from joblib import Memory
+location = './cachedir'
+memory = Memory(location, verbose=0)
 
 # # 'application' code
 # logger.debug('debug message')

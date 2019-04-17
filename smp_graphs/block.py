@@ -58,6 +58,11 @@ logger = get_module_logger(modulename = 'block', loglevel = logging_DEBUG)
 # import rospy
 # from std_msgs.msg import Float64MultiArray
 
+# caching joblib
+from joblib import Memory
+location = './cachedir'
+memory = Memory(location, verbose=0)
+
 # FIXME: make it optional in core
 from hyperopt import STATUS_OK, STATUS_FAIL
 
@@ -732,7 +737,8 @@ class decStep():
                     # only ndarray type outputs
                     if xself.output_is_type(outk, outv):
                         continue
-                    setattr(xself, outk, xself.cache_data[outk][xself.cnt-xself.blocksize:xself.cnt,...].T)
+                    # logger.debug('types {2}, {0} {1}'.format(xself.cnt, xself.blocksize, outk))
+                    setattr(xself, outk, xself.cache_data[outk][xself.cnt-int(xself.blocksize):xself.cnt,...].T)
                     # print "cache out key", outk, getattr(xself, outk)
                     # if xself.cnt < 10:
                     #     print "%s-%s[%d]" % (xself.cname, xself.id, xself.cnt), "outk", outk, getattr(xself, outk).T
@@ -2455,7 +2461,9 @@ class FuncBlock2(Block2):
         Block2.__init__(self, conf = conf, paren = paren, top = top)
 
         self.check_attrs(['func'])
-
+        
+        self.func = memory.cache(self.func)
+        
         # FIXME: check return type of func at init time and set step function
 
     @decStep()
