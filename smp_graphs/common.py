@@ -309,28 +309,6 @@ def compress_loop_id(k):
     # logger.debug('compress_loop_id: squashing %s down to %s', k, k_)
     return k_
 
-def dict_search_recursive(d, k):
-    """smp_graphs.common.dict_search_recursive
-
-    Search for the presence of key k recursively over nested smp_graph config dicts
-    """
-    # FIXME: make it generic recursive search over nested graphs and move to smp_base
-
-    # print "#" * 80
-    # print "searching k = %s " % (k,),
-    if k in d:
-        # print "found k = %s, params = %s" % (k, d[k]['params'].keys())
-        return d[k]
-    else:
-        # print "d.keys()", d.keys()
-        for k_, v_ in list(d.items()):
-            # if v_[
-            if 'graph' in v_['params']: #  or v_['params'].has_key('subgraph'):
-                # print "k_", k_, "v_", v_['params'].keys()
-                return dict_search_recursive(v_['params']['graph'], k)
-    # None found
-    return None
-
 def dict_replace_nodekeys(d, xid, idmap = {}):
     """smp_graphs.common.dict_replace_nodekeys
 

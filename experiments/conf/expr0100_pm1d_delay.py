@@ -4,6 +4,7 @@
 from smp_graphs.utils_conf import get_systemblock
 
 numsteps = 20
+saveplot=True
 
 robot1 = get_systemblock['pm'](dim_s0 = 1)
 dim_s0 = robot1['params']['dims']['s0']['dim']
@@ -12,7 +13,18 @@ m_mins = np.array([robot1['params']['m_mins']]).T
 m_maxs = np.array([robot1['params']['m_maxs']]).T
 
 outputs = {'latex': {'type': 'latex'}}
-desc = 'In this experiment the action consists of uniform noise sampled at intervals of {0} steps for a duration of {1} steps. The robot has an inherent delay from motor input to sensor feedback of 2 timesteps. An agent does not know the timing parameters a priori for all bodies, environments or tasks. The agent could be supplied with all past and multimodal information but quite often, the relevant variables are sparsely distributed within any contiguous submatrix of SMT. Knowing the sites of relevant variables greatly increases the speed of learning. In this case, the sensor reponse is linear in the motor input so the temporal offset can easily be found with cross-correlation methods.'.format(numsteps/4, numsteps)
+expr_name = 'Experiment 13: Lag'
+desc = """In this experiment the action consists of uniform noise
+sampled at intervals of {0} steps for a duration of {1} steps. The
+robot has an inherent delay from motor input to sensor feedback of 2
+timesteps. An agent does not know the timing parameters a priori for
+all bodies, environments or tasks. The agent could be supplied with
+all past and multimodal information but quite often, the relevant
+variables are sparsely distributed within any contiguous submatrix of
+SMT. Knowing the sites of relevant variables greatly increases the
+speed of learning. In this case, the sensor reponse is linear in the
+motor input so the temporal offset can easily be found with
+cross-correlation methods.""".format(numsteps/4, numsteps)
 
 graph = OrderedDict([
     # point mass system
@@ -41,7 +53,14 @@ graph = OrderedDict([
         'block': PlotBlock2,
         'params': {
             'blocksize': numsteps,
-            'saveplot': saveplot, 'savetype': 'pdf',
+            'saveplot': saveplot,
+            'savetype': 'pdf',
+            'title': expr_name,
+            'desc': 'Illustration of the temporal offset',
+            # 'desc': """Experiment 6.3.1-1 Illustration of the temporal
+            # offset lag of a measurement \upsidedownhat{s} with respect
+            # to the motor prediction \hat{s}, shown as s_0 and s_0^p,
+            # respectively.""",
             'inputs': {
                 's0': {'bus': 'robot1/s0', 'shape': (dim_s0, numsteps)},
                 's0p': {'bus': 'pre_l0/pre', 'shape': (dim_m0, numsteps)},
@@ -50,7 +69,10 @@ graph = OrderedDict([
                 [
                     {
                         'input': ['s0p', 's0'], 'plot': [partial(timeseries, marker = 'o')] * 2,
+                        'title': None,
                         'xticks': list(range(0, numsteps, 2)),
+                        'ylim': (-1, 1),
+                        # 'yticks': [-1.0, -0.5, 0.0, 0.5, 1.0],
                     },
                 ]
             ],

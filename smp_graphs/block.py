@@ -26,6 +26,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from smp_base.common import get_module_logger
+from smp_base.common import dict_search_recursive
 from smp_base.plot import plot_colors, makefig
 from smp_base.plot_utils import set_interactive
 
@@ -37,7 +38,7 @@ from smp_graphs.common import md5, get_config_raw, get_config_raw_from_string
 
 from smp_graphs.common import set_attr_from_dict, loop_delim, compress_loop_id
 from smp_graphs.common import dict_get_nodekeys_recursive, dict_replace_nodekeys_loop
-from smp_graphs.common import dict_search_recursive, dict_replace_idstr_recursive2
+from smp_graphs.common import dict_replace_idstr_recursive2
 from smp_graphs.common import dict_replace_idstr_recursive
 from smp_graphs.common import tuple2inttuple
 
@@ -210,7 +211,7 @@ class Bus(MutableMapping):
     def store_pickle(self, conf = {}):
         """Bus.store_pickle
 
-        Store bus as pickle for bus pltting from cache
+        Store bus as pickle for bus plotting from cache
         """
         bus_filetype = 'pickle' # 'gml' # , 'json', 'yaml'
         bus_filename = '%s_%s.%s' % (conf['datafile_md5'], 'bus', bus_filetype)
