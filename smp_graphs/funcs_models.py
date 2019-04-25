@@ -39,6 +39,7 @@ from smp_base.models_learners import smpSHL, learnerReward, Eligibility
 from smp_base.measures import meas as measf
 from smp_base.measures_probes import meas_linear_regression_probe
 
+# .. TODO:: use smpi dynamic importer
 try:
     from smp_base.models_actinf import smpOTLModel, smpSOESGP, smpSTORKGP
     HAVE_SOESGP = True
@@ -46,11 +47,11 @@ except ImportError as e:
     print("couldn't import online GP models", e)
     HAVE_SOESGP = False
 
-# merge with embedding code and move to smp_base
+# .. TODO:: merge with embedding code and move to smp_base
 from smp_graphs.common  import code_compile_and_run, get_input
 from smp_graphs.tapping import tap_tupoff, tap, tap_flat, tap_unflat
-# from smp_graphs.tapping import tap_imol_fwd, tap_imol_fwd_time, tap_imol_fwd_modality
 from smp_graphs.tapping import tap_imol, tap_stack
+# from smp_graphs.tapping import tap_imol_fwd, tap_imol_fwd_time, tap_imol_fwd_modality
 # from smp_graphs.tapping import tap_imol_inv_old, tap_imol_inv_time, tap_imol_inv_modality
 
 from logging import DEBUG as LOGLEVEL
