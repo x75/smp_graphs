@@ -33,11 +33,12 @@ from numpy import array
 from smp_base.common import get_module_logger
 from smp_base.plot import makefig
 from smp_base.plot_utils import set_interactive
+from smp_base.codeops import code_compile_and_run
 
 from smp_graphs.block import Block2
 from smp_graphs.utils import print_dict
 from smp_graphs.common import conf_header, conf_footer, conf_strip_variables
-from smp_graphs.common import md5, get_config_raw, check_datadir, code_compile_and_run
+from smp_graphs.common import md5, get_config_raw, check_datadir
 from smp_graphs.graph import nxgraph_plot, recursive_draw, recursive_hierarchical
 from smp_graphs.graph import nxgraph_flatten, nxgraph_add_edges, nxgraph_get_node_colors
 from smp_graphs.graph import nxgraph_nodes_iter, nxgraph_to_smp_graph
@@ -139,6 +140,9 @@ def set_config_defaults(conf):
         
     if 'desc' not in conf['params']:
         conf['params']['desc'] = conf['params']['id']
+        
+    if 'expr_number' not in conf['params']:
+        conf['params']['expr_number'] = conf['params']['id']
         
     if 'expr_name' not in conf['params']:
         conf['params']['expr_name'] = conf['params']['id']
@@ -301,7 +305,7 @@ class Experiment(object):
         logger.info("experiment.Experiment init with conf = %s" % (list(self.conf.keys()), ))
         
         # topblock outputs: new types in addition to np.ndarray signals: 'text', 'plot', ...
-        for paramkey in ['outputs', 'desc', 'expr_name', 'plotgraph_layout']:
+        for paramkey in ['outputs', 'desc', 'expr_number', 'expr_name', 'plotgraph_layout']:
             if paramkey in self.conf_vars:
                 self.conf['params'][paramkey] = self.conf_vars[paramkey]
                 logger.debug("    vars -> params found %s, %s" % (paramkey, self.conf['params'][paramkey], ))

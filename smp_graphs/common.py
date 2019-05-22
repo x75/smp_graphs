@@ -12,6 +12,7 @@ from types import FunctionType
 import logging
 
 # import smp_graphs
+import smp_base
 from smp_base.common import set_attr_from_dict
 from smp_base.common import get_module_logger
 from smp_base.codeops import get_input as get_dict_val
@@ -574,7 +575,8 @@ def vtransform(v):
             # print "    type FunctionType", v, v_
         # FIXME: this produces import error when block_models isnt
         # imported in config?
-        elif vtype is smp_graphs.block_models.model:
+        # elif vtype is smp_graphs.block_models.model:
+        elif vtype is smp_base.models_funcmapped.model:
             v_ = 'model.%s' % v.modelstr
             # print "    type model", v, v_
         elif vtype is type:

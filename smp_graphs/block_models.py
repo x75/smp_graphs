@@ -30,7 +30,7 @@ musig (:func:`init_musig`, :func:`step_musig`), res (:func:`init_res`, :func:`st
 
 .. exec::
     import json
-    from smp_graphs.block_models import model
+    from smp_graphs.funcs_models import model
     modeldict = dict([(k, '') for k, v in model.models.items()])
     json_obj = json.dumps(modeldict, sort_keys=True, indent=4)
     print ".. code-block:: JavaScript\\n\\n    models = {0}\\n    \\n".format(json_obj)
@@ -59,7 +59,7 @@ import numpy as np
 from smp_base.common import get_module_logger
 
 from smp_graphs.block        import decInit, decStep, Block2, PrimBlock2, LoopBlock2
-from smp_graphs.funcs_models import model
+from smp_base.models_funcmapped import model
 from smp_graphs.graph        import nxgraph_node_by_id_recursive
 
 from logging import DEBUG as LOGLEVEL

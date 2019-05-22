@@ -2151,11 +2151,11 @@ class Block2(object):
         texbuf = ''
         # for k, v in self.latex_conf.items():
         id_ = re.sub('_', '-', self.id)
-        texbuf = '\\subsection*{%s}\n\\label{sec:%s}\n\n' % (self.expr_name, id_, )
+        texbuf = '\\subsection*{{{0}}}\n\\label{{sec:{1}}}\n\n'.format(self.expr_name, id_)
 
         # copy expr description from conf
         id_base_ = '\_'.join(self.id.split('_')[0:2])
-        texbuf += '\mypara{%s description}%s\n' % (id_base_, self.desc, )
+        texbuf += '\mypara{Experiment %s description}%s\n' % (self.expr_number, self.desc) # , id_base_
 
         outputs_keys = list(self.outputs.keys())
         outputs_keys.sort()
@@ -2256,7 +2256,8 @@ class Block2(object):
                 
                 # c_ = ', '.join(["%s \\autoref{fig:%s}" % (desc, ref) for (desc, ref) in zip(descs, refs)])
                 c_ = ', '.join(["%s" % (desc, ) for (desc, ref) in zip(descs, refs)])
-                caption = "  \\end{minipage}\n\\captionof{figure}{\\label{fig:%s-%s}Experiment \\ref{sec:%s}-%d %s}}\n\n\n" % (figlabel_, figk, id_, figc + 1, c_)
+                # caption = "  \\end{minipage}\n\\captionof{figure}{\\label{fig:%s-%s}Experiment \\ref{sec:%s}-%d %s}}\n\n\n" % (figlabel_, figk, id_, figc + 1, c_)
+                caption = "  \\end{minipage}\n\\captionof{figure}{\\label{fig:%s-%s}\\textbf{Experiment %d (%d)} - %s}}\n\n\n" % (figlabel_, figk, self.expr_number, figc + 1, c_)
                 # caption = "  \\caption{\\label{fig:%s-%s}%s %s.}\n\\end{figure}\n\n\n" % (figlabel_, figk, id_, c_)
                 figbuf += caption
                 

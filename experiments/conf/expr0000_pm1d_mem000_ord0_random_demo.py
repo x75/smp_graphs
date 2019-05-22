@@ -2,7 +2,7 @@
 
 .. moduleauthor:: Oswald Berthold, 2018
 
-id:thesis_smpx0001
+id:smp-expr0000
 
 Baseline behaviour - open-loop uniform random search in finite
 isotropic space. Special case of kinesis with coupling = 0 between
@@ -58,7 +58,8 @@ lim = lconf['lim'] # 1.0
 
 # print "expr0000 __doc__", __doc__
 
-expr_name = 'Experiment 1: Random agent short episode'
+expr_number = 1
+expr_name = 'Experiment {0}: Random agent short episode'.format(expr_number)
 desc = """A very short episode ({0} steps) of behaviour of the
 baseline agent is demonstrated in this experiment. The agent consists
 of the baseline strategy, performing open-loop uniform random search

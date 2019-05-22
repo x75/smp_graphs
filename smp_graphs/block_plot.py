@@ -50,7 +50,8 @@ from smp_base.plot       import makefig, timeseries, histogram, plot_img, plotfu
 from smp_base.plot       import get_colorcycler, fig_interaction
 from smp_base.plot       import ax_invert, ax_set_aspect
 
-from smp_graphs.common import code_compile_and_run, listify, tuple2inttuple
+from smp_base.codeops import code_compile_and_run
+from smp_graphs.common import listify, tuple2inttuple
 from smp_graphs.block import decStep, decInit, block_cmaps, get_input
 from smp_graphs.block import PrimBlock2
 from smp_graphs.utils import myt, mytupleroll
