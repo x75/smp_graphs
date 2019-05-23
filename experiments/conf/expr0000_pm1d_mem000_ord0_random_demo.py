@@ -60,22 +60,21 @@ lim = lconf['lim'] # 1.0
 
 expr_number = 1
 expr_name = 'Experiment {0}: Random agent short episode'.format(expr_number)
-desc = """A very short episode ({0} steps) of behaviour of the
-baseline agent is demonstrated in this experiment. The agent consists
-of the baseline strategy, performing open-loop uniform random search
-in finite isotropic space. The minimal function required for this
-behaviour is \\emph{{goal recognition}}. This is modelled as regions
-around \\emph{{target}} points by thresholding the distance between
-state and target. The top plot shows the goal position
-$\\hat{{s}}^{{l_1}}_p$ as a thick blue line, the action
-$\\hat{{s}}^{{l_0}}_p$ in dark green, and the resulting measurement $s_p$
-in light green. The measurement is delayed by two time steps with
-respect to the action, highlighted by yellow causality lines for three
-action-measurement pairs, starting at time $t = 19$. The big red
-circles indicate points where the goal was met closely enough. The
-resource is consumed and another one appears in a random location. The
-bottom plots shows the timeseries of the agent's resource budget in
-units of the internal minimum resource consumption.""".format(numsteps)
+desc = """The experiment consists of a short episode of {0} time steps
+of an agent following the baseline strategy, open-loop uniform random
+search in a bounded and homogenous space. The minimal function
+required here is \\emph{{goal recognition}}. Goal recognition is shown
+in \\autoref{{fig:smp-expr-agent-baseline}}. It is modelled as a
+threshold on the distance to the goal. In the result plot the top
+panel shows the goal position $\\smvecpre{{s}}^{{\\text{{goal}}}}$ as
+a thick blue line, the action $\\smvecpre{{s}}^{{\\proprio}}$ in dark
+green, and the resulting measurement $\\smvecmes{{s}}$ in light
+green. The measurement is delayed by two time steps with respect to
+the action, highlighted by yellow lines connecting corresponding
+pairs. The big red circles indicate points where the goal was
+met. When that happens a new goal appears at a random location. The
+bottom panel shows the agent's budget over the course of the
+experiment.""".format(numsteps)
 
 # that this is an smp-experiment with the number 0 (0000), a single
 # pointmass system of zeroth order with one DoF and zero memory, and a
@@ -234,38 +233,37 @@ graph = OrderedDict([
                 'credit_l1': {'bus': 'budget/credit', 'shape': (1, numsteps)},
                 'resets_l1': {'bus': 'budget/resets', 'shape': (1, numsteps), 'event': True},
                 },
-            'desc': """Illustration of the baseline agent
-behaviour. The top plot shows the goal position $\\hat{{s}}^{{l_1}}_p$
-as a thick blue line, the action $\\hat{{s}}^{{l_0}}_p$ in dark green,
-and the resulting measurement $s_p$ in light green. The measurement is
-delayed by two time steps with respect to the action, highlighted by
+            'desc': """The baseline agent behaviour. The top panel
+shows the goal and goal hits in red.  The action is shown as a blue
+line and the measurement in green. There is a delay between action and
+measurement of two time steps. Corresponding pairs are highlighted at
 yellow causality lines for three action-measurement pairs, starting at
-time $t = 19$. The big red circles indicate points where the goal was
-met closely enough. The bottom plots shows the timeseries of the
-agent's resource budget in units of the internal minimum resource
-consumption.""".format(),
+time $t = 19$. The bottom panel shows the agent's budget over the
+course of the experiment. It can be seen that reaching a goal
+increases the budget.""".format(),
             'subplots': [
                 
                 [
                     {
-                        'input': ['pre_l1', 'pre_l0', 's_p', 'resets_l1', 'pre_l1'],
+                        'input': ['pre_l0', 's_p', 'pre_l1', 'resets_l1', 'pre_l1'],
                         'plot': [
-                            partial(timeseries, linewidth = 2.0,    alpha = 0.6, xlabel = None, marker = ''),
-                            partial(timeseries, linewidth = 1.0,    alpha = 0.7, xlabel = None, marker = '.'),
-                            partial(timeseries, linewidth = 1.0,    alpha = 0.7, xlabel = None, marker = '.', xticks = False),
-                            partial(timeseries, linestyle = 'none', alpha = 0.8, xlabel = None, marker = 'o', xticks = False, color='r'),
+                            partial(timeseries, linewidth = 1.0,    alpha = 0.5, xlabel = None, marker = ''),
+                            partial(timeseries, linewidth = 2.0,    alpha = 0.5, xlabel = None, marker = '', xticks = False),
+                            partial(timeseries, linestyle = 'none', alpha = 0.5, xlabel = None, marker = '.', color='r'),
+                            partial(timeseries, linestyle = 'none', alpha = 0.7, xlabel = None, marker = 'o', xticks = False, color='r'),
                             partial(linesegments),
                         ],
                         'lineseg_val': [None] * 4 + [('pre_l0', 's_p')],
                         'lineseg_idx': [None] * 4 + [[(19, 21), (21, 23), (23, 25)]],
                         'event': [False] * 3 +  [True] + [False],
-                        'title': 'Goal, action, result, goal-hit',
+                        'title': 'Goal, action, measurement',
                         'title_pos': 'top_out',
                         'ylabel': 'unit action [a]',
                         'legend_space': 0.75,
                         'legend': {
-                            'goal $\hat{s}^{l_1}_p$': 0, 'action $\hat{s}^{l_0}_p$': dim_s0, 'measured $s_p$': 2 * dim_s0,
-                            'goal hit': 3 * dim_s0, 'coupling': 4 * dim_s0},
+                            # 'goal $\smvecpre{s}^{l_1}_p$': 0, 'action $\hat{s}^{l_0}_p$': dim_s0, 'measured $s_p$': 2 * dim_s0,
+                            'action': 0, 'measured': 1 * dim_s0, 'goal': 2 * dim_s0,
+                            'goal hit': 3 * dim_s0, 'delay': 4 * dim_s0},
                     },
                     
                     # {
@@ -286,9 +284,9 @@ consumption.""".format(),
                         'input': ['credit_l1', 'credit_l1', 'credit_l1'],
                         # 'plot': partial(timeseries, ylim = (0, 1000), alpha = 1.0),
                         'plot': [
-                            partial(timeseries, alpha = 0.5, linewidth=0.8),
-                            partial(timeseries, alpha = 0.8, linestyle='none', marker='$\$$', color='orange'),
-                            partial(timeseries, alpha = 0.8, linestyle='none', marker='o', fillstyle='none', markersize=10, color='orange'),
+                            partial(timeseries, alpha = 0.5, linewidth=1.0),
+                            # partial(timeseries, alpha = 0.8, linestyle='none', marker='$\$$', color='orange'),
+                            # partial(timeseries, alpha = 0.8, linestyle='none', marker='o', fillstyle='none', markersize=10, color='orange'),
                         ],
                         'title': 'Agent budget',
                         'title_pos': 'top_out',

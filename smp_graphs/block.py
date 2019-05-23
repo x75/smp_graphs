@@ -2257,7 +2257,7 @@ class Block2(object):
                 # c_ = ', '.join(["%s \\autoref{fig:%s}" % (desc, ref) for (desc, ref) in zip(descs, refs)])
                 c_ = ', '.join(["%s" % (desc, ) for (desc, ref) in zip(descs, refs)])
                 # caption = "  \\end{minipage}\n\\captionof{figure}{\\label{fig:%s-%s}Experiment \\ref{sec:%s}-%d %s}}\n\n\n" % (figlabel_, figk, id_, figc + 1, c_)
-                caption = "  \\end{minipage}\n\\captionof{figure}{\\label{fig:%s-%s}\\textbf{Experiment %d (%d)} - %s}}\n\n\n" % (figlabel_, figk, self.expr_number, figc + 1, c_)
+                caption = "  \\end{minipage}\n\\captionof{figure}{\\label{fig:%s-%s}\\textbf{Panel %d-%d} - %s}}\n\n\n" % (figlabel_, figk, self.expr_number, figc + 1, c_)
                 # caption = "  \\caption{\\label{fig:%s-%s}%s %s.}\n\\end{figure}\n\n\n" % (figlabel_, figk, id_, c_)
                 figbuf += caption
                 
