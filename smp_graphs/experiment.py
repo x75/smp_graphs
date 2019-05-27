@@ -584,7 +584,8 @@ class Experiment(object):
         cols = 1
         axesspec = None
         plotgraph_figures = list()
-        figtitle = self.top.id.split('-')[0]
+        # figtitle = self.top.id.split('-')[0]
+        figtitle = "Experiment {0} smp_graph".format(self.top.expr_number)
         # FIXME: uses makefig directly from smp_base.plot instead of FigPlotBlock2
         fig_nxgr = makefig(
             rows = rows, cols = cols, wspace = 0.1, hspace = 0.1,
@@ -620,7 +621,7 @@ class Experiment(object):
         # print "G_cols", G_cols
 
         if layout_type == 'linear_hierarchical':
-            node_size = 250
+            node_size = 100
         else:
             node_size = 1000
 

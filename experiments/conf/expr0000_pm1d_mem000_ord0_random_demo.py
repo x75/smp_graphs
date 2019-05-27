@@ -232,29 +232,34 @@ graph = OrderedDict([
                 'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
                 'credit_l1': {'bus': 'budget/credit', 'shape': (1, numsteps)},
                 'resets_l1': {'bus': 'budget/resets', 'shape': (1, numsteps), 'event': True},
-                },
-            'desc': """The baseline agent behaviour. The top panel
-shows the goal and goal hits in red.  The action is shown as a blue
-line and the measurement in green. There is a delay between action and
-measurement of two time steps. Corresponding pairs are highlighted at
-yellow causality lines for three action-measurement pairs, starting at
-time $t = 19$. The bottom panel shows the agent's budget over the
-course of the experiment. It can be seen that reaching a goal
-increases the budget.""".format(),
+            },
+            'desc': """The agent behaviour over {0} time steps. The
+            top panel shows the action, delay, and measurement in
+            blue. The goal and goal hits are colored purple. The delay
+            effective delay of two time steps is highlighted by line
+            segments connecting each action-measurement pair. The
+            slope of the line is caused by noise. The bottom panel
+            shows the budget over the course of the
+            episode. Every time a goal is hit, the budget is reset to
+            its maximum (1000) as an idealized case of unit
+            resources. The vertical scale of the panel indicates
+            operation far from dangerous levels close to zero.""".format(numsteps),
             'subplots': [
                 
                 [
                     {
                         'input': ['pre_l0', 's_p', 'pre_l1', 'resets_l1', 'pre_l1'],
                         'plot': [
-                            partial(timeseries, linewidth = 1.0,    alpha = 0.5, xlabel = None, marker = ''),
-                            partial(timeseries, linewidth = 2.0,    alpha = 0.5, xlabel = None, marker = '', xticks = False),
-                            partial(timeseries, linestyle = 'none', alpha = 0.5, xlabel = None, marker = '.', color='r'),
-                            partial(timeseries, linestyle = 'none', alpha = 0.7, xlabel = None, marker = 'o', xticks = False, color='r'),
-                            partial(linesegments),
+                            partial(timeseries, linestyle='none', alpha=0.3, xlabel=None, marker='.', color='b'),
+                            partial(timeseries, linestyle='none', alpha=0.6, xlabel=None, marker='o', color='b', xticks=False),
+                            partial(timeseries, linestyle='-', alpha=0.5, xlabel=None, marker='', color='m'),
+                            partial(timeseries, linestyle='none', alpha=0.7, xlabel=None, marker='o', color='m', xticks=False),
+                            partial(linesegments, alpha=0.3, color='b'),
                         ],
-                        'lineseg_val': [None] * 4 + [('pre_l0', 's_p')],
-                        'lineseg_idx': [None] * 4 + [[(19, 21), (21, 23), (23, 25)]],
+                        # 'lineseg_idx': [None] * 4 + [[(19, 21), (21, 23), (23, 25)]],
+                        # 'lineseg_val': [None] * 4 + [('pre_l0', 's_p')],
+                        'lineseg_idx': [None] * 4 + [[(i, i+2) for i in range(0, 30-2)]],
+                        'lineseg_val': [None] * 4 + [('pre_l0', 's_p') for i in range(0, 30-2)],
                         'event': [False] * 3 +  [True] + [False],
                         'title': 'Goal, action, measurement',
                         'title_pos': 'top_out',
@@ -269,8 +274,8 @@ increases the budget.""".format(),
                     # {
                     #     'input': ['pre_l1', 'pre_l0', 's_p'],
                     #     'plot': [partial(
-                    #         histogram, orientation = 'horizontal', histtype = 'stepfilled',
-                    #         yticks = False, xticks = False, alpha = 1.0, normed = False) for _ in range(3)],
+                    #         histogram, orientation='horizontal', histtype='stepfilled',
+                    #         yticks=False, xticks=False, alpha=1.0, normed=False) for _ in range(3)],
                     #     'title': '',
                     #     'title_pos': 'top_out',
                     #     'desc': 'Single episode pm1d baseline \\autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
@@ -282,11 +287,11 @@ increases the budget.""".format(),
                 [
                     {
                         'input': ['credit_l1', 'credit_l1', 'credit_l1'],
-                        # 'plot': partial(timeseries, ylim = (0, 1000), alpha = 1.0),
+                        # 'plot': partial(timeseries, ylim=(0, 1000), alpha=1.0),
                         'plot': [
-                            partial(timeseries, alpha = 0.5, linewidth=1.0),
-                            # partial(timeseries, alpha = 0.8, linestyle='none', marker='$\$$', color='orange'),
-                            # partial(timeseries, alpha = 0.8, linestyle='none', marker='o', fillstyle='none', markersize=10, color='orange'),
+                            partial(timeseries, alpha=0.5, linewidth=1.0),
+                            # partial(timeseries, alpha=0.8, linestyle='none', marker='$\$$', color='orange'),
+                            # partial(timeseries, alpha=0.8, linestyle='none', marker='o', fillstyle='none', markersize=10, color='orange'),
                         ],
                         'title': 'Agent budget',
                         'title_pos': 'top_out',
@@ -299,8 +304,8 @@ increases the budget.""".format(),
                     
                     # {
                     #     'input': 'credit_l1', 'plot': partial(
-                    #         histogram, orientation = 'horizontal', histtype = 'stepfilled',
-                    #         yticks = False, ylim = (0, 1000), alpha = 1.0, normed = False),
+                    #         histogram, orientation='horizontal', histtype='stepfilled',
+                    #         yticks=False, ylim=(0, 1000), alpha=1.0, normed=False),
                     #     'title': 'agent budget (histogram)',
                     #     'title_pos': 'top_out',
                     #     'xlabel': 'count [n]',

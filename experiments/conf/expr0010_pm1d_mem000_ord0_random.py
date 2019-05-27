@@ -36,7 +36,7 @@ from functools import partial
 
 # global parameters can be overwritten from the commandline
 ros = False
-numsteps = 10000/5
+numsteps = int(10000/5)
 recurrent = True
 debug = False
 showplot = True
@@ -57,15 +57,17 @@ order = lconf['order']
 budget = lconf['budget'] # 510
 lim = lconf['lim'] # 1.0
 
-expr_name = 'Experiment 2: Random agent full episode'
-desc = """This is a full length run of a configuration otherwise
-identical to Experiment 1, consisting of an episode of {0} time
-steps of the baseline behaviour. The length of the episode is greater
-than the agent's initial budget. The strategy must statistically be
-good enough to let the agent survive for a number of steps larger than
-then the initial budget, which would be consumed after the same number
-of steps when following a null strategy, that is, do nothing with a
-zero or other single constant action.""".format(numsteps)
+expr_number = 2
+expr_name = 'Experiment {0}: Random agent extended statistics'.format(expr_number)
+desc = """An extended statistics for the previous experiment is
+collected here. Since the system is stationary a temporal average can
+be substituted for an ensemble average. This constitutes an episode of
+{0} time steps of an agent identical to that in Experiment 1, whiche
+can be seen in the correponding smp\_graph. In addition, the length of
+the episode is greater than the agent's initial budget. The strategy
+must be good enough to let the agent survive for a number of steps
+larger than then the initial budget. Otherwise the budget would be
+consumed after 1000 steps.""".format(numsteps)
 
 outputs = {
     'latex': {'type': 'latex',},
@@ -197,11 +199,11 @@ graph = OrderedDict([
             'saveplot': saveplot,
             'savetype': 'pdf',
             'savesize': (8, 6),
-            'wspace': 0.15,
+            'wspace': 0.2,
             'hspace': 0.5,
             'fig_rows': 2,
-            'fig_cols': 3,
-            'axesspec': [(0, slice(0, 2)), (0, 2), (1, slice(0, 2)), (1, 2)], 
+            'fig_cols': 4,
+            'axesspec': [(0, slice(1, 3)), (0, 3), (1, slice(1, 3)), (1, 3)], 
             'title': expr_name,
             'desc': """Full episode of the baseline agent behaviour
             covering an episode length of {0} time
@@ -228,31 +230,25 @@ graph = OrderedDict([
                 [
                     {
                         # 'input': ['pre_l0', 's_p', 'pre_l1'],
-                        'input': ['pre_l1', 'pre_l0', 's_p', 'resets_l1',],
+                        'input': ['pre_l0', 's_p', 'pre_l1', 'resets_l1'],
                         'plot': [
-                            partial(timeseries, linewidth = 2.0,    alpha = 0.8, xlabel = None, marker = ''),
-                            partial(timeseries, linewidth = 0.0,    alpha = 0.35, xlabel = None, marker = '.'),
-                            partial(timeseries, linewidth = 0.0,    alpha = 0.35, xlabel = None, marker = '.', xticks = False),
-                            partial(timeseries, linestyle = 'none', alpha = 0.5, xlabel = None, marker = 'o', xticks = False, color='r'),
-                            # partial(linesegments),
-                            # partial(timeseries, linewidth = 1.0, alpha = 1.0, xlabel = None),
-                            # partial(timeseries, alpha = 1.0, xlabel = None),
-                            # partial(timeseries, linewidth = 2.0, alpha = 1.0, xticks = False, xlabel = None)],
+                            partial(timeseries, linestyle='none', alpha=0.3, xlabel=None, marker='.', color='b'),
+                            partial(timeseries, linestyle='none', alpha=0.6, xlabel=None, marker='.', color='b', xticks=False),
+                            partial(timeseries, linestyle='-', alpha=0.5, xlabel=None, marker='', color='m'),
+                            partial(timeseries, linestyle='none', alpha=0.7, xlabel=None, marker='o', color='m', xticks=False),
                         ],
                         'event': [False] * 3 +  [True],
-                        'title': 'Goal, action, result, goal-hit',
+                        'title': 'Timeseries',
                         'title_pos': 'top_out',
                         'ylabel': 'unit action [a]',
-                        'legend_space': 0.75,
+                        'legend_space': 1.0,
                         'legend_loc': 'right',
                         'legend': {
-                            'goal $\hat{s}^{l_1}_p$': 0, 'action $\hat{s}^{l_0}_p$': dim_s0, 'measured $s_p$': 2 * dim_s0,
+                            'action': 0, 'measured': 1 * dim_s0, 'goal': 2 * dim_s0,
                             'goal hit': 3 * dim_s0},
                     },
                     
                     {
-                        # 'input': ['d_pre_l1', 'pre_l0', 's_p', 'resets_l1'],
-                        # 'event': [True, False, False, False],
                         'input': ['d_pre_l1', 'resets_l1'],
                         'event': [True, False],
                         'plot': [
@@ -260,26 +256,22 @@ graph = OrderedDict([
                                 histogram, histtype = 'stepfilled', bins=21,
                                 orientation = 'horizontal',
                                 yticks = False, # xticks = False,
-                                alpha = 0.5, density = True
+                                alpha = 0.5, density = True, color='b'
                             )
                         ] + [
                             partial(
                                 histogram, histtype = 'stepfilled', bins=21,
                                 orientation = 'horizontal',
                                 yticks = False, # xticks = False,
-                                alpha = 0.5, density = True, color='r'
+                                alpha = 0.5, density = True, color='m'
                             )
                         ],
-                        'title': None,
+                        'title': 'Histogram',
                         'title_pos': 'top_out',
                         'desc': 'Single episode pm1d baseline \\autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
                         'xlim': None,
                         'xlabel': 'rel. frequency [n/N]',
-                        # 'ylabel': 'unit budget [c]',
                         'legend': False,
-                        # 'legend': {'unit budget': 1},
-                        # 'legend_space': 0.75,
-                        # 'mode': 'stack'
                     },
                 ],
                 
@@ -292,14 +284,14 @@ graph = OrderedDict([
                             # partial(timeseries, alpha = 0.8, linestyle='none', marker='$\$$', color='orange'),
                             # partial(timeseries, alpha = 0.8, linestyle='none', marker='o', fillstyle='none', markersize=10, color='orange'),
                         ],
-                        'title': 'Agent budget',
+                        'title': 'Timeseries',
                         'title_pos': 'top_out',
                         'desc': 'Single episode pm1d baseline \\autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
                         'xlabel': 'time step [t]',
                         'ylabel': 'unit budget [c]',
                         'legend': {'unit budget': 0},
                         'legend_loc': 'right',
-                        'legend_space': 0.75,
+                        'legend_space': 1.0,
                     },
                     
                     {
@@ -312,7 +304,7 @@ graph = OrderedDict([
                                 alpha = 0.5, density = True,
                             ),
                         ],
-                        'title': None,
+                        'title': 'Histogram',
                         'title_pos': 'top_out',
                         'xlabel': 'count [n]',
                         'desc': 'Single episode pm1d baseline \\autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',

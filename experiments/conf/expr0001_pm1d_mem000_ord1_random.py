@@ -2,7 +2,7 @@
 
 baseline behaviour - open-loop uniform random search in finite isotropic space
 
-id:thesis_smpx0001
+id:expr0001-obsolete
 
 Oswald Berthold 2017
 
