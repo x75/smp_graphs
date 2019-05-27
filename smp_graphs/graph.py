@@ -606,7 +606,8 @@ def nxgraph_plot(G, ax = None, pos = None, layout_type = "spring", node_color = 
     # shift(layout, (0, -2 * node_size))
 
     # draw the node labels
-    nx.draw_networkx_labels(G, ax = ax, pos = layout, labels = labels, font_color = 'k', font_size = 8, fontsize = 6, alpha = 0.75)
+    if G.number_of_nodes() < 100:
+        nx.draw_networkx_labels(G, ax = ax, pos = layout, labels = labels, font_color = 'k', font_size = 8, fontsize = 6, alpha = 0.75)
     
     # edges
     typededges = {'data': [], 'loop': [], 'hier': [], 'trig': []}

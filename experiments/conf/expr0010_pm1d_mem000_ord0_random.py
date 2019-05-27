@@ -280,7 +280,7 @@ graph = OrderedDict([
                         'input': ['credit_l1'], # , 'credit_l1', 'credit_l1'],
                         # 'plot': partial(timeseries, ylim = (0, 1000), alpha = 1.0),
                         'plot': [
-                            partial(timeseries, alpha = 0.5, linewidth=0.8),
+                            partial(timeseries, alpha = 0.8, linewidth=0.8, color='darkorange'),
                             # partial(timeseries, alpha = 0.8, linestyle='none', marker='$\$$', color='orange'),
                             # partial(timeseries, alpha = 0.8, linestyle='none', marker='o', fillstyle='none', markersize=10, color='orange'),
                         ],
@@ -301,7 +301,7 @@ graph = OrderedDict([
                                 histogram, histtype = 'stepfilled',
                                 orientation = 'horizontal',
                                 yticks = False, bins=21, # ylim = (0, 21),
-                                alpha = 0.5, density = True,
+                                alpha = 0.5, color='darkorange', density = True,
                             ),
                         ],
                         'title': 'Histogram',

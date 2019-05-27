@@ -21,7 +21,7 @@ from functools import reduce
 
 # global parameters can be overwritten from the commandline
 ros = False
-numsteps = 10000/5
+numsteps = int(10000/5)
 recurrent = True
 debug = False
 showplot = True
@@ -36,19 +36,24 @@ numloop = 7
 global numloop_inner
 numloop_inner = 20
 
-plot_legends = [{'$\min_i c_i$': 0, '$E(c_i)$': 1, '$\max_i c_i$': 2}]
+# plot_legends = [{'$\min_i c_i$': 0, '$E(c_i)$': 1, '$\max_i c_i$': 2}]
+plot_legends = [{'Min': 2, 'Mean': 1, 'Max': 0}]
 plot_legends += [{} for i in range(numloop-1)]
 plot_xticks = [False for i in range(numloop-1)]
 plot_xticks += [None]
+# plot_xticks += [[range(1, numloop_inner + 1)]]
 plot_titles = ['Budget statistics (min, mean, max)']
 plot_titles += ['' for i in range(numloop-1)]
 
-expr_name = 'Experiment 4: Random agent dimension statistics'
-desc = """This experiment is a structural variation of expr0020,
-computing the budget statistics over {0} episodes each, for all
-configurations of the sensorimotor dimension $d = {1}$""".format(
-    numloop_inner, list(range(1, numloop + 1))
-)
+expr_number=3
+expr_name = 'Experiment {0}: Random agent dimension statistics'.format(expr_number)
+desc = """This experiment further extends the previous ones by
+computing the budget statistics for increasing sensorimotor
+dimensions, starting from $d = 1$ in the top row to $d={1}$ at the
+bottom. Statistics are taken over {0} episodes for each dimension. The
+result that the naive random strategy fails at dimension $> 3$ should
+not be surprising from the theoretical prediction made
+above.""".format( numloop_inner, list(range(1, numloop + 1)))
 
 outputs = {
     'latex': {'type': 'latex',},
@@ -381,18 +386,18 @@ graph = OrderedDict([
             'savetype': 'pdf',
             'savesize': (9, 11),
             'wspace': 0.15,
-            'hspace': 0.5,
+            'hspace': 0.8,
             'fig_rows': numloop,
-            'fig_cols': 3,
-            'axesspec': reduce(lambda x, y: x + y, [[(i, slice(0, 2)), (i, 2)] for i in range(numloop)], []),
+            'fig_cols': 4,
+            'axesspec': reduce(lambda x, y: x + y, [[(i, 0), (i, slice(1, 3)), (i, 3)] for i in range(numloop)], []),
             'title': expr_name,
-            'desc': """The budget statistics as in Experiment 3 for
-            each configuration of the sensorimotor dimension $d$ with
-            $d \in [1, ..., {0}]$, increasing from top to bottom. This
-            picture tells the same story as
-            \\autoref{{fig:smp-expr-agent-baseline-proba}}, zeroth
-            order random search failing with increasing
-            dimension.""".format(numloop),
+            'desc': """The budget statistics as in Experiment 2 for
+            each sensorimotor dimension $d$ with $d \in [1, ...,
+            {0}]$, increasing from top to bottom. This picture is in
+            agreement with
+            \\autoref{{fig:smp-expr-agent-baseline-proba}}, that
+            zero-th order random search effectively fails in more than
+            3 dimensions, when the running mean goes to zero in every episode. This is the curse of dimensionality in action.""".format(numloop),
 
             'inputs': {
                 'mins_s': {'bus': 'b5/credit_min', 'shape': (1, numloop * numloop_inner)},
@@ -403,32 +408,40 @@ graph = OrderedDict([
                 
             'subplots': [
                 [
+                    {},
                     {
-                        'input': ['mins_s', 'maxs_s', 'mus_s'],
+                        'input': ['maxs_s', 'mus_s', 'mins_s'],
                         'xslice': (i * numloop_inner, (i+1) * numloop_inner),
                         'plot': partial(
                             timeseries,
                             ylim = (-100, 1100),
                             yscale = 'linear',
                             linestyle = 'none',
+                            alpha=0.8,
                             marker = 'o'),
+                        'cmap': ['CET_L18'],
+                        'cmap_off': [1,3,3],
                         'title': plot_titles[i],
                         'title_pos': 'top_out',
                         'legend_space': 1.0,
-                        'legend_loc': (-0.2, 1.0),
+                        'legend_loc': (-0.5, 0.0),
                         'legend': plot_legends[i],
                         'xticks': plot_xticks[i],
+                        'xlabel': 'Episode n'
                     },
                     
                     {
-                        'input': ['mins_s', 'maxs_s', 'mus_s'],
+                        'input': ['maxs_s', 'mus_s', 'mins_s'],
                         'xslice': (i * numloop_inner, (i+1) * numloop_inner),
                         'plot': partial(
                             histogram,
                             title = 'mean/min budget hist',
                             ylim = (-100, 1100),
+                            alpha=0.8,
                             yscale = 'linear',
                             orientation = 'horizontal'),
+                        'cmap': ['CET_L18'],
+                        'cmap_off': [1,3,3],
                         'title': '',
                         'title_pos': 'top_out',
                         'yticks': False,

@@ -60,6 +60,7 @@ lim = lconf['lim'] # 1.0
 
 expr_number = 1
 expr_name = 'Experiment {0}: Random agent short episode'.format(expr_number)
+
 desc = """The experiment consists of a short episode of {0} time steps
 of an agent following the baseline strategy, open-loop uniform random
 search in a bounded and homogenous space. The minimal function
@@ -261,10 +262,11 @@ graph = OrderedDict([
                         'lineseg_idx': [None] * 4 + [[(i, i+2) for i in range(0, 30-2)]],
                         'lineseg_val': [None] * 4 + [('pre_l0', 's_p') for i in range(0, 30-2)],
                         'event': [False] * 3 +  [True] + [False],
-                        'title': 'Goal, action, measurement',
+                        'title': 'Timeseries',
                         'title_pos': 'top_out',
                         'ylabel': 'unit action [a]',
                         'legend_space': 0.75,
+                        'legend_loc': 'right',
                         'legend': {
                             # 'goal $\smvecpre{s}^{l_1}_p$': 0, 'action $\hat{s}^{l_0}_p$': dim_s0, 'measured $s_p$': 2 * dim_s0,
                             'action': 0, 'measured': 1 * dim_s0, 'goal': 2 * dim_s0,
@@ -286,19 +288,20 @@ graph = OrderedDict([
                 ],
                 [
                     {
-                        'input': ['credit_l1', 'credit_l1', 'credit_l1'],
+                        'input': ['credit_l1'],
                         # 'plot': partial(timeseries, ylim=(0, 1000), alpha=1.0),
                         'plot': [
-                            partial(timeseries, alpha=0.5, linewidth=1.0),
+                            partial(timeseries, alpha=0.8, linewidth=1.0, color='darkorange'),
                             # partial(timeseries, alpha=0.8, linestyle='none', marker='$\$$', color='orange'),
                             # partial(timeseries, alpha=0.8, linestyle='none', marker='o', fillstyle='none', markersize=10, color='orange'),
                         ],
-                        'title': 'Agent budget',
+                        'title': 'Timeseries',
                         'title_pos': 'top_out',
                         'desc': 'Single episode pm1d baseline \\autoref{fig:exper-mem-000-ord-0-baseline-single-episode}',
                         'xlabel': 'time step [t]',
                         'ylabel': 'unit budget [c]',
-                        'legend': {'unit budget': 1},
+                        'legend': {'unit budget': 0},
+                        'legend_loc': 'right',
                         'legend_space': 0.75,
                     },
                     
