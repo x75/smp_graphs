@@ -31,6 +31,8 @@ showplot = True
 saveplot = True
 randseed = 126
 
+expr_number = 5
+expr_name="Experiment {0}".format(expr_number)
 desc = """The purpose of this and the next few experiments is to
 illustrate the effect of divergence through tight control of the motor
 to sensor mapping distortions, and the amount external entropy
@@ -55,7 +57,8 @@ numelem = 1001
 
 # local conf dict for looping
 lconf = {
-    'expr_number': 'expr0045',
+    'expr_number': expr_number,
+    'expr_name': expr_name,
     'dim': dim_s0,
     'dt': 0.1,
     'lag': 1,
@@ -267,6 +270,7 @@ graph = OrderedDict([
             }
         }
     }),
+    
     # m: information distance d(m1, m2) = 1 - (I(m1; m2)/H(m1,m2))
     ('m_di', {
         'block': InfoDistBlock2,
@@ -424,6 +428,92 @@ graph = OrderedDict([
         },
     }),
     
+    # m: divergence histos
+    ('m_div_kld', {
+        'block': MeasBlock2,
+        'params': {
+            'blocksize': numsteps,
+            'debug': False,
+            'mode': 'div',
+            'scope': 'local',
+            'meas': 'kld',
+            # direct histo input?
+            # or signal input
+            'inputs': {
+                # 'x1': {'bus': 'm_hist/x1_p', 'shape': (1, numbins)},
+                # 'x2': {'bus': 'm_hist/x2_p', 'shape': (1, numbins)},
+                'x1_p': {'bus': 'm_hist/x1_p', 'shape': (1, numbins)},
+                'x1_x': {'bus': 'm_hist/x1_x', 'shape': (1, numbins + 1)},
+                'x2_p': {'bus': 'm_hist/x2_p', 'shape': (1, numbins)},
+                'x2_x': {'bus': 'm_hist/x2_x', 'shape': (1, numbins + 1)},
+            },
+            'outputs': {
+                'y': {'shape': (1, numbins)},
+            },
+        },
+    }),
+    
+    # m: sum divergence
+    ('m_div_kld_sum', {
+        'block': FuncBlock2,
+        'params': {
+            'blocksize': numsteps,
+            'debug': False,
+            'func': f_sum,
+            'inputs': {
+                'x': {'bus': 'm_div_kld/y', 'shape': (1, numbins)},
+            },
+            'outputs': {
+                'y': {'shape': (1, 1)},
+            },
+        },
+    }),
+    
+    # # m: divergence histos
+    # ('m_div_emd', {
+    #     'block': MeasBlock2,
+    #     'params': {
+    #         'blocksize': numsteps,
+    #         'debug': False,
+    #         'mode': 'div',
+    #         'scope': 'local',
+    #         'meas': 'emd',
+    #         # direct histo input?
+    #         # or signal input
+    #         'inputs': {
+    #             # 'x1': {'bus': 'm_hist/x1_p', 'shape': (1, numbins)},
+    #             # 'x2': {'bus': 'm_hist/x2_p', 'shape': (1, numbins)},
+    #             'x1_p': {'bus': 'robot1/s0', 'shape': (1, numsteps)},
+    #             'x2_p': {'bus': 'pre_l2/y', 'shape': (1, numsteps)},
+    #             'x1_x': {'bus': 'robot1/s0', 'shape': (1, numsteps)},
+    #             'x2_x': {'bus': 'pre_l2/y', 'shape': (1, numsteps)},
+    #             # 'x1_p': {'bus': 'm_hist/x1_p', 'shape': (1, numbins)},
+    #             # 'x1_x': {'bus': 'm_hist/x1_x', 'shape': (1, numbins + 1)},
+    #             # 'x2_p': {'bus': 'm_hist/x2_p', 'shape': (1, numbins)},
+    #             # 'x2_x': {'bus': 'm_hist/x2_x', 'shape': (1, numbins + 1)},
+    #         },
+    #         'outputs': {
+    #             'y': {'shape': (1, numbins)},
+    #         },
+    #     },
+    # }),
+    
+    # # m: sum divergence
+    # ('m_div_pyemd_sum', {
+    #     'block': FuncBlock2,
+    #     'params': {
+    #         'blocksize': numsteps,
+    #         'debug': False,
+    #         'func': f_sum,
+    #         'inputs': {
+    #             'x': {'bus': 'm_div_pyemd/y', 'shape': (1, numbins)},
+    #         },
+    #         'outputs': {
+    #             'y': {'shape': (1, 1)},
+    #         },
+    #     },
+    # }),
+    
     # plotting random_lookup influence
     # one configuration plot grid:
     # | transfer func h | horizontal output | horziontal histogram |
@@ -441,6 +531,7 @@ graph = OrderedDict([
             'hspace': 0.3,
             'xlim_share': True,
             'ylim_share': True,
+            'title': expr_name,
             'inputs': {
                 's0': {'bus': 'robot1/s0', 'shape': (dim_s_proprio, numsteps)},
                 's_e': {'bus': 'robot1/s_extero', 'shape': (dim_s_extero, numsteps)},
@@ -464,8 +555,11 @@ graph = OrderedDict([
                 'm_err': {'bus': 'm_err/y', 'shape': (1, numsteps)},
                 'm_rmse': {'bus': 'm_rmse/y', 'shape': (1, 1)},
                 'm_div': {'bus': 'm_div/y', 'shape': (1, numbins)},
-                # 'm_sum_div': {'bus': 'm_sum_div/y', 'shape': (1, 1)},
+                'm_div_kld': {'bus': 'm_div_kld/y', 'shape': (1, numbins)},
                 'm_sum_div': {'bus': 'm_div_sum/y', 'shape': (1, 1)},
+                'm_sum_kld_div': {'bus': 'm_div_kld_sum/y', 'shape': (1, 1)},
+                # 'm_div_pyemd': {'bus': 'm_div_pyemd/y', 'shape': (1, numbins)},
+                # 'm_sum_pyemd_div': {'bus': 'm_div_pyemd_sum/y', 'shape': (1, 1)},
             },
             
             'desc': plot_desc,
@@ -569,7 +663,10 @@ graph = OrderedDict([
                         # 'plot': table,
                     },
                     {
-                        'input': ['m_div'], 'plot': partial(timeseries, linestyle = 'none', marker = 'o'),
+                        # 'input': ['m_div'],
+                        'input': ['m_div', 'm_div_kld'],
+                        # 'input': ['m_div', 'm_div_kld', 'm_div_pyemd'],
+                        'plot': partial(timeseries, linestyle = 'none', marker = 'o'),
                         'title': 'divergence$(P_X, P_Y)$',
                         'title_pos': 'top_out',
                         'shape': (1, numbins),
@@ -615,22 +712,26 @@ prediction and measurement.""".format(expr_number),
                 'm_mi': {'bus': 'm_mi/mi', 'shape': (dim_s0, 1, 1)},
                 'm_rmse': {'bus': 'm_rmse/y', 'shape': (1, 1)},
                 'm_div_sum': {'bus': 'm_div_sum/y', 'shape': (1, 1)},
-                # 'm_sum_div': {'bus': 'm_sum_div/y', 'shape': (1, 1)},
+                'm_div_kld_sum': {'bus': 'm_div_kld_sum/y', 'shape': (1, 1)},
+                # 'm_div_pyemd_sum': {'bus': 'm_div_pyemd_sum/y', 'shape': (1, 1)},
             },
             'layout': {
                 'numrows': 8,
                 'numcols': 2,
                 'rowlabels': ['Measure', 'global', 'direct'],
-                'collabels': ['budget_mu', 'budget_var', 'budget_min', 'budget_max', 'mi', 'di', 'rmse', 'div'],
+                'collabels': ['budget_mu', 'budget_var', 'budget_min', 'budget_max', 'rmse', 'di', 'chisq', 'kld'],
+                # 'collabels': ['budget_mu', 'budget_var', 'budget_min', 'budget_max', 'rmse', 'di', 'chisq', 'kld', 'pyemd'],
                 'cells': [
                     ['budget_mu', ] + [None] * 1,
                     ['budget_var', ] + [None] * 1,
                     ['budget_min', ] + [None] * 1,
                     ['budget_max', ] + [None] * 1,
-                    [None, 'm_mi'],
-                    [None, 'm_di'],
+                    # [None, 'm_mi'],
                     [None, 'm_rmse'],
+                    [None, 'm_di'],
                     [None, 'm_div_sum'],
+                    [None, 'm_div_kld_sum'],
+                    # [None, 'm_div_pyemd_sum'],
                 ],
             },
         },

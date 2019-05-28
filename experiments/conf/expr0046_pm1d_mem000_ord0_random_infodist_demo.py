@@ -44,6 +44,8 @@ budget = lconf['budget'] # 510
 lim = lconf['lim'] # 1.0
 numloop = lconf['numloop'] # 1.0
 
+expr_number=6
+expr_name = "Experiment {0}".format(expr_number)
 desc = """This experiment is using expr0045 as a starting point and
 iterating system configuration parameters controlling the shape of the
 transfer function. The shape produces an effect that is reflected in
@@ -71,7 +73,8 @@ es   = [0.0, 0.0, 0.0, 0.5]
 
 # final: random sampling in d space
 loop = [('lconf', {
-    'expr_number': 'expr0046-{0}'.format(i+1),
+    'expr_number': 6, # 'expr0046-{0}'.format(i+1),
+    'expr_name': "Experiment 6",
     'dim': 1,
     'dt': 0.1,
     'lag': 1,
