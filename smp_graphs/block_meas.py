@@ -345,56 +345,70 @@ class MeasBlock2(PrimBlock2):
         self._step(x)
         
     def step_basic(self, x = None):
-        
-        # # print "MeasBlock2"
-        # for k, v in self.inputs.items():
-        #     logstr = 'k = {0}, v = {1}'.format(k, v)
-        #     self._debug(logstr)
+        """step_basic
 
+        Step function for basic measure blocks.
+        """
+        # get input points to measure distance
         x1 = self.get_input('x1').astype(np.float)
         x2 = self.get_input('x2').astype(np.float)
+        # debug
         self._debug('self.measures     is type = %s, length = %s' % (type(self.measures), len(self.measures)))
         self._debug('self.measures[%s] is type = %s, length = %s' % (self.meas, type(self.measures[self.meas]), len(self.measures[self.meas])))
         self._debug('calling %s on (x1 = %s, x2 = %s)' % (self.measures[self.meas]['func'], x1.shape, x2.shape))
         self._debug('               x1 = %s' % (x1, ))
         self._debug('               x2 = %s' % (x2, ))
+        # run measure from dict
         self.y_ = self.measures[self.meas]['func'](x1, x2)
+        # debug
         self._debug('               y_ = %s' % (self.y_, ))
         if type(self.y_) is tuple:
             self.y_ = self.y_[0]
+        # store result
         setattr(self, 'y', self.y_)
-        
+        # debug
         self._debug('y = measures[%s](x1, x2) = %s' % (self.meas, str(self.y)[:300]))
 
     def step_div(self, x = None):
+        """step_div
+
+        Step function for divergence measure blocks
+        """
+        # get input probabilities, expected normed histogram
         x1_p = self.get_input('x1_p').astype(np.float)
         x2_p = self.get_input('x2_p').astype(np.float)
+        # get input probabilities domain as histogram bin boundaries
         x1_x = self.get_input('x1_x').astype(np.float)
         x2_x = self.get_input('x2_x').astype(np.float)
-        
+        # debug
         self._debug('self.measures     is type = %s, length = %s' % (type(self.measures), len(self.measures)))
         self._debug('self.measures[%s] is type = %s, length = %s' % (self.meas, type(self.measures[self.meas]), len(self.measures[self.meas])))
         self._debug('    step_div calling %s on (x1 = %s, x2 = %s)' % (self.measures[self.meas]['func'], x1_p.shape, x2_p.shape))
         self._debug('               x1 = %s' % (x1_p, ))
         self._debug('               x2 = %s' % (x2_p, ))
-        
+
+        # strip dimension if two-dimensional
         if len(x1_x.shape) > 1: x1_x = x1_x[0,:]
         if len(x2_x.shape) > 1: x2_x = x2_x[0,:]
         assert len(x1_x.shape) == 1, "Assuming 1d bin specs but got %s in MeasBlock2.step_div from block id = %s " % (x1_x.shape, self.id)
         # distmat d(x1_i, x2_j)
+        # tmp copies
         x1_x_ = x1_x
         x2_x_ = x2_x
+        # equalize array lengths by one
         if  x1_x.shape[0] != x1_p.shape[0]: # bin limits
             # x1_x_ = x1_x[:-1] + np.mean(np.abs(np.diff(x1_x)))/2.0
             x1_x_ = x1_x[:-1] + np.abs(np.diff(x1_x))/2.0
         if x2_x.shape[0] != x2_p.shape[0]: # bin limits
             # x2_x_ = x2_x[:-1] + np.mean(np.abs(np.diff(x2_x)))/2.0
             x2_x_ = x2_x[:-1] + np.abs(np.diff(x2_x))/2.0
-            
-        distmat = x1_x_[None,:] - x2_x_[:,None]
-        self._debug('    distmat = %s' % (distmat.shape, ))
 
-        div, flow = self.measures[self.meas]['func'](x1_p, x2_p, distmat, flow = True)
+        # # compute distance matrix (pyemd only?)
+        # distmat = x1_x_[None,:] - x2_x_[:,None]
+        # self._debug('    distmat = %s' % (distmat.shape, ))
+
+        # div, flow = self.measures[self.meas]['func'](x1_p, x2_p, distmat, flow = True)
+        div, flow = self.measures[self.meas]['func'](x1_p, x2_p, x1=x1_x_, x2=x2_x_, flow = True)
         if self.scope == 'local':
             # setattr(self, 'y', np.sum(flow, axis = 0))
             setattr(self, 'y', flow)
@@ -420,7 +434,7 @@ class MeasBlock2(PrimBlock2):
         for ink, inv in list(self.inputs.items()):
             x = self.get_input(ink)
             self._debug('    calling %s on (x = %s, bins = %s)' % (self.measures[self.meas]['func'], x.shape, self.bins))
-            _h = self.measures[self.meas]['func'](x, bins = self.bins)
+            _h = self.measures[self.meas]['func'](x, bins = self.bins, density=self.density)
             # h_ is a tuple (counts, bins)
             self._debug('    _h[0].shape = %s, _h[1].shape = %s, bins = %s' % (_h[0].shape, _h[1].shape, self.bins))
             setattr(self, '%s%s' % (ink, MeasBlock2.output_modifiers['proba']), _h[0])
