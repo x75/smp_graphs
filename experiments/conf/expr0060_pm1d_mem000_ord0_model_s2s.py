@@ -67,6 +67,8 @@ p_vars = ['robot1/s0']
 # m_vars = ['robot1/s0']
 m_vars = ['pre_l2/y']
 
+expr_number=8
+expr_name='Experiment {0}'.format(expr_number)
 desc = """This experiment extends \\ref{{{4}}} with an
 adaptive model s2s. The model is used in the agent's brain as a map
 taking measurements to their causes in prediction space. This is

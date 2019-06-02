@@ -23,7 +23,7 @@ from smp_graphs.utils_conf import get_systemblock
 
 # global parameters can be overwritten from the commandline
 ros = False
-numsteps = int(10000/5)
+numsteps = int(10000/20)
 numbins = 21
 recurrent = True
 debug = False
@@ -713,7 +713,7 @@ graph = OrderedDict([
             'hspace': 0.2,
             'xlim_share': True,
             'ylim_share': True,
-            'title': expr_name,
+            'title': '{0}'.format(lconf['expr_name']),
             'inputs': {
                 'pre_l2_h': {'bus': 'pre_l2/h', 'shape': (dim_s_proprio, 1001)},
                 'm_div': {'bus': 'm_div/y', 'shape': (1, numbins)},
@@ -763,7 +763,8 @@ graph = OrderedDict([
                         'xaxis': m_hist_bincenters, 'xlabel': 'bins $k$',
                         # 'yticks': False,
                         # normalize to original range
-                        'ylim': None, 'ylabel': 'amount of div',
+                        # 'ylim': None, 'ylabel': 'amount of div',
+                        'ylim': (0, 0.2), 'ylabel': 'amount of div',
                         'legend': {
                             # '%s' % (div_meas, ): 0,
                             # 'kld': 1,
@@ -790,7 +791,7 @@ graph = OrderedDict([
 this table gives the budget descriptive statistics in the top four
 rows, followed by the mutual information, information distance, root
 means square error, and divergence of the proprioceptive state
-prediction and measurement.""".format(expr_number),
+prediction and measurement.""".format(lconf['expr_number']),
             'desc': '',
             'inputs': {
                 # global budget stats

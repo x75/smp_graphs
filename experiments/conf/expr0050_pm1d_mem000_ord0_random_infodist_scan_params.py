@@ -23,7 +23,7 @@ from smp_graphs.utils_conf import get_systemblock
 
 # global parameters can be overwritten from the commandline
 ros = False
-numsteps = 10000/5
+numsteps = int(10000/20)
 recurrent = True
 debug = False
 showplot = True
@@ -66,9 +66,18 @@ numloop_param = 6
 
 numloop = len(l_as)
 
+expr_number = 7
+expr_name = 'Experiment 7'
+desc = """This experiment extends experiment 6 by performing a scan
+over {0} types of distortion parameters, {1}, that affect the
+information distance between the variable
+distributions.""".format(numloop_types, ', '.join(numloop_types_names))
+
 # looper lconf
 global lconf
 lconf = {
+    'expr_number': expr_number,
+    'expr_name': expr_name,
     'dim': 1,
     'dt': 0.1,
     'lag': 1,
@@ -92,18 +101,15 @@ lim = lconf['lim'] # 1.0
 # m_inputs = OrderedDict([('m_di', {'xtwin': False})])
 m_inputs = OrderedDict(
     [
-        ('m_sum_div', {'xtwin': False,}),
 #        ('m_div_sum', {'xtwin': False,}),
         ('m_budget_mu', {'xtwin': False,}),
         ('m_rmse', {'xtwin': True,}),
         ('m_di', {'xtwin': True}),
+        ('m_sum_div', {'xtwin': True,}),
+        ('m_sum_kld_div', {'xtwin': True,}),
+        ('m_sum_emd_div', {'xtwin': True,}),
     ]
 )
-
-desc = """This experiment extends expr0046 by performing a scan over
-{0} types of distortion parameters, {1}, that affect the information
-distance between the variable distributions.""".format(numloop_types,
-','.join(numloop_types_names))
 
 outputs = {
     'latex': {'type': 'latex',},
@@ -111,7 +117,8 @@ outputs = {
 
 # final: random sampling in d space with loopblock lconf
 loop = [('lconf', {
-    'expr_number': 'expr0050-{0}'.format(i+1),
+    'expr_number': lconf['expr_number'],
+    'expr_name': lconf['expr_name'],
     'dim': 1,
     'dt': 0.1,
     'lag': 1,
@@ -168,6 +175,8 @@ loopblock = {
             'gm_di': {'shape': (1, 1, 1), 'buscopy': 'm_di/infodist'},
             #'gm_sum_div': {'shape': (1, 1), 'buscopy': 'm_sum_div/y'},
             'gm_sum_div': {'shape': (1, 1), 'buscopy': 'm_div_sum/y'},
+            'gm_sum_kld_div': {'shape': (1, 1), 'buscopy': 'm_div_kld_sum/y'},
+            'gm_sum_emd_div': {'shape': (1, 1), 'buscopy': 'm_div_emd_sum/y'},
             'gm_rmse': {'shape': (1, 1), 'buscopy': 'm_rmse/y'},
             'gm_budget_mu': {'shape': (1, 1), 'buscopy': 'm_budget/y_mu'},
             'pre_l2_h': {'shape': (dim_s_proprio, lconf['loop_pre_l2_numelem']), 'buscopy': 'pre_l2/h'},
@@ -213,6 +222,8 @@ graph = OrderedDict([
                 'gm_mi': {'shape': (1, 1, numloop)},
                 'gm_di': {'shape': (1, 1, numloop)},
                 'gm_sum_div': {'shape': (1, numloop)},
+                'gm_sum_kld_div': {'shape': (1, numloop)},
+                'gm_sum_emd_div': {'shape': (1, numloop)},
                 'gm_rmse': {'shape': (1, numloop)},
                 'gm_budget_mu': {'shape': (1, numloop)},
                 'pre_l2_h': {'shape': (dim_s_proprio, lconf['loop_pre_l2_numelem'] * numloop)},
@@ -266,6 +277,7 @@ graph = OrderedDict([
             'hspace': 0.3,
             'wspace': 0.2,
             'savesize': (8, 5),
+            'title': lconf['expr_name'],
             'desc': """A sweep scan over the three main types of
         distortion parameters %s, of the model system. Each type scan
         is shown in one row of plots and each parameter value shown in
@@ -275,11 +287,13 @@ graph = OrderedDict([
         external entropy random variable, whose distribution is
         resampled at every time step for the state
         update.""".format(','.join(numloop_types_names)),
-        
+            
             'inputs': {
                 'm_mi': {'bus': 'b4/gm_mi', 'shape': (1, 1, numloop)},
                 'm_di': {'bus': 'b4/gm_di', 'shape': (1, 1, numloop)},
                 'm_sum_div': {'bus': 'b4/gm_sum_div', 'shape': (1, numloop)},
+                'm_sum_kld_div': {'bus': 'b4/gm_sum_kld_div', 'shape': (1, numloop)},
+                'm_sum_emd_div': {'bus': 'b4/gm_sum_emd_div', 'shape': (1, numloop)},
                 'm_rmse': {'bus': 'b4/gm_rmse', 'shape': (1, numloop)},
                 'm_budget_mu': {'bus': 'b4/gm_budget_mu', 'shape': (1, numloop)},
                 'pre_l2_h': {'bus': 'b4/pre_l2_h', 'shape': (dim_s_proprio, lconf['loop_pre_l2_numelem'] * numloop)},
@@ -317,11 +331,13 @@ graph = OrderedDict([
                             (slice(j * numloop_param, (j + 1) * numloop_param), slice(None)),
                             (slice(j * numloop_param, (j + 1) * numloop_param), slice(None)),
                             (slice(j * numloop_param, (j + 1) * numloop_param), slice(None)),
-                            (slice(j * numloop_param, (j + 1) * numloop_param), slice(None), 0),
+                            (slice(j * numloop_param, (j + 1) * numloop_param), slice(None)),
+                            (slice(j * numloop_param, (j + 1) * numloop_param), slice(None)),
+                            (slice(j * numloop_param, (j + 1) * numloop_param), slice(None)),
                             # (slice(j * numloop_param, (j + 1) * numloop_param), slice(None), 0),
                         ],
                         'shape': (1, numloop_param),
-                        'title': 'error and divergence measures',
+                        'title': 'error and divergence',
                         'title_pos': 'top_out',
                         # 'ylim': (-30, 1030),
                         'plot': [

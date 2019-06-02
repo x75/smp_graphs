@@ -74,7 +74,7 @@ es   = [0.0, 0.0, 0.0, 0.5]
 # final: random sampling in d space
 loop = [('lconf', {
     'expr_number': 6, # 'expr0046-{0}'.format(i+1),
-    'expr_name': "Experiment 6",
+    'expr_name': "Experiment 6-{0}".format(i),
     'dim': 1,
     'dt': 0.1,
     'lag': 1,

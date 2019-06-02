@@ -311,6 +311,7 @@ class MeasBlock2(PrimBlock2):
         },
         'mode': 'basic',
         'scope': 'local',
+        'density': True,
         'meas': 'mse',
         'bins': 21, # 'auto',
     }
