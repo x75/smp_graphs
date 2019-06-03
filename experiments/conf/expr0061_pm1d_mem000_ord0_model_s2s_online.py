@@ -145,7 +145,7 @@ loop = [('lconf', {
         's_f': 2.0,
         'e': 0.0,
     },
-    'div_meas': 'kld', # 'chisq'
+    'div_meas': 'chisq',
     # 'model_s2s': {
     #     'block': repr(ModelBlock2),
     'model_s2s_params': {

@@ -425,7 +425,7 @@ class TextBlock2(BaseplotBlock2):
                     # print "cell", tablerow, tablecol
                     if tablecol is not None:
                         cellv = self.inputs[tablecol]['val'].flatten()[0]
-                        self.textbuf += '& ${:10.4f}$'.format(cellv)
+                        self.textbuf += '& ${:10.2f}$'.format(cellv)
                     else:
                         self.textbuf += '& '
                 self.textbuf +=  '\\\\\n' # row terminate
