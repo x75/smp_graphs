@@ -52,7 +52,7 @@ from smp_graphs.utils_conf import get_systemblock
 
 # global parameters can be overwritten from the commandline
 ros = False
-numsteps = 10000/10
+numsteps = int(10000/10)
 numbins = 21
 recurrent = True
 debug = False
@@ -68,28 +68,36 @@ p_vars = ['robot1/s0']
 m_vars = ['pre_l2/y']
 
 expr_number=8
-expr_name='Experiment {0}'.format(expr_number)
-desc = """This experiment extends \\ref{{{4}}} with an
-adaptive model s2s. The model is used in the agent's brain as a map
-taking measurements to their causes in prediction space. This is
-achieved by assigning measurements {1} to the model's inputs $X$ and
-predictions {2} to the models targets $Y$. The experiment contains an
-episode of {0} steps like
-\\ref{{{4}}}, with a
-model fitting and prediction step appended at the end of the
-episode. The resulting model's characteristics are shown as a transfer
-function which is obtained by sampling the model after fitting. The
-models predictions are shown as a timeseries and the error {2} - {3}
-is superimposed on the original error. These show that the adaptive
-model indeed manages to learn an adequate inverse mapping of the
-original transfer function and to reduce the resulting prediction
-error.""".format(numsteps, re.sub(r'_', r'\\_', str(m_vars)), re.sub(r'_', r'\\_', str(p_vars)), ['mdl1/y'], 'sec:smp-expr0045-pm1d-mem000-ord0-random-infodist-id')
+expr_name = 'Experiment {0}'.format(expr_number)
+desc = """The system consists of a point mass robot, now equipped with
+with an adaptive internal model. The model's function is to invert the
+effects of body and environment on the sensory measurements. This is
+achieved by assigning a goal and current measurements {1} to the
+model's inputs and predictions {2} to the models outputs. The output
+target is taken to be the measurement {1}. The setup is shown in the
+diagram in \\autoref{{fig:im-basic-1}}.
+
+The experiment contains an episode of {0} steps, with a model fitting
+and prediction step appended at the end of the episode. The resulting
+model's characteristics are shown as a transfer function which is
+obtained by sampling the model after fitting. The models predictions
+are shown as a timeseries and the error {2} - {3} is superimposed on
+the original error. These show that the adaptive model indeed manages
+to learn an adequate inverse mapping of the original transfer function
+and to reduce the resulting prediction error.""".format(
+    numsteps,
+    '$\smvecmes{s}$', # re.sub(r'_', r'\\_', str(m_vars)),
+    '$\smvecpre{s}$', # re.sub(r'_', r'\\_', str(p_vars)),
+    ['mdl1/y'],
+)
 
 dim_s0 = 1
 numelem = 1001
 
 # local conf dict for looping
 lconf = {
+    'expr_number': expr_number,
+    'expr_name': expr_name,
     'dim': 1,
     'dt': 0.1,
     'lag': 1,
@@ -476,6 +484,8 @@ graph = OrderedDict([
             'outputs': {
                 'x1_p': {'shape': (1, numbins)},
                 'x2_p': {'shape': (1, numbins)},
+                'x1_x': {'shape': (1, numbins+1)},
+                'x2_x': {'shape': (1, numbins+1)},
             },
         },
     }),
@@ -522,6 +532,263 @@ graph = OrderedDict([
         },
     }),
     
+    # m: divergence histos
+    ('m_div_kld', {
+        'block': MeasBlock2,
+        'params': {
+            'blocksize': numsteps,
+            'debug': False,
+            'mode': 'div',
+            'scope': 'local',
+            'meas': 'kld',
+            # direct histo input?
+            # or signal input
+            'inputs': {
+                # 'x1': {'bus': 'm_hist/x1_p', 'shape': (1, numbins)},
+                # 'x2': {'bus': 'm_hist/x2_p', 'shape': (1, numbins)},
+                'x1_p': {'bus': 'm_hist/x1_p', 'shape': (1, numbins)},
+                'x1_x': {'bus': 'm_hist/x1_x', 'shape': (1, numbins + 1)},
+                'x2_p': {'bus': 'm_hist/x2_p', 'shape': (1, numbins)},
+                'x2_x': {'bus': 'm_hist/x2_x', 'shape': (1, numbins + 1)},
+            },
+            'outputs': {
+                'y': {'shape': (1, numbins)},
+            },
+        },
+    }),
+    
+    # m: sum divergence
+    ('m_div_kld_sum', {
+        'block': FuncBlock2,
+        'params': {
+            'blocksize': numsteps,
+            'debug': False,
+            'func': f_sum,
+            'inputs': {
+                'x': {'bus': 'm_div_kld/y', 'shape': (1, numbins)},
+            },
+            'outputs': {
+                'y': {'shape': (1, 1)},
+            },
+        },
+    }),
+    
+    # m: divergence histos
+    ('m_div_emd', {
+        'block': MeasBlock2,
+        'params': {
+            'blocksize': numsteps,
+            'debug': False,
+            'mode': 'div',
+            'scope': 'local',
+            # 'meas': 'wasserstein',
+            'meas': 'pyemd',
+            # 'meas': 'cbemd',
+            # direct histo input?
+            # or signal input
+            'inputs': {
+                # 'x1': {'bus': 'm_hist/x1_p', 'shape': (1, numbins)},
+                # 'x2': {'bus': 'm_hist/x2_p', 'shape': (1, numbins)},
+                # 'x1_p': {'bus': 'robot1/s0', 'shape': (1, numsteps)},
+                # 'x2_p': {'bus': 'pre_l2/y', 'shape': (1, numsteps)},
+                # 'x1_x': {'bus': 'robot1/s0', 'shape': (1, numsteps)},
+                # 'x2_x': {'bus': 'pre_l2/y', 'shape': (1, numsteps)},
+                'x1_p': {'bus': 'm_hist/x1_p', 'shape': (1, numbins)},
+                'x1_x': {'bus': 'm_hist/x1_x', 'shape': (1, numbins + 1)},
+                'x2_p': {'bus': 'm_hist/x2_p', 'shape': (1, numbins)},
+                'x2_x': {'bus': 'm_hist/x2_x', 'shape': (1, numbins + 1)},
+            },
+            'outputs': {
+                'y': {'shape': (1, numbins)},
+            },
+        },
+    }),
+    
+    # m: sum divergence
+    ('m_div_emd_sum', {
+        'block': FuncBlock2,
+        'params': {
+            'blocksize': numsteps,
+            'debug': False,
+            'func': f_sum,
+            'inputs': {
+                'x': {'bus': 'm_div_emd/y', 'shape': (1, numbins)},
+            },
+            'outputs': {
+                'y': {'shape': (1, 1)},
+            },
+        },
+    }),
+    
+    # # plotting random_lookup influence
+    # # one configuration plot grid:
+    # # | transfer func h | horizontal output | horziontal histogram |
+    # # | vertical input  | information meas  | -                    |
+    # # | vertical histo  | -                 | - (here the model)   |
+    # ('plot', {
+    #     'block': PlotBlock2,
+    #     'params': {
+    #         # 'debug': True,
+    #         'blocksize': numsteps,
+    #         'saveplot': saveplot,
+    #         'savetype': 'pdf',
+    #         'wspace': 0.15,
+    #         'hspace': 0.1,
+    #         'xlim_share': True,
+    #         'ylim_share': True,
+    #         'title': lconf['expr_name'],
+    #         'inputs': {
+    #             's_p': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
+    #             's_e': {'bus': 'robot1/s1', 'shape': (dim_s_extero, numsteps)},
+    #             'pre_l0': {'bus': 'pre_l0/pre', 'shape': (dim_s_goal, numsteps)},
+    #             'pre_l1': {'bus': 'pre_l1/pre', 'shape': (dim_s_goal, numsteps)},
+    #             'pre_l2': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)},
+    #             'pre_l2_h': {'bus': 'pre_l2/h', 'shape': (dim_s0, numelem)},
+    #             'mdl1_y': {'bus': 'mdl1/y', 'shape': (dim_s0, numsteps)},
+    #             'mdl1_h': {'bus': 'mdl1/h', 'shape': (dim_s0, numelem)},
+    #             'm_err_mdl1': {'bus': 'm_err_mdl1/y', 'shape': (1, numsteps)},
+    #             'm_err_mdl1_amp': {'bus': 'm_err_mdl1_amp/y', 'shape': (1, numsteps)},
+    #             'credit_l1': {'bus': 'budget/credit', 'shape': (1, numsteps)},
+    #             'budget_mu': {'bus': 'm_budget/y_mu', 'shape': (1, 1)},
+    #             'budget_var': {'bus': 'm_budget/y_var', 'shape': (1, 1)},
+    #             'budget_min': {'bus': 'm_budget/y_min', 'shape': (1, 1)},
+    #             'budget_max': {'bus': 'm_budget/y_max', 'shape': (1, 1)},
+    #             'm_di': {
+    #                 'bus': 'm_di/infodist',
+    #                 'shape': (dim_s0, 1, 1)
+    #             },
+    #             'm_mi': {
+    #                 'bus': 'm_mi/mi',
+    #                 'shape': (dim_s0, 1, 1)
+    #             },
+    #             'm_err': {'bus': 'm_err/y', 'shape': (1, numsteps)},
+    #             'm_rmse': {'bus': 'm_rmse/y', 'shape': (1, 1)},
+    #             'm_div': {'bus': 'm_div/y', 'shape': (1, numbins)},
+    #             'm_sum_div': {'bus': 'm_sum_div/y', 'shape': (1, 1)},
+    #         },
+    #         'desc': 'result. In the lower left part of the figure the prediction histogram and timeseries are shown. In the experiment, the signal is transferred by the transfer function pre\_l2/$h$ and is transformed into the signal $y$ whose histogram diverges by the amount shown in the lower right corner divergence plot. In the error timeseries panel, the original prediction error and the error after the adaptive model\'s transformation are shown on top of each other, together with a magnitude estimate of the second error shown as a red line.',
+
+    #         # subplot
+    #         'subplots': [
+    #             # row 1: transfer func, out y time, out y histo
+    #             [
+    #                 {
+    #                     'input': ['pre_l2_h'], 'plot': timeseries,
+    #                     'title': 'transfer function $h$', 'aspect': 1.0, 
+    #                     'xaxis': np.linspace(-1, 1, 1001), # 'xlabel': 'input [x]',
+    #                     'xlim': (-1.1, 1.1), 'xticks': True, 'xticklabels': False,
+    #                     'ylabel': 'output $y = h(x)$',
+    #                     'ylim': (-1.1, 1.1), 'yticks': True,
+    #                     'legend_loc': 'right',
+    #                 },
+    #                 {
+    #                     'input': ['pre_l2'], 'plot': timeseries,
+    #                     'title': 'timeseries $y$', 'aspect': 'auto', # (1*numsteps)/(2*2.2),
+    #                     'xlim': None, 'xticks': False, 'xticklabels': False,
+    #                     # 'xlabel': 'time step $k$',
+    #                     'ylim': (-1.1, 1.1),
+    #                     'yticks': True, 'yticklabels': False,
+    #                     'legend_loc': 'left',
+    #                 },
+    #                 {
+    #                     'input': ['mdl1_h'], 'plot': timeseries,
+    #                     'title': 'transfer function $h$', 'aspect': 1.0, 
+    #                     'xaxis': np.linspace(-1, 1, 1001), # 'xlabel': 'input [x]',
+    #                     'xlim': (-1.1, 1.1), 'xticks': True, 'xticklabels': False,
+    #                     'ylabel': 'output $y = h(x)$',
+    #                     'ylim': (-1.1, 1.1), 'yticks': True,
+    #                     'legend_loc': 'left',
+    #                 },
+    #                 {
+    #                     'input': ['pre_l2'], 'plot': histogram,
+    #                     'title': 'histogram $y$', 'aspect': 'auto', # (1*numsteps)/(2*2.2),
+    #                     'orientation': 'horizontal',
+    #                     'xlim': None, # 'xticks': False, 'xticklabels': None,
+    #                     'xlabel': 'count $c$',
+    #                     'ylim': (-1.1, 1.1),
+    #                     'yticks': True, 'yticklabels': False,
+    #                     'legend_loc': 'left',
+    #                 },
+    #             ],
+                
+    #             # row 2: in x time, error x - y time, none
+    #             [
+    #                 {
+    #                     'input': ['s_p'], 'plot': timeseries,
+    #                     'title': 'timeseries $x$',
+    #                     'aspect': 2.2/numsteps,
+    #                     'orientation': 'vertical',
+    #                     'xlim': None, 'xticks': False, # 'xticklabels': False,
+    #                     # 'xlabel': 'time step $k$',
+    #                     'yticks': False,
+    #                     'ylim': (-1.1, 1.1),
+    #                     'legend_loc': 'right',
+    #                 },
+    #                 {
+    #                     'input': ['m_err', 'm_err_mdl1', 'm_err_mdl1_amp'], 'plot': [timeseries, partial(timeseries, alpha = 0.7), partial(timeseries, color = 'r')],
+    #                     'title': 'error $x - y$',
+    #                     # 'aspect': 'auto',
+    #                     # 'orientation': 'horizontal',
+    #                     'xlim': None, # 'xticks': False, # 'xticklabels': False,
+    #                     'xlabel': 'time step $k$',
+    #                     # 'yticks': False,
+    #                     # normalize to original range
+    #                     'ylim': (-1.1, 1.1), # None,
+    #                     # 'legend_loc': 'right',
+    #                 },
+    #                 {
+    #                     'input': ['mdl1_y'], 'plot': timeseries,
+    #                     'title': 'timeseries $x$',
+    #                     'aspect': 2.2/numsteps,
+    #                     'orientation': 'vertical',
+    #                     'xlim': None, 'xticks': False, # 'xticklabels': False,
+    #                     # 'xlabel': 'time step $k$',
+    #                     'yticks': False,
+    #                     'ylim': (-1.1, 1.1),
+    #                     'legend_loc': 'left',
+    #                 },
+    #                 {},
+    #             ],
+                
+    #             # row 3: in x histo, measures global, divergence h1, h2
+    #             [
+    #                 {
+    #                     'input': ['s_p'], 'plot': histogram,
+    #                     'title': 'histogram $x$', 'aspect': 'shared', # (1*numsteps)/(2*2.2),
+    #                     'orientation': 'vertical',
+    #                     'xlim': (-1.1, 1.1), 'xinvert': False, # 'xticks': False, 'xticklabels': None, #
+    #                     'xlabel': 'input $x \in [-1, ..., 1]$', 
+    #                     'ylim': None, 'yinvert': True,  # 'yticks': None, 'yticklabels': None,
+    #                     'ylabel': 'count $c$',
+    #                     'legend_loc': 'right',
+    #                 },
+    #                 {
+    #                     # 'input': ['budget_%s' % (outk,) for outk in ['mu', 'var', 'min', 'max']] + ['m_mi', 'm_di', 'm_rmse', 'm_sum_div'],
+    #                     # 'shape': [(1, 1) for outk in ['mu', 'var', 'min', 'max', 'm_mi', 'm_di', 'm_rmse', 'm_sum_div']],
+    #                     # 'mode': 'stack',
+    #                     # 'title': 'measures', 'title_pos': 'bottom',
+    #                     # 'plot': table,
+    #                 },
+    #                 {},
+    #                 {
+    #                     'input': ['m_div'], 'plot': partial(timeseries, linestyle = 'none', marker = 'o'),
+    #                     'title': 'histogram divergence %s $h1 - h2$' % (div_meas, ),
+    #                     'shape': (1, numbins),
+    #                     # 'aspect': 'auto',
+    #                     # 'orientation': 'horizontal',
+    #                     'xlim': None, # 'xticks': False, # 'xticklabels': False,
+    #                     'xaxis': m_hist_bincenters, 'xlabel': 'bins $k$',
+    #                     # 'yticks': False,
+    #                     # normalize to original range
+    #                     'ylim': None, 'ylabel': 'divergence'
+    #                     # 'legend_loc': 'right',
+    #                 },
+    #             ],
+                
+    #         ],
+    #     },
+    # }),
+
     # plotting random_lookup influence
     # one configuration plot grid:
     # | transfer func h | horizontal output | horziontal histogram |
@@ -534,10 +801,12 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'pdf',
-            'wspace': 0.15,
-            'hspace': 0.1,
+            'savesize': (8, 3),
+            'wspace': 0.3,
+            'hspace': 0.3,
             'xlim_share': True,
             'ylim_share': True,
+            'title': lconf['expr_name'],
             'inputs': {
                 's_p': {'bus': p_vars[0], 'shape': (dim_s0, numsteps)},
                 's_e': {'bus': 'robot1/s1', 'shape': (dim_s_extero, numsteps)},
@@ -567,129 +836,59 @@ graph = OrderedDict([
                 'm_div': {'bus': 'm_div/y', 'shape': (1, numbins)},
                 'm_sum_div': {'bus': 'm_sum_div/y', 'shape': (1, 1)},
             },
-            'desc': 'result. In the lower left part of the figure the prediction histogram and timeseries are shown. In the experiment, the signal is transferred by the transfer function pre\_l2/$h$ and is transformed into the signal $y$ whose histogram diverges by the amount shown in the lower right corner divergence plot. In the error timeseries panel, the original prediction error and the error after the adaptive model\'s transformation are shown on top of each other, together with a magnitude estimate of the second error shown as a red line.',
+            'desc': """In the lower left part of the figure the
+            prediction histogram and timeseries are shown. In the
+            experiment, the signal is transferred by the transfer
+            function pre\_l2/$h$ and is transformed into the signal
+            $y$ whose histogram diverges by the amount shown in the
+            lower right corner divergence plot. In the error
+            timeseries panel, the original prediction error and the
+            error after the adaptive model\'s transformation are shown
+            on top of each other, together with a magnitude estimate
+            of the second error shown as a red line.""",
 
             # subplot
             'subplots': [
                 # row 1: transfer func, out y time, out y histo
                 [
                     {
-                        'input': ['pre_l2_h'], 'plot': timeseries,
-                        'title': 'transfer function $h$', 'aspect': 1.0, 
+                        'input': ['pre_l2_h', 'mdl1_h'], 'plot': timeseries,
+                        'title': None, # 'System transfer function $h$',
+                        'aspect': 1.0, 
                         'xaxis': np.linspace(-1, 1, 1001), # 'xlabel': 'input [x]',
-                        'xlim': (-1.1, 1.1), 'xticks': True, 'xticklabels': False,
+                        'xlim': (-1.1, 1.1),
+                        'ylim': (-1.1, 1.1),
+                        'xticks': (-1, 0, 1), # True,
+                        'xticklabels': (-1, 0, 1), # True,
+                        'yticks': (-1, 0, 1), # True,
+                        'yticklabels': (-1, 0, 1), # True,
                         'ylabel': 'output $y = h(x)$',
-                        'ylim': (-1.1, 1.1), 'yticks': True,
+                        'xlabel': 'input x',
+                        # 'legend': None,
+                        'legend': {'System h': 0, 'Model h': 1},
                         'legend_loc': 'right',
                     },
-                    {
-                        'input': ['pre_l2'], 'plot': timeseries,
-                        'title': 'timeseries $y$', 'aspect': 'auto', # (1*numsteps)/(2*2.2),
-                        'xlim': None, 'xticks': False, 'xticklabels': False,
-                        # 'xlabel': 'time step $k$',
-                        'ylim': (-1.1, 1.1),
-                        'yticks': True, 'yticklabels': False,
-                        'legend_loc': 'left',
-                    },
-                    {
-                        'input': ['mdl1_h'], 'plot': timeseries,
-                        'title': 'transfer function $h$', 'aspect': 1.0, 
-                        'xaxis': np.linspace(-1, 1, 1001), # 'xlabel': 'input [x]',
-                        'xlim': (-1.1, 1.1), 'xticks': True, 'xticklabels': False,
-                        'ylabel': 'output $y = h(x)$',
-                        'ylim': (-1.1, 1.1), 'yticks': True,
-                        'legend_loc': 'left',
-                    },
-                    {
-                        'input': ['pre_l2'], 'plot': histogram,
-                        'title': 'histogram $y$', 'aspect': 'auto', # (1*numsteps)/(2*2.2),
-                        'orientation': 'horizontal',
-                        'xlim': None, # 'xticks': False, 'xticklabels': None,
-                        'xlabel': 'count $c$',
-                        'ylim': (-1.1, 1.1),
-                        'yticks': True, 'yticklabels': False,
-                        'legend_loc': 'left',
-                    },
+                    # {
+                    #     'input': ['mdl1_h'], 'plot': timeseries,
+                    #     'title': None, # 'Model inverse transfer function $h^{-1}$',
+                    #     'aspect': 1.0, 
+                    #     'xaxis': np.linspace(-1, 1, 1001), # 'xlabel': 'input [x]',
+                    #     'xlim': (-1.1, 1.1),
+                    #     'ylim': (-1.1, 1.1), 'yticks': True,
+                    #     'xticks': (-1, 0, 1), # True,
+                    #     'xticklabels': (-1, 0, 1), # True,
+                    #     'yticks': (-1, 0, 1), # True,
+                    #     'yticklabels': (-1, 0, 1), # True,
+                    #     'xlabel': 'input x',
+                    #     'ylabel': None, # 'output $y = h(x)$',
+                    #     'legend': {'Model $h$': 0},
+                    #     'legend_loc': 'left',
+                    # },
                 ],
-                
-                # row 2: in x time, error x - y time, none
-                [
-                    {
-                        'input': ['s_p'], 'plot': timeseries,
-                        'title': 'timeseries $x$',
-                        'aspect': 2.2/numsteps,
-                        'orientation': 'vertical',
-                        'xlim': None, 'xticks': False, # 'xticklabels': False,
-                        # 'xlabel': 'time step $k$',
-                        'yticks': False,
-                        'ylim': (-1.1, 1.1),
-                        'legend_loc': 'right',
-                    },
-                    {
-                        'input': ['m_err', 'm_err_mdl1', 'm_err_mdl1_amp'], 'plot': [timeseries, partial(timeseries, alpha = 0.7), partial(timeseries, color = 'r')],
-                        'title': 'error $x - y$',
-                        # 'aspect': 'auto',
-                        # 'orientation': 'horizontal',
-                        'xlim': None, # 'xticks': False, # 'xticklabels': False,
-                        'xlabel': 'time step $k$',
-                        # 'yticks': False,
-                        # normalize to original range
-                        'ylim': (-1.1, 1.1), # None,
-                        # 'legend_loc': 'right',
-                    },
-                    {
-                        'input': ['mdl1_y'], 'plot': timeseries,
-                        'title': 'timeseries $x$',
-                        'aspect': 2.2/numsteps,
-                        'orientation': 'vertical',
-                        'xlim': None, 'xticks': False, # 'xticklabels': False,
-                        # 'xlabel': 'time step $k$',
-                        'yticks': False,
-                        'ylim': (-1.1, 1.1),
-                        'legend_loc': 'left',
-                    },
-                    {},
-                ],
-                
-                # row 3: in x histo, measures global, divergence h1, h2
-                [
-                    {
-                        'input': ['s_p'], 'plot': histogram,
-                        'title': 'histogram $x$', 'aspect': 'shared', # (1*numsteps)/(2*2.2),
-                        'orientation': 'vertical',
-                        'xlim': (-1.1, 1.1), 'xinvert': False, # 'xticks': False, 'xticklabels': None, #
-                        'xlabel': 'input $x \in [-1, ..., 1]$', 
-                        'ylim': None, 'yinvert': True,  # 'yticks': None, 'yticklabels': None,
-                        'ylabel': 'count $c$',
-                        'legend_loc': 'right',
-                    },
-                    {
-                        # 'input': ['budget_%s' % (outk,) for outk in ['mu', 'var', 'min', 'max']] + ['m_mi', 'm_di', 'm_rmse', 'm_sum_div'],
-                        # 'shape': [(1, 1) for outk in ['mu', 'var', 'min', 'max', 'm_mi', 'm_di', 'm_rmse', 'm_sum_div']],
-                        # 'mode': 'stack',
-                        # 'title': 'measures', 'title_pos': 'bottom',
-                        # 'plot': table,
-                    },
-                    {},
-                    {
-                        'input': ['m_div'], 'plot': partial(timeseries, linestyle = 'none', marker = 'o'),
-                        'title': 'histogram divergence %s $h1 - h2$' % (div_meas, ),
-                        'shape': (1, numbins),
-                        # 'aspect': 'auto',
-                        # 'orientation': 'horizontal',
-                        'xlim': None, # 'xticks': False, # 'xticklabels': False,
-                        'xaxis': m_hist_bincenters, 'xlabel': 'bins $k$',
-                        # 'yticks': False,
-                        # normalize to original range
-                        'ylim': None, 'ylabel': 'divergence'
-                        # 'legend_loc': 'right',
-                    },
-                ],
-                
             ],
         },
     }),
-
+    
     # results table
     ('table', {
         'block': TextBlock2,
@@ -711,22 +910,34 @@ graph = OrderedDict([
                 'm_mi': {'bus': 'm_mi/mi', 'shape': (dim_s0, 1, 1)},
                 'm_rmse': {'bus': 'm_rmse/y', 'shape': (1, 1)},
                 'm_div_sum': {'bus': 'm_div_sum/y', 'shape': (1, 1)},
+                'm_div_kld_sum': {'bus': 'm_div_kld_sum/y', 'shape': (1, 1)},
+                'm_div_emd_sum': {'bus': 'm_div_emd_sum/y', 'shape': (1, 1)},
             },
             'layout': {
                 'numrows': 8,
                 'numcols': 2,
-                'rowlabels': ['Measure', 'global', 'direct'],
-                'collabels': ['budget_mu', 'budget_var', 'budget_min', 'budget_max', 'mi', 'di', 'rmse', 'div'],
+                'rowlabels': ['Measure', 'global'],
+                # 'collabels': ['budget_mu', 'budget_var', 'budget_min', 'budget_max', 'mi', 'di', 'rmse', 'chisq', 'kld', 'emd'],
+                'collabels': ['Mean budget', 'Min. budget', 'RMSE', 'DI', 'Chisquare', 'KLD', 'EMD'],
                 'cells': [
-                    ['budget_mu', ] + [None] * 1,
-                    ['budget_var', ] + [None] * 1,
-                    ['budget_min', ] + [None] * 1,
-                    ['budget_max', ] + [None] * 1,
-                    [None, 'm_mi'],
-                    [None, 'm_di'],
-                    [None, 'm_rmse'],
-                    [None, 'm_div_sum'],
+                    ['budget_mu'],
+                    ['budget_min'],
+                    ['m_rmse'],
+                    ['m_di'],
+                    ['m_div_sum'],
+                    ['m_div_kld_sum'],
+                    ['m_div_emd_sum'],
                 ],
+                # 'cells': [
+                #     ['budget_mu', ] + [None] * 1,
+                #     ['budget_var', ] + [None] * 1,
+                #     ['budget_min', ] + [None] * 1,
+                #     ['budget_max', ] + [None] * 1,
+                #     [None, 'm_mi'],
+                #     [None, 'm_di'],
+                #     [None, 'm_rmse'],
+                #     [None, 'm_div_sum'],
+                # ],
             },
         },
     }),

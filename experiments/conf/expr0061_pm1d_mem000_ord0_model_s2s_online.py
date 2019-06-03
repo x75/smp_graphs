@@ -45,6 +45,8 @@ budget = lconf['budget'] # 510
 lim = lconf['lim'] # 1.0
 numloop = lconf['numloop'] # 1.0
 
+expr_number = 9
+expr_name = 'Experiment {0}'.format(expr_number)
 desc = """This experiment is identical to \\ref{{{0}}} except that the
 batch-fitted model $s2s$ is replaced with an online learning model. As
 a result, it can be observed that the error magnitude, shown as a red
@@ -67,6 +69,8 @@ es   = [0.0, 0.0, 0.0, 0.5]
 
 # local conf dict for looping
 lconf = {
+    'expr_number': expr_number,
+    'expr_name': expr_name,
     'dim': 1,
     'dt': 0.1,
     'lag': 1,
@@ -83,6 +87,8 @@ p_vars = ['robot1/s0']
 m_vars = ['pre_l2/y']
 
 dim_s0 = lconf['dim']
+expr_number = lconf['expr_number']
+expr_name = lconf['expr_name']
 numelem = 1001
 
 
@@ -111,6 +117,8 @@ eta = 0.15
 
 # final: random sampling in d space
 loop = [('lconf', {
+    'expr_number': 12,
+    'expr_name': 'Experiment 12',
     'dim': dim_s0,
     'dt': 0.1,
     'lag': 1,

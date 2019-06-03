@@ -82,6 +82,8 @@ p_del_vars = ['delay/dy']
 m_vars = ['robot1/s0']
 # m_vars = ['pre_l2/y']
 
+expr_number = 12
+expr_name = 'Experiment {0}'.format(expr_number)
 desc = """The final experiment serves to illustrate that by combining
 an instantaneous error $e$ with versions of itself integrated over
 different time spans, primitive motivation $m$ is obtained. The
@@ -102,6 +104,8 @@ numelem = 1001
 
 # local conf dict for looping
 lconf = {
+    'expr_number': expr_number,
+    'expr_name': expr_name,
     # environment / system
     'sys': {
         # global
@@ -475,6 +479,7 @@ graph = OrderedDict([
             'hspace': 0.1,
             'xlim_share': True,
             'ylim_share': True,
+            'title': lconf['expr_name'],
             'inputs': {
                 's0': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)}, # 
                 's1': {'bus': 'robot1/s1', 'shape': (dim_s1, numsteps)},

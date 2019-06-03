@@ -81,6 +81,8 @@ p_del_vars = p_vars
 m_vars = ['robot1/s0']
 # m_vars = ['pre_l2/y']
 
+expr_number = 10
+expr_name = 'Experiment {0}'.format(expr_number)
 desc = """In this experiment an \\emph{{embodied agent}} is reobtained
 by putting the distortion model from the previous experiments back
 into the agent's body and environment. This establishes the first
@@ -122,6 +124,8 @@ numelem = 1001
 
 # local conf dict for looping
 lconf = {
+    'expr_number': expr_number,
+    'expr_name': expr_name,
     # environment / system
     'sys': {
         # global
@@ -406,6 +410,7 @@ graph = OrderedDict([
             'hspace': 0.1,
             'xlim_share': True,
             'ylim_share': True,
+            'title': lconf['expr_name'],
             'inputs': {
                 's0': {'bus': m_vars[0], 'shape': (dim_s0, numsteps)}, # 
                 's1': {'bus': 'robot1/s1', 'shape': (dim_s1, numsteps)},
