@@ -13,7 +13,9 @@ m_mins = np.array([robot1['params']['m_mins']]).T
 m_maxs = np.array([robot1['params']['m_maxs']]).T
 
 outputs = {'latex': {'type': 'latex'}}
-expr_name = 'Experiment 13: Lag'
+
+expr_number = 13
+expr_name = 'Experiment {0}: Lag'.format(expr_number)
 desc = """In this experiment the action consists of uniform noise
 sampled at intervals of {0} steps for a duration of {1} steps. The
 robot has an inherent delay from motor input to sensor feedback of 2
@@ -70,8 +72,12 @@ graph = OrderedDict([
                     {
                         'input': ['s0p', 's0'], 'plot': [partial(timeseries, marker = 'o')] * 2,
                         'title': None,
-                        'xticks': list(range(0, numsteps, 2)),
+                        'cmap': ['rainbow'],
+                        'xticks': tuple(range(0, numsteps+2, 2)),
+                        'xlabel': 'time step [k]',
                         'ylim': (-1, 1),
+                        'yticks': tuple((-1, -0.5, 0, 0.5, 1)),
+                        'legend': {'prediction': 0, 'measurement': 1},
                         # 'yticks': [-1.0, -0.5, 0.0, 0.5, 1.0],
                     },
                 ]

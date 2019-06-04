@@ -1,13 +1,14 @@
 """expr0110 pointmass 1D with delay open loop xcorr scan
 """
 
-from smp_graphs.utils_conf import get_systemblock
+from smp_graphs.utils_conf import get_systemblock, get_subplots_expr0110
 from smp_graphs.utils_conf_meas import make_input_matrix_ndim
 from smp_graphs.block_meas import XCorrBlock2
 
 from numpy import arange
 
 numsteps = 2000
+saveplot=True
 
 robot1 = get_systemblock['pm'](dim_s0 = 1)
 robot1['params']['transfer'] = 0 # 4 # cosine
@@ -17,12 +18,16 @@ m_mins = np.array([robot1['params']['m_mins']]).T
 m_maxs = np.array([robot1['params']['m_maxs']]).T
 
 # scan parameters
+# scanstart = 0 # -10
+# scanstop = 11 # 1
 scanstart = -10
-scanstop = 0
+scanstop = 1
 scanlen = scanstop - scanstart
 
 outputs = {'latex': {'type': 'latex'}}
 
+expr_number = 14
+expr_name = 'Experiment {0}: lag from cross-correlation'.format(expr_number)
 desc = """The same configuration as in the previous experiment is now
 run for {0} time steps as \TODO{{sufficient statistics}}. A
 cross-correlation scan is then performed on the motor variables $m$
@@ -65,7 +70,11 @@ graph = OrderedDict([
         'block': PlotBlock2,
         'params': {
             'blocksize': numsteps,
-            'saveplot': saveplot, 'savetype': 'pdf',
+            'saveplot': saveplot,
+            'savetype': 'pdf',
+            'savesize': (6, 2),
+            'title': expr_name,
+            'desc': """The episode timeseries.""",
             'inputs': {
                 's0': {'bus': 'robot1/s0', 'shape': (dim_s0, numsteps)},
                 's0p': {'bus': 'pre_l0/pre', 'shape': (dim_m0, numsteps)},
@@ -73,7 +82,12 @@ graph = OrderedDict([
             'subplots': [
                 [
                     {
-                        'input': ['s0p', 's0'], 'plot': [partial(timeseries, marker = 'o')] * 2,
+                        'input': ['s0p', 's0'],
+                        'plot': [partial(timeseries, marker = 'o')] * 2,
+                        'title': None,
+                        'xlabel': 'time step [k]',
+                        'ylabel': 'normalized state',
+                        'legend': {'prediction': 0, 'measurement': 1},
                     },
                 ],
             ],
@@ -86,40 +100,84 @@ graph = OrderedDict([
         'params': {
             # 'debug': True,
             'blocksize': numsteps,
-            'inputs': {'y': {'bus': 'pre_l0/pre', 'shape': (dim_s0, numsteps)}, 'x': {'bus': 'robot1/s0', 'shape': (dim_s0, numsteps)}},
+            'inputs': {
+                'y': {'bus': 'pre_l0/pre', 'shape': (dim_s0, numsteps)},
+                'x': {'bus': 'robot1/s0', 'shape': (dim_s0, numsteps)}},
             'shift': (scanstart, scanstop),
-            'outputs': {'xcorr': {'shape': (dim_m0, dim_s0, scanlen)}},
+            'outputs': {
+                'xcorr': {'shape': (dim_m0, dim_s0, scanlen)},
+                'xcorr_abs': {'shape': (dim_m0, dim_s0, scanlen)}
+            },
         }
     }),
     
+    # # cross-correlation plot
+    # ('xcorr_plot', {
+    #     'block': ImgPlotBlock2,
+    #     'params': {
+    #         'logging': False,
+    #         'saveplot': saveplot,
+    #         'debug': False,
+    #         'blocksize': numsteps,
+    #         'title': None,
+    #         # 'inputs': make_input_matrix(xdim = dim_m0, ydim = dim_s0, with_t = True),
+    #         'inputs': make_input_matrix_ndim(xdim = dim_m0, ydim = dim_s0, with_t = True, scan = (scanstart, scanstop)),
+    #         'outputs': {}, #'x': {'shape': (3, 1)}},
+    #         'wspace': 0.5,
+    #         'hspace': 0.5,
+    #         'subplots': get_subplots_expr0110(dim_s0, dim_m0, scanlen, scanstart, scanstop),
+    #         # 'subplots': [
+    #         #     # [{'input': ['d3'], 'ndslice': (i, j, ), 'xslice': (0, scanlen), 'xaxis': 't',
+    #         #     #   'plot': partial(timeseries, linestyle="none", marker=".")} for j in range(dim_m0)]
+    #         #     # for i in range(dim_s0)],
+    #         #     [
+    #         #         {
+    #         #             'input': ['d3'], 'ndslice': (slice(scanlen), i, j),
+    #         #             'shape': (1, scanlen), 'cmap': 'RdGy', 'title': 'xcorrs',
+    #         #             'vmin': -1.0, 'vmax': 1.0, 'vaxis': 'cols',
+    #         #             'yticks': False, 'yticklabels': None, 'ylabel': None,
+    #         #             'xticks': (arange(scanlen) + 0.5).tolist(),
+    #         #             'xticklabels': list(range(scanstart, scanstop)),
+    #         #             'colorbar': True,
+    #         #         } for j in range(dim_m0)] # 'seismic'
+    #         # for i in range(dim_s0)],
+    #     },
+    # }),
+
     # cross-correlation plot
-    ('xcorr_plot', {
-        'block': ImgPlotBlock2,
+    ('xcorr_plot_ts', {
+        'block': PlotBlock2,
         'params': {
-            'logging': False,
-            'saveplot': saveplot,
-            'debug': False,
+            # 'logging': False,
+            # 'debug': False,
             'blocksize': numsteps,
-            # 'inputs': make_input_matrix(xdim = dim_m0, ydim = dim_s0, with_t = True),
-            'inputs': make_input_matrix_ndim(xdim = dim_m0, ydim = dim_s0, with_t = True, scan = (scanstart, scanstop)),
-            'outputs': {}, #'x': {'shape': (3, 1)}},
+            'saveplot': saveplot,
+            'savetype': 'pdf',
+            'savesize': (6, 2),
+            'title': expr_name,
+            'desc': """The cross-correlation of proprioceptive
+            predictions and measurements scanned over shifts in the
+            interval [0, 10].""",
             'wspace': 0.5,
             'hspace': 0.5,
-            'subplots': [
-                # [{'input': ['d3'], 'ndslice': (i, j, ), 'xslice': (0, scanlen), 'xaxis': 't',
-                #   'plot': partial(timeseries, linestyle="none", marker=".")} for j in range(dim_m0)]
-                # for i in range(dim_s0)],
-                [
-                    {
-                        'input': ['d3'], 'ndslice': (slice(scanlen), i, j),
-                        'shape': (1, scanlen), 'cmap': 'RdGy', 'title': 'xcorrs',
-                        'vmin': -1.0, 'vmax': 1.0, 'vaxis': 'cols',
-                        'yticks': False, 'yticklabels': None, 'ylabel': None,
-                        'xticks': (arange(scanlen) + 0.5).tolist(),
-                        'xticklabels': list(range(scanstart, scanstop)),
-                        'colorbar': True,
-                    } for j in range(dim_m0)] # 'seismic'
-            for i in range(dim_s0)],
+            'inputs': make_input_matrix_ndim(xdim = dim_m0, ydim = dim_s0, with_t = True, scan = (scanstart, scanstop)),
+            # 'outputs': {},
+            'subplots': get_subplots_expr0110(dim_s0, dim_m0, scanlen, scanstart, scanstop, mode='ts'),
+            # 'subplots': [
+            #     # [{'input': ['d3'], 'ndslice': (i, j, ), 'xslice': (0, scanlen), 'xaxis': 't',
+            #     #   'plot': partial(timeseries, linestyle="none", marker=".")} for j in range(dim_m0)]
+            #     # for i in range(dim_s0)],
+            #     [
+            #         {
+            #             'input': ['d3'], 'ndslice': (slice(scanlen), i, j),
+            #             'shape': (1, scanlen), 'cmap': 'RdGy', 'title': 'xcorrs',
+            #             'vmin': -1.0, 'vmax': 1.0, 'vaxis': 'cols',
+            #             'yticks': False, 'yticklabels': None, 'ylabel': None,
+            #             'xticks': (arange(scanlen) + 0.5).tolist(),
+            #             'xticklabels': list(range(scanstart, scanstop)),
+            #             'colorbar': True,
+            #         } for j in range(dim_m0)] # 'seismic'
+            # for i in range(dim_s0)],
         },
     }),
     

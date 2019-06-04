@@ -523,3 +523,281 @@ def dm_motivations(m_mins, m_maxs, dim_s0, dt):
 #     },
 # }),
                 
+def get_subplots_expr0110(rowiter, coliter, scanlen, scanstart, scanstop, *args, **kwargs):
+    if 'mode' in kwargs:
+        # mode = kwargs['mode']
+        return get_subplots_expr0110_ts(rowiter, coliter, scanlen, scanstart, scanstop, *args, **kwargs)
+    else:
+        # mode = 'img'
+        return get_subplots_expr0110_img(rowiter, coliter, scanlen, scanstart, scanstop, *args, **kwargs)
+
+def get_subplots_expr0110_img(rowiter, coliter, scanlen, scanstart, scanstop, *args, **kwargs):
+    dim_s0 = rowiter
+    rows = []
+    for row in range(rowiter):
+        cols = []
+        for col in range(coliter):
+            cols.append({
+                'input': ['d3'], 'ndslice': (slice(scanlen), row, col),
+                'shape': (dim_s0, scanlen), 'cmap': 'RdGy', 'title': 'Cross-correlation',
+                'vmin': -1.0, 'vmax': 1.0, 'vaxis': 'cols',
+                'yticks': False, 'yticklabels': None, 'ylabel': None,
+                'xticks': (np.arange(scanlen) + 0.5).tolist(),
+                'xticklabels': list(range(scanstart, scanstop)),
+                'colorbar': True,
+            })
+        rows.append(cols)
+    return rows
+
+def get_subplots_expr0110_ts(rowiter, coliter, scanlen, scanstart, scanstop, *args, **kwargs):
+    from smp_base.plot import bar, timeseries
+    rows = []
+    for row in range(rowiter):
+        cols = []
+        for col in range(coliter):
+            cols.append({
+                'input': ['d3'],
+                'ndslice': (slice(scanlen), row, col),
+                'shape': (1, scanlen),
+                # 'plot': partial(bar, width=0.5, orientation='vertical'),
+                'plot': partial(timeseries, linestyle='', marker='o', markersize=10, alpha=0.5),
+                'cmap': ['gray'],
+                'title': None,
+                # 'vmin': -1.0, 'vmax': 1.0,
+                # 'vaxis': 'cols',
+                # 'yticks': False,
+                # 'yticklabels': None,
+                'cross-correlation': None,
+                # 'xticks': tuple((np.arange(scanlen) + 0).tolist()),
+                # 'xticklabels': tuple(range(scanstart, scanstop)),
+                'legend': {'cross-correlation': 0},
+                'xaxis': np.array(range(scanstart, scanstop)),
+                # 'colorbar': True,
+            })
+        rows.append(cols)
+    return rows
+
+
+def get_subplots_expr0111(rowiter, coliter, scanlen, scanstart, scanstop, *args, **kwargs):
+    if 'mode' in kwargs and kwargs['mode'] == 'ts':
+        # mode = kwargs['mode']
+        return get_subplots_expr0111_ts(rowiter, coliter, scanlen, scanstart, scanstop, *args, **kwargs)
+    elif 'mode' in kwargs and kwargs['mode'] == 'img':
+        # mode = 'img'
+        return get_subplots_expr0111_img(rowiter, coliter, scanlen, scanstart, scanstop, *args, **kwargs)
+    else:
+        return get_subplots_expr0111_img(rowiter, coliter, scanlen, scanstart, scanstop, *args, **kwargs)
+
+def get_subplots_expr0111_img(rowiter, coliter, scanlen, scanstart, scanstop, *args, **kwargs):
+    dim_s0 = rowiter
+    dim_m0 = coliter
+    rows = []
+    for row in range(rowiter):
+        cols = []
+        for col in range(coliter):
+            cols.append({
+                'input': ['d3'], 'ndslice': (slice(scanlen), row, col),
+                'shape': (dim_s0, scanlen), 'cmap': 'RdGy', 'title': 'Cross-correlation',
+                'vmin': -1.0, 'vmax': 1.0, 'vaxis': 'cols',
+                'xticks': False, 'xlabel': None,
+                'yticks': False, 'ylabel': None,
+                # 'xaxis': range(scanstart, scanstop),
+                'colorbar': True, 'colorbar_orientation': 'vertical',
+            })
+        rows.append(cols)
+        
+    for row in range(1):
+        cols = []
+        for col in range(coliter):
+            cols.append({
+                # mutual information scan
+                'input': 'd1',
+                # 'yslice': (i * dim_m0 * dim_s0, (i+1) * dim_m0 * dim_s0),
+                # 'xslice': (0, 1),
+                'ndslice': (slice(scanlen), col, 0),
+                'shape': (dim_s0, scanlen), 'cmap': 'Greys', 'title': 'Mutual information',
+                'vmin': 0.0, 'vmax': 1.0, 'vaxis': 'cols',
+                'xticks': (np.arange(scanlen) + 0.5).tolist(),
+                'xticklabels': list(range(scanstart, scanstop)),
+                'xlabel': 'time shift [steps]',
+                'yticks': False, 'ylabel': None,
+                'colorbar': True, 'colorbar_orientation': 'vertical',
+            })
+            
+        rows.append(cols)
+
+    return rows
+
+def get_subplots_expr0111_ts(rowiter, coliter, scanlen, scanstart, scanstop, *args, **kwargs):
+    from smp_base.plot import bar, timeseries
+    dim_s0 = rowiter
+    dim_m0 = coliter
+    rows = []
+    for row in range(rowiter):
+        cols = []
+        for col in range(coliter):
+            cols.append({
+                'input': ['d4', 'd1'],
+                'plot': partial(timeseries, linestyle='', marker='o', markersize=10, alpha=0.5),
+                'ndslice': [(slice(scanlen), row, col), (slice(scanlen), row, col)],
+                'shape': (dim_s0, scanlen),
+                'cmap': ['glasbey_warm'],
+                'title': None,
+                'title_pos': 'top_out',
+                # 'vmin': -1.0, 'vmax': 1.0, 'vaxis': 'cols',
+                'xlabel': None,
+                'ylim': (-1, 1),
+                'yticks': (-1, -0.5, 0, 0.5, 1),
+                'ylabel': None,
+                'legend': {'XC': 0, 'MI': 1},
+                'xaxis': np.array(range(scanstart, scanstop)),
+                # 'colorbar': True, 'colorbar_orientation': 'vertical',
+            })
+        rows.append(cols)
+        
+    # for row in range(1):
+    #     cols = []
+    #     for col in range(coliter):
+    #         cols.append({
+    #             'input': 'd1',
+    #             'plot': partial(timeseries, linestyle='', marker='o', markersize=10, alpha=0.5),
+    #             # 'yslice': (i * dim_m0 * dim_s0, (i+1) * dim_m0 * dim_s0),
+    #             # 'xslice': (0, 1),
+    #             'ndslice': (slice(scanlen), col, 0),
+    #             'shape': (dim_s0, scanlen),
+    #             'cmap': ['gray'],
+    #             'title': 'Mutual information',
+    #             # 'vmin': 0.0, 'vmax': 1.0, 'vaxis': 'cols',
+    #             'xticks': (np.arange(scanlen) + 0.5).tolist(),
+    #             'xticklabels': list(range(scanstart, scanstop)),
+    #             'xlabel': 'time shift [steps]',
+    #             'yticks': False, 'ylabel': None,
+    #             # 'colorbar': True, 'colorbar_orientation': 'vertical',
+    #         })
+    #     rows.append(cols)
+        
+    return rows
+
+def get_subplots_expr0111_mi(scanlen, dim_s0, dim_m0, *args, **kwargs):
+    cols = []
+    for i in range(scanlen):
+        cols.append({
+            'input': 'd1',
+            # 'yslice': (i * dim_m0 * dim_s0, (i+1) * dim_m0 * dim_s0),
+            # 'xslice': (0, 1),
+            'ndslice': (i, slice(None), slice(None)),
+            'shape': (dim_s0, dim_m0),
+            'title': 'mi-matrix',
+            'cmap': 'Reds',
+            'vaxis': 'rows',
+            'plot': 'bla'
+        })
+    return cols
+
+def get_subplots_expr0120(dim_s0, dim_m0, dim_s1, scanlen, scanstart, scanstop):
+    rows = []
+    # for row in range(rowiter):
+
+    # for j in range(dim_s1):
+    #     cols = []
+    #     for i in range(dim_m0):
+    #         cols.append({
+    #             'input': ['m2s'], 'ndslice': (slice(scanlen), j, i),
+    #             'shape': (dim_s0, scanlen), 'cmap': ['rainbow'],
+    #             'title': 'Cross-correlation $m_0 \star s_1$',
+    #             # 'vmin': -1.0, 'vmax': 1.0, 'vaxis': 'cols',
+    #             # 'xticks': False, 'xlabel': None,
+    #             # 'yticks': False, 'ylabel': None,
+    #             # 'xaxis': range(scanstart, scanstop),
+    #             'ylim': (-1.2, 1.2),
+    #             # 'colorbar': True, 'colorbar_orientation': 'vertical',
+    #         })
+    #     rows.append(cols)
+
+    for j in range(dim_s1):
+        cols = []
+        for i in range(dim_m0):
+            cols.append({
+                # 'input': ['m2m', 'm2s', 's2s'],
+                'input': ['m2s', 's2s'],
+                'ndslice': [(slice(scanlen), j, i)] * 2,
+                'shape': (dim_s0, scanlen),
+                'cmap': ['glasbey_warm'],
+                'title': 'Cross-correlation $m_0 \star s_1$',
+                'ylim': (-1.2, 1.2),
+                'legend': {'XC': 0, 'AC': 1}, # 'MC': 0, 
+                # 'vmin': -1.0, 'vmax': 1.0, 'vaxis': 'cols',
+                # 'xticks': False, 'xlabel': None,
+                # 'yticks': False, 'ylabel': None,
+                # 'xaxis': range(scanstart, scanstop),
+                # 'colorbar': True, 'colorbar_orientation': 'vertical',
+            })
+        rows.append(cols)
+
+    # for j in range(dim_s1):
+    #     cols = []
+    #     for i in range(dim_s1):
+    #         cols.append({
+    #             'input': ['s2s'], 'ndslice': (slice(scanlen), j, i),
+    #             'shape': (dim_s1, scanlen), 'cmap': ['glasbey_warm'],
+    #             'title': 'Auto-correlation $s_1 \star s_1$',
+    #             'ylim': (-1.2, 1.2),
+    #             # 'vmin': -1.0, 'vmax': 1.0, 'vaxis': 'cols',
+    #             # 'xticks': False, 'xlabel': None,
+    #             # 'yticks': False, 'ylabel': None,
+    #             # 'xaxis': range(scanstart, scanstop),
+    #             # 'colorbar': True, 'colorbar_orientation': 'vertical',
+    #         })
+    #     rows.append(cols)
+
+    for j in range(dim_s1):
+        cols = []
+        # mutual information scan
+        for i in range(dim_m0):
+            cols.append({
+                # 'input': ['d1', 'd2', 'd3'],
+                'input': ['d2', 'd3'],
+                # 'yslice': (i * dim_m0 * dim_s0, (i+1) * dim_m0 * dim_s0),
+                # 'xslice': (0, 1),
+                'ndslice': [(slice(scanlen), i, 0)] * 2,
+                'shape': (dim_s1, scanlen), 'cmap': ['glasbey_warm'],
+                'title': 'Mutual information $I_m(m_0; s_1)$',
+                'ylim': (-1.2, 1.2),
+                'xticklabels': list(range(scanstart, scanstop)),
+                'legend': {'MI': 0, 'SI': 1}, # 'MI prop': 0, 
+                # 'vmin': 0.0, 'vmax': 1.0,
+                # 'vaxis': 'cols',
+                # 'xticks': (np.arange(scanlen) + 0.5).tolist(),
+                # 'xlabel': 'time shift [steps]',
+                # 'xticks': False, 'xlabel': None,
+                # 'yticks': False, 'ylabel': None,
+                # 'colorbar': True, 'colorbar_orientation': 'vertical',
+            })
+        rows.append(cols)
+
+    # for j in range(dim_s1):
+    #     cols = []
+    #     # mutual information scan
+    #     for i in range(dim_s1):
+    #         cols.append({
+    #             'input': 'd2',
+    #             # 'yslice': (i * dim_m0 * dim_s0, (i+1) * dim_m0 * dim_s0),
+    #             # 'xslice': (0, 1),
+    #             'ndslice': (slice(scanlen), i, 0),
+    #             'shape': (dim_s1, scanlen), 'cmap': ['glasbey_warm'],
+    #             'title': 'Self information $I_m(s_1; s_1)$',
+    #             'ylim': (-1.2, 1.2),
+    #             'xticks': (np.arange(0, scanlen, 5) + 0.5).tolist(),
+    #             'xticklabels': list(range(scanstart, scanstop, 5)),
+    #             'xlabel': 'time shift [steps]', 'ylog': True,
+    #             # 'vmin': 0.0, 'vmax': 1.0,
+    #             # 'vaxis': 'cols',
+    #             # 'yticks': False, 'ylabel': None,
+    #             # 'colorbar': True, 'colorbar_orientation': 'vertical',
+    #         })
+    #     rows.append(cols)
+            
+    return rows
+
+# 'seismic'
+#  +  +  +

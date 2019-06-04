@@ -1474,6 +1474,7 @@ class ImgPlotBlock2(FigPlotBlock2):
     """
     defaults = {
         'vlim_share': True, # globally share pixel value limits over subplots
+        'bbox_inches': 'tight',
     }
         
     def __init__(self, conf = {}, paren = None, top = None):

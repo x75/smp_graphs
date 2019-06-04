@@ -83,7 +83,8 @@ def compute_xcor_matrix(data = {}, shift = (-1, 0), src_dim = 1, dst_dim = 1):
 class XCorrBlock2(PrimBlock2):
     """XCorrBlock2
 
-    Compute cross-correlation functions all pairs of variables in dataset and a given timeshift
+    Compute cross-correlation functions all pairs of variables in
+    dataset and a given timeshift.
 
     Arguments:
         - conf: block configuration dict
@@ -142,6 +143,7 @@ class XCorrBlock2(PrimBlock2):
         # print "arraytosum.sh", arraytosumraw.shape
         self._debug(" pre xcorr.shape = %s" % (self.xcorr.shape,))
         self.xcorr = arraytosumraw.reshape(self.outputs['xcorr']['shape']) # + (1,))
+        self.xcorr_abs = np.abs(self.xcorr)
         self._debug("post xcorr.shape = %s" % (self.xcorr.shape,))
         # self._debug("xcorr = %s" % (self.xcorr,))
         
