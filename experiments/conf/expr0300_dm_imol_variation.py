@@ -62,6 +62,8 @@ lconf = {
 }
 systemblock = get_systemblock[lconf['sys']['name']](**lconf['sys'])
 
+expr_number=24
+expr_name="Experiment {0}".format(expr_number)
 desc = """Variation 1 of dm\_imol using a different target function.""".format()
 
 # execution

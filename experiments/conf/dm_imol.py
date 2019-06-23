@@ -331,6 +331,18 @@ algo_conf = {
     'knn': {
         'name': 'k-nearest neighbors',
     },
+    'gmm': {
+        'name': 'Gaussian Mixture',
+    },
+    'igmm': {
+        'name': 'incremental Gaussian Mixture',
+    },
+    'soesgp': {
+        'name': 'Sparse Online Gaussian Process',
+    },
+    'resrls': {
+        'name': 'Recursive least squares Reservoir',
+    },
 }
 
 algo = 'knn' # ok
@@ -721,7 +733,7 @@ loopblock_model = {
                             'shape': (dim_s0, minlag+1), 'lag': minlag},
                         # measurement
                         'meas_l0': {
-                            'val': np.array([[-np.inf for i in range(sweepmdl_input_flat)]] * dim_s0),
+                            'val': np.array([[-float('Inf') for i in range(sweepmdl_input_flat)]] * dim_s0),
                             # 'bus': 'robot1/s0',
                             'shape': (dim_s0, sweepmdl_input_flat)}},
                     'outputs': {

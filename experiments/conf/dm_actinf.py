@@ -62,7 +62,7 @@ randseed = 12348
     
 lconf = {
     # execution and global
-    'numsteps': int(10000/5),
+    'numsteps': int(10000/4),
     # system
     'sys': {
         'name': 'pm',
@@ -165,7 +165,7 @@ algo = 'knn' #
 minlag = 1 # -lag_future[1]
 # maxlag = -lag_past[0] # + lag_future[1]
 maxlag = max(20, -lag_past[0])
-laglen = maxlag # - minlag
+laglen = int(maxlag) # - minlag
 
 # eta = 0.99
 # eta = 0.95
@@ -497,7 +497,7 @@ loopblock_model = {
                             'shape': (dim_s0, minlag+1), 'lag': minlag},
                         # measurement
                         'meas_l0': {
-                            'val': np.array([[-np.inf for i in range(sweepmdl_input_flat)]] * dim_s0),
+                            'val': np.array([[float('Inf') for i in range(sweepmdl_input_flat)]] * dim_s0),
                             # 'bus': 'robot1/s0',
                             'shape': (dim_s0, sweepmdl_input_flat)}},
                     'outputs': {
