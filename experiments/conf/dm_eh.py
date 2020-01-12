@@ -46,9 +46,19 @@ ros = False
 commandline_args = ['numsteps']
 randseed = 12360
 
+expr_number = 27
+expr_name = 'Experiment {0}'.format(expr_number)
+# desc = """The final experiment serves to illustrate that by combining
+# an instantaneous error $e$ with versions of itself integrated over
+# different time spans, primitive motivation $m$ is obtained. The
+# motivation $m$ is hardwired to spawn a local model at the site the the
+# error occurs and accumulates.""".format()
+
 lconf = {
     # execution and global
     'numsteps': int(10000/4),
+    'expr_number': expr_number,
+    'expr_name': expr_name,
     # system
     'sys': {
         'name': 'pm',
@@ -533,14 +543,19 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
     global algo, sysname, lag, lag_past, lag_future
     global dim_s1, dim_s0, dim_s_hidden_debug
     global motivations, motivation_i, lmotivation
+    # global expr_number, expr_name
     goal = motivations[motivation_i][1]['params']['models']['goal']['type']
+    expr_name = 'Experiment 27'
     return {
     'block': PlotBlock2,
     'params': {
         'blocksize': numsteps, # 1000, # blocksize,
         'saveplot': saveplot,
-        'title': '%s\nalgo %s, sys %s(dim_p=%d), goal = %s, lag = %s, tap- %s, tap+ %s' % (
-            'dm EH', algo, sysname, dim_s0, goal, lag, lag_past, lag_future),
+        'savetype': 'jpg',
+        'title': '%s: dm EH\nalgo %s, sys %s(dim_p=%d), goal = %s, lag = %s, tap- %s, tap+ %s' % (
+            expr_name, algo, sysname, dim_s0, goal, lag, lag_past, lag_future),
+        'title_pos': 'top_out',
+        'hspace': 0.5,
         'desc': """An {1} agent learning to control a {0}-dimensional {2}
             system using the {3} low-level algorithm.""".format(
                 dim_s0, 'eh', sysname, algo.replace('_', '\_')),
@@ -554,7 +569,6 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             's0':    {'bus': 'robot1/s0', 'shape': (dim_s0, blocksize)},
             's1':     {'bus': 'robot1/s1',  'shape': (dim_s1, blocksize)},
             },
-        'hspace': 0.2,
         'subplots': [
             
             # [

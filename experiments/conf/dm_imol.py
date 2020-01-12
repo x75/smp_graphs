@@ -464,6 +464,7 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             system using the %s low-level algorithm. Please refer to the
             main text of the dm-imol experiment for the detailed
             description.""" % (devmodel, dim_s0, sysname, algo),
+        'hspace': 0.5,
         'inputs': {
             'goals': {'bus': '%s/pre' % (l1,), 'shape': (dim_s0, blocksize)},
             'pre':   {'bus': '%s/pre' % (l0,), 'shape': (dim_s0, blocksize)},
@@ -482,7 +483,6 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             'prerr_rms_avg_fwd': {'bus': '%s/prerr_rms_avg_fwd' % (l0,), 'shape': (1, blocksize)},
             'wo_norm_fwd': {'bus': '%s/wo_norm_fwd' % (l0, ),  'shape': (dim_s0, blocksize)},
             },
-        'hspace': 0.2,
         'subplots': [
             
             [

@@ -30,9 +30,14 @@ cnf = {
     
 numsteps = cnf['numsteps']
 
+expr_number = 27
+expr_name = 'Experiment {0}'.format(expr_number)
+
 lconf = {
     # execution and global
     'numsteps': int(10000/5),
+    'expr_number': expr_number,
+    'expr_name': expr_name,
     # system
     'sys': {
         'name': 'pm',

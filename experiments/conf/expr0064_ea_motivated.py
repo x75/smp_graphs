@@ -39,6 +39,10 @@ self-exploration
    limits by learning progress and error stats; modulation, spawn, and
    kill by introspection
  - motivation, sampling, limits, energy, ...
+ - 20191127: ThresholdBlock 'seq' controls motor routing and model
+   target routing based on accumulated error (slow error). this shows
+   in a minimal way that the error can be used to modulate control and
+   learning
 
  - learn the first proper model (finally :)
 """
