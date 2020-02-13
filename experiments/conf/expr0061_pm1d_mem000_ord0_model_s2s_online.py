@@ -117,8 +117,8 @@ eta = 0.15
 
 # final: random sampling in d space
 loop = [('lconf', {
-    'expr_number': 12,
-    'expr_name': 'Experiment 12',
+    'expr_number': 9,
+    'expr_name': 'Experiment 9',
     'dim': dim_s0,
     'dt': 0.1,
     'lag': 1,

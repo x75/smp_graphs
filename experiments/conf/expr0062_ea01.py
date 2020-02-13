@@ -687,7 +687,7 @@ graph = OrderedDict([
                         # 'xlim': (-1.1, 1.1), 'xticks': True, 'xticklabels': False,
                         # 'ylabel': 'output $y = h(x)$',
                         # 'ylim': (-1.1, 1.1), 'yticks': True,
-                        'legend_loc': 'right',
+                        'legend_loc': 'left',
                     },
                 ],
             ],

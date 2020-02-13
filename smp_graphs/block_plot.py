@@ -75,7 +75,7 @@ from functools import reduce
 
 rcParams['figure.titlesize'] = 11 # suptitle
 
-axes_spines = False
+axes_spines = True # False
 # smp_graphs style
 rcParams['axes.grid'] = False
 rcParams['axes.spines.bottom'] = axes_spines
