@@ -23,7 +23,7 @@ from smp_graphs.utils_conf import get_systemblock
 
 # global parameters can be overwritten from the commandline
 ros = False
-numsteps = int(10000/20)
+numsteps = int(10000/1)
 numbins = 21
 recurrent = True
 debug = False

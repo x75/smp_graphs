@@ -20,7 +20,7 @@ from smp_graphs.utils_conf import get_systemblock
 
 # global parameters can be overwritten from the commandline
 ros = False
-numsteps = 10000/5
+numsteps = int(10000/1)
 recurrent = True
 debug = False
 showplot = True
@@ -69,6 +69,7 @@ d_ss = [0.8, 0.5, 1.0, 1.0]
 s_as = [0.0, 0.0, 0.1, 0.0]
 # noise component color (1/color)
 s_fs = [0.0, 0.0, 1.0, 0.0]
+# external entropy
 es   = [0.0, 0.0, 0.0, 0.5]
 
 # final: random sampling in d space
