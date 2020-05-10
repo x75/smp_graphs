@@ -895,169 +895,169 @@ graph = OrderedDict([
         },
     }),
     
-    # cross correlation
-    ('xcorr', {
-        'block': XCorrBlock2,
-        'enable': False,
-        'params': {
-            'id': 'xcorr',
-            'blocksize': numsteps,
-            # 'inputs': {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/y'}},
-            'inputs': {'x': {'bus': data_x}, 'y': {'bus': 'puppyslice_y/y_c0'}},
-            'shift': (scanstart, scanstop),
-            'outputs': {'xcorr': {'shape': (ydim_eff, xdim, scanlen)}},
-            }
-        }),
+    # # cross correlation
+    # ('xcorr', {
+    #     'block': XCorrBlock2,
+    #     'enable': False,
+    #     'params': {
+    #         'id': 'xcorr',
+    #         'blocksize': numsteps,
+    #         # 'inputs': {'x': {'bus': 'puppylog/x'}, 'y': {'bus': 'puppylog/y'}},
+    #         'inputs': {'x': {'bus': data_x}, 'y': {'bus': 'puppyslice_y/y_c0'}},
+    #         'shift': (scanstart, scanstop),
+    #         'outputs': {'xcorr': {'shape': (ydim_eff, xdim, scanlen)}},
+    #         }
+    #     }),
 
-    # plot cross-correlation matrix
-    ('plot_xcor_line', {
-        'block': PlotBlock2,
-        'enable': False,
-        'params': {
-            'id': 'plot_xcor_line',
-            'logging': False,
-            'debug': False,
-            'saveplot': saveplot,
-            'blocksize': numsteps,
-            'inputs': make_input_matrix_ndim(
-                xdim = xdim, ydim = ydim,
-                with_t = True, scan = (scanstart, scanstop)),
-            'outputs': {}, #'x': {'shape': (3, 1)}},
-            'wspace': 0.5,
-            'hspace': 0.5,
-            # 'xslice': (0, scanlen), 
-            'subplots': [
-                [
-                    {
-                        'input': ['d3'], 'ndslice': (slice(scanlen), i, j),
-                        'xaxis': 't',
-                        'shape': (1, scanlen),
-                        'plot': partial(timeseries, linestyle="-", marker=".")
-                    } for j in range(xdim)
-                ] for i in range(ydim)
-            ],
+    # # plot cross-correlation matrix
+    # ('plot_xcor_line', {
+    #     'block': PlotBlock2,
+    #     'enable': False,
+    #     'params': {
+    #         'id': 'plot_xcor_line',
+    #         'logging': False,
+    #         'debug': False,
+    #         'saveplot': saveplot,
+    #         'blocksize': numsteps,
+    #         'inputs': make_input_matrix_ndim(
+    #             xdim = xdim, ydim = ydim,
+    #             with_t = True, scan = (scanstart, scanstop)),
+    #         'outputs': {}, #'x': {'shape': (3, 1)}},
+    #         'wspace': 0.5,
+    #         'hspace': 0.5,
+    #         # 'xslice': (0, scanlen), 
+    #         'subplots': [
+    #             [
+    #                 {
+    #                     'input': ['d3'], 'ndslice': (slice(scanlen), i, j),
+    #                     'xaxis': 't',
+    #                     'shape': (1, scanlen),
+    #                     'plot': partial(timeseries, linestyle="-", marker=".")
+    #                 } for j in range(xdim)
+    #             ] for i in range(ydim)
+    #         ],
                 
-            #     [{'input': 'd3_%d_%d' % (i, j), 'xslice': (0, scanlen), 'xaxis': 't',
-            #       'plot': partial(timeseries, linestyle="none", marker=".")} for j in range(xdim)]
-            # for i in range(ydim)],
+    #         #     [{'input': 'd3_%d_%d' % (i, j), 'xslice': (0, scanlen), 'xaxis': 't',
+    #         #       'plot': partial(timeseries, linestyle="none", marker=".")} for j in range(xdim)]
+    #         # for i in range(ydim)],
             
-        },
-    }),
+    #     },
+    # }),
 
-    # plot cross-correlation matrix
-    ('plot_xcorr_scan', {
-        'block': ImgPlotBlock2,
-        'enable': False,
-        'params': {
-            'id': 'plot_xcor_img',
-            'logging': False,
-            'saveplot': saveplot,
-            'debug': False,
-            'desc': 'Cross-correlation scan for the %s dataset' % (datasetname),
-            'title': 'Cross-correlation scan for the %s dataset' % (cnf['logfile']),
-            'blocksize': numsteps,
-            'inputs': make_input_matrix_ndim(xdim = xdim, ydim = ydim_eff, with_t = True, scan = (scanstart, scanstop)),
-            'wspace': 0.5,
-            'hspace': 0.5,
-            'subplots': [
+    # # plot cross-correlation matrix
+    # ('plot_xcorr_scan', {
+    #     'block': ImgPlotBlock2,
+    #     'enable': False,
+    #     'params': {
+    #         'id': 'plot_xcor_img',
+    #         'logging': False,
+    #         'saveplot': saveplot,
+    #         'debug': False,
+    #         'desc': 'Cross-correlation scan for the %s dataset' % (datasetname),
+    #         'title': 'Cross-correlation scan for the %s dataset' % (cnf['logfile']),
+    #         'blocksize': numsteps,
+    #         'inputs': make_input_matrix_ndim(xdim = xdim, ydim = ydim_eff, with_t = True, scan = (scanstart, scanstop)),
+    #         'wspace': 0.5,
+    #         'hspace': 0.5,
+    #         'subplots': [
                 
-                [
-                    {
-                        'input': ['d3'],
-                        'ndslice': (slice(scanlen), i, j),
-                        'shape': (1, scanlen), 'cmap': 'RdGy',
-                        'title': 'xcorr s-%d/s-%d' % (i, j),
-                        'vmin': -1.0, 'vmax': 1.0,
-                        'vaxis': 'cols',
-                        'xlabel': False,
-                        'xticks': i == (ydim - 1), # False,
-                        'ylabel': None,
-                        'yticks': False,
-                        'colorbar': j == (xdim - 1), 'colorbar_orientation': 'vertical',
-                    } for j in range(xdim)
-                ] for i in range(ydim_eff)
+    #             [
+    #                 {
+    #                     'input': ['d3'],
+    #                     'ndslice': (slice(scanlen), i, j),
+    #                     'shape': (1, scanlen), 'cmap': 'RdGy',
+    #                     'title': 'xcorr s-%d/s-%d' % (i, j),
+    #                     'vmin': -1.0, 'vmax': 1.0,
+    #                     'vaxis': 'cols',
+    #                     'xlabel': False,
+    #                     'xticks': i == (ydim - 1), # False,
+    #                     'ylabel': None,
+    #                     'yticks': False,
+    #                     'colorbar': j == (xdim - 1), 'colorbar_orientation': 'vertical',
+    #                 } for j in range(xdim)
+    #             ] for i in range(ydim_eff)
                 
-            ],
+    #         ],
             
-        },
-    }),
+    #     },
+    # }),
 
 
     
-    # plot multivariate (global) mutual information over timeshifts
-    ('plot_infoscan', {
-        'block': ImgPlotBlock2,
-        'enable': False,
-        'params': {
-            'logging': False,
-            'saveplot': saveplot,
-            'savesize': (3 * 3, 3),
-            'debug': False,
-            'wspace': 0.5,
-            'hspace': 0.5,
-            'blocksize': numsteps,
-            'desc':  'Mutual information, conditional MI and TE scan for dataset %s' % (datasetname),
-            'title': 'Mutual information, conditional MI and TE scan for dataset %s' % (datasetname),
-            'inputs': {
-                'd1': {'bus': 'mimv_ll0_ll0/mimv', 'shape': (1, scanlen)},
-                'd3': {'bus': 'cmimv_ll0_ll0/cmimv', 'shape': (1, scanlen)},
-                'd2': {'bus': 'temv_ll0_ll0/temv', 'shape': (1, scanlen)},
-                # 'tap1': {'bus': 'tap_ll1_ll0/tap_x', 'shape': (1, scanlen)},
-                # 'tap2': {'bus': 'tap_ll2_ll0/tap_x', 'shape': (1, scanlen)},
-                # 'tap3': {'bus': 'tap_ll3_ll0/tap_x', 'shape': (1, scanlen)},
-                # 'd3': {'bus': 'jh/jh', 'shape': (1, scanlen)},
-                't': {'val': np.linspace(scanstart, scanstop-1, scanlen)},
-            },
-            'outputs': {}, #'x': {'shape': (3, 1)}},
-            'subplots': [
-                [
+    # # plot multivariate (global) mutual information over timeshifts
+    # ('plot_infoscan', {
+    #     'block': ImgPlotBlock2,
+    #     'enable': False,
+    #     'params': {
+    #         'logging': False,
+    #         'saveplot': saveplot,
+    #         'savesize': (3 * 3, 3),
+    #         'debug': False,
+    #         'wspace': 0.5,
+    #         'hspace': 0.5,
+    #         'blocksize': numsteps,
+    #         'desc':  'Mutual information, conditional MI and TE scan for dataset %s' % (datasetname),
+    #         'title': 'Mutual information, conditional MI and TE scan for dataset %s' % (datasetname),
+    #         'inputs': {
+    #             'd1': {'bus': 'mimv_ll0_ll0/mimv', 'shape': (1, scanlen)},
+    #             'd3': {'bus': 'cmimv_ll0_ll0/cmimv', 'shape': (1, scanlen)},
+    #             'd2': {'bus': 'temv_ll0_ll0/temv', 'shape': (1, scanlen)},
+    #             # 'tap1': {'bus': 'tap_ll1_ll0/tap_x', 'shape': (1, scanlen)},
+    #             # 'tap2': {'bus': 'tap_ll2_ll0/tap_x', 'shape': (1, scanlen)},
+    #             # 'tap3': {'bus': 'tap_ll3_ll0/tap_x', 'shape': (1, scanlen)},
+    #             # 'd3': {'bus': 'jh/jh', 'shape': (1, scanlen)},
+    #             't': {'val': np.linspace(scanstart, scanstop-1, scanlen)},
+    #         },
+    #         'outputs': {}, #'x': {'shape': (3, 1)}},
+    #         'subplots': [
+    #             [
                     
-                    {
-                        'input': 'd1', 'xslice': (0, scanlen),
-                        'xticks': list(range(0, scanlen, 5)),
-                        'xticklabels': list(range(scanstart*1, scanstop*1, 5*1)),
-                        'xlabel': 'Lag [n]',
-                        'yslice': (0, 1),
-                        'ylabel': None,
-                        'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
-                        'title': 'Mutual information $I(X;Y)$',
-                        'colorbar': True, 'colorbar_orientation': 'vertical',
-                        'shape': (1, scanlen)
-                    },
+    #                 {
+    #                     'input': 'd1', 'xslice': (0, scanlen),
+    #                     'xticks': list(range(0, scanlen, 5)),
+    #                     'xticklabels': list(range(scanstart*1, scanstop*1, 5*1)),
+    #                     'xlabel': 'Lag [n]',
+    #                     'yslice': (0, 1),
+    #                     'ylabel': None,
+    #                     'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
+    #                     'title': 'Mutual information $I(X;Y)$',
+    #                     'colorbar': True, 'colorbar_orientation': 'vertical',
+    #                     'shape': (1, scanlen)
+    #                 },
                     
-                    {
-                        'input': 'd3',
-                        'xslice': (0, scanlen),
-                        'xticks': list(range(0, scanlen, 5)),
-                        'xticklabels': list(range(scanstart*1, scanstop*1, 5*1)),
-                        'xlabel': 'Lag [n]',
-                        'yslice': (0, 1),
-                        'ylabel': None,
-                        'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
-                        'title': 'Cond. MI $CMI(Y;X;C)$',
-                        'colorbar': True, 'colorbar_orientation': 'vertical',
-                        'shape': (1, scanlen)
-                    },
+    #                 {
+    #                     'input': 'd3',
+    #                     'xslice': (0, scanlen),
+    #                     'xticks': list(range(0, scanlen, 5)),
+    #                     'xticklabels': list(range(scanstart*1, scanstop*1, 5*1)),
+    #                     'xlabel': 'Lag [n]',
+    #                     'yslice': (0, 1),
+    #                     'ylabel': None,
+    #                     'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
+    #                     'title': 'Cond. MI $CMI(Y;X;C)$',
+    #                     'colorbar': True, 'colorbar_orientation': 'vertical',
+    #                     'shape': (1, scanlen)
+    #                 },
                     
-                    {
-                        'input': 'd2',
-                        'xslice': (0, scanlen),
-                        'xticks': list(range(0, scanlen, 5)),
-                        'xticklabels': list(range(scanstart*1, scanstop*1, 5*1)),
-                        'xlabel': 'Lag [n]',
-                        'yslice': (0, 1),
-                        'ylabel': None,
-                        'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
-                        'title': 'Transfer entropy $TE(Y;X;X^-)$',
-                        'colorbar': True, 'colorbar_orientation': 'vertical',
-                        'shape': (1, scanlen)
-                    }
+    #                 {
+    #                     'input': 'd2',
+    #                     'xslice': (0, scanlen),
+    #                     'xticks': list(range(0, scanlen, 5)),
+    #                     'xticklabels': list(range(scanstart*1, scanstop*1, 5*1)),
+    #                     'xlabel': 'Lag [n]',
+    #                     'yslice': (0, 1),
+    #                     'ylabel': None,
+    #                     'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
+    #                     'title': 'Transfer entropy $TE(Y;X;X^-)$',
+    #                     'colorbar': True, 'colorbar_orientation': 'vertical',
+    #                     'shape': (1, scanlen)
+    #                 }
                     
-                ],
+    #             ],
                 
-            ]
-        },
-    }),
+    #         ]
+    #     },
+    # }),
     
     # plot multivariate (global) mutual information over timeshifts
     ('plot_infoscan2', {
@@ -1236,6 +1236,269 @@ graph = OrderedDict([
             ] 
        },
     }),
+    
+    # plot multivariate (global) mutual information over timeshifts
+    ('plot_infoscan2_ts', {
+        'block': PlotBlock2,
+        # 'enable': False,
+        'params': {
+            # 'logging': False,
+            'saveplot': saveplot,
+            'savesize': (4 * 3, 4 * 1),
+            'savetype': 'pdf',
+            # 'debug': True,
+            'wspace': 0.2,
+            'hspace': 0.45,
+            'blocksize': numsteps,
+            'desc':  'Taps from info scan for dataset %s' % (datasetname),
+            'title': 'Taps from info scan for dataset %s' % (cnf['logfile']),
+            'title_pos': 'top_out',
+            'vlim_share': False,
+            'inputs': {
+                'duniform': {'val': np.ones((1, scanlen)) * 0.01},
+                'd1': {'bus': 'mimv_ll0_ll0/mimv', 'shape': (1, scanlen)},
+                'd3': {'bus': 'cmimv_ll0_ll0/cmimv', 'shape': (1, scanlen)},
+                'd2': {'bus': 'temv_ll0_ll0/temv', 'shape': (1, scanlen)},
+
+                # 'tap1': {'bus': 'tap_ll1_ll0/tap_x', 'shape': (1, scanlen)},
+                # 'tap2': {'bus': 'tap_ll2_ll0/tap_x', 'shape': (1, scanlen)},
+                # 'tap3': {'bus': 'tap_ll3_ll0/tap_x', 'shape': (1, scanlen)},
+
+                'tap0': {'bus': 'lrp_ll0_ll0/y_idx', 'shape': (1, scanlen)},
+                'tap1': {'bus': 'lrp_ll1_ll0/y_idx', 'shape': (1, scanlen)},
+                'tap2': {'bus': 'lrp_ll2_ll0/y_idx', 'shape': (1, scanlen)},
+                'tap3': {'bus': 'lrp_ll3_ll0/y_idx', 'shape': (1, scanlen)},
+                # 'd3': {'bus': 'jh/jh', 'shape': (1, scanlen)},
+                't': {'val': np.linspace(scanstart, scanstop-1, scanlen)},
+            },
+            'outputs': {}, #'x': {'shape': (3, 1)}},
+            'subplots': [
+
+                [
+                    {
+                        'input': 'd1',
+                        'xslice': (0, scanlen),
+                        'plot': partial(timeseries, linestyle="none", marker="o"),
+                        # 'ndslice': [(slice(scanlen), i, 0)] * 2,
+                        # 'shape': (dim_s1, scanlen),
+                        'cmap': ['glasbey_warm'],
+                        'title': 'Mutual information $I(X;Y)$',
+                        'title_pos': 'top_out',
+                        'ylim': (0.0, 0.1),
+                        'xticks': plot_infoscan_xticks,
+                        'xticklabels': plot_infoscan_xticklabels,
+                        'legend': {'mutual information': 0}, # 'MI prop': 0, 
+                    },
+
+                    {
+                        'input': 'd3',
+                        'xslice': (0, scanlen),
+                        'plot': partial(timeseries, linestyle="none", marker="o"),
+                        # 'ndslice': [(slice(scanlen), i, 0)] * 2,
+                        # 'shape': (dim_s1, scanlen),
+                        'cmap': ['glasbey_warm'],
+                        'title': 'Cond. MI $CMI(Y;X;C)$',
+                        'title_pos': 'top_out',
+                        'ylim': (0.0, 0.02),
+                        'xticks': plot_infoscan_xticks,
+                        'xticklabels': plot_infoscan_xticklabels,
+                        'legend': {'mutual information': 0}, # 'MI prop': 0, 
+                    },
+                    
+                    {
+                        'input': 'd2',
+                        'xslice': (0, scanlen),
+                        'plot': partial(timeseries, linestyle="none", marker="o"),
+                        # 'ndslice': [(slice(scanlen), i, 0)] * 2,
+                        # 'shape': (dim_s1, scanlen),
+                        'cmap': ['glasbey_warm'],
+                        'title': 'Transfer entropy $TE(Y;X;X^-)$',
+                        'title_pos': 'top_out',
+                        'ylim': (0.0, 0.02),
+                        'xticks': plot_infoscan_xticks,
+                        'xticklabels': plot_infoscan_xticklabels,
+                        'legend': {'mutual information': 0}, # 'MI prop': 0, 
+                    }
+                    
+                    #  {
+                    #     'input': 'duniform', 'xslice': (0, scanlen),
+                    #     'xticks': plot_infoscan_xticks,
+                    #     'xticklabels': plot_infoscan_xticklabels,
+                    #     'xlabel': False, # 'Lag [n]',
+                    #     'yslice': (0, 1),
+                    #     'ylabel': False,
+                    #     'yticks': False,
+                    #     'vmin': 0,
+                    #     # 'vmax': 0.1,
+                    #     'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
+                    #     'title': 'Uniform baseline',
+                    #     'colorbar': True, 'colorbar_orientation': 'vertical',
+                    #     'shape': (1, scanlen)
+                    # },
+                    
+                    # {
+                    #     'input': 'd1', 'xslice': (0, scanlen),
+                    #     'xticks': plot_infoscan_xticks,
+                    #     'xticklabels': plot_infoscan_xticklabels,
+                    #     'xlabel': False, # 'Lag [n]',
+                    #     'yslice': (0, 1),
+                    #     'yticks': False,
+                    #     'ylabel': False,
+                    #     'vmin': 0,
+                    #     # 'vmax': 0.1,
+                    #     'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
+                    #     'title': 'Mutual information $I(X;Y)$',
+                    #     'colorbar': True, 'colorbar_orientation': 'vertical',
+                    #     'shape': (1, scanlen)
+                    # },
+                    
+                    # {
+                    #     'input': 'd3',
+                    #     'xslice': (0, scanlen),
+                    #     'xticks': plot_infoscan_xticks,
+                    #     'xticklabels': plot_infoscan_xticklabels,
+                    #     'xlabel': False, # 'Lag [n]',
+                    #     'yslice': (0, 1),
+                    #     'yticks': False,
+                    #     'ylabel': False,
+                    #     'vmin': 0,
+                    #     # 'vmax': 0.1,
+                    #     'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
+                    #     'title': 'Cond. MI $CMI(Y;X;C)$',
+                    #     'colorbar': True, 'colorbar_orientation': 'vertical',
+                    #     'shape': (1, scanlen)
+                    # },
+                    
+                    # {
+                    #     'input': 'd2',
+                    #     'xslice': (0, scanlen),
+                    #     'xticks': plot_infoscan_xticks,
+                    #     'xticklabels': plot_infoscan_xticklabels,
+                    #     'xlabel': False, # 'Lag [n]',
+                    #     'yslice': (0, 1),
+                    #     'ylabel': False,
+                    #     'yticks': False,
+                    #     'vmin': 0,
+                    #     # 'vmax': 0.1,
+                    #     'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
+                    #     'title': 'Transfer entropy $TE(Y;X;X^-)$',
+                    #     'colorbar': True, 'colorbar_orientation': 'vertical',
+                    #     'shape': (1, scanlen)
+                    # }
+                    
+                ],
+
+                # tapping row
+                [
+
+                    {
+                        'input': 'tap1', 'xslice': (0, scanlen),
+                        'plot': partial(timeseries, linestyle="none", marker="o"),
+                        'cmap': ['glasbey_warm'],
+                        'title': 'Mutual information taps',
+                        'title_pos': 'top_out',
+                        # 'ylim': (-1.2, 1.2),
+                        'xticks': plot_infoscan_xticks,
+                        'xticklabels': plot_infoscan_xticklabels,
+                        # 'xticklabels': list(range(scanstart, scanstop)),
+                        'legend': {'mutual information taps': 0}, # 'MI prop': 0, 
+                    },
+
+                    {
+                        'input': 'tap3', 'xslice': (0, scanlen),
+                        'plot': partial(timeseries, linestyle="none", marker="o"),
+                        'cmap': ['glasbey_warm'],
+                        'title': 'Mutual information taps',
+                        'title_pos': 'top_out',
+                        # 'ylim': (-1.2, 1.2),
+                        'xticks': plot_infoscan_xticks,
+                        'xticklabels': plot_infoscan_xticklabels,
+                        # 'xticklabels': list(range(scanstart, scanstop)),
+                        'legend': {'mutual information taps': 0}, # 'MI prop': 0, 
+                    },
+
+                    {
+                        'input': 'tap2', 'xslice': (0, scanlen),
+                        'plot': partial(timeseries, linestyle="none", marker="o"),
+                        'cmap': ['glasbey_warm'],
+                        'title': 'Mutual information taps',
+                        'title_pos': 'top_out',
+                        # 'ylim': (-1.2, 1.2),
+                        'xticks': plot_infoscan_xticks,
+                        'xticklabels': plot_infoscan_xticklabels,
+                        # 'xticklabels': list(range(scanstart, scanstop)),
+                        'legend': {'mutual information taps': 0}, # 'MI prop': 0, 
+                    }
+                    
+
+                    # {
+                    #     'input': ['tap0'], 'xslice': (0, scanlen),
+                    #     'xticks': plot_infoscan_xticks,
+                    #     'xticklabels': plot_infoscan_xticklabels,
+                    #     'xlabel': 'Lag [n]',
+                    #     'yslice': (0, 1),
+                    #     'ylabel': False,
+                    #     'yticks': False,
+                    #     'vmin': 0,
+                    #     'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
+                    #     'title': 'Uniform tapping',
+                    #     'colorbar': True, 'colorbar_orientation': 'vertical',
+                    #     'shape': (1, scanlen)
+                    # },
+                    
+                    # {
+                    #     'input': 'tap1', 'xslice': (0, scanlen),
+                    #     'xticks': plot_infoscan_xticks,
+                    #     'xticklabels': plot_infoscan_xticklabels,
+                    #     'xlabel': 'Lag [n]',
+                    #     'yslice': (0, 1),
+                    #     'ylabel': False,
+                    #     'yticks': False,
+                    #     'vmin': 0,
+                    #     'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
+                    #     'title': 'Computed tapping (MI)',
+                    #     'colorbar': True, 'colorbar_orientation': 'vertical',
+                    #     'shape': (1, scanlen)
+                    # },
+                    
+                    # {
+                    #     'input': 'tap3',
+                    #     'xslice': (0, scanlen),
+                    #     'xticks': plot_infoscan_xticks,
+                    #     'xticklabels': plot_infoscan_xticklabels,
+                    #     'xlabel': 'Lag [n]',
+                    #     'yslice': (0, 1),
+                    #     'ylabel': False,
+                    #     'yticks': False,
+                    #     'vmin': 0,
+                    #     'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
+                    #     'title': 'Computed tapping (CMI)',
+                    #     'colorbar': True, 'colorbar_orientation': 'vertical',
+                    #     'shape': (1, scanlen)
+                    # },
+                    
+                    # {
+                    #     'input': 'tap2',
+                    #     'xslice': (0, scanlen),
+                    #     'xticks': plot_infoscan_xticks,
+                    #     'xticklabels': plot_infoscan_xticklabels,
+                    #     'xlabel': 'Lag [n]',
+                    #     'yslice': (0, 1),
+                    #     'ylabel': False,
+                    #     'yticks': False,
+                    #     'vmin': 0,
+                    #     'plot': partial(timeseries, linestyle="none", marker="o"), 'cmap': 'Reds',
+                    #     'title': 'Computed tapping (TE)',
+                    #     'colorbar': True, 'colorbar_orientation': 'vertical',
+                    #     'shape': (1, scanlen)
+                    # }
+                    
+                ],
+                
+            ] 
+       },
+    }),
+
     
     # results table
     ('table', {

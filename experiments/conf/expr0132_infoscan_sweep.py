@@ -11,7 +11,7 @@ outputs = {
 # local configuration
 cnf = {
     'ydim_eff': 1,
-    'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle',
+    'logfile': 'data/sin_sweep_0-6.4Hz_newB_p3.pkl',
     'numsteps': 1000, # 5000
     'logtype': 'puppy',
     'xdim': 6,
@@ -19,6 +19,8 @@ cnf = {
     'ydim': 4,
 }
 
+expr_number = 19
+expr_name = 'Experiment {0}'.format(expr_number)
 numsteps = cnf['numsteps']
 lconf = {
     'delay_embed_len': 1,

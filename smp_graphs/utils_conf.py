@@ -716,6 +716,7 @@ def get_subplots_expr0120(dim_s0, dim_m0, dim_s1, scanlen, scanstart, scanstop):
     #         })
     #     rows.append(cols)
 
+    # cross-correlation
     for j in range(dim_s1):
         cols = []
         for i in range(dim_m0):
@@ -753,6 +754,7 @@ def get_subplots_expr0120(dim_s0, dim_m0, dim_s1, scanlen, scanstart, scanstop):
     #         })
     #     rows.append(cols)
 
+    # mutual information
     for j in range(dim_s1):
         cols = []
         # mutual information scan

@@ -11,7 +11,7 @@ outputs = {
 # local configuration
 cnf = {
     'ydim_eff': 1,
-    'logfile': 'data/stepPickles/step_period_26_0.pickle',
+    'logfile': 'data/stepPickles/step_period_26_0_p3.pkl',
     'numsteps': 1000, # 5000
     'logtype': 'puppy',
     'xdim': 6,
@@ -19,6 +19,9 @@ cnf = {
     'ydim': 4,
 }
 
+
+expr_number = 18
+expr_name = 'Experiment {0}'.format(expr_number)
 desc = "Repeating expr0130 with a higher frequency motor oscillation."
 
 numsteps = cnf['numsteps']
