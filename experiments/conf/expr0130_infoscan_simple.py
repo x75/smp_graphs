@@ -815,6 +815,10 @@ graph = OrderedDict([
             'wspace': 0.5,
             'hspace': 0.5,
             'saveplot': saveplot,
+            'savesize': (12, 8),
+            # 'title': f'{expr_name}: Infoscan Puppy periodic (76)',
+            # 'title': 'Experiment 18: Infoscan Puppy periodic (28)',
+            'title': 'Experiment 19: Infoscan Puppy sweep',
             'title_pos': 'top_out',
             'inputs': {
                 'x_gyr': {'bus': 'puppyslice/x_gyr'},
@@ -842,45 +846,76 @@ graph = OrderedDict([
             'subplots': [
                 [
                     {
-                        'input': ['x_gyr'] + ['lrp_y_gyr_%i' % i for i in range(4)],
+                        # 'input': ['x_gyr'] + ['lrp_y_gyr_%i' % i for i in range(4)],
+                        'input': ['x_gyr', 'x_acc'],
                         'plot': timeseries,
-                        'title': 'Gyros',
+                        'title': 'Gyroscope and accelerometer measurements',
                         'ylim': (-0.3, 0.3),
                         # label: handle-idx
-                        'legend': {'gyr-meas': 1, 'gyr-pred-0': 4, 'gyr-pred-1': 7, 'gyr-pred-2': 10, 'gyr-pred-3': 13},
+                        'legend': {
+                            'Gyro': 0,
+                            'Acc': 3,
+                            # 'gyr-pred-0': 4,
+                            # 'gyr-pred-1': 7,
+                            # 'gyr-pred-2': 10,
+                            # 'gyr-pred-3': 13
+                        },
                     },
                     {
-                        'input': ['x_gyr'],
+                        'input': ['x_gyr', 'x_acc'],
                         'plot': histogram,
                         'ylim': (-0.3, 0.3),
-                        'title': 'Gyros histogram'
+                        'title': 'Gyroscope and accelerometer measurement histogram',
+                        'legend': {
+                            'Gyro': 0,
+                            'Acc': 4,
+                        },
                     },
                 ],
-                [
-                    {
-                        'input': ['x_acc'] + ['lrp_y_acc_%i' % i for i in range(4)],
-                        'plot': timeseries,
-                        'title': 'Accelerometers',
-                        'ylim': (-0.5, 0.5),
-                        'legend': {'acc-meas': 1, 'acc-pred-0': 4, 'acc-pred-1': 7, 'acc-pred-2': 10, 'acc-pred-3': 13},
-                    },
-                    {
-                        'input': ['x_acc'],
-                        'plot': histogram,
-                        'title': 'Accelerometers histogram',
-                        'ylim': (-0.5, 0.5),
-                    },
-                ],
+                
+                # [
+                #     {
+                #         # 'input': ['x_acc'] + ['lrp_y_acc_%i' % i for i in range(4)],
+                #         'input': ['x_acc'],
+                #         'plot': timeseries,
+                #         'title': 'Accelerometer measurement',
+                #         'ylim': (-0.5, 0.5),
+                #         'legend': {
+                #             'Acc': 0,
+                #             # 'acc-pred-0': 4,
+                #             # 'acc-pred-1': 7,
+                #             # 'acc-pred-2': 10,
+                #             # 'acc-pred-3': 13
+                #         },
+                #     },
+                #     {
+                #         'input': ['x_acc'],
+                #         'plot': histogram,
+                #         'title': 'Accelerometer measurement histogram',
+                #         'ylim': (-0.5, 0.5),
+                #         'legend': {
+                #             'Acc': 0,
+                #         },
+                #     },
+                # ],
+                
                 [
                     {
                         'input': ['d4'],
                         'plot': timeseries,
-                        'title': 'Motor',
+                        'title': 'Motors',
+                        'legend': {
+                            'Motors 1-4': 0,
+                        },
                     },
                     {
                         'input': ['d4'],
                         'plot': histogram,
-                        'title': 'Motor histogram'},
+                        'title': 'Motors histogram',
+                        'legend': {
+                            'Motors 1-4': 0,
+                        },
+                    },
                 ],
                 # [
                 #     {'input': ['d5'], 'plot': timeseries},

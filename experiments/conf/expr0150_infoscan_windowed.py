@@ -73,7 +73,8 @@ ppycnf2 = {
     # 'logfile': 'data/stepPickles/step_period_12_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_76_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_26_0.pickle',
-    'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle', # continuous sweep without battery
+    # 'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle', # continuous sweep without battery
+    'logfile': 'data/sin_sweep_0-6.4Hz_newB_p3.pkl', # continuous sweep without battery
     'logtype': 'puppy',
     'xdim': 6,
     'xdim_eff': 6, # 3,
@@ -112,7 +113,7 @@ overlap = 500
 # overlap = 50
 srcsize = overlap
 # numwins = numsteps/overlap
-numwins = (numsteps - winsize)/overlap + 1
+numwins = int((numsteps - winsize)/overlap) + 1
 
 # prepare scan plot xticks depending on input size
 plot_infoscan_xticks_step = scanlen // 5
@@ -131,6 +132,8 @@ data_x_key = cnf['data_x_key']
 data_y_key = cnf['data_y_key']
 datasetname = escape_backslash(cnf['logfile'])
 
+expr_number = 20
+expr_name = "Experiment 20"
 desc = """This experiment consists of an open-loop exploration dataset
 of {0} time steps. Information scans are applied repeatedly on a
 window sliding over the dataset with a step size equal to the window
@@ -464,6 +467,7 @@ graph = OrderedDict([
             'saveplot': saveplot,
             'savetype': 'pdf',
             'wspace': 0.2, 'hspace': 0.2,
+            'title': 'Experiment 20: Windowed infoscan Puppy sweep',
             'title_pos': 'top_out',
             'desc': """Timeseries plot of motor (bottom) and sensor
                 (top) measurements during an episode of open-loop,
@@ -482,12 +486,20 @@ graph = OrderedDict([
                         'input': 'd1', 'plot': timeseries,
                         'title': 'Sensors',
                         'ylim': (-1., 1.),
+                        'legend': {
+                            'Gyros': 0,
+                            'Acc': 4,
+                        }
                     },
                     
                     {
                         'input': 'd1', 'plot': histogram,
                         'title': 'Sensors',
                         'ylim': (-1., 1.),
+                        'legend': {
+                            'Gyros': 0,
+                            'Acc': 4,
+                        }
                     },
                 ],
                 
@@ -495,10 +507,16 @@ graph = OrderedDict([
                     {
                         'input': 'd2', 'plot': timeseries,
                         'title': 'Motors',
+                        'legend': {
+                            'Motors 1-4': 0,
+                        }
                     },
                     {
                         'input': 'd2', 'plot': histogram,
                         'title': 'Motors',
+                        'legend': {
+                            'Motors 1-4': 0,
+                        }
                     },
                 ],
             ]
