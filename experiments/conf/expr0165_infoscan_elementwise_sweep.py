@@ -11,7 +11,8 @@ outputs = {
 # local configuration
 cnf = {
     'ydim_eff': 1,
-    'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle',
+    # 'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle',
+    'logfile': 'data/sin_sweep_0-6.4Hz_newB_p3.pkl',
     'numsteps': 1000, # 5000
     'logtype': 'puppy',
     'xdim': 6,
@@ -19,6 +20,8 @@ cnf = {
     'ydim': 4,
 }
 
+expr_number = 22
+expr_name = "Experiment 22"
 desc = """Repeating the elementwise scan of expr0161 in
 \\ref{{sec:smp-expr0161-infoscan-elementwise}} with the sweep
 exploration signal already used in expr0132\\_infoscan\\_sweep and

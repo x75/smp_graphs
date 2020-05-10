@@ -3,6 +3,7 @@
 perform windowed short time mutual info scan
 """
 
+from collections import OrderedDict
 from smp_graphs.common import escape_backslash
 from smp_graphs.block_meas_infth import MIMVBlock2, CMIMVBlock2, JHBlock2, TEMVBlock2
 from smp_graphs.block import SliceBlock2, SeqLoopBlock2, StackBlock2
@@ -86,6 +87,9 @@ ppycnf2 = {
 
 cnf = ppycnf2
 # cnf = lpzbarrelcnf
+
+global xdim, xdim_eff
+global ydim, ydim_eff
 
 # copy params to namespace
 numsteps = cnf['numsteps']
@@ -467,7 +471,7 @@ graph = OrderedDict([
             'saveplot': saveplot,
             'savetype': 'pdf',
             'wspace': 0.2, 'hspace': 0.2,
-            'title': 'Experiment 20: Windowed infoscan Puppy sweep',
+            'title': 'Experiment 20: Windowed infoscan Puppy sweep (timeseries)',
             'title_pos': 'top_out',
             'desc': """Timeseries plot of motor (bottom) and sensor
                 (top) measurements during an episode of open-loop,
@@ -548,8 +552,9 @@ graph = OrderedDict([
             $\\textnormal{{sensor}}^{{-}}$ and $\\text{{motor}}^{{-}}$
             with $\cdot^{{-}}$ meaning
             past-of-variable.""".format(datasetname),
-            'title': 'Multiple windowed info scans for dataset %s' % (cnf['logfile']),
-            'title_pos': 'top_in',
+            # 'title': 'Multiple windowed info scans for dataset %s' % (cnf['logfile']),
+            'title': 'Experiment 20: Windowed infoscan Puppy sweep (infogram)',
+            'title_pos': 'top_out',
             'inputs': {
                 'd1': {'bus': 'mimv/mimv', 'shape': (1, scanlen * numwins)},
                 # 'd2': {'bus': 'mimvl|0/mimv', 'shape': (1, scanlen * numwins)},

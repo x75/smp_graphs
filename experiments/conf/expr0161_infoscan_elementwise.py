@@ -25,9 +25,9 @@ outputs = {
 
 # numsteps = 147000
 # numsteps = 10000
-numsteps = 2000
-xdim = 6
-ydim = 4
+# numsteps = 2000
+# xdim = 6
+# ydim = 4
 
 # numsteps = 1000
 # xdim = 1
@@ -60,8 +60,9 @@ ppycnf2 = {
     # 'logfile': 'data/stepPickles/step_period_4_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_10_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_12_0.pickle',
-    'logfile': 'data/stepPickles/step_period_76_0.pickle',
+    # 'logfile': 'data/stepPickles/step_period_76_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_26_0.pickle',
+    'logfile': 'data/stepPickles/step_period_76_0_p3.pkl',
     # 'numsteps': 1000,
     #'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle', # continuous sweep without battery
     'numsteps': 1000,
@@ -104,7 +105,12 @@ testcnf = {
 lconf = {
     'delay_embed_len': 1,
 }
-    
+
+global partial, timeseries
+global xdim, xdim_eff
+global ydim, ydim_eff
+global numsteps, scanlen, scanstart, scanstop
+
 cnf = ppycnf2
 numsteps = cnf['numsteps']
 xdim = cnf['xdim']
@@ -133,6 +139,8 @@ datasetname = escape_backslash(cnf['logfile'])
 data_x = 'puppyzero/x_r'
 data_y = 'puppylog/y'
 
+expr_number = 21
+expr_name = "Experiment 21"
 desc = """A complete infoscan is performed over all motor/sensor
 variable pairs and over time shifts from {0} up to {1} for each
 pair. The result is a tensor of shape $(d_\\text{{motor}},
@@ -389,6 +397,8 @@ graph = OrderedDict([
             'savetype': 'pdf',
             'wspace': 0.5,
             'hspace': 0.5,
+            # 'title': 'Experiment 21: Windowed element-wise infoscan Puppy periodic (timeseries)',
+            'title': 'Experiment 22: Windowed element-wise infoscan Puppy sweep (timeseries)',
             'title_pos': 'top_out',
             'desc': """Timeseries and histogram plots of the sensor
             and motor variables in the {0}
@@ -409,23 +419,25 @@ graph = OrderedDict([
                         'input': 'd3', 'plot': timeseries,
                         'ylim': (-0.5, 0.5),
                         'title': 'Sensors (gyro + acc) timeseries',
-                        'legend': {'acc-meas': 0, 'gyr-meas': 3},
+                        'legend': {'Acc': 0, 'Gyro': 3},
                     },
                     {
                         'input': 'd3', 'plot': histogram,
                         'ylim': (-0.5, 0.5),
                         'title': 'Sensors (gyro + acc) histogram',
-                        # 'legend': {'acc-meas': 0, 'gyr-meas': 3},
+                        'legend': {'Acc': 0, 'Gyro': 3},
                     },
                 ],
                 [
                     {
                         'input': 'd4', 'plot': timeseries,
                         'title': 'Motors timeseries',
+                        'legend': {'Motors 1-4': 0},
                     },
                     {
                         'input': 'd4', 'plot': histogram,
                         'title': 'Motors histogram',
+                        'legend': {'Motors 1-4': 0},
                     },
                 ],
                 # [
@@ -513,6 +525,8 @@ graph = OrderedDict([
             'saveplot': saveplot,
             'savetype': 'pdf',
             'savesize': (4 * 3, 1.5 * 3),
+            # 'title': 'Experiment 21: Windowed element-wise infoscan Puppy periodic (infogram)',
+            'title': 'Experiment 22: Windowed element-wise infoscan Puppy sweep (infogram)',
             'desc': """Pairwise infoscans for each of three dependency
             measures, the MI, TE, and CTE. The large MI in the
             leftmost plot is caused by body or sensor resonances from
@@ -533,12 +547,12 @@ graph = OrderedDict([
                 [
                     {
                     'input': ['d1'],
-                    'title': 'MI',
+                    'title': 'Mutual Information',
                     'ndslice': (slice(None), slice(None), slice(None)),
                     'shape': (scanlen, ydim, xdim),
                     'dimstack': {'x': [0], 'y': [2, 1]},
                     'cmap': 'Reds',
-                    'xlabel': 'Lag [n]',
+                    'xlabel': 'Time shift [k]',
                     'ylabel': 'sensor channel [i]',
                     'yticks': np.arange(xdim) * ydim + ydim/2,
                     'yticklabels': ['acc_x','acc_y','acc_z','gyr_x','gyr_y','gyr_z'],
@@ -556,12 +570,12 @@ graph = OrderedDict([
                     
                     {
                         'input': 'd2',
-                        'title': 'TE',
+                        'title': 'Transfer Entropy',
                         'ndslice': (slice(None), slice(None), slice(None)),
                         'shape': (scanlen, ydim, xdim),
                         'dimstack': {'x': [0], 'y': [2, 1]},
                         'cmap': 'Reds',
-                        'xlabel': 'Lag [n]',
+                        'xlabel': 'Time shift [k]',
                         'yticks': False, # np.arange(xdim) * ydim + ydim/2,
                         'ylabel': False,
                         'colorbar': True, 'colorbar_orientation': 'vertical',
@@ -569,12 +583,12 @@ graph = OrderedDict([
                     
                     {
                         'input': 'd3',
-                        'title': 'CTE',
+                        'title': 'Conditional Transfer Entropy',
                         'ndslice': (slice(None), slice(None), slice(None)),
                         'dimstack': {'x': [0], 'y': [2, 1]},
                         'shape': (scanlen, ydim, xdim),
                         'cmap': 'Reds',
-                        'xlabel': 'Lag [n]',
+                        'xlabel': 'Time shift [k]',
                         'yticks': False, # np.arange(xdim) * ydim + ydim/2,
                         'ylabel': False,
                         'colorbar': True, 'colorbar_orientation': 'vertical',

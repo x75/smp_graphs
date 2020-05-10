@@ -358,7 +358,9 @@ class MIMVBlock2(InfthPrimBlock2):
         print("%s.step[%d]-%s self.inputs['x']['val'].T.shape = %s, shifting by" % (self.cname, self.cnt, self.id, self.inputs['x']['val'].T.shape))
         
         for i in range(self.shift[0], self.shift[1]):
-            print("%d" % (i, ))
+            # print("%d" % (i, ))
+            # print scanning progress
+            sys.stdout.write("%d " % (i, ))
             sys.stdout.flush()
             
             # print "self.inputs['x']['val'].T.shape", self.inputs['x']['val'].T.shape
@@ -437,7 +439,9 @@ class CMIMVBlock2(InfthPrimBlock2):
         jh = self.normalize(src, dst)
         
         for i in range(self.shift[0], self.shift[1]):
-            print("%d" % (i, ))
+            # print("%d" % (i, ))
+            # print scanning progress
+            sys.stdout.write("%d " % (i, ))
             sys.stdout.flush()
             
             dst_ = np.roll(dst, shift = -i, axis = 0)
@@ -484,7 +488,9 @@ class TEMVBlock2(InfthPrimBlock2):
         jh = self.normalize(src, dst)
         
         for i in range(self.shift[0], self.shift[1]):
-            print("%d" % (i, ))
+            # print("%d" % (i, ))
+            # print scanning progress
+            sys.stdout.write("%d " % (i, ))
             sys.stdout.flush()
             
             # dst_ = np.roll(dst, shift = i, axis = 0)

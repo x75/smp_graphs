@@ -7,6 +7,7 @@ destination by shifting the destination back in time with respect to
 the source. measures are pointwise over pairs of variables at times t.
 """
 
+from functools import partial
 from matplotlib.pyplot import hexbin
 from smp_base.plot import histogramnd
 from smp_graphs.common import escape_backslash
@@ -72,7 +73,8 @@ ppycnf2 = {
     # 'logfile': 'data/stepPickles/step_period_26_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_72_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_72_1.pickle',
-    'logfile': 'data/stepPickles/step_period_76_0.pickle',
+    # 'logfile': 'data/stepPickles/step_period_76_0.pickle',
+    'logfile': 'data/stepPickles/step_period_76_0_p3.pkl',
     'numsteps': 1000,
     'ydim_eff': 1,
     # 'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle',
@@ -120,7 +122,12 @@ pmcnf = {
 }
 
 lconf = {}
-    
+
+global partial, timeseries
+global xdim, xdim_eff
+global ydim, ydim_eff
+global numsteps, scanlen, scanstart, scanstop
+
 # assign an option to the actual configuration 
 cnf = ppycnf2
 numsteps = cnf['numsteps']
@@ -136,7 +143,7 @@ else:
 if 'sys_slicespec' in cnf:
     sys_slicespec = cnf['sys_slicespec']
 else:
-    sys_slicespec = {'x': {'acc': slice(0, xdim/2), 'gyr': slice(xdim/2, xdim)}}
+    sys_slicespec = {'x': {'acc': slice(0, xdim//2), 'gyr': slice(xdim//2, xdim)}}
 
 # configure the scan range
 scanstart = 0  # -100
@@ -155,6 +162,8 @@ tap_thr = 0.3
 datasetname = escape_backslash(cnf['logfile'])
 data_x = 'puppyzero/x_r'
 
+expr_number = 21
+expr_name = "Experiment 21"
 desc = """A real world robot example is the Puppy robot, initially
 proposed in \\cite{{iida_cheap_2004}}. There exist several proposals
 for modifications of the original design. Here, a soft legged design
@@ -633,7 +642,7 @@ graph = OrderedDict([
                     'blocksize': numsteps,
                     # puppy sensor predictions
                     'inputs': {},
-                    'slices': {'y': {'acc': slice(0, xdim/2), 'gyr': slice(xdim/2, xdim)}},
+                    'slices': {'y': {'acc': slice(0, xdim//2), 'gyr': slice(xdim//2, xdim)}},
                 },
             },
         },
