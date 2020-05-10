@@ -97,6 +97,7 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'pdf',
+            'savesize': (6, 3),
             'title': expr_name,
             'desc': """Timeseries with the motor values in blue and
             the sensor values in green in the top panel. The bottom
@@ -116,10 +117,14 @@ graph = OrderedDict([
                     {
                         'input': ['s0p', 's0', 's1'],
                         'plot': [partial(timeseries, marker = '.', alpha=0.6)] * 3,
-                        'title': 'Timeseries motor and proprioception',
-                        'xticks': False,
+                        # 'title': 'Timeseries motor and proprioception',
+                        'title': None,
+                        'xlabel': 'time step [k]',
+                        'ylabel': 'normalized state',
+                        'legend': {'prediction': 0, 'measurement': 1, 'measurement exteroception': 2},
+                        # 'xticks': False,
                         # 'cmap': ['glasbey_warm'],
-                        'cmap': ['rainbow'],
+                        # 'cmap': ['rainbow'],
                     },
                 ],
                 # [
@@ -217,7 +222,7 @@ graph = OrderedDict([
             'debug': False,
             #           dim       col w   s  dim      row h   s
             # 'savesize': (dim_s1 * 1 * 4 * 3, dim_m0 * 4 * 1 * 3),
-            'savesize': (6, 4),
+            'savesize': (6, 4.5),
             'title': expr_name,
             'desc': """Results of a cross-correlation scan (top) and a
             mutual information scan (bottom). Normalized correlation

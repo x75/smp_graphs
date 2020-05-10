@@ -3343,6 +3343,9 @@ class SliceBlock2(PrimBlock2):
             slicespec = self.slices[ink]
             for slk, slv in list(slicespec.items()):
                 outk = "%s_%s" % (ink, slk)
+                # 20200510 - python3 integer / float issue
+                print(f'slk = {slk}, slv = {slv}, outk = {outk}')
+                print(f'self.inputs[ink] = {self.inputs[ink]["val"]}')
                 setattr(self, outk, self.inputs[ink]['val'][slv])
                 self._debug('step[%d] outk = %s, outsh = %s, out = %s' % (self.cnt, outk, getattr(self, outk).shape, getattr(self, outk)))
 

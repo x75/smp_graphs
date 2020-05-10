@@ -69,6 +69,7 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'pdf',
+            'savesize': (6, 3),
             'title': expr_name,
             'desc': """Timeseries with the motor values in
             blue and the sensor values in green. The
@@ -86,6 +87,9 @@ graph = OrderedDict([
                     {
                         'input': ['s0p', 's0'],
                         'plot': [partial(timeseries, marker = 'o')] * 2,
+                        'title': None,
+                        'xlabel': 'time step [k]',
+                        'ylabel': 'normalized state',
                         'legend': {'prediction': 0, 'measurement': 1},
                     },
                 ],
@@ -171,6 +175,7 @@ graph = OrderedDict([
             # 'logging': False,
             'saveplot': saveplot,
             'savetype': 'pdf',
+            'savesize': (6, 3),
             'title': expr_name,
             'desc': """Cross-correlation (XC) vs. mutual information
             (MI) results of a cross-correlation scan (top) and a

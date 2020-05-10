@@ -72,7 +72,7 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'pdf',
-            'savesize': (6, 2),
+            'savesize': (6, 3),
             'title': expr_name,
             'desc': """The episode timeseries.""",
             'inputs': {
@@ -153,11 +153,11 @@ graph = OrderedDict([
             'blocksize': numsteps,
             'saveplot': saveplot,
             'savetype': 'pdf',
-            'savesize': (6, 2),
+            'savesize': (6, 3),
             'title': expr_name,
             'desc': """The cross-correlation of proprioceptive
             predictions and measurements scanned over shifts in the
-            interval [0, 10].""",
+            interval [-10, 0].""",
             'wspace': 0.5,
             'hspace': 0.5,
             'inputs': make_input_matrix_ndim(xdim = dim_m0, ydim = dim_s0, with_t = True, scan = (scanstart, scanstop)),

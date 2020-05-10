@@ -11,16 +11,21 @@ the source. measures are global over the multivariate measurements
 (simple)
 """
 
+from collections import OrderedDict
+from functools import partial
+import numpy as np
 from matplotlib.pyplot import hexbin
-from smp_base.plot import histogramnd
+from smp_base.plot import histogramnd, timeseries, histogram
 from smp_graphs.common import escape_backslash
 from smp_graphs.utils_conf_meas import make_input_matrix, make_input_matrix_ndim
-from smp_graphs.block_plot import SnsMatrixPlotBlock2, ImgPlotBlock2, TextBlock2
 from smp_graphs.block import dBlock2, IBlock2, SliceBlock2, DelayBlock2, StackBlock2
+from smp_graphs.block import LoopBlock2
+from smp_graphs.block_ols import FileBlock2
 from smp_graphs.block_meas import XCorrBlock2
 from smp_graphs.block_meas_infth import JHBlock2, MIBlock2, InfoDistBlock2, TEBlock2, CTEBlock2
 from smp_graphs.block_meas_infth import MIMVBlock2, CMIMVBlock2, TEMVBlock2
 from smp_graphs.block_models import ModelBlock2
+from smp_graphs.block_plot import PlotBlock2, SnsMatrixPlotBlock2, ImgPlotBlock2, TextBlock2
 
 # global config
 showplot = True
@@ -70,13 +75,16 @@ ppycnf = {
 
 # datafiles and dependent params: puppy type 2
 ppycnf2 = {
+    # python2 pickles
     # 'logfile': 'data/stepPickles/step_period_4_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_10_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_12_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_26_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_72_0.pickle',
     # 'logfile': 'data/stepPickles/step_period_72_1.pickle',
-    'logfile': 'data/stepPickles/step_period_76_0.pickle',
+    # 'logfile': 'data/stepPickles/step_period_76_0.pickle',
+    # python3 pickles
+    'logfile': 'data/stepPickles/step_period_76_0_p3.pkl',
     'numsteps': 1000,
     'ydim_eff': 1,
     # 'logfile': 'data/sin_sweep_0-6.4Hz_newB.pickle',
@@ -126,7 +134,14 @@ pmcnf = {
 lconf = {
     'delay_embed_len': 1,
 }
-    
+
+# 20200510 - python3 NameError, name ... is not defined
+global xdim, ydim
+global xdim_eff, ydim_eff
+global numsteps
+global scanlen
+global partial, timeseries
+
 # assign an option to the actual configuration 
 cnf = ppycnf2
 numsteps = cnf['numsteps']
@@ -142,7 +157,7 @@ else:
 if 'sys_slicespec' in cnf:
     sys_slicespec = cnf['sys_slicespec']
 else:
-    sys_slicespec = {'x': {'acc': slice(0, xdim/2), 'gyr': slice(xdim/2, xdim)}}
+    sys_slicespec = {'x': {'acc': slice(0, int(xdim/2)), 'gyr': slice(int(xdim/2), xdim)}}
 
 # configure the scan range
 scanstart = 0  # -100
@@ -161,6 +176,8 @@ tap_thr = 0.3
 datasetname = escape_backslash(cnf['logfile'])
 data_x = 'puppyzero/x_r'
 
+expr_number = 17
+expr_name = 'Experiment {0}'.format(expr_number)
 desc = """A real world robot example is the Puppy robot, initially
 proposed in \\cite{{iida_cheap_2004}}. There exist several proposals
 for modifications of the original design. Here, a soft legged design
@@ -605,7 +622,7 @@ graph = OrderedDict([
                         'y': {'bus': data_x},
                     },
                     'outputs': {
-                        'y': {'shape': (xdim,numsteps)},
+                        'y': {'shape': (xdim, numsteps)},
                         'y_res': {'shape': (1,1)},
                         'y_idx': {'shape': (1,scanlen)},
                         'w_norm': {'shape': (1,1)},
@@ -639,7 +656,7 @@ graph = OrderedDict([
                     'blocksize': numsteps,
                     # puppy sensor predictions
                     'inputs': {},
-                    'slices': {'y': {'acc': slice(0, xdim/2), 'gyr': slice(xdim/2, xdim)}},
+                    'slices': {'y': {'acc': slice(0, int(xdim/2)), 'gyr': slice(int(xdim/2), xdim)}},
                 },
             },
         },
