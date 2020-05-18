@@ -25,14 +25,14 @@ outputs = {
 
 # local configuration
 cnf = {
-    'numsteps': 2000, # 5000
+    'numsteps': 2500, # 5000
 }
     
 numsteps = cnf['numsteps']
 
 lconf = {
     # execution and global
-    'numsteps': int(10000/5),
+    'numsteps': int(10000/4),
     'dt': 0.1,
     # system
     'sys': {
@@ -67,7 +67,9 @@ from smp_graphs.utils_conf import dm_motivations
 motivations = dm_motivations(m_mins, m_maxs, dim_s0, lconf['dt'])
 motivation_i = lconf['motivation_i']
 goal = motivations[motivation_i][1]['params']['models']['goal']['type']
-    
+
+expr_number = 26
+expr_name = "Experiment 26"
 desc = """A variation of the actinf experiment using a different goal
 type. This means, the experiment is identical to the previous one,
 except for the type of top-down goal prediction, {0} in this case. In

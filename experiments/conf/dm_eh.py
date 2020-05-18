@@ -552,10 +552,10 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
         'blocksize': numsteps, # 1000, # blocksize,
         'saveplot': saveplot,
         'savetype': 'jpg',
-        'title': '%s: dm EH\nalgo %s, sys %s(dim_p=%d), goal = %s, lag = %s, tap- %s, tap+ %s' % (
-            expr_name, algo, sysname, dim_s0, goal, lag, lag_past, lag_future),
+        'title': '%s\ndev-model EH, algo %s, sys %s(dim_p=%d), goal %s, lag %s, tap- %s, tap+ %s' % (
+            'Learning episode timeseries', algo, sysname, dim_s0, goal, lag, lag_past, lag_future),
         'title_pos': 'top_out',
-        'hspace': 0.5,
+        'hspace': 0.3,
         'desc': """An {1} agent learning to control a {0}-dimensional {2}
             system using the {3} low-level algorithm.""".format(
                 dim_s0, 'eh', sysname, algo.replace('_', '\_')),
@@ -584,7 +584,9 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
                     'plot': partial(timeseries, marker='.'),
                     'title': 'Momentary error and reward',
                     'legend': {'e(s_p)': 0},
-                    'xticks': False,
+                    # 'xticks': False,
+                    'xticklabels': False,
+                    'ylabel': 'Reward',
                 }
             ],
             
@@ -594,7 +596,9 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
                     'plot': partial(timeseries, marker='.'),
                     'title': 'Goal, state and prediction',
                     'legend': {'Goal': 0, 'State': dim_s0, 'State_p': 2*dim_s0},
-                    'xticks': False,
+                    # 'xticks': False,
+                    'xticklabels': False,
+                    'ylabel': 'State',
                 }
             ],
             
@@ -604,6 +608,8 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
                     'plot': partial(timeseries, marker='.'),
                     'title': 'Hidden activation of reservoir $\mathbf{r}$ (partial)',
                     'legend': {'$\mathbf{r}$': 0},
+                    'xticklabels': False,
+                    'ylabel': 'Activation',
                 }
             ],
             
@@ -612,7 +618,9 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
                     'input': ['wo_norm'],
                     'plot': partial(timeseries, marker='.'),
                     'title': 'Model %s parameter norm (accumulated adaptation)' % (algo),
-                    'legend': {'$|\mathbf{W}_o|$': 0}
+                    'legend': {'$|\mathbf{W}_o|$': 0},
+                    'xlabel': 'Time step [k]',
+                    'ylabel': 'Weight norm',
                 }
             ],
             

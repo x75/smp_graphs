@@ -24,14 +24,14 @@ outputs = {
 
 # local configuration
 cnf = {
-    'numsteps': 2000, # 5000
+    'numsteps': 2500, # 5000
 }
     
 numsteps = cnf['numsteps']
 
 lconf = {
     # execution and global
-    'numsteps': int(10000/5),
+    'numsteps': int(10000/4),
     
     # system
     'sys': {
@@ -74,7 +74,7 @@ showplot = True
 
 # experiment
 randseed = 12345
-numsteps = int(10000/5)
+numsteps = int(10000/4)
 dim = 1
 motors = dim
 dt = 0.1

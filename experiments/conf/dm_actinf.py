@@ -183,7 +183,9 @@ from smp_graphs.utils_conf import dm_motivations
 motivations = dm_motivations(m_mins, m_maxs, dim_s0, dt)
 motivation_i = lconf['motivation_i']
 goal = motivations[motivation_i][1]['params']['models']['goal']['type']
-    
+
+expr_number = 25
+expr_name = "Experiment 25"
 desc = """An exemplary experiment involving a single developmental
 episode of {0} steps of an actinf agent. The episode starts with an
 initial washout period of 1/10th of the episode length during which
@@ -214,8 +216,8 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
         'blocksize': blocksize,
         'saveplot': saveplot,
         # 'debug': True,
-        'title': '%s\nalgo %s, sys %s(dim_p=%d), goal = %s, lag %d, tap- %s, tap+ %s' % (
-            'dm actinf', algo, sysname, dim_s0, goal, lag, lag_past, lag_future),
+        'title': '%s\ndev-model %s, algo %s, sys %s(dim_p=%d), goal %s, lag %d, tap- %s, tap+ %s' % (
+            'Learning episode timeseries', 'dm actinf', algo, sysname, dim_s0, goal, lag, lag_past, lag_future),
         'desc': """An {1} agent learning to control a {0}-dimensional {2}
             system using the {3} low-level algorithm.""".format(dim_s0, 'actinf', sysname, algo),
         'inputs': {
@@ -234,8 +236,11 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
                 {
                     'input': ['err',], 'plot': partial(timeseries, marker='.'),
                     'title': 'Momentary prediction error',
+                    'title_pos': 'top_out',
                     'legend': {'e(s_p)': 0},
-                    'xticks': False,
+                    # 'xticks': True,
+                    'xticklabels': False,
+                    'ylabel': 'State',
                 },
             ],
             
@@ -244,8 +249,11 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
                     'input': ['goals', 's0', 'pre'],
                     'plot': [partial(timeseries, marker='.')] * 3,
                     'title': 'Goal, state, and prediction',
+                    'title_pos': 'top_out',
                     'legend': {'Goal': 0, 'State': dim_s0, 'State_p': 2*dim_s0},
-                    'xticks': False,
+                    # 'xticks': False,
+                    'xticklabels': False,
+                    'ylabel': 'State',
                 }
             ],
             
@@ -260,8 +268,11 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
                 {
                     'input': ['X_fit'], 'plot': partial(timeseries, marker='.'),
                     'title': 'Model %s input $\mathbf{X}$' % (algo),
+                    'title_pos': 'top_out',
                     'legend': {'X_pre_l1': 0, 'X_prerr_l0': dim_s0},
-                    'xticks': False,
+                    # 'xticks': False,
+                    'xticklabels': False,
+                    'ylabel': 'State',
                 },
             ],
             
@@ -269,8 +280,11 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
                 {
                     'input': ['tgt'], 'plot': partial(timeseries, marker='.'),
                     'title': 'Model %s input $\mathbf{Y}$' % (algo),
+                    'title_pos': 'top_out',
                     'legend': {'Y_tgt': 0},
-                    'xticks': False,
+                    # 'xticks': False,
+                    'xticklabels': False,
+                    'ylabel': 'State',
                 },
             ],
             
@@ -279,7 +293,10 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
                     'input': ['mse_s_p_accum',],
                     'plot': partial(timeseries, marker='.'),
                     'title': 'Accumulated error',
+                    'title_pos': 'top_out',
                     'legend': {'$\sum$ err': 0},
+                    'xlabel': 'Time step [k]',
+                    'ylabel': 'Error sum',
                 }
             ],
             

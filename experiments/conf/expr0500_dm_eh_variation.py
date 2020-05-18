@@ -25,7 +25,7 @@ outputs = {
 
 # local configuration
 cnf = {
-    'numsteps': 2000, # 5000
+    'numsteps': 2500, # 5000
 }
     
 numsteps = cnf['numsteps']
@@ -35,7 +35,7 @@ expr_name = 'Experiment {0}'.format(expr_number)
 
 lconf = {
     # execution and global
-    'numsteps': int(10000/5),
+    'numsteps': int(10000/4),
     'expr_number': expr_number,
     'expr_name': expr_name,
     # system
@@ -108,7 +108,7 @@ showplot = True
 
 # experiment
 randseed = 12345
-numsteps = int(10000/5)
+numsteps = int(10000/4)
 dim = 1
 motors = dim
 dt = 0.1

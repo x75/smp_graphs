@@ -415,6 +415,8 @@ eta = 0.15
 devmodel = 'imol'
 ################################################################################
 # experiment description after all configurables have been set
+expr_number = 23
+expr_name = "Experiment 23"
 desc = """This is a basic version of the forward / inverse internal
 model pair online learning (imol) algorithm put into an actual agent
 experiment. The low-level learning algorithm in this particular case
@@ -459,12 +461,12 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
     'params': {
         'saveplot': saveplot,
         'blocksize': numsteps, # min(numsteps, numsteps), # 1000, # blocksize
-        'title': 'Learning episode timeseries: dev-model = %s, algo = %s, system %s, goal = %s' % (devmodel, algo, sysname, goal),
+        'title': 'Learning episode timeseries\ndev-model = %s, algo = %s, system %s, goal = %s' % (devmodel, algo, sysname, goal),
         'desc': """An %s agent learning to control a %d-dimensional %s
             system using the %s low-level algorithm. Please refer to the
             main text of the dm-imol experiment for the detailed
             description.""" % (devmodel, dim_s0, sysname, algo),
-        'hspace': 0.5,
+        'hspace': 0.3,
         'inputs': {
             'goals': {'bus': '%s/pre' % (l1,), 'shape': (dim_s0, blocksize)},
             'pre':   {'bus': '%s/pre' % (l0,), 'shape': (dim_s0, blocksize)},
@@ -490,8 +492,11 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
                     'input': ['err', 'prerr_rms_avg', 'prerr_rms_avg_fwd'],
                     'plot': [partial(timeseries, marker='.', alpha=0.07), partial(timeseries, marker='.'), partial(timeseries, marker='.')],
                     'title': 'Momentary and time averaged inverse (goal) and forward errors',
+                    'title_pos': 'top_out',
                     'legend': {'Error_t': 0, 'E(Error_i_t)': dim_s0, 'E(Error_f_t)': dim_s0 + 1},
-                    'xticks': False,
+                    # 'xticks': False,
+                    'xticklabels': False,
+                    'ylabel': 'State',
                 },
             ],
             
@@ -500,9 +505,12 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
                     'input': ['goals', 's0', 'pre', 'pre_fwd'],
                     'plot': partial(timeseries, marker='.'),
                     'title': 'Goal, state, inverse, andd forward predictions',
+                    'title_pos': 'top_out',
                     # 'legend': OrderedDict([('State', 0), ('State_p', dim_s0)]),
                     'legend': {'Goal': 0, 'State': dim_s0, 'State_p_i': 2*dim_s0, 'State_p_f': 3*dim_s0},
-                    'xticks': False,
+                    #'xticks': False,
+                    'xticklabels': False,
+                    'ylabel': 'State',
                 },
             ],
             
@@ -527,8 +535,11 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
                 {
                     'input': ['X'], 'plot': partial(timeseries, marker = '.'),
                     'title': 'Model %s input $\mathbf{X}$' % (algo),
+                    'title_pos': 'top_out',
                     'legend': {'X_pre_l1': 0, 'X_meas_l0': dim_s0, 'X_err_l0': 2*dim_s0},
-                    'xticks': False,
+                    # 'xticks': False,
+                    'xticklabels': False,
+                    'ylabel': 'State',
                 },
             ],
             
@@ -536,8 +547,11 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
                 {
                     'input': ['Y'], 'plot': partial(timeseries, marker = '.'),
                     'title': 'Model %s input $\mathbf{Y}$' % (algo),
+                    'title_pos': 'top_out',
                     'legend': {'Y_pre_l0': 0},
-                    'xticks': False,
+                    # 'xticks': False,
+                    'xticklabels': False,
+                    'ylabel': 'State',
                 },
             ],
             
@@ -545,9 +559,12 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
                 {
                     'input': ['hidden'], 'plot': partial(timeseries, marker = '.'),
                     'title': 'Model %s hidden activation $\mathbf{Z}$' % (algo),
+                    'title_pos': 'top_out',
                     # FIXME: knn particulars
                     'legend': {'Z_dist': 0, 'E(Z_dist)': 5, 'Z_idx': 6},
-                    'xticks': False,
+                    # 'xticks': False,
+                    'xticklabels': False,
+                    'ylabel': 'Activation',
                 },
             ],
             
@@ -555,7 +572,10 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
                 {
                     'input': ['wo_norm', 'wo_norm_fwd'], 'plot': partial(timeseries, marker = '.'),
                     'title': 'Model %s parameter norm (accumulated adaptation)' % (algo),
-                    'legend': {'|W|': 0}
+                    'title_pos': 'top_out',
+                    'legend': {'|W|': 0},
+                    'xlabel': 'Time step [k]',
+                    'ylabel': 'Weight norm',
                 },
             ],
             ]

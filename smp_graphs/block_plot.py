@@ -94,7 +94,7 @@ rcParams['legend.labelspacing'] = 0.5
 rcParams['xtick.labelsize'] = 8.0
 rcParams['xtick.direction'] = 'in'
 rcParams['ytick.labelsize'] = 8.0
-rcParams['ytick.direction'] = 'out'
+rcParams['ytick.direction'] = 'in'
 # subplots
 rcParams['figure.subplot.bottom'] = 0.12 # 0.11
 rcParams['figure.subplot.left'] = 0.1 # 0.125
