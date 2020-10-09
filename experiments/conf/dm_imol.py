@@ -52,6 +52,7 @@ randseed = 12355
 
 lconf = {
     # execution and global
+    # 'numsteps': int(10000/10),
     'numsteps': int(10000/4),
     
     # system
@@ -460,6 +461,7 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
     'block': PlotBlock2,
     'params': {
         'saveplot': saveplot,
+        # 'savetype': 'pdf',
         'blocksize': numsteps, # min(numsteps, numsteps), # 1000, # blocksize
         'title': 'Learning episode timeseries\ndev-model = %s, algo = %s, system %s, goal = %s' % (devmodel, algo, sysname, goal),
         'desc': """An %s agent learning to control a %d-dimensional %s
@@ -490,10 +492,14 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             [
                 {
                     'input': ['err', 'prerr_rms_avg', 'prerr_rms_avg_fwd'],
-                    'plot': [partial(timeseries, marker='.', alpha=0.07), partial(timeseries, marker='.'), partial(timeseries, marker='.')],
+                    'plot': [
+                        partial(timeseries, marker='.', markersize=1.2, alpha=0.33),
+                        partial(timeseries, marker='.', markersize=1.2),
+                        partial(timeseries, marker='.', markersize=1.2)],
                     'title': 'Momentary and time averaged inverse (goal) and forward errors',
                     'title_pos': 'top_out',
-                    'legend': {'Error_t': 0, 'E(Error_i_t)': dim_s0, 'E(Error_f_t)': dim_s0 + 1},
+                    # 'legend': {'Error_t': 0, 'E(Error_i_t)': dim_s0, 'E(Error_f_t)': dim_s0 + 1},
+                    'legend': {'Inverse error': 0, 'Avg inverse error': dim_s0, 'Avg forward error': dim_s0 + 1},
                     # 'xticks': False,
                     'xticklabels': False,
                     'ylabel': 'State',
@@ -503,11 +509,12 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             [
                 {
                     'input': ['goals', 's0', 'pre', 'pre_fwd'],
-                    'plot': partial(timeseries, marker='.'),
+                    'plot': partial(timeseries, marker='.', markersize=1.2),
                     'title': 'Goal, state, inverse, andd forward predictions',
                     'title_pos': 'top_out',
                     # 'legend': OrderedDict([('State', 0), ('State_p', dim_s0)]),
-                    'legend': {'Goal': 0, 'State': dim_s0, 'State_p_i': 2*dim_s0, 'State_p_f': 3*dim_s0},
+                    # 'legend': {'Goal': 0, 'State': dim_s0, 'State_p_i': 2*dim_s0, 'State_p_f': 3*dim_s0},
+                    'legend': {'Goal': 0, 'State': dim_s0, 'Inverse prediction': 2*dim_s0, 'Forward prediction': 3*dim_s0},
                     #'xticks': False,
                     'xticklabels': False,
                     'ylabel': 'State',
@@ -533,10 +540,11 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
                         
             [
                 {
-                    'input': ['X'], 'plot': partial(timeseries, marker = '.'),
+                    'input': ['X'], 'plot': partial(timeseries, marker = '.', markersize=1.2),
                     'title': 'Model %s input $\mathbf{X}$' % (algo),
                     'title_pos': 'top_out',
-                    'legend': {'X_pre_l1': 0, 'X_meas_l0': dim_s0, 'X_err_l0': 2*dim_s0},
+                    # 'legend': {'X_pre_l1': 0, 'X_meas_l0': dim_s0, 'X_err_l0': 2*dim_s0},
+                    'legend': {'Model goal input': 0, 'Model state input': dim_s0, 'Model error input': 2*dim_s0},
                     # 'xticks': False,
                     'xticklabels': False,
                     'ylabel': 'State',
@@ -545,10 +553,11 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             
             [
                 {
-                    'input': ['Y'], 'plot': partial(timeseries, marker = '.'),
+                    'input': ['Y'], 'plot': partial(timeseries, marker = '.', markersize=1.2),
                     'title': 'Model %s input $\mathbf{Y}$' % (algo),
                     'title_pos': 'top_out',
-                    'legend': {'Y_pre_l0': 0},
+                    # 'legend': {'Y_pre_l0': 0},
+                    'legend': {'Model target': 0},
                     # 'xticks': False,
                     'xticklabels': False,
                     'ylabel': 'State',
@@ -557,11 +566,14 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             
             [
                 {
-                    'input': ['hidden'], 'plot': partial(timeseries, marker = '.'),
+                    'input': ['hidden'],
+                    'plot': partial(timeseries, marker = '.', markersize=1.2),
                     'title': 'Model %s hidden activation $\mathbf{Z}$' % (algo),
                     'title_pos': 'top_out',
+                    'cmap_idx': [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
                     # FIXME: knn particulars
-                    'legend': {'Z_dist': 0, 'E(Z_dist)': 5, 'Z_idx': 6},
+                    # 'legend': {'Z_dist': 0, 'E(Z_dist)': 5, 'Z_idx': 6},
+                    'legend': {'Neighbor distances': 0, 'Avg neighbor dist': 5, 'Input neighbors': 6},
                     # 'xticks': False,
                     'xticklabels': False,
                     'ylabel': 'Activation',
@@ -570,10 +582,11 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             
             [
                 {
-                    'input': ['wo_norm', 'wo_norm_fwd'], 'plot': partial(timeseries, marker = '.'),
+                    'input': ['wo_norm', 'wo_norm_fwd'], 'plot': partial(timeseries, marker = '.', markersize=1.2),
                     'title': 'Model %s parameter norm (accumulated adaptation)' % (algo),
                     'title_pos': 'top_out',
-                    'legend': {'|W|': 0},
+                    # 'legend': {'|W|': 0},
+                    'legend': {'Dictionary size': 3},
                     'xlabel': 'Time step [k]',
                     'ylabel': 'Weight norm',
                 },

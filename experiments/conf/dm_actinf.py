@@ -234,10 +234,11 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
         'subplots': [
             [
                 {
-                    'input': ['err',], 'plot': partial(timeseries, marker='.'),
+                    'input': ['err',], 'plot': partial(timeseries, marker='.', markersize=1.2),
                     'title': 'Momentary prediction error',
                     'title_pos': 'top_out',
-                    'legend': {'e(s_p)': 0},
+                    # 'legend': {'e(s_p)': 0},
+                    'legend': {'Error': 0},
                     # 'xticks': True,
                     'xticklabels': False,
                     'ylabel': 'State',
@@ -247,10 +248,10 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             [
                 {
                     'input': ['goals', 's0', 'pre'],
-                    'plot': [partial(timeseries, marker='.')] * 3,
+                    'plot': [partial(timeseries, marker='.', markersize=1.2)] * 3,
                     'title': 'Goal, state, and prediction',
                     'title_pos': 'top_out',
-                    'legend': {'Goal': 0, 'State': dim_s0, 'State_p': 2*dim_s0},
+                    'legend': {'Goal': 0, 'State': dim_s0, 'Predicted state': 2*dim_s0},
                     # 'xticks': False,
                     'xticklabels': False,
                     'ylabel': 'State',
@@ -266,10 +267,10 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             
             [
                 {
-                    'input': ['X_fit'], 'plot': partial(timeseries, marker='.'),
+                    'input': ['X_fit'], 'plot': partial(timeseries, marker='.', markersize=1.2),
                     'title': 'Model %s input $\mathbf{X}$' % (algo),
                     'title_pos': 'top_out',
-                    'legend': {'X_pre_l1': 0, 'X_prerr_l0': dim_s0},
+                    'legend': {'Model goal input': 0, 'Model error input': dim_s0},
                     # 'xticks': False,
                     'xticklabels': False,
                     'ylabel': 'State',
@@ -278,10 +279,10 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             
             [
                 {
-                    'input': ['tgt'], 'plot': partial(timeseries, marker='.'),
+                    'input': ['tgt'], 'plot': partial(timeseries, marker='.', markersize=1.2),
                     'title': 'Model %s input $\mathbf{Y}$' % (algo),
                     'title_pos': 'top_out',
-                    'legend': {'Y_tgt': 0},
+                    'legend': {'Model target': 0},
                     # 'xticks': False,
                     'xticklabels': False,
                     'ylabel': 'State',
@@ -291,10 +292,11 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             [
                 {
                     'input': ['mse_s_p_accum',],
-                    'plot': partial(timeseries, marker='.'),
+                    'plot': partial(timeseries, marker='.', markersize=1.2),
                     'title': 'Accumulated error',
                     'title_pos': 'top_out',
-                    'legend': {'$\sum$ err': 0},
+                    # 'legend': {'$\sum$ err': 0},
+                    'legend': {'Error sum': 0},
                     'xlabel': 'Time step [k]',
                     'ylabel': 'Error sum',
                 }

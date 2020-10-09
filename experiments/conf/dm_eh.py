@@ -581,9 +581,9 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             [
                 {
                     'input': ['err',],
-                    'plot': partial(timeseries, marker='.'),
-                    'title': 'Momentary error and reward',
-                    'legend': {'e(s_p)': 0},
+                    'plot': partial(timeseries, marker='.', markersize=1.2),
+                    'title': 'Reward (negative root mean squared error)',
+                    'legend': {'Reward': 0},
                     # 'xticks': False,
                     'xticklabels': False,
                     'ylabel': 'Reward',
@@ -593,9 +593,9 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             [
                 {
                     'input': ['goals', 's0', 'pre'],
-                    'plot': partial(timeseries, marker='.'),
+                    'plot': partial(timeseries, marker='.', markersize=1.2),
                     'title': 'Goal, state and prediction',
-                    'legend': {'Goal': 0, 'State': dim_s0, 'State_p': 2*dim_s0},
+                    'legend': {'Goal': 0, 'State': dim_s0, 'Predicted state': 2*dim_s0},
                     # 'xticks': False,
                     'xticklabels': False,
                     'ylabel': 'State',
@@ -605,9 +605,9 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             [
                 {
                     'input': ['hidden'],
-                    'plot': partial(timeseries, marker='.'),
-                    'title': 'Hidden activation of reservoir $\mathbf{r}$ (partial)',
-                    'legend': {'$\mathbf{r}$': 0},
+                    'plot': partial(timeseries, marker='.', markersize=1.2),
+                    'title': 'Hidden activation',
+                    'legend': {'Hidden activation $\mathbf{r}$': 0},
                     'xticklabels': False,
                     'ylabel': 'Activation',
                 }
@@ -616,9 +616,9 @@ def plot_timeseries_block(l0 = 'pre_l0', l1 = 'pre_l1', blocksize = 1):
             [
                 {
                     'input': ['wo_norm'],
-                    'plot': partial(timeseries, marker='.'),
-                    'title': 'Model %s parameter norm (accumulated adaptation)' % (algo),
-                    'legend': {'$|\mathbf{W}_o|$': 0},
+                    'plot': partial(timeseries, marker='.', markersize=1.2),
+                    'title': 'Accumulated adaptation',
+                    'legend': {'Weight norm $|\mathbf{W}_o|$': 0},
                     'xlabel': 'Time step [k]',
                     'ylabel': 'Weight norm',
                 }
